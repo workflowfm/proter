@@ -1,4 +1,4 @@
-package com.workflowfm.pew.simulation
+package com.workflowfm.simulator
 
 import scala.annotation.tailrec
 

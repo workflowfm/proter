@@ -4,7 +4,7 @@ import akka.actor.Props
 import akka.actor.Actor
 import akka.actor.ActorRef
 import akka.actor.ActorSystem
-import com.workflowfm.pew.execution.SimulatorExecutor
+import com.workflowfm.simulator.SimulatorExecutor
 import com.workflowfm.simulator.Simulation
 import com.workflowfm.simulator.Coordinator
 
@@ -44,8 +44,8 @@ class SimMetricsActor(m:SimMetricsOutput, callbackActor:Option[ActorRef])(implic
 /** Contains the messages involved in [[SimMetricsActor]] and the [[akka.actor.Props]] initializer. */
 object SimMetricsActor {
   case class Start(coordinator:ActorRef)
-  case class StartSims(coordinator:ActorRef,sims:Seq[(Long,Simulation)],executor:SimulatorExecutor[_])
-  case class StartSimsNow(coordinator:ActorRef,sims:Seq[Simulation],executor:SimulatorExecutor[_])
+  case class StartSims(coordinator:ActorRef,sims:Seq[(Long,Simulation)],executor:SimulatorExecutor)
+  case class StartSimsNow(coordinator:ActorRef,sims:Seq[Simulation],executor:SimulatorExecutor)
   
   def props(m:SimMetricsOutput, callbackActor:Option[ActorRef]=None)(implicit system: ActorSystem): Props = Props(new SimMetricsActor(m,callbackActor)(system))
 }

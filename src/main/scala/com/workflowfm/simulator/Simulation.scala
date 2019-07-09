@@ -4,35 +4,34 @@ import akka.actor._
 import scala.concurrent.duration._
 import scala.concurrent.Await
 import scala.concurrent.Future
-import com.workflowfm.pew.execution.AkkaExecutor
 import scala.util.Success
 import scala.util.Failure
 import scala.concurrent.ExecutionContext
-import com.workflowfm.pew.PiProcess
-import com.workflowfm.pew.execution.SimulatorExecutor
 
 
 abstract class Simulation(val name:String)  { //extends SimulationMetricTracker
-  def run(executor:SimulatorExecutor[_]):Future[Any]
-  def getProcesses():Seq[PiProcess]
+  def run(executor:SimulatorExecutor):Future[Any]
+}
+
+trait SimulatorExecutor {
+  /**
+    *  This should check all executing PiInstances if they are simulationReady.
+    *  This means that all possible execution has been performed and they are all
+    *  waiting for simulation time to pass.
+    *  @return true if all PiInstances are simulationReady
+    */
+  def simulationReady:Boolean
 }
 
 class TaskSimulation(simulationName:String, coordinator:ActorRef, resources:Seq[String], duration:ValueGenerator[Long], val cost:ValueGenerator[Long]=new ConstantGenerator(0L), interrupt:Int=(-1), priority:Task.Priority=Task.Medium)(implicit system: ActorSystem) extends Simulation(simulationName) {
-  def run(executor:SimulatorExecutor[_]) = {
+  def run(executor:SimulatorExecutor) = {
     TaskGenerator(simulationName + "Task", simulationName, duration, cost, interrupt, priority).addTo(coordinator,resources :_*)
 	}
-  override def getProcesses() = Seq()
 }
 
-class MockExecutor extends Actor {
-  def receive = {
-    case AkkaExecutor.Ping => sender() ! AkkaExecutor.Ping
-  }
-}
-
-trait SimulatedProcess { this:PiProcess =>
+trait SimulatedProcess {
    def simulationName:String
-   override def isSimulatedProcess = true
+   def isSimulatedProcess = true
    
    def simulate[T](gen:TaskGenerator, coordinator:ActorRef, result:T, resources:String*)(implicit system: ActorSystem, context: ExecutionContext = ExecutionContext.global):Future[T] ={
      gen.addTo(coordinator, resources:_*).map(_ => result)

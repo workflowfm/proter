@@ -5,7 +5,6 @@ import akka.util.Timeout
 import akka.pattern.ask
 import scala.concurrent.duration._
 import com.workflowfm.simulator.metrics._
-import com.workflowfm.pew.execution._
 import scala.collection.mutable.PriorityQueue
 import scala.concurrent.{ Promise, Await, ExecutionContext }
 import scala.util.{ Success, Failure }
@@ -19,10 +18,10 @@ object Coordinator {
   case object Ping
   case class Time(time:Long)
 
-  case class AddSim(t:Long,sim:Simulation,exe:SimulatorExecutor[_])
-  case class AddSims(l:Seq[(Long,Simulation)],exe:SimulatorExecutor[_])
-  case class AddSimNow(sim:Simulation,exe:SimulatorExecutor[_])
-  case class AddSimsNow(l:Seq[Simulation],exe:SimulatorExecutor[_])
+  case class AddSim(t:Long,sim:Simulation,exe:SimulatorExecutor)
+  case class AddSims(l:Seq[(Long,Simulation)],exe:SimulatorExecutor)
+  case class AddSimNow(sim:Simulation,exe:SimulatorExecutor)
+  case class AddSimsNow(l:Seq[Simulation],exe:SimulatorExecutor)
   
   case class AddResource(r:TaskResource)
   case class AddResources(l:Seq[TaskResource])
@@ -62,10 +61,10 @@ class Coordinator(
     }
   }
   case class FinishingTask(override val time:Long,task:Task) extends Event
-  case class StartingSim(override val time:Long,simulation:Simulation,executor:SimulatorExecutor[_]) extends Event
+  case class StartingSim(override val time:Long,simulation:Simulation,executor:SimulatorExecutor) extends Event
   
   var resourceMap :Map[String,TaskResource] = Map[String,TaskResource]() ///: resources){ case (m,r) => m + (r.name -> r)}
-  var simulations :Map[String,SimulatorExecutor[_]] = Map[String,SimulatorExecutor[_]]()
+  var simulations :Map[String,SimulatorExecutor] = Map[String,SimulatorExecutor]()
   val tasks :Queue[Task] = Queue()
   
   val events = new PriorityQueue[Event]()
@@ -100,7 +99,7 @@ class Coordinator(
     case _ => println(s"[$time] <*> <*> <*> Failed to handle event: $event")
   }
 
-  protected def startSimulation(t:Long, s:Simulation, e:SimulatorExecutor[_]) :Boolean = {
+  protected def startSimulation(t:Long, s:Simulation, e:SimulatorExecutor) :Boolean = {
     if (t == time) {
       println("["+time+"] Starting simulation: \"" + s.name +"\".")
       metrics += (s,t)

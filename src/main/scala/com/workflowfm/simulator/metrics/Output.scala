@@ -1,7 +1,24 @@
 package com.workflowfm.simulator.metrics
 
 import scala.collection.immutable.Queue
-import com.workflowfm.pew.metrics.{ FileOutput, MetricsOutput }
+import org.apache.commons.lang3.time.DurationFormatUtils
+import java.text.SimpleDateFormat
+
+/** Helper to write stuff to a file.
+  * @todo Move somewhere else as a utility?
+  */
+trait FileOutput {
+  import java.io._
+  
+  def writeToFile(filePath:String,output:String) = try {
+    val file = new File(filePath)
+    val bw = new BufferedWriter(new FileWriter(file))
+    bw.write(output)
+    bw.close()
+  } catch {
+    case e:Exception => e.printStackTrace()
+  }
+}
 
 /** Manipulates a [[SimMetricsAggregator]] to produce some output via side-effects.
   *
@@ -12,6 +29,21 @@ import com.workflowfm.pew.metrics.{ FileOutput, MetricsOutput }
 trait SimMetricsOutput extends ((Long,SimMetricsAggregator) => Unit) {
   /** Compose with another [[SimMetricsOutput]] in sequence. */
   def and(h:SimMetricsOutput) = SimMetricsOutputs(this,h)
+}
+/** Contains helpful formatting shortcut functions. */
+object SimMetricsOutput {
+  def formatOption[T](v:Option[T], nullValue: String, format:T=>String={ x:T => x.toString }) = v.map(format).getOrElse(nullValue)
+  def formatTime(format:String)(time:Long) = new SimpleDateFormat(format).format(time)
+  def formatTimeOption(time:Option[Long], format:String, nullValue:String) =
+    formatOption(time, nullValue, formatTime(format))
+  def formatDuration(from:Long, to:Long, format:String) =
+    DurationFormatUtils.formatDuration(to-from,format)
+  def formatDuration(from:Option[Long], to:Long, format:String, nullValue:String) =
+    from.map { f => DurationFormatUtils.formatDuration(to-f,format).toString } getOrElse(nullValue)
+  def formatDuration(from:Option[Long], to:Option[Long], format:String, nullValue:String) =
+    from.map { f => to.map {
+      t => DurationFormatUtils.formatDuration(t-f,format).toString } getOrElse(nullValue)
+    } getOrElse(nullValue)
 }
 
 /** A [[SimMetricsOutput]] consisting of a [[scala.collection.immutable.Queue]] of [[SimMetricsOutput]]s
@@ -47,7 +79,7 @@ trait SimMetricsStringOutput extends SimMetricsOutput {
     */  
   def taskCSV(separator:String, resSeparator:String)(m:TaskMetrics) = m match {
     case TaskMetrics(id,task,sim,ct,st,dur,cost,res) => 
-      Seq(id,task,sim,ct,MetricsOutput.formatOption(st,nullValue),m.delay,dur,cost,res.mkString(resSeparator)).mkString(separator)
+      Seq(id,task,sim,ct,SimMetricsOutput.formatOption(st,nullValue),m.delay,dur,cost,res.mkString(resSeparator)).mkString(separator)
   }
   
   /** The field names for [[SimulationMetrics]].
@@ -142,9 +174,9 @@ ${resHeader(sep)}
 ${resources(aggregator,sep,lineSep)}
 ---------
 
-Started: ${MetricsOutput.formatTimeOption(aggregator.start, timeFormat, nullTime)}
-Ended: ${MetricsOutput.formatTimeOption(aggregator.end, timeFormat, nullTime)}
-Duration: ${MetricsOutput.formatDuration(aggregator.start, aggregator.end, durFormat, nullTime)}
+Started: ${SimMetricsOutput.formatTimeOption(aggregator.start, timeFormat, nullTime)}
+Ended: ${SimMetricsOutput.formatTimeOption(aggregator.end, timeFormat, nullTime)}
+Duration: ${SimMetricsOutput.formatDuration(aggregator.start, aggregator.end, durFormat, nullTime)}
 """
         )
   }
