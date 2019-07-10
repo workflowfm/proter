@@ -7,9 +7,8 @@ import scala.concurrent.duration._
 import com.workflowfm.simulator.metrics._
 import scala.collection.mutable.PriorityQueue
 import scala.concurrent.{ Promise, Await, ExecutionContext }
-import scala.util.{ Success, Failure }
-
-
+import scala.util.{ Failure, Success, Try }
+import java.util.UUID
 
 object Coordinator {
   case object Start
@@ -26,9 +25,11 @@ object Coordinator {
   case class AddResource(r:TaskResource)
   case class AddResources(l:Seq[TaskResource])
   
-  case class SimDone(name:String,result:String)
+  case class SimReady(name: String)
+  case class SimDone(name: String, result: Try[Any])
 
-  case class AddTask(t:TaskGenerator, promise:Promise[TaskMetrics], resources:Seq[String])
+  case class AddTask(id: UUID, t:TaskGenerator, resources:Seq[String])
+  case class AddTasks(name: String, l: Seq[(UUID, TaskGenerator, Seq[String])])
   case object AckTask
 
   private case object Tick
@@ -103,7 +104,7 @@ class Coordinator(
     if (t == time) {
       println("["+time+"] Starting simulation: \"" + s.name +"\".")
       metrics += (s,t)
-      s.run(e).onComplete({
+      s.run().onComplete({
         case Success(res) => {
           stopSimulation(s.name, res.toString)
           println("*** Result of " + s.name + ": " + res)

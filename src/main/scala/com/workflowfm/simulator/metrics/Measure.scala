@@ -34,6 +34,9 @@ case class TaskMetrics (
 
   /** Returns the full task and simulation name. */
   def fullName = s"$task($simulation)"
+
+  /** Returns the time of completion (if any). */
+  def finished = started.map { s => s + duration }
 }
 object TaskMetrics {
   /** Generates [[TaskMetrics]] from a given [[Task]] assuming it has not started yet. */

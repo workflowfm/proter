@@ -89,13 +89,4 @@ case class TaskGenerator (
   def withName(n:String) = copy(name = n)
   def withSimulation(s:String) = copy(simulation=s)
   def withCreationTime(t:Long) = copy(createTime=t)
-  
-  def addTo(coordinator:ActorRef, resources:String*)(implicit system: ActorSystem) = {
-    //implicit val timeout = Timeout(1.second)
-    // change this to ? to require an acknowledgement
-    val promise = Promise[TaskMetrics]()
-    coordinator ! Coordinator.AddTask(this,promise,resources)
-    promise.future
-  }
-
 }
