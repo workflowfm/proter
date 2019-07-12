@@ -17,10 +17,10 @@ object Coordinator {
   case object Ping
   case class Time(time:Long)
 
-  case class AddSim(t:Long,sim:Simulation,exe:SimulatorExecutor)
-  case class AddSims(l:Seq[(Long,Simulation)],exe:SimulatorExecutor)
-  case class AddSimNow(sim:Simulation,exe:SimulatorExecutor)
-  case class AddSimsNow(l:Seq[Simulation],exe:SimulatorExecutor)
+  case class AddSim(t:Long,sim:Simulation)
+  case class AddSims(l:Seq[(Long,Simulation)])
+  case class AddSimNow(sim:Simulation)
+  case class AddSimsNow(l:Seq[Simulation])
   
   case class AddResource(r:TaskResource)
   case class AddResources(l:Seq[TaskResource])
@@ -62,10 +62,10 @@ class Coordinator(
     }
   }
   case class FinishingTask(override val time:Long,task:Task) extends Event
-  case class StartingSim(override val time:Long,simulation:Simulation,executor:SimulatorExecutor) extends Event
+  case class StartingSim(override val time:Long,simulation:Simulation) extends Event
   
   var resourceMap :Map[String,TaskResource] = Map[String,TaskResource]() ///: resources){ case (m,r) => m + (r.name -> r)}
-  var simulations :Map[String,SimulatorExecutor] = Map[String,SimulatorExecutor]()
+  var simulations :Map[String,Simulation] = Map[String,Simulation]()
   val tasks :Queue[Task] = Queue()
   
   val events = new PriorityQueue[Event]()
@@ -96,13 +96,13 @@ class Coordinator(
       task.complete(metrics.taskMap.getOrElse(task.id, TaskMetrics(task).start(time - task.duration)))
     }
     // A simulation (workflow) is starting now
-    case StartingSim(t,sim,exec) if (t == time)=> startSimulation(time,sim,exec)
+    case StartingSim(t,sim) if (t == time)=> startSimulation(time,sim)
     case _ => println(s"[$time] <*> <*> <*> Failed to handle event: $event")
   }
 
-  protected def startSimulation(t:Long, s:Simulation, e:SimulatorExecutor) :Boolean = {
+  protected def startSimulation(t:Long, s:Simulation) :Boolean = {
     if (t == time) {
-      println("["+time+"] Starting simulation: \"" + s.name +"\".")
+      println(s"""[$time] Starting simulation: "${s.name}".""")
       metrics += (s,t)
       s.run().onComplete({
         case Success(res) => {
@@ -116,7 +116,7 @@ class Coordinator(
         }
       })
 
-      simulations += (s.name -> e)
+      simulations += (s.name -> s)
       true
     } else false
   }
@@ -243,10 +243,10 @@ class Coordinator(
   }
 
   def receive = {
-    case Coordinator.AddSim(t,s,e) => events += StartingSim(t,s,e)
-    case Coordinator.AddSims(l,e) => events ++= l map { case (t,s) => StartingSim(t,s,e) }
-    case Coordinator.AddSimNow(s,e) => events += StartingSim(time,s,e)
-    case Coordinator.AddSimsNow(l,e) => events ++= l map { s => StartingSim(time,s,e) }
+    case Coordinator.AddSim(t,s) => events += StartingSim(t,s)
+    case Coordinator.AddSims(l) => events ++= l map { case (t,s) => StartingSim(t,s) }
+    case Coordinator.AddSimNow(s) => events += StartingSim(time,s)
+    case Coordinator.AddSimsNow(l) => events ++= l map { s => StartingSim(time,s) }
       
     case Coordinator.AddResource(r) => addResource(r)
     case Coordinator.AddResources(r) => r foreach addResource
