@@ -8,8 +8,6 @@ import org.scalatest.junit.JUnitRunner
 import scala.concurrent._
 import scala.concurrent.Await
 import scala.concurrent.duration._
-import com.workflowfm.pew._
-import com.workflowfm.pew.execution._
 import com.workflowfm.simulator.metrics._
 
 
@@ -23,8 +21,7 @@ class CoordinatorTests extends TestKit(ActorSystem("CoordinatorTests")) with Wor
   }
 
   "The Coordinator" must {
-  
-    val executor = new AkkaExecutor()  		
+ 		
     val handler = SimMetricsOutputs(new SimMetricsPrinter())
    
             //expectNoMessage(200.millis)
@@ -36,7 +33,7 @@ class CoordinatorTests extends TestKit(ActorSystem("CoordinatorTests")) with Wor
       val s = new TaskSimulation("S", coordinator, Seq("A","B"), new ConstantGenerator(2), new ConstantGenerator(2), -1, Task.Highest)
       
       coordinator ! Coordinator.AddResources(Seq(resA,resB))
-      coordinator ! Coordinator.AddSim(1,s,executor)
+      coordinator ! Coordinator.AddSim(1,s)
       coordinator ! Coordinator.Start
       
       val done = expectMsgType[Coordinator.Done](20.seconds)
@@ -52,8 +49,8 @@ class CoordinatorTests extends TestKit(ActorSystem("CoordinatorTests")) with Wor
       val s2 = new TaskSimulation("S2", coordinator, Seq("B"), new ConstantGenerator(2), new ConstantGenerator(2), -1, Task.Highest)
       
       coordinator ! Coordinator.AddResources(Seq(resA,resB))
-      coordinator ! Coordinator.AddSim(1,s1,executor)
-      coordinator ! Coordinator.AddSim(1,s2,executor)
+      coordinator ! Coordinator.AddSim(1,s1)
+      coordinator ! Coordinator.AddSim(1,s2)
       coordinator ! Coordinator.Start
       
       val done = expectMsgType[Coordinator.Done](20.seconds)
@@ -68,8 +65,8 @@ class CoordinatorTests extends TestKit(ActorSystem("CoordinatorTests")) with Wor
       val s2 = new TaskSimulation("S2", coordinator, Seq("A"), new ConstantGenerator(2), new ConstantGenerator(2), -1, Task.Highest)
       
       coordinator ! Coordinator.AddResources(Seq(resA))
-      coordinator ! Coordinator.AddSim(1,s1,executor)
-      coordinator ! Coordinator.AddSim(1,s2,executor)
+      coordinator ! Coordinator.AddSim(1,s1)
+      coordinator ! Coordinator.AddSim(1,s2)
       coordinator ! Coordinator.Start
       
       val done = expectMsgType[Coordinator.Done](20.seconds)
@@ -85,8 +82,8 @@ class CoordinatorTests extends TestKit(ActorSystem("CoordinatorTests")) with Wor
       val s2 = new TaskSimulation("S2", coordinator, Seq("A","B"), new ConstantGenerator(2), new ConstantGenerator(2), -1, Task.Medium)
       
       coordinator ! Coordinator.AddResources(Seq(resA,resB))
-      coordinator ! Coordinator.AddSim(1,s1,executor)
-      coordinator ! Coordinator.AddSim(1,s2,executor)
+      coordinator ! Coordinator.AddSim(1,s1)
+      coordinator ! Coordinator.AddSim(1,s2)
       coordinator ! Coordinator.Start
       
       val done = expectMsgType[Coordinator.Done](20.seconds)
@@ -109,9 +106,9 @@ class CoordinatorTests extends TestKit(ActorSystem("CoordinatorTests")) with Wor
       val s3 = new TaskSimulation("S3", coordinator, Seq("A","B"), new ConstantGenerator(2), new ConstantGenerator(2), -1, Task.Medium)
       
       coordinator ! Coordinator.AddResources(Seq(resA,resB))
-      coordinator ! Coordinator.AddSim(1,s1,executor)
-      coordinator ! Coordinator.AddSim(1,s2,executor)
-      coordinator ! Coordinator.AddSim(2,s3,executor)
+      coordinator ! Coordinator.AddSim(1,s1)
+      coordinator ! Coordinator.AddSim(1,s2)
+      coordinator ! Coordinator.AddSim(2,s3)
       coordinator ! Coordinator.Start
       
       val done = expectMsgType[Coordinator.Done](20.seconds)
@@ -129,7 +126,7 @@ class CoordinatorTests extends TestKit(ActorSystem("CoordinatorTests")) with Wor
       val coordinator = system.actorOf(Coordinator.props(DefaultScheduler))      
       val s1 = new TaskSimulation("S1", coordinator, Seq(), new ConstantGenerator(2), new ConstantGenerator(2), -1, Task.Highest)
       
-      coordinator ! Coordinator.AddSim(1,s1,executor)
+      coordinator ! Coordinator.AddSim(1,s1)
       coordinator ! Coordinator.Start
       
       val done = expectMsgType[Coordinator.Done](20.seconds)
@@ -146,8 +143,8 @@ class CoordinatorTests extends TestKit(ActorSystem("CoordinatorTests")) with Wor
       val s1 = new TaskSimulation("S1", coordinator, Seq(), new ConstantGenerator(2), new ConstantGenerator(2), -1, Task.Highest)
       val s2 = new TaskSimulation("S2", coordinator, Seq(), new ConstantGenerator(2), new ConstantGenerator(2), -1, Task.Highest)
       
-      coordinator ! Coordinator.AddSim(1,s1,executor)
-      coordinator ! Coordinator.AddSim(1,s2,executor)
+      coordinator ! Coordinator.AddSim(1,s1)
+      coordinator ! Coordinator.AddSim(1,s2)
       coordinator ! Coordinator.Start
       
       val done = expectMsgType[Coordinator.Done](20.seconds)
@@ -161,8 +158,7 @@ class CoordinatorTests extends TestKit(ActorSystem("CoordinatorTests")) with Wor
   }
   
   "The MetricsActor" must {
-  
-    val executor = new AkkaExecutor()  		
+	
     val handler = SimMetricsOutputs(new SimMetricsPrinter())
    
             //expectNoMessage(200.millis)
@@ -175,7 +171,7 @@ class CoordinatorTests extends TestKit(ActorSystem("CoordinatorTests")) with Wor
       val s = new TaskSimulation("S", coordinator, Seq("A"), new ConstantGenerator(1), new ConstantGenerator(2), -1, Task.Highest)
       
       coordinator ! Coordinator.AddResources(Seq(resA))
-      coordinator ! Coordinator.AddSim(1,s,executor)
+      coordinator ! Coordinator.AddSim(1,s)
       
       val metricsActor = system.actorOf(SimMetricsActor.props(handler,Some(self)))
       metricsActor ! SimMetricsActor.Start(coordinator)
@@ -195,7 +191,7 @@ class CoordinatorTests extends TestKit(ActorSystem("CoordinatorTests")) with Wor
       coordinator ! Coordinator.AddResources(Seq(resA))
       
       val metricsActor = system.actorOf(SimMetricsActor.props(handler,Some(self)))
-      metricsActor ! SimMetricsActor.StartSims(coordinator,Seq((1,s1),(1,s2)),executor)
+      metricsActor ! SimMetricsActor.StartSims(coordinator,Seq((1,s1),(1,s2)))
       
       expectMsgType[Coordinator.Done](20.seconds)
     }

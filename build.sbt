@@ -1,4 +1,4 @@
-ThisBuild / version          := "0.0.1-SNAPSHOT"
+ThisBuild / version          := "0.1"
 ThisBuild / organization     := "com.workflowfm"
 ThisBuild / scalaVersion     := "2.12.6"
 
@@ -11,6 +11,7 @@ lazy val root = (project in file("."))
   .settings(
     name := "WorkflowFM-Simulator",
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.0-SNAP10" % Test,
+    libraryDependencies +=  "org.scalacheck" %% "scalacheck" % "1.14.0" % Test,
 
     libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.4.12",
     libraryDependencies += "com.typesafe.akka" %% "akka-testkit" % "2.5.16" % "test",

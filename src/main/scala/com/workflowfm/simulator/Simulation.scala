@@ -10,10 +10,8 @@ import scala.concurrent.ExecutionContext
 
 
 abstract class Simulation(val name:String)  { //extends SimulationMetricTracker
-  def run(executor:SimulatorExecutor):Future[Any]
-}
+  def run():Future[Any]
 
-trait SimulatorExecutor {
   /**
     *  This should check all executing PiInstances if they are simulationReady.
     *  This means that all possible execution has been performed and they are all
@@ -24,9 +22,11 @@ trait SimulatorExecutor {
 }
 
 class TaskSimulation(simulationName:String, coordinator:ActorRef, resources:Seq[String], duration:ValueGenerator[Long], val cost:ValueGenerator[Long]=new ConstantGenerator(0L), interrupt:Int=(-1), priority:Task.Priority=Task.Medium)(implicit system: ActorSystem) extends Simulation(simulationName) {
-  def run(executor:SimulatorExecutor) = {
+  override def run() = {
     TaskGenerator(simulationName + "Task", simulationName, duration, cost, interrupt, priority).addTo(coordinator,resources :_*)
-	}
+  }
+
+  override def simulationReady = true
 }
 
 trait SimulatedProcess {
