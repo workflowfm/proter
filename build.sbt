@@ -1,4 +1,4 @@
-ThisBuild / version          := "0.1"
+ThisBuild / version          := "0.1.1"
 ThisBuild / organization     := "com.workflowfm"
 ThisBuild / scalaVersion     := "2.12.6"
 
@@ -9,7 +9,7 @@ resolvers += Resolver.sbtPluginRepo("releases")
 
 lazy val root = (project in file("."))
   .settings(
-    name := "WorkflowFM-Simulator",
+    name := "wfm-simulator",
     libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.0-SNAP10" % Test,
     libraryDependencies +=  "org.scalacheck" %% "scalacheck" % "1.14.0" % Test,
 
