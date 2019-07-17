@@ -31,7 +31,6 @@ class TaskSimulation(simulationName:String, coordinator:ActorRef, resources:Seq[
 
 trait SimulatedProcess {
    def simulationName:String
-   def isSimulatedProcess = true
    
    def simulate[T](gen:TaskGenerator, coordinator:ActorRef, result:T, resources:String*)(implicit system: ActorSystem, context: ExecutionContext = ExecutionContext.global):Future[T] ={
      gen.addTo(coordinator, resources:_*).map(_ => result)
