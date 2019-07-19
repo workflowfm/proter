@@ -5,55 +5,19 @@ import akka.util.Timeout
 import akka.pattern.ask
 import scala.concurrent.duration._
 import com.workflowfm.simulator.metrics._
-import scala.collection.mutable.PriorityQueue
+import scala.collection.mutable.{ Map, Queue, PriorityQueue, HashSet, SortedSet }
 import scala.concurrent.{ Promise, Await, ExecutionContext }
 import scala.util.{ Failure, Success, Try }
 import java.util.UUID
 
-object Coordinator {
-  case object Start
-  //TODO case object Stop
-  case class Done(time:Long,metrics:SimMetricsAggregator)
-  case object Ping
-  case class Time(time:Long)
-
-  case class AddSim(t:Long,sim:Simulation)
-  case class AddSims(l:Seq[(Long,Simulation)])
-  case class AddSimNow(sim:Simulation)
-  case class AddSimsNow(l:Seq[Simulation])
-  
-  case class AddResource(r:TaskResource)
-  case class AddResources(l:Seq[TaskResource])
-  
-  case class SimReady(name: String)
-  case class SimDone(name: String, result: Try[Any])
-
-  case class AddTask(id: UUID, t:TaskGenerator, resources:Seq[String])
-  case class AddTasks(name: String, l: Seq[(UUID, TaskGenerator, Seq[String])])
-  case object AckTask
-
-  private case object Tick
-  private case object Tack
-  private case object Tock
-
-  def props(
-    scheduler: Scheduler,
-    startingTime: Long = 0L,
-    timeoutMillis: Int = 50
-  )(implicit system: ActorSystem, executionContext:ExecutionContext
-  ): Props = Props(new Coordinator(scheduler,startingTime,timeoutMillis)(system,executionContext))
-}
 
 class Coordinator(
   scheduler :Scheduler,
-  startingTime:Long,
-  timeoutMillis:Int
+  startingTime:Long
 )(
   implicit system: ActorSystem,
   implicit val executionContext:ExecutionContext
 ) extends Actor {
-
-  import scala.collection.mutable.Queue
   
   sealed trait Event extends Ordered[Event] {
     def time:Long
@@ -61,18 +25,18 @@ class Coordinator(
       that.time.compare(time)
     }
   }
-  case class FinishingTask(override val time:Long,task:Task) extends Event
-  case class StartingSim(override val time:Long,simulation:Simulation) extends Event
+  case class FinishingTask(override val time: Long, task: Task) extends Event
+  case class StartingSim(override val time: Long, simulation: ActorRef) extends Event
   
-  var resourceMap :Map[String,TaskResource] = Map[String,TaskResource]() ///: resources){ case (m,r) => m + (r.name -> r)}
-  var simulations :Map[String,Simulation] = Map[String,Simulation]()
-  val tasks :Queue[Task] = Queue()
+  val resourceMap: Map[String,TaskResource] = Map[String,TaskResource]() 
+  val waiting: HashSet[ActorRef] = HashSet[ActorRef]()
+  val simulations: HashSet[String] = HashSet[String]()
+  val tasks: SortedSet[Task] = SortedSet()
   
   val events = new PriorityQueue[Event]()
   
-  var starter:Option[ActorRef] = None
+  var starter: Option[ActorRef] = None
   var time = startingTime
-  var taskID = 0L
   
   val metrics = new SimMetricsAggregator()
   
@@ -85,46 +49,32 @@ class Coordinator(
   }
 
   protected def handleEvent(event:Event) = event match {
-    //println("["+time+"] ========= Event! ========= ")
+    //println(s"[$time] ========= Event! ========= ")
     // A task is finished
-    case FinishingTask(t,task) if (t == time) => {
-      // Unbind the resources
-      //resourceMap map { case (n,r) => (n,resourceUpdate(r)) } TODO why was that better originally?
-      task.taskResources(resourceMap).foreach(_.finishTask(time))
-      // Mark the task as completed
-      // This will cause workflows to reduce and maybe produce more tasks
-      task.complete(metrics.taskMap.getOrElse(task.id, TaskMetrics(task).start(time - task.duration)))
-    }
+    case FinishingTask(t,task) if (t == time) => stopTask(time,task)
+
     // A simulation (workflow) is starting now
-    case StartingSim(t,sim) if (t == time)=> startSimulation(time,sim)
+    case StartingSim(t, sim) if (t == time)=> startSimulationActor(sim)
+
     case _ => println(s"[$time] <*> <*> <*> Failed to handle event: $event")
   }
 
-  protected def startSimulation(t:Long, s:Simulation) :Boolean = {
-    if (t == time) {
-      println(s"""[$time] Starting simulation: "${s.name}".""")
-      metrics += (s,t)
-      s.run().onComplete({
-        case Success(res) => {
-          stopSimulation(s.name, res.toString)
-          println("*** Result of " + s.name + ": " + res)
-        }
-        case Failure(ex) => {
-          stopSimulation(s.name, ex.getLocalizedMessage)
-          println("*** Exception in " + s.name + ": ")
-          ex.printStackTrace()
-        }
-      })
-
-      simulations += (s.name -> s)
-      true
-    } else false
+  protected def startSimulationActor(simActor: ActorRef) = {
+    waiting += simActor
+    simActor ! SimulationActor.Start
   }
 
-  protected def stopSimulation(name:String, result:String) = {
-    simulations -= name
+  protected def startSimulation(name: String, simActor: ActorRef): Unit = {
+    println(s"""[$time] Starting simulation: "${name}".""")
+    metrics += (name,time)
+    simulations += name
+  }
+
+  protected def stopSimulation(name: String, result: String, actor: ActorRef) = {
     (metrics^name) (_.done(result,time))
+    simulations -= name
     println(s"[$time] Simulation $name reported done.")
+    ready(actor)
   }
  
   //  protected def updateSimulation(s:String, f:WorkflowMetricTracker=>WorkflowMetricTracker) = simulations = simulations map {
@@ -137,8 +87,35 @@ class Coordinator(
     r.update(time)
   }
 
+  protected def addTasks(actor: ActorRef, l: Seq[(UUID, TaskGenerator, Seq[String])]) {
+    l map { case (i,g,r) => addTask(i,g,r) }
+    ready(actor)
+  }
+
+  protected def addTask(id: UUID, gen: TaskGenerator, resources: Seq[String]) {
+      val creation = if (gen.createTime >= 0) gen.createTime else time
+      // Create the task
+      val t = gen.create(id, creation, sender, resources:_*)
+
+      println(s"[$time] Adding task [$id] created at [$creation]: ${t.name} (${t.simulation}).")
+      
+      // Calculate the cost of all resource usage. We only know this now!
+      val resourceCost = (0L /: t.taskResources(resourceMap)) { case (c,r) => c + r.costPerTick * t.duration }
+      t.addCost(resourceCost)
+      
+      metrics += t
+
+      if (resources.length > 0)
+        tasks += t
+      else
+        // if the task does not require resources, start it now
+        startTask(t)
+
+      //sender() ! Coordinator.AckTask(t) //uncomment this to acknowledge AddTask
+  }
+
   protected def startTask(task:Task) {
-    tasks.dequeueFirst (_.id == task.id)
+    tasks -= task
     // Mark the start of the task in the metrics
     (metrics^task.id)(_.start(time))
     task.taskResources(resourceMap) map { r =>
@@ -154,22 +131,42 @@ class Coordinator(
     // Generate a FinishTask event to be triggered at the end of the event
     events += FinishingTask(time+task.duration,task)
   }
-  
-  /**
-    * Runs all tasks that require no resources
-    */
-  protected def runNoResourceTasks() = tasks.dequeueAll(_.resources.isEmpty).map(startTask)
-  
-  protected def workflowsReady = simulations forall (_._2.simulationReady)
-  
-  /**
-    * First half of a clock tick
-    * We need two halves because we want to give the workflows a chance to reduce
-    * and register new tasks to the Coordinator. The Coordinator must receive those
-    * through messages between now and the Tack message.  
-    */
-  protected def tick :Unit = {
 
+  protected def stopTask(t: Long, task: Task) {
+    // Unbind the resources
+    //resourceMap map { case (n,r) => (n,resourceUpdate(r)) } TODO why was that better originally?
+    task.taskResources(resourceMap).foreach(_.finishTask(time))
+
+    val resultMetrics = metrics.taskMap.getOrElse(task.id, TaskMetrics(task).start(time - task.duration))
+
+    waiting += task.actor
+    task.actor ! SimulationActor.TaskCompleted(task.id, resultMetrics)
+  }
+
+//  /**
+//    * Runs all tasks that require no resources
+//    */
+//  protected def runNoResourceTasks(): Int = tasks.dequeueAll(_.resources.isEmpty).map(startTask).length
+
+  protected def ready(actor: ActorRef): Unit = {
+    waiting -= actor
+    // Are all actors ready?
+    if (waiting.isEmpty) {
+      allocateTasks()
+      tick()
+    }
+  }
+
+  def start(a:ActorRef) = if (starter.isEmpty) {
+    starter = Some(a)
+    metrics.started
+    tick
+  }
+
+  protected def tick(): Unit = {
+    println("***TICK!***")
+    // Update idle resources
+    resourceMap.values.foreach(resourceIdle)
     // Are events pending?
     if (!events.isEmpty) {
       // Grab the first event
@@ -187,96 +184,73 @@ class Coordinator(
           handleEvent(events.dequeue)
       }
     }
-    //    val startedActors = res filter (_._1 == true) map (_._2.executor)
-    //    for (a <- startedActors)
-    //      a ? AkkaExecutor.Ping
-
-    self ! Coordinator.Tack
-  }
-
-
-  protected def tack :Unit = {
-    println(s"[$time] Waiting for workflow progress...")
-    Thread.sleep(timeoutMillis)
-
-    if (!workflowsReady) {
-      self ! Coordinator.Tack
-      //    val simActors = simulations map (_._2.executor)
-      //    for (a <- simActors)
-      //      a ? AkkaExecutor.Ping}
-
-    } else {
-      //println("################### pass!!! #######################")
-      self ! Coordinator.Tock
-    }
-  }
-   
-
-  protected def tock :Unit = {
-    // Make sure we run tasks that need no resources
-    runNoResourceTasks()
-
-    // Assign the next tasks
-    scheduler.getNextTasks(tasks, time, resourceMap).foreach(startTask)
-    // Update idle resources
-    resourceMap.values.foreach(resourceIdle)
-
-    
-    // We finish if there are no events, no tasks, and all workflows have reduced
-    // Actually all workflows must have reduced at this stage, but we check anyway
-    //println(s"!TOCK! Events:${events.size} Tasks:${tasks.size} Workflows:$workflowsReady Simulations:${simulations.size} ")
-    if (events.isEmpty && tasks.isEmpty && workflowsReady) { // && simulations.isEmpty) { //&& resources.forall(_.isIdle)
-      println("["+time+"] All events done. All tasks done. All workflows idle.") // All simulations done..")
+    else if (tasks.isEmpty && simulations.isEmpty) {
+      println(s"[$time] All events done. All tasks done. All simulations done.")
       metrics.ended
       // Tell whoever started us that we are done
       starter map { a => a ! Coordinator.Done(time,metrics) }
 
-    } else {
-      self ! Coordinator.Tick
+    } else if (waiting.isEmpty) { // this may happen if handleEvent fails
+      allocateTasks()
+      tick()
     }
   }
 
-  def start(a:ActorRef) = if (starter.isEmpty) {
-    starter = Some(a)
-    metrics.started
-    tick
+  protected def allocateTasks() = {
+    println(s"Allocating tasks: $tasks")
+    // Assign the next tasks
+    scheduler.getNextTasks(tasks, time, resourceMap).foreach(startTask)
   }
 
   def receive = {
-    case Coordinator.AddSim(t,s) => events += StartingSim(t,s)
-    case Coordinator.AddSims(l) => events ++= l map { case (t,s) => StartingSim(t,s) }
-    case Coordinator.AddSimNow(s) => events += StartingSim(time,s)
-    case Coordinator.AddSimsNow(l) => events ++= l map { s => StartingSim(time,s) }
-      
+    case Coordinator.AddSim(t, s) => {
+      println(s"Adding simulation actor $s to start at $t")
+      if (t >= time) events += StartingSim(t, s)
+    }
     case Coordinator.AddResource(r) => addResource(r)
     case Coordinator.AddResources(r) => r foreach addResource
            
-    case Coordinator.AddTask(gen,promise,resources) => {
-      val creation = if (gen.createTime >= 0) gen.createTime else time
-      // Create the task
-      val t = gen.create(taskID,creation,resources:_*)
-      // This is ok only if the simulation is running in memory
-      // Promises cannot be sent over messages otherwise as they are not serializable
-      promise.completeWith(t.promise.future)
-      // Make sure the next taskID will be fresh
-      taskID = taskID + 1L
-      println(s"[$time] Adding task [$taskID] created at [$creation]: ${t.name} (${t.simulation}).")
-      
-      // Calculate the cost of all resource usage. We only know this now!
-      val resourceCost = (0L /: t.taskResources(resourceMap)) { case (c,r) => c + r.costPerTick * t.duration }
-      t.addCost(resourceCost)
-      
-      metrics += t
-      tasks += t
-      
-      //sender() ! Coordinator.AckTask(t) //uncomment this to acknowledge AddTask
+    case Coordinator.AddTasks(l) => addTasks(sender, l)
+    case Coordinator.SimStarted(name) => startSimulation(name, sender)
+    case Coordinator.SimDone(name, result) => result match {
+      case Success(res) => {
+        stopSimulation(name, res.toString, sender)
+        println(s"*** Result of $name: $res")
+      }
+      case Failure(ex) => {
+        stopSimulation(name, ex.getLocalizedMessage, sender)
+        println(s"*** Exception in $name: ")
+        ex.printStackTrace()
+        }
     }
-
     case Coordinator.Start => start(sender)
-    case Coordinator.Tick => tick
-    case Coordinator.Tack => tack
-    case Coordinator.Tock => tock
     case Coordinator.Ping => sender() ! Coordinator.Time(time)
 
   }
+}
+
+ object Coordinator {
+  case object Start
+  //TODO case object Stop
+  case class Done(time: Long, metrics: SimMetricsAggregator)
+  case object Ping
+  case class Time(time: Long)
+
+  case class AddSim(t: Long, actor: ActorRef)
+  
+  case class AddResource(r: TaskResource)
+  case class AddResources(l: Seq[TaskResource])
+  
+  case class SimStarted(name: String)
+  case class SimDone(name: String, result: Try[Any])
+
+  //case class AddTask(id: UUID, t: TaskGenerator, resources: Seq[String])
+  case class AddTasks(l: Seq[(UUID, TaskGenerator, Seq[String])])
+  case object AckTask
+
+    def props(
+    scheduler: Scheduler,
+    startingTime: Long = 0L
+    )(implicit system: ActorSystem, executionContext:ExecutionContext
+  ): Props = Props(new Coordinator(scheduler,startingTime)(system,executionContext))
 }

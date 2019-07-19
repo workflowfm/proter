@@ -1,9 +1,11 @@
 package com.workflowfm.simulator
 
 import scala.annotation.tailrec
+import scala.collection.{ Map, SortedSet }
+
 
 trait Scheduler {
-  def getNextTasks(tasks:Seq[Task], currentTime:Long, resourceMap:Map[String,TaskResource]) :Seq[Task]
+  def getNextTasks(tasks: SortedSet[Task], currentTime: Long, resourceMap: Map[String,TaskResource]): Seq[Task]
 
   def isIdleResource(r:String, resourceMap:Map[String,TaskResource]) = resourceMap.get(r) match {
       case None => false
@@ -15,27 +17,27 @@ trait Scheduler {
 object DefaultScheduler extends Scheduler {
   import scala.collection.immutable.Queue
 
-  override def getNextTasks(tasks:Seq[Task], currentTime:Long, resourceMap:Map[String,TaskResource]) :Seq[Task] =
-    findNextTasks(currentTime, resourceMap, resourceMap.mapValues(Schedule(_)), tasks.toList, Queue())
+  override def getNextTasks(tasks:SortedSet[Task], currentTime:Long, resourceMap:Map[String,TaskResource]) :Seq[Task] =
+    findNextTasks(currentTime, resourceMap, resourceMap.mapValues(Schedule(_)), tasks, Queue())
 
   @tailrec
   def findNextTasks(
-    currentTime:Long,
-    resourceMap:Map[String,TaskResource],
-    schedules:Map[String,Schedule],
-    tasks:List[Task],
-    result:Queue[Task]
-  ):Seq[Task] = tasks match {
-    case Nil => result
-    case t :: rest => {
+    currentTime: Long,
+    resourceMap: Map[String,TaskResource],
+    schedules: Map[String,Schedule],
+    tasks: SortedSet[Task],
+    result: Queue[Task]
+  ): Seq[Task] =
+    if (tasks.isEmpty) result
+    else {
+      val t = tasks.head
       val start = Schedule.merge(t.resources.flatMap(schedules.get(_))) ? (currentTime,t)
       val schedules2 = (schedules /: t.resources) {
         case (s,r) => s + (r -> (s.getOrElse(r,Schedule(Nil)) +> (start,t)))
       }
       val result2 = if (start == currentTime && t.taskResources(resourceMap).forall(_.isIdle)) result :+ t else result
-      findNextTasks(currentTime, resourceMap, schedules2, rest, result2)
+      findNextTasks(currentTime, resourceMap, schedules2, tasks.tail, result2)
     }
-  }    
 }
 
 case class Schedule(tasks:List[(Long,Long)]) {

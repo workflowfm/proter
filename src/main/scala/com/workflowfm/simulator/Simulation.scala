@@ -6,17 +6,13 @@ import scala.collection.mutable.{ Map, Queue }
 import scala.concurrent.{ ExecutionContext, Future, Promise }
 import java.util.UUID
 
-trait SimulationActor extends Actor {
+abstract class SimulationActor(name: String, coordinator: ActorRef) extends Actor {
   implicit val executionContext: ExecutionContext
-
-  def simulationName: String
-  val coordinator: ActorRef
-
-  private val tasks: Map[UUID,Promise[TaskMetrics]] = Map()
-  private val queue: Queue[(UUID, TaskGenerator, Seq[String])] = Queue()
 
   def run(): Future[Any]
 
+  private val tasks: Map[UUID,Promise[TaskMetrics]] = Map()
+  private val queue: Queue[(UUID, TaskGenerator, Seq[String])] = Queue()
 
   def task(t: TaskGenerator, resources: String*): Future[TaskMetrics] = {
     val id = java.util.UUID.randomUUID
@@ -29,13 +25,13 @@ trait SimulationActor extends Actor {
   def ready(): Unit = {
     val seq = queue.clone().toSeq
     queue.clear()
-    coordinator ! Coordinator.AddTasks(simulationName, seq)
+    coordinator ! Coordinator.AddTasks(seq)
   }
 
-
   private def start(): Unit = {
+    coordinator ! Coordinator.SimStarted(name)
     run().onComplete { x =>
-      coordinator ! Coordinator.SimDone(simulationName, x)
+      coordinator ! Coordinator.SimDone(name, x)
     }
   }
 
@@ -53,36 +49,38 @@ trait SimulationActor extends Actor {
 object SimulationActor {
   case object Start
   case class TaskCompleted(id: UUID, metrics: TaskMetrics)
+
+
 }
 
 
 trait SimulatedProcess {
-   def simulationName: String
+   def name: String
    def actor: SimulationActor
 
    def simulate[T](
      gen: TaskGenerator,
-     result:T,
+     result:TaskMetrics => T,
      resources:String*
-   )(implicit executionContext: ExecutionContext = ExecutionContext.global):Future[T] = {
-     actor.task(gen, resources:_*).map(_ => result)
+   )(implicit executionContext: ExecutionContext):Future[T] = {
+     actor.task(gen, resources:_*).map(m => result(m))
    }
 }
 
 
 class TaskSimulatorActor(
-  override val simulationName:String,
-  override val coordinator:ActorRef,
-  resources:Seq[String],
-  duration:ValueGenerator[Long],
-  val cost:ValueGenerator[Long]=new ConstantGenerator(0L),
-  interrupt:Int=(-1),
-  priority:Task.Priority=Task.Medium
-) extends SimulationActor {
+  name: String,
+  coordinator: ActorRef,
+  resources: Seq[String],
+  duration: ValueGenerator[Long],
+  cost: ValueGenerator[Long]=new ConstantGenerator(0L),
+  interrupt: Int=(-1),
+  priority: Task.Priority=Task.Medium
+)(override implicit val executionContext: ExecutionContext) extends SimulationActor(name, coordinator) {
   def run() = {
     val generator = TaskGenerator(
-      simulationName + "Task",
-      simulationName,
+      name + "Task",
+      name,
       duration,
       cost,
       interrupt,
@@ -95,17 +93,17 @@ class TaskSimulatorActor(
 
 object TaskSimulatorActor {
   def props (
-    simulationName:String,
-    coordinator:ActorRef,
-    resources:Seq[String],
-    duration:ValueGenerator[Long],
-    cost:ValueGenerator[Long]=new ConstantGenerator(0L),
-    interrupt:Int=(-1),
-    priority:Task.Priority=Task.Medium
-  ): Props =
+    name: String,
+    coordinator: ActorRef,
+    resources: Seq[String],
+    duration: ValueGenerator[Long],
+    cost: ValueGenerator[Long]=new ConstantGenerator(0L),
+    interrupt: Int=(-1),
+    priority: Task.Priority=Task.Medium
+  )(implicit executionContext: ExecutionContext): Props =
     Props(
       new TaskSimulatorActor(
-        simulationName,
+        name,
         coordinator,
         resources,
         duration,

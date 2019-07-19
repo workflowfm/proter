@@ -1,6 +1,7 @@
 package com.workflowfm.simulator.metrics
 
 import com.workflowfm.simulator._
+import java.util.UUID
 
 /** Metrics for a simulated [[Task]] that consumed virtual time.
   *
@@ -14,17 +15,17 @@ import com.workflowfm.simulator._
   * @param resources the list of names of the [[TaskResource]]s this [[Task]] used
   */
 case class TaskMetrics (
-    id:Long, 
-    task:String, 
-    simulation:String, 
-    created:Long, 
-    started:Option[Long], 
-    duration:Long, 
-    cost:Long, 
-    resources:Seq[String]
+    id: UUID, 
+    task: String, 
+    simulation: String, 
+    created: Long, 
+    started: Option[Long], 
+    duration: Long, 
+    cost: Long, 
+    resources: Seq[String]
       ) {
   /** Sets the starting time for the [[Task]]. */
-  def start(st:Long) = copy(started=Some(st))
+  def start(st: Long) = copy(started=Some(st))
 
   /** Calculates the task delay as the difference of the creation and starting times. */
   def delay = started match {
@@ -33,53 +34,53 @@ case class TaskMetrics (
   }
 
   /** Returns the full task and simulation name. */
-  def fullName = s"$task($simulation)"
+  def fullName = s"$task ($simulation)"
 
   /** Returns the time of completion (if any). */
   def finished = started.map { s => s + duration }
 }
 object TaskMetrics {
   /** Generates [[TaskMetrics]] from a given [[Task]] assuming it has not started yet. */
-  def apply(task:Task):TaskMetrics = TaskMetrics(task.id, task.name, task.simulation, task.created, None, task.duration, task.cost, task.resources)
+  def apply(task: Task): TaskMetrics = TaskMetrics(task.id, task.name, task.simulation, task.created, None, task.duration, task.cost, task.resources)
 }
 
 
-/** Metrics for a [[Simulation]] that has already started.
+/** Metrics for a simulation that has already started.
   *
-  * @param name the unique name of the [[Simulation]]
-  * @param started the virtual timestamp when the [[Simulation]] started executing
-  * @param duration the virtual duration of the [[Simulation]]
+  * @param name the unique name of the simulation
+  * @param started the virtual timestamp when the simulation started executing
+  * @param duration the virtual duration of the simulation
   * @param delay the sum of all delays for all involved [[Task]]s
-  * @param tasks the number of [[Task]]s associated with the [[Simulation]] so far
-  * @param cost the total cost associated with the [[Simulation]] so far
-  * @param result a `String` representation of the returned result from the [[Simulation]], or [[scala.None]] if it still running. In case of failure, the field is populated with the localized message of the exception thrown 
+  * @param tasks the number of [[Task]]s associated with the simulation so far
+  * @param cost the total cost associated with the simulation so far
+  * @param result a `String` representation of the returned result from the simulation, or [[scala.None]] if it still running. In case of failure, the field is populated with the localized message of the exception thrown 
   */
 case class SimulationMetrics(
-    name:String, 
-    started:Long, 
-    duration:Long, 
-    delay:Long,
-    tasks:Int, 
-    cost:Long, 
-    result:Option[String]
+    name: String, 
+    started: Long, 
+    duration: Long, 
+    delay: Long,
+    tasks: Int, 
+    cost: Long, 
+    result: Option[String]
       ) {
   /** Adds some time to the total duration. */
-  def addDuration(d:Long) = copy(duration = duration + d)
+  def addDuration(d: Long) = copy(duration = duration + d)
   /** Adds some cost to the total cost. */
-  def addCost(c:Long) = copy(cost = cost + c)
+  def addCost(c: Long) = copy(cost = cost + c)
   /** Adds some delay to the total delay. */
-  def addDelay(d:Long) = copy(delay = delay + d)
-  /** Updates the metrics given a new [[Task]] that is created as part of the [[Simulation]]. */
-  def task(task:Task) = copy(tasks = tasks + 1, cost = cost + task.cost)
-  /** Updates the metrics given that the [[Simulation]] has completed with a certain result.
-    * @param res the result of the [[Simulation]] or localized message of the exception in case of failure
-    * @param time the virtual timestamp when the [[Simulation]] finished
+  def addDelay(d: Long) = copy(delay = delay + d)
+  /** Updates the metrics given a new [[Task]] that is created as part of the simulation. */
+  def task(task: Task) = copy(tasks = tasks + 1, cost = cost + task.cost)
+  /** Updates the metrics given that the simulation has completed with a certain result.
+    * @param res the result of the simulation or localized message of the exception in case of failure
+    * @param time the virtual timestamp when the simulation finished
     */
-  def done(res:String, time:Long) = copy( result = Some(res), duration = duration + time - started )
+  def done(res: String, time: Long) = copy( result = Some(res), duration = duration + time - started )
 }
 object SimulationMetrics {
-  /** Initialize metrics for a named [[Simulation]] starting at the given virtual time. */
-  def apply(name:String, t:Long):SimulationMetrics = SimulationMetrics(name,t,0L,0L,0,0L,None) 
+  /** Initialize metrics for a named simulation starting at the given virtual time. */
+  def apply(name: String, t: Long): SimulationMetrics = SimulationMetrics(name,t,0L,0L,0,0L,None) 
 }
 
 
@@ -92,16 +93,16 @@ object SimulationMetrics {
   * @param cost the total cost associated with this [[TaskResource]]
   */
 case class ResourceMetrics (
-    name:String, 
-    busyTime:Long, 
-    idleTime:Long, 
-    tasks:Int, 
-    cost:Long
+    name: String, 
+    busyTime: Long, 
+    idleTime: Long, 
+    tasks: Int, 
+    cost: Long
       ) {
   /** Adds some idle time to the total. */
-  def idle(i:Long) = copy(idleTime = idleTime + i)
+  def idle(i: Long) = copy(idleTime = idleTime + i)
   /** Updates the metrics given a new [[Task]] has been attached to the [[TaskResource]]. */
-  def task(task:Task, costPerTick:Long) = copy(
+  def task(task: Task, costPerTick: Long) = copy(
       tasks = tasks + 1, 
       cost = cost + task.duration * costPerTick, 
       busyTime = busyTime + task.duration
@@ -134,11 +135,11 @@ class SimMetricsAggregator {
   def ended = end = Some(System.currentTimeMillis())
 
   /** Task metrics indexed by task ID. */
-  val taskMap = scala.collection.mutable.Map[Long,TaskMetrics]()
+  val taskMap = scala.collection.mutable.Map[UUID, TaskMetrics]()
   /** Simulation metrics indexed by name. */
-  val simMap = scala.collection.mutable.Map[String,SimulationMetrics]()
+  val simMap = scala.collection.mutable.Map[String, SimulationMetrics]()
   /** Resource metrics indexed by name. */
-  val resourceMap = scala.collection.mutable.Map[String,ResourceMetrics]()
+  val resourceMap = scala.collection.mutable.Map[String, ResourceMetrics]()
 
   
   // Set 
@@ -146,24 +147,24 @@ class SimMetricsAggregator {
   /** Adds a new [[TaskMetrics]] instance, taking care of indexing automatically
     * Overwrites a previous instance with the same IDs
     */
-  def +=(m:TaskMetrics):TaskMetrics = { taskMap += (m.id->m) ; m }
+  def +=(m: TaskMetrics): TaskMetrics = { taskMap += (m.id->m) ; m }
   /** Adds a new [[SimulationMetrics]] instance, taking care of indexing automatically
     * Overwrites a previous instance with the same IDs
     */
-  def +=(m:SimulationMetrics):SimulationMetrics = { simMap += (m.name->m) ; m }
+  def +=(m: SimulationMetrics): SimulationMetrics = { simMap += (m.name->m) ; m }
   /** Adds a new [[ResourceMetrics]] instance, taking care of indexing automatically
     * Overwrites a previous instance with the same IDs
     */
-  def +=(m:ResourceMetrics):ResourceMetrics = { resourceMap += (m.name->m) ; m }
+  def +=(m: ResourceMetrics): ResourceMetrics = { resourceMap += (m.name->m) ; m }
 
   /** Initializes and adds a new [[TaskMetrics]] instance given a new [[Task]]. */
-  def +=(task:Task):TaskMetrics = this += TaskMetrics(task)
+  def +=(task: Task): TaskMetrics = this += TaskMetrics(task)
   /** Initializes and adds a new [[SimulationMetrics]] instance given the name of the simulation starting now
     * and the current virtual time.
     */
-  def +=(s:Simulation,t:Long):SimulationMetrics = this += SimulationMetrics(s.name,t)
+  def +=(s: String, t: Long): SimulationMetrics = this += SimulationMetrics(s,t)
   /** Initializes and adds a new [[ResourceMetrics]] instance given a new [[TaskResource]]. */
-  def +=(r:TaskResource):ResourceMetrics = this += ResourceMetrics(r)
+  def +=(r: TaskResource): ResourceMetrics = this += ResourceMetrics(r)
 
   
   // Update
@@ -176,7 +177,7 @@ class SimMetricsAggregator {
     *
     * @see [[com.workflowfm.pew.metrics.MetricsAggregator]] for examples in a similar context
     */  
-  def ^(taskID:Long)(u:TaskMetrics=>TaskMetrics):Option[TaskMetrics] = 
+  def ^(taskID: UUID)(u: TaskMetrics=>TaskMetrics): Option[TaskMetrics] = 
     taskMap.get(taskID).map { m => this += u(m) }
 
   /** Updates a [[TaskMetrics]] instance.
@@ -189,34 +190,21 @@ class SimMetricsAggregator {
     * @see [[com.workflowfm.pew.metrics.MetricsAggregator]] for examples in a similar context
     * 
     */ 
-  def ^(task:Task)(u:TaskMetrics=>TaskMetrics):Option[TaskMetrics] = 
+  def ^(task: Task)(u: TaskMetrics=>TaskMetrics): Option[TaskMetrics] = 
     taskMap.get(task.id).map { m => this += u(m) }
 
   /** Updates a [[SimulationMetrics]] instance.
     *
     * @return the updated [[simMap]] or [[scala.None]] if the identified instance does not exist
     *
-    * @param simulation the involved [[Simulation]]
+    * @param simulation the name of the involved simulation
     * @param u a function to update the [[SimulationMetrics]] instance
     *
     * @see [[com.workflowfm.pew.metrics.MetricsAggregator]] for examples in a similar context
     * 
     */
-  def ^(simulation:Simulation)(u:SimulationMetrics=>SimulationMetrics):Option[SimulationMetrics] =
-    simMap.get(simulation.name).map { m => this += u(m) }
-
-  /** Updates a [[SimulationMetrics]] instance.
-    *
-    * @return the updated [[simMap]] or [[scala.None]] if the identified instance does not exist
-    *
-    * @param simulationName the name of the involved [[Simulation]]
-    * @param u a function to update the [[SimulationMetrics]] instance
-    *
-    * @see [[com.workflowfm.pew.metrics.MetricsAggregator]] for examples in a similar context
-    * 
-    */
-  def ^(simulationName:String)(u:SimulationMetrics=>SimulationMetrics):Option[SimulationMetrics] = 
-    simMap.get(simulationName).map { m => this += u(m) }
+  def ^(simulation: String)(u: SimulationMetrics=>SimulationMetrics): Option[SimulationMetrics] =
+    simMap.get(simulation).map { m => this += u(m) }
 
   /** Updates a [[ResourceMetrics]] instance.
     *
@@ -250,7 +238,7 @@ class SimMetricsAggregator {
     */
   // TODO: we used to have 2 levels of sorting!
   def taskMetricsOf(r:ResourceMetrics) = taskMap.values.toSeq.filter(_.resources.contains(r.name)).sortBy(_.started)
-    /** Returns all the tracked instances of [[TaskMetrics]] associated with a particular [[Simulation]], sorted by starting time.
+    /** Returns all the tracked instances of [[TaskMetrics]] associated with a particular simulation, sorted by starting time.
     * @param r the tracked [[SimulationMetrics]] of the resource
     */
   def taskMetricsOf(s:SimulationMetrics) = taskMap.values.toSeq.filter(_.simulation.equals(s.name)).sortBy(_.started)

@@ -1,11 +1,14 @@
 package com.workflowfm.simulator
 
+import akka.actor.{ ActorRef, ActorSystem }
+import akka.testkit.{ TestKit, TestProbe }
 import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
+import java.util.UUID
 
 @RunWith(classOf[JUnitRunner])
-class TaskTests extends WordSpecLike with Matchers with BeforeAndAfterAll with TaskTester {
+class TaskTests extends TaskTester {
 
   "Task priority" must {
 
@@ -37,10 +40,18 @@ class TaskTests extends WordSpecLike with Matchers with BeforeAndAfterAll with T
 }
 
 
-trait TaskTester {
-  // create a Task
+class TaskTester extends TestKit(ActorSystem("TaskTests"))
+    with WordSpecLike with Matchers with BeforeAndAfterAll{
+
+  final val probe: TestProbe = TestProbe.apply("TaskTestsProbe")(system);
+  final val mock: ActorRef = probe.ref;
+
+  override def afterAll: Unit = {
+    TestKit.shutdownActorSystem(system)
+  }
+
   def t(
-    id:Long,
+    id: Long,
     resources:Seq[String],
     priority:Task.Priority=Task.Medium,
     created:Long = 0L,
@@ -48,5 +59,5 @@ trait TaskTester {
     interrupt:Int = 0,
     name:String="X"
   ) =
-    new Task(id,name,"Test",created,resources,duration,duration,0L,interrupt,priority)
+    new Task(new UUID(id,id),name,"Test",mock,created,resources,duration,duration,0L,interrupt,priority)
 }
