@@ -59,6 +59,11 @@ class Coordinator(
     case _ => println(s"[$time] <*> <*> <*> Failed to handle event: $event")
   }
 
+  protected def addSimulation(t: Long, actor: ActorRef) = {
+      println(s"Adding simulation actor $actor to start at $t")
+      if (t >= time) events += StartingSim(t, actor)
+    }
+
   protected def startSimulationActor(simActor: ActorRef) = {
     waiting += simActor
     simActor ! SimulationActor.Start
@@ -203,10 +208,11 @@ class Coordinator(
   }
 
   def receive = {
-    case Coordinator.AddSim(t, s) => {
-      println(s"Adding simulation actor $s to start at $t")
-      if (t >= time) events += StartingSim(t, s)
-    }
+    case Coordinator.AddSim(t, s) => addSimulation(t,s)
+    case Coordinator.AddSims(l) => l map { case (t,s) => addSimulation(t,s) }
+    case Coordinator.AddSimNow(s) => addSimulation(time, s)
+    case Coordinator.AddSimsNow(l) => l map { s => addSimulation(time,s) }
+
     case Coordinator.AddResource(r) => addResource(r)
     case Coordinator.AddResources(r) => r foreach addResource
            
@@ -237,7 +243,10 @@ class Coordinator(
   case class Time(time: Long)
 
   case class AddSim(t: Long, actor: ActorRef)
-  
+  case class AddSims(l: Seq[(Long,ActorRef)])
+  case class AddSimNow(actor: ActorRef)
+  case class AddSimsNow(l: Seq[ActorRef])
+
   case class AddResource(r: TaskResource)
   case class AddResources(l: Seq[TaskResource])
   
