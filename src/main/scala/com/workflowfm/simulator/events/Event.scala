@@ -6,7 +6,9 @@ sealed trait Event {
   val time: Long
 }
 
-case object EStart extends Event
+case object EStart extends Event {
+  override val time: Long = 0L
+}
 
 case class ESimAdd(override val time: Long, name: String, start: Long) extends Event
 
