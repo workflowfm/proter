@@ -2,10 +2,10 @@ package com.worklflowfm.simulator.events
 
 import akka.actor.{ Actor, ActorRef, Props }
 
-class Observer(f: EventHandler) extends Actor {
+class Observer(handler: EventHandler) extends Actor {
   def receive = {
     case Observer.SubscribeTo(publisher) => publisher ! Publisher.Subscribe
-    case e: Event => f(e)
+    case e: Event => handler(e)
     case Publisher.Done => context.stop(self)
     case Publisher.Ack => Unit
   }
@@ -16,3 +16,4 @@ object Observer {
 
   def props(f: EventHandler): Props = { Props(new Observer(f)) }
 }
+

@@ -3,9 +3,15 @@ package com.worklflowfm.simulator.events
 import akka.actor.ActorSystem
 import java.text.SimpleDateFormat
 import scala.concurrent.Promise
-import scala.util.{ Success, Try }
 
-trait EventHandler extends (Event => Unit)
+trait EventHandler extends (Event => Unit) {
+  def onDone(e: Event)(f: Long=>Unit) = {
+    e match {
+      case EDone(t) => f(t)
+      case _ => Unit
+    }
+  }
+}
 
 class PrintEventHandler extends EventHandler {   
   val formatter = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS")
@@ -22,28 +28,25 @@ class ShutdownHandler(implicit system: ActorSystem) extends EventHandler {
   }
 }
 
-trait PromiseHandler[R] extends EventHandler {   
+trait ResultHandler[R] extends EventHandler {   
+  def result: R
+}
 
+class CounterHandler extends ResultHandler[Int] {
+  var count = 0
+
+  override def apply(e: Event) = count = count + 1
+  override def result = count
+}
+
+trait PromiseHandler[R] { self: ResultHandler[R] =>
   protected val promise = Promise[R]()
   def future = promise.future
   
-  override def apply(e: Event) = try {
-    handle(e) match {
-      case None => Unit
-      case Some(r) => if (!promise.isCompleted) promise.success(r)
-    }
+  override def apply(e: Event): Unit = try {
+    self.apply(e)
+    onDone(e) { _ => if (!promise.isCompleted) promise.success(result) }
   } catch {
     case x: Exception => if (!promise.isCompleted) promise.failure(x)
-  }
-
-  def handle(event: Event) : Option[R] = ???
-}
-
-class CounterHandler extends PromiseHandler[Int] {
-  var count = 0
-
-  override def handle(e: Event) = e match {
-    case EDone(_) => Some(count+1)
-    case _ => count = count + 1; None
   }
 }
