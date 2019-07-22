@@ -2,6 +2,7 @@ package com.worklflowfm.simulator.events
 
 import akka.NotUsed
 import akka.actor.{ Actor, ActorRef, ActorSystem }
+import akka.event.LoggingReceive
 import akka.stream.{ ActorMaterializer, OverflowStrategy }
 import akka.stream.scaladsl.{ BroadcastHub, Keep, Sink, Source, SourceQueueWithComplete }
 
@@ -20,7 +21,9 @@ trait Publisher {
     (q,s)
   }
 
-  def publish(evt: Event) = queue.offer(evt)
+  def publish(evt: Event) = {
+    queue.offer(evt)
+  }
 
   def subscribe(actor: ActorRef): Unit = source.runWith(Sink.actorRef(actor, Publisher.Done))
 }
@@ -31,6 +34,7 @@ object Publisher {
   final val overflowStrategy = OverflowStrategy.backpressure
 
   case object Subscribe
+  case object Ack
   case object Done
 }
 
@@ -38,10 +42,13 @@ object Publisher {
 trait PublisherActor extends Publisher with Actor {
 
   def publisherBehaviour: Receive = {
-    case Publisher.Subscribe => subscribe(sender)
+    case Publisher.Subscribe => {
+      subscribe(sender)
+      sender ! Publisher.Ack
+    }
   }
 
   def receiveBehaviour: Receive = ???
 
-  override def receive = receiveBehaviour orElse publisherBehaviour
+  override def receive = { publisherBehaviour orElse receiveBehaviour }
 }

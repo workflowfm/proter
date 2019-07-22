@@ -7,6 +7,7 @@ class Observer(f: EventHandler) extends Actor {
     case Observer.SubscribeTo(publisher) => publisher ! Publisher.Subscribe
     case e: Event => f(e)
     case Publisher.Done => context.stop(self)
+    case Publisher.Ack => Unit
   }
 }
 
