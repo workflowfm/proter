@@ -7,6 +7,7 @@ import com.typesafe.config.ConfigFactory
 import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
+import scala.concurrent.{ Await, Future }
 import scala.concurrent.duration._
 
 @RunWith(classOf[JUnitRunner])
@@ -70,6 +71,20 @@ class PublisherTests extends TestKit(ActorSystem("PublisherTests", ConfigFactory
       expectMsgAllOf(EStart,EStart)
       expectNoMessage
     }
+
+    "publish events to 3 subscribers" in {
+      val p = MockPublisher.actor(system,EStart,EStart,EDone(0L))
+
+      val f1 = MockObserver.build(new CounterHandler())(system,p)
+      val f2 = MockObserver.build(new CounterHandler())(system,p)
+      val f3 = MockObserver.build(new CounterHandler())(system,p)
+
+      p ! MockPublisher.Publish
+
+      Await.result(f1, 2.seconds) should be (3)
+      Await.result(f2, 2.seconds) should be (3)
+      Await.result(f2, 2.seconds) should be (3)
+    }
   }
 }
 
@@ -110,3 +125,14 @@ akka {
  autoreceive = on
  lifecycle = on
  */
+
+object MockObserver {
+  def build[R](handler: ResultHandler[R])(system: ActorSystem, publisher: ActorRef): Future[R] = {
+    val h = new PromiseHandler(handler)
+    val fut = h.future
+    val actor = system.actorOf(Observer.props(h))
+    publisher.tell(Publisher.Subscribe, actor)
+    fut
+  }
+
+}

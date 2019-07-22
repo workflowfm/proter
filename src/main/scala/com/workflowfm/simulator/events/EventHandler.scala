@@ -39,14 +39,16 @@ class CounterHandler extends ResultHandler[Int] {
   override def result = count
 }
 
-trait PromiseHandler[R] { self: ResultHandler[R] =>
+class PromiseHandler[R](handler: ResultHandler[R]) extends ResultHandler[R] {
   protected val promise = Promise[R]()
   def future = promise.future
   
   override def apply(e: Event): Unit = try {
-    self.apply(e)
+    handler(e)
     onDone(e) { _ => if (!promise.isCompleted) promise.success(result) }
   } catch {
     case x: Exception => if (!promise.isCompleted) promise.failure(x)
   }
+
+  override def result = handler.result
 }
