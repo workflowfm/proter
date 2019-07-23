@@ -21,11 +21,24 @@ trait Publisher {
     (q,s)
   }
 
-  def publish(evt: Event) = queue.offer(evt)
+  def publish(evt: Event) = {
+    queue.offer(evt)
+    evt match {
+      case EDone(_) => queue.complete()
+      case _ => Unit
+    }
+  }
 
-  def subscribe(actor: ActorRef): Unit = source.runWith(Sink.actorRef(actor, Publisher.Done))
+  def subscribe(actor: ActorRef, ack: ActorRef): Unit = source.runWith(
+    Sink.actorRefWithAck(
+      actor,
+      onInitMessage = Publisher.StreamInit(ack),
+      ackMessage = Publisher.StreamAck,
+      onCompleteMessage = Publisher.StreamDone,
+      onFailureMessage = onErrorMessage))
   def subHandler(handler: EventHandler): Unit = source.runWith(Sink.foreach(handler))
 
+  def onErrorMessage(ex: Throwable) = Publisher.StreamFail(ex)
 }
 
 
@@ -35,8 +48,11 @@ object Publisher {
 
   case class Subscribe(ack: Option[ActorRef])
   case class SubHandler(handler: EventHandler, ack: Option[ActorRef])
-  case object Ack
-  case object Done
+
+  case object StreamAck
+  case class StreamInit(ack: ActorRef)
+  case object StreamDone
+  case class StreamFail(ex: Throwable)
 }
 
 
@@ -44,19 +60,20 @@ trait PublisherActor extends Publisher with Actor with ActorLogging {
 
   def publisherBehaviour: Receive = {
     case Publisher.Subscribe(ack) => {
-      subscribe(sender)
-      ack.getOrElse(sender()) ! Publisher.Ack
+      subscribe(sender,ack.getOrElse(sender()))
     }
     case Publisher.SubHandler(handler,ack) => {
       subHandler(handler)
-      ack.getOrElse(sender()) ! Publisher.Ack
+      val a = ack.getOrElse(sender())
+      a ! Publisher.StreamInit(a)
     }
+    case Publisher.StreamAck => Unit
 
   }
 
   def receiveBehaviour: Receive = ???
 
-  override def receive = { publisherBehaviour orElse receiveBehaviour }
+  override def receive = LoggingReceive { publisherBehaviour orElse receiveBehaviour }
 
   override def publish(evt: Event) = {
     log.debug("Publishing Event: {}", Event.asString(evt))

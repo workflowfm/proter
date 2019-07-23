@@ -2,7 +2,7 @@ package com.workflowfm.simulator.events
 
 import akka.actor.{ ActorRef, ActorSystem, Props }
 import akka.event.{ Logging, LoggingReceive }
-import akka.testkit.{ ImplicitSender, TestActors, TestKit }
+import akka.testkit.{ ImplicitSender, TestActor, TestActors, TestKit, TestProbe }
 import com.typesafe.config.ConfigFactory
 import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
 import org.junit.runner.RunWith
@@ -30,53 +30,74 @@ class PublisherTests extends TestKit(ActorSystem("PublisherTests", ConfigFactory
     "publish a single event" in {
       val p = MockPublisher.actor(system,EStart)
 
-      p ! Publisher.Subscribe(None)
-      expectMsg(Publisher.Ack)
+      val probe = MockObserver.probe(p)
 
       p ! MockPublisher.Publish
-      expectMsg(EStart)
-      expectNoMessage
+
+      probe.expectMsg(EStart)
+      probe.reply(Publisher.StreamAck)
+
+      probe.expectNoMessage
     }
-
-    /*
-    "publish 2 events" in {
-      val p = MockPublisher.actor(system,EStart,EStart)
-
-      p ! Publisher.Subscribe
-      expectMsg(Publisher.Ack)
-
-      p ! MockPublisher.Publish
-      expectMsgAllOf(EStart,EStart)
-      expectNoMessage
-    }
-     */
 
     "publish 10 events" in {
       val es = Seq(EStart,EStart,EStart,EStart,EStart,EStart,EStart,EStart,EStart,EStart)
       val p = MockPublisher.actor(system,es:_*)
 
-      p ! Publisher.Subscribe(None)
-      expectMsg(Publisher.Ack)
+      val probe = MockObserver.probe(p)
 
       p ! MockPublisher.Publish
-      expectMsgAllOf(es:_*)
-      expectNoMessage
+
+      es map { x =>
+        probe.expectMsg(x)
+        probe.reply(Publisher.StreamAck)
+      }
+
+      probe.expectNoMessage
     }
 
     "publish 1 event to twice subscriber" in {
       val p = MockPublisher.actor(system,EStart)
 
-      p ! Publisher.Subscribe(None)
-      expectMsg(Publisher.Ack)
-      p ! Publisher.Subscribe(None)
-      expectMsg(Publisher.Ack)
+      val probe = MockObserver.probe(p)
+
+      probe.send(p, Publisher.Subscribe(None))
+      probe.expectMsgType[Publisher.StreamInit]
+      probe.reply(Publisher.StreamAck)
 
       p ! MockPublisher.Publish
-      expectMsgAllOf(EStart,EStart)
-      expectNoMessage
+
+      probe.expectMsg(EStart)
+      probe.reply(Publisher.StreamAck)
+      probe.expectMsg(EStart)
+      probe.reply(Publisher.StreamAck)
+      probe.expectNoMessage
     }
- 
-    "publish events to 3 subscribers" in {
+
+    "publish events to 2 probes" in {
+      val p = MockPublisher.actor(system,EStart,EDone(0L))
+
+      val probe1 = MockObserver.probe(p)
+      val probe2 = MockObserver.probe(p)
+
+      p ! MockPublisher.Publish
+
+      probe1.expectMsg(EStart)
+      probe1.reply(Publisher.StreamAck)
+      probe1.expectMsg(EDone(0L))
+      probe1.reply(Publisher.StreamAck)
+      probe1.expectMsg(Publisher.StreamDone)
+      probe1.expectNoMessage
+
+      probe2.expectMsg(EStart)
+      probe2.reply(Publisher.StreamAck)
+      probe2.expectMsg(EDone(0L))
+      probe2.reply(Publisher.StreamAck)
+      probe2.expectMsg(Publisher.StreamDone)
+      probe2.expectNoMessage
+    }
+
+    "publish events to 3 observers" in {
       val p = MockPublisher.actor(system,EStart,EStart,EDone(0L))
 
       val f1 = MockObserver.build(new CounterHandler())(system,p)
@@ -142,4 +163,13 @@ object MockObserver {
     fut
   }
 
+  def probe(publisher: ActorRef)(implicit system: ActorSystem) = {
+    val probe = TestProbe()
+
+    probe.send(publisher, Publisher.Subscribe(None))
+    probe.expectMsgType[Publisher.StreamInit]
+    probe.reply(Publisher.StreamAck)
+    println("Probe ready!")
+    probe
+  }
 }
