@@ -23,7 +23,6 @@ class TaskResource(val name:String,val costPerTick:Int) {
     }
     case Some((startTime,task)) => 
       if (currentTime >= startTime + task.duration) {
-        println("["+currentTime+"] \"" + name + "\" detached from task \"" + task.name + " (" + task.simulation +")\".")
         currentTask = None
         lastUpdate = currentTime
         Some(task)
@@ -37,14 +36,12 @@ class TaskResource(val name:String,val costPerTick:Int) {
   def startTask(task:Task,currentTime:Long) = {
     currentTask match {
       case None => {
-        println("["+currentTime+"] \"" + name + "\" is NOW attached to task \"" + task.name + " (" + task.simulation +")\" - " + task.duration + " ticks remaining.")
         currentTask = Some(currentTime,task)
         lastUpdate = currentTime
-        true
+        None
       }
       case Some((_,currentTask)) => {
-        println("["+currentTime+"] <*> <*> <*> ERROR <*> <*> <*> \"" + name + "\" tried to attach to \"" + task.name + " (" + task.simulation +")\" but is already attached to \"" + currentTask.name + "\"!")
-        false
+        Some(currentTask)
       }
     }
   }

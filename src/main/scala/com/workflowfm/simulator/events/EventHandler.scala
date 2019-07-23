@@ -1,4 +1,4 @@
-package com.worklflowfm.simulator.events
+package com.workflowfm.simulator.events
 
 import akka.actor.ActorSystem
 import java.text.SimpleDateFormat

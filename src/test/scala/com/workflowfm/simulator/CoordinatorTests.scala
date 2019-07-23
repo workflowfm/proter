@@ -2,6 +2,7 @@ package com.workflowfm.simulator
 
 import akka.actor.ActorSystem
 import akka.testkit.{ ImplicitSender, TestActors, TestKit }
+import com.workflowfm.simulator.events.{ PrintEventHandler, Publisher }
 import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -9,6 +10,7 @@ import scala.concurrent._
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import com.workflowfm.simulator.metrics._
+import com.workflowfm.simulator.events.{ MockObserver, CounterHandler }
 
 
 @RunWith(classOf[JUnitRunner])
@@ -23,7 +25,7 @@ class CoordinatorTests extends TestKit(ActorSystem("CoordinatorTests")) with Wor
   "The Coordinator" must {
  		
     val handler = SimMetricsOutputs(new SimMetricsPrinter())
-   
+  
             //expectNoMessage(200.millis)
     "execute a simple task" in {   
       val resA = new TaskResource("A",1)
@@ -173,6 +175,31 @@ class CoordinatorTests extends TestKit(ActorSystem("CoordinatorTests")) with Wor
       done.metrics.resourceMetrics.isEmpty should be (true)
       done.metrics.simulationMetrics.size should be (2)
       done.metrics.taskMetrics.size should be (2)
+    }
+    
+    "publish the right number of events from 1 simulation" in {
+      val coordinator = system.actorOf(Coordinator.props(DefaultScheduler))
+      //coordinator ! Publisher.SubHandler(new PrintEventHandler(), None)
+
+      //Thread.sleep(1000)
+      val f1 = MockObserver.build(new CounterHandler())(system,coordinator)
+     // val f2 = MockObserver.build(new CounterHandler())(system,coordinator)
+     // val f3 = MockObserver.build(new CounterHandler())(system,coordinator)
+     // val f4 = MockObserver.build(new CounterHandler())(system,coordinator)
+
+      println("Here we go!")
+      val s1 = system.actorOf(TaskSimulatorActor.props(
+        "S1", coordinator, Seq(), new ConstantGenerator(2), new ConstantGenerator(2), -1, Task.Highest
+      ))
+      
+      coordinator ! Coordinator.AddSim(0L,s1)
+      coordinator ! Coordinator.Start
+
+      // Start, AddSim, StartSim, AddTask, StartTask, EndTask, EndSim, Done
+      Await.result(f1, 1.seconds) should be (8)
+    // Await.result(f2, 1.seconds) should be (8)
+     // Await.result(f3, 1.seconds) should be (8)
+     // Await.result(f4, 1.seconds) should be (8)
     }
 /*  }
   

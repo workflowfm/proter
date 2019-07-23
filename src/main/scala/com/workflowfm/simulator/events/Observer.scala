@@ -1,13 +1,19 @@
-package com.worklflowfm.simulator.events
+package com.workflowfm.simulator.events
 
-import akka.actor.{ Actor, ActorRef, Props }
+import akka.actor.{ Actor, ActorLogging, ActorRef, Props }
+import akka.event.LoggingReceive
 
-class Observer(handler: EventHandler) extends Actor {
-  def receive = {
-    case Observer.SubscribeTo(publisher) => publisher ! Publisher.Subscribe
-    case e: Event => handler(e)
+class Observer(handler: EventHandler) extends Actor with ActorLogging {
+  def receive =  {
+    case Observer.SubscribeTo(publisher) => {
+      publisher ! Publisher.Subscribe(Some(sender))
+    }
+    case e: Event => {
+      log.debug("Observing Event: {}",Event.asString(e))
+      handler(e)
+    }
     case Publisher.Done => context.stop(self)
-    case Publisher.Ack => Unit
+    //case Publisher.Ack => Unit
   }
 }
 

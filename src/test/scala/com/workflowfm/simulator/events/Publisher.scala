@@ -1,4 +1,4 @@
-package com.worklflowfm.simulator.events
+package com.workflowfm.simulator.events
 
 import akka.actor.{ ActorRef, ActorSystem, Props }
 import akka.event.{ Logging, LoggingReceive }
@@ -9,6 +9,9 @@ import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import scala.concurrent.{ Await, Future }
 import scala.concurrent.duration._
+import akka.pattern.{ask, pipe}
+import scala.concurrent.ExecutionContext
+import akka.util.Timeout
 
 @RunWith(classOf[JUnitRunner])
 class PublisherTests extends TestKit(ActorSystem("PublisherTests", ConfigFactory.parseString(MockPublisher.config))) with
@@ -23,10 +26,11 @@ class PublisherTests extends TestKit(ActorSystem("PublisherTests", ConfigFactory
   }
 
   "The Publisher" must {
+
     "publish a single event" in {
       val p = MockPublisher.actor(system,EStart)
 
-      p ! Publisher.Subscribe
+      p ! Publisher.Subscribe(None)
       expectMsg(Publisher.Ack)
 
       p ! MockPublisher.Publish
@@ -51,7 +55,7 @@ class PublisherTests extends TestKit(ActorSystem("PublisherTests", ConfigFactory
       val es = Seq(EStart,EStart,EStart,EStart,EStart,EStart,EStart,EStart,EStart,EStart)
       val p = MockPublisher.actor(system,es:_*)
 
-      p ! Publisher.Subscribe
+      p ! Publisher.Subscribe(None)
       expectMsg(Publisher.Ack)
 
       p ! MockPublisher.Publish
@@ -62,16 +66,16 @@ class PublisherTests extends TestKit(ActorSystem("PublisherTests", ConfigFactory
     "publish 1 event to twice subscriber" in {
       val p = MockPublisher.actor(system,EStart)
 
-      p ! Publisher.Subscribe
+      p ! Publisher.Subscribe(None)
       expectMsg(Publisher.Ack)
-      p ! Publisher.Subscribe
+      p ! Publisher.Subscribe(None)
       expectMsg(Publisher.Ack)
 
       p ! MockPublisher.Publish
       expectMsgAllOf(EStart,EStart)
       expectNoMessage
     }
-
+ 
     "publish events to 3 subscribers" in {
       val p = MockPublisher.actor(system,EStart,EStart,EDone(0L))
 
@@ -79,11 +83,12 @@ class PublisherTests extends TestKit(ActorSystem("PublisherTests", ConfigFactory
       val f2 = MockObserver.build(new CounterHandler())(system,p)
       val f3 = MockObserver.build(new CounterHandler())(system,p)
 
+      //Thread.sleep(1000)
       p ! MockPublisher.Publish
 
-      Await.result(f1, 2.seconds) should be (3)
-      Await.result(f2, 2.seconds) should be (3)
-      Await.result(f2, 2.seconds) should be (3)
+      Await.result(f1, 1.seconds) should be (3)
+      Await.result(f2, 1.seconds) should be (3)
+      Await.result(f2, 1.seconds) should be (3)
     }
   }
 }
@@ -128,10 +133,12 @@ akka {
 
 object MockObserver {
   def build[R](handler: ResultHandler[R])(system: ActorSystem, publisher: ActorRef): Future[R] = {
+    implicit val timeout = Timeout(10.seconds)
+
     val h = new PromiseHandler(handler)
     val fut = h.future
     val actor = system.actorOf(Observer.props(h))
-    publisher.tell(Publisher.Subscribe, actor)
+    println(Await.result(actor ? Observer.SubscribeTo(publisher), 3.seconds))
     fut
   }
 
