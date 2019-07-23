@@ -22,10 +22,7 @@ class PrintEventHandler extends EventHandler {
 }
 
 class ShutdownHandler(implicit system: ActorSystem) extends EventHandler {
-  override def apply(e: Event): Unit = e match {
-    case EDone(_) => system.terminate()
-    case _ => Unit
-  }
+  override def apply(e: Event): Unit = onDone(e) { _ => system.terminate() }
 }
 
 trait ResultHandler[R] extends EventHandler {   
@@ -51,4 +48,7 @@ class PromiseHandler[R](handler: ResultHandler[R]) extends ResultHandler[R] {
   }
 
   override def result = handler.result
+}
+object PromiseHandler {
+  def of[R](handler: ResultHandler[R]): PromiseHandler[R] = new PromiseHandler[R](handler)
 }

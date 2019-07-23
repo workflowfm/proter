@@ -100,16 +100,16 @@ class PublisherTests extends TestKit(ActorSystem("PublisherTests", ConfigFactory
     "publish events to 3 observers" in {
       val p = MockPublisher.actor(system,EStart,EStart,EDone(0L))
 
-      val f1 = MockObserver.build(new CounterHandler())(system,p)
-      val f2 = MockObserver.build(new CounterHandler())(system,p)
-      val f3 = MockObserver.build(new CounterHandler())(system,p)
+      val f1 = MockObserver.observer(new CounterHandler())(system,p)
+      val f2 = MockObserver.observer(new CounterHandler())(system,p)
+      val f3 = MockObserver.observer(new CounterHandler())(system,p)
 
       //Thread.sleep(1000)
       p ! MockPublisher.Publish
 
       Await.result(f1, 1.seconds) should be (3)
       Await.result(f2, 1.seconds) should be (3)
-      Await.result(f2, 1.seconds) should be (3)
+      Await.result(f3, 1.seconds) should be (3)
     }
   }
 }
@@ -153,7 +153,7 @@ akka {
  */
 
 object MockObserver {
-  def build[R](handler: ResultHandler[R])(system: ActorSystem, publisher: ActorRef): Future[R] = {
+  def observer[R](handler: ResultHandler[R])(system: ActorSystem, publisher: ActorRef): Future[R] = {
     implicit val timeout = Timeout(10.seconds)
 
     val h = new PromiseHandler(handler)

@@ -108,7 +108,7 @@ trait SimMetricsStringOutput extends SimMetricsOutput {
     * @param m the [[ResourceMetrics]] instance to be handled
     */
   def resCSV(separator:String)(m:ResourceMetrics) = m match {
-    case ResourceMetrics(name,b,i,ts,c) => 
+    case ResourceMetrics(name,_,_,b,i,ts,c) => 
       Seq(name,b,i,ts,c).mkString(separator)
   }
 

@@ -44,9 +44,9 @@ class Coordinator(
   //implicit val timeout = Timeout(timeoutMillis.millis)
   
   def addResource(r:TaskResource) = if (!resourceMap.contains(r.name)) {
-    publish(EResourceAdd(time,r.name))
+    publish(EResourceAdd(time, r.name, r.costPerTick))
     resourceMap += r.name -> r
-    metrics += r
+    metrics.addResource(r.name, r.costPerTick)
   }
 
   protected def handleCEvent(event:CEvent) = event match {
@@ -72,12 +72,12 @@ class Coordinator(
 
   protected def startSimulation(name: String, simActor: ActorRef): Unit = {
     publish(ESimStart(time,name))
-    metrics += (name,time)
+    metrics.addSim(name,time)
     simulations += name
   }
 
   protected def stopSimulation(name: String, result: String, actor: ActorRef) = {
-    (metrics^name) (_.done(result,time))
+    metrics.simulation(name) (_.done(result,time))
     simulations -= name
     publish(ESimEnd(time,name,result))
     ready(actor)
@@ -89,8 +89,7 @@ class Coordinator(
   //  }
   
   protected def resourceIdle(r:TaskResource) = if (r.isIdle) {
-    (metrics^r)(_.idle(time-r.lastUpdate))
-    r.update(time)
+    metrics.resource(r.name)(_.idle(time))
   }
 
   protected def addTasks(actor: ActorRef, l: Seq[(UUID, TaskGenerator, Seq[String])]) {
@@ -102,14 +101,13 @@ class Coordinator(
     val creation = if (gen.createTime >= 0) gen.createTime else time
     // Create the task
     val t = gen.create(id, creation, sender, resources:_*)
-
-    publish(ETaskAdd(time,id,creation,t.name,t.simulation))
     
     // Calculate the cost of all resource usage. We only know this now!
     val resourceCost = (0L /: t.taskResources(resourceMap)) { case (c,r) => c + r.costPerTick * t.duration }
     t.addCost(resourceCost)
-    
-    metrics += t
+
+    publish(ETaskAdd(time,t))
+    metrics.addTask(t)
 
     if (resources.length > 0)
       tasks += t
@@ -122,24 +120,24 @@ class Coordinator(
 
   protected def startTask(task:Task) {
     tasks -= task
-    publish(ETaskStart(time,task.id,task.name,task.simulation,task.duration))
+    publish(ETaskStart(time,task))
     // Mark the start of the task in the metrics
-    (metrics^task.id)(_.start(time))
+    metrics.task(task)(_.start(time))
     task.taskResources(resourceMap) map { r =>
       // Update idle time if resource has been idle
-      if (r.isIdle) (metrics^r)(_.idle(time-r.lastUpdate))
+      if (r.isIdle) metrics.resource(r.name)(_.idle(time))
       // Bind each resource to this task
       r.startTask(task, time) match {
         case None =>
-          publish(ETaskAttach(time,task.id,task.name,task.simulation,r.name,task.duration))
+          publish(ETaskAttach(time,task,r.name))
         case Some(other) =>
           publish(EError(time,s"Tried to attach task [${task.name}](${task.simulation}) to [${r.name}], but it was already attached to [${other.name}](${other.simulation}) "))
       }
       // Add the task and resource cost to the resource metrics
-      (metrics^r)(_.task(task, r.costPerTick))
+      metrics.resource(r.name)(_.task(time, task))
     }
     // Add the task to the simulation metrics
-    (metrics^task.simulation)(_.task(task).addDelay(time - task.created))
+    metrics.simulation(task.simulation)(_.task(task).addDelay(time - task.created))
     // Generate a FinishTask event to be triggered at the end of the event
     events += FinishingTask(time+task.duration,task)
   }
@@ -147,7 +145,7 @@ class Coordinator(
   protected def detach(r: TaskResource) = {
     r.finishTask(time) match {
       case None => Unit
-      case Some(task) => publish(ETaskDetach(time,task.id,task.name,task.simulation,r.name))
+      case Some(task) => publish(ETaskDetach(time,task,r.name))
     }
   }
 
@@ -158,7 +156,7 @@ class Coordinator(
     val resultMetrics = metrics.taskMap.getOrElse(task.id, TaskMetrics(task).start(time - task.duration))
 
     waiting += task.actor
-    publish(ETaskDone(time,task.id,task.name,task.simulation))
+    publish(ETaskDone(time,task))
     task.actor ! SimulationActor.TaskCompleted(task.id, resultMetrics)
   }
 

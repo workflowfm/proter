@@ -12,7 +12,6 @@ object TaskResource {
 
 class TaskResource(val name:String,val costPerTick:Int) { 
   var currentTask :Option[(Long,Task)] = None
-  var lastUpdate :Long = 1
   
   def isIdle :Boolean = currentTask == None 
   
@@ -24,7 +23,6 @@ class TaskResource(val name:String,val costPerTick:Int) {
     case Some((startTime,task)) => 
       if (currentTime >= startTime + task.duration) {
         currentTask = None
-        lastUpdate = currentTime
         Some(task)
       }
       else {
@@ -37,7 +35,6 @@ class TaskResource(val name:String,val costPerTick:Int) {
     currentTask match {
       case None => {
         currentTask = Some(currentTime,task)
-        lastUpdate = currentTime
         None
       }
       case Some((_,currentTask)) => {
@@ -53,7 +50,4 @@ class TaskResource(val name:String,val costPerTick:Int) {
       startTime + t.estimatedDuration
     }
   }
-  
-  
-  def update(time:Long) = lastUpdate = time
 }

@@ -2,7 +2,9 @@ package com.workflowfm.simulator
 
 import akka.actor.ActorSystem
 import akka.testkit.{ ImplicitSender, TestActors, TestKit }
-import com.workflowfm.simulator.events.{ PrintEventHandler, Publisher }
+import akka.pattern.ask
+import akka.util.Timeout
+import com.workflowfm.simulator.events.{ Observer, PrintEventHandler, Publisher }
 import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -89,7 +91,12 @@ class CoordinatorTests extends TestKit(ActorSystem("CoordinatorTests")) with Wor
       val resA = new TaskResource("A",1)
       val resB = new TaskResource("B",1)
       
-      val coordinator = system.actorOf(Coordinator.props(DefaultScheduler))      
+      val coordinator = system.actorOf(Coordinator.props(DefaultScheduler))
+
+      implicit val timeout = Timeout(2.seconds)
+      val mObserver = system.actorOf(SimMetricsActor.props(new SimMetricsPrinter()))
+      Await.result(mObserver ? Observer.SubscribeTo(coordinator), 3.seconds)
+
       val s1 = system.actorOf(TaskSimulatorActor.props(
         "SI1", coordinator, Seq("A"), new ConstantGenerator(2), new ConstantGenerator(2), -1, Task.Highest
       ))
@@ -103,42 +110,53 @@ class CoordinatorTests extends TestKit(ActorSystem("CoordinatorTests")) with Wor
       coordinator ! Coordinator.Start
       
       val done = expectMsgType[Coordinator.Done](20.seconds)
-      new SimMetricsPrinter().apply(done.time, done.metrics)
+      //new SimMetricsPrinter().apply(done.time, done.metrics)
       done.time should be (4L)
       val metricB = done.metrics.resourceMetrics.find { x => x.name.equals("B") } 
       metricB should not be empty 
-      //metricB map { x => x.idleTime should be (2L) }
+      metricB map { x => x.idleTime should be (2L) }
       val metricS2T = done.metrics.taskMetrics.find { x => x.fullName.equals("SI2Task (SI2)") } 
       metricS2T should not be empty
       metricS2T map { x => x.delay should be (2L) }
     }
-    /*
+    
     "measure intermediate delays and idling appropriately" in {   
       val resA = new TaskResource("A",1)
       val resB = new TaskResource("B",1)
 
-      val coordinator = system.actorOf(Coordinator.props(DefaultScheduler))      
-      val s1 = new TaskSimulation("S1", coordinator, Seq("A"), new ConstantGenerator(2), new ConstantGenerator(2), -1, Task.Highest)
-      val s2 = new TaskSimulation("S2", coordinator, Seq("B"), new ConstantGenerator(3), new ConstantGenerator(2), -1, Task.Highest)
-      val s3 = new TaskSimulation("S3", coordinator, Seq("A","B"), new ConstantGenerator(2), new ConstantGenerator(2), -1, Task.Medium)
+      val coordinator = system.actorOf(Coordinator.props(DefaultScheduler))
+      implicit val timeout = Timeout(2.seconds)
+      val mObserver = system.actorOf(SimMetricsActor.props(new SimMetricsPrinter()))
+      Await.result(mObserver ? Observer.SubscribeTo(coordinator), 3.seconds)
+
+
+      val s1 = system.actorOf(TaskSimulatorActor.props(
+        "Si1", coordinator, Seq("A"), new ConstantGenerator(2), new ConstantGenerator(2), -1, Task.Highest
+      ))
+      val s2 = system.actorOf(TaskSimulatorActor.props(
+        "Si2", coordinator, Seq("B"), new ConstantGenerator(3), new ConstantGenerator(2), -1, Task.Highest
+      ))
+      val s3 = system.actorOf(TaskSimulatorActor.props(
+        "Si3", coordinator, Seq("A","B"), new ConstantGenerator(2), new ConstantGenerator(2), -1, Task.Medium
+      ))
       
       coordinator ! Coordinator.AddResources(Seq(resA,resB))
-      coordinator ! Coordinator.AddSim(1,s1)
-      coordinator ! Coordinator.AddSim(1,s2)
-      coordinator ! Coordinator.AddSim(2,s3)
+      coordinator ! Coordinator.AddSim(0L,s1)
+      coordinator ! Coordinator.AddSim(0L,s2)
+      coordinator ! Coordinator.AddSim(1L,s3)
       coordinator ! Coordinator.Start
       
       val done = expectMsgType[Coordinator.Done](20.seconds)
       
-      done.time should be (6L)
+      done.time should be (5L)
       val metricA = done.metrics.resourceMetrics.find { x => x.name.equals("A") } 
       metricA should not be empty 
       metricA map { x => x.idleTime should be (1L) }
-      val metricS3T = done.metrics.taskMetrics.find { x => x.fullName.equals("S3Task(S3)") } 
+      val metricS3T = done.metrics.taskMetrics.find { x => x.fullName.equals("Si3Task (Si3)") } 
       metricS3T should not be empty
       metricS3T map { x => x.delay should be (2L) }
     }
-     */  
+      
     "run a task with no resources" in {
       val coordinator = system.actorOf(Coordinator.props(DefaultScheduler))
       val s1 = system.actorOf(TaskSimulatorActor.props(
@@ -182,7 +200,7 @@ class CoordinatorTests extends TestKit(ActorSystem("CoordinatorTests")) with Wor
       //coordinator ! Publisher.SubHandler(new PrintEventHandler(), None)
 
       //Thread.sleep(1000)
-      val f1 = MockObserver.build(new CounterHandler())(system,coordinator)
+      val f1 = MockObserver.observer(new CounterHandler())(system,coordinator)
      // val f2 = MockObserver.build(new CounterHandler())(system,coordinator)
      // val f3 = MockObserver.build(new CounterHandler())(system,coordinator)
      // val f4 = MockObserver.build(new CounterHandler())(system,coordinator)
@@ -201,46 +219,6 @@ class CoordinatorTests extends TestKit(ActorSystem("CoordinatorTests")) with Wor
      // Await.result(f3, 1.seconds) should be (8)
      // Await.result(f4, 1.seconds) should be (8)
     }
-/*  }
-  
-  "The MetricsActor" must {
-	
-    val handler = SimMetricsOutputs(new SimMetricsPrinter())
-   
-            //expectNoMessage(200.millis)
-    "work properly" in {   
-      println ("*** MetricsActor results should appear here:")
-      
-      val resA = new TaskResource("A",1)
-
-      val coordinator = system.actorOf(Coordinator.props(DefaultScheduler))      
-      val s = new TaskSimulation("S", coordinator, Seq("A"), new ConstantGenerator(1), new ConstantGenerator(2), -1, Task.Highest)
-      
-      coordinator ! Coordinator.AddResources(Seq(resA))
-      coordinator ! Coordinator.AddSim(1,s)
-      
-      val metricsActor = system.actorOf(SimMetricsActor.props(handler,Some(self)))
-      metricsActor ! SimMetricsActor.Start(coordinator)
-      
-      expectMsgType[Coordinator.Done](20.seconds)
-    }
-    
-    "start multiple simulations with one message" in {   
-      println ("*** MetricsActor multiple results should appear here:")
-      
-      val resA = new TaskResource("A",1)
-
-      val coordinator = system.actorOf(Coordinator.props(DefaultScheduler))      
-      val s1 = new TaskSimulation("S1", coordinator, Seq("A"), new ConstantGenerator(1), new ConstantGenerator(2), -1, Task.Highest)
-      val s2 = new TaskSimulation("S2", coordinator, Seq("A"), new ConstantGenerator(1), new ConstantGenerator(2), -1, Task.Highest)
-      
-      coordinator ! Coordinator.AddResources(Seq(resA))
-      
-      val metricsActor = system.actorOf(SimMetricsActor.props(handler,Some(self)))
-      metricsActor ! SimMetricsActor.StartSims(coordinator,Seq((1,s1),(1,s2)))
-      
-      expectMsgType[Coordinator.Done](20.seconds)
-    }*/
   }
 }
 
