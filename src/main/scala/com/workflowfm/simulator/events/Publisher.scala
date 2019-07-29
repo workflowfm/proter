@@ -24,7 +24,7 @@ trait Publisher {
   def publish(evt: Event) = {
     queue.offer(evt)
     evt match {
-      case EDone(_) => queue.complete()
+      case EDone(_,_) => queue.complete()
       case _ => Unit
     }
   }

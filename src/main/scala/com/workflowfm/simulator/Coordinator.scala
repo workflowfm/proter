@@ -44,7 +44,7 @@ class Coordinator(
   //implicit val timeout = Timeout(timeoutMillis.millis)
   
   def addResource(r:TaskResource) = if (!resourceMap.contains(r.name)) {
-    publish(EResourceAdd(time, r.name, r.costPerTick))
+    publish(EResourceAdd(self, time, r.name, r.costPerTick))
     resourceMap += r.name -> r
     metrics.addResource(r.name, r.costPerTick)
   }
@@ -57,11 +57,11 @@ class Coordinator(
     // A simulation (workflow) is starting now
     case StartingSim(t, sim) if (t == time)=> startSimulationActor(sim)
 
-    case _ => publish(EError(time, s"Failed to handle event: $event"))
+    case _ => publish(EError(self, time, s"Failed to handle event: $event"))
   }
 
   protected def addSimulation(t: Long, actor: ActorRef) = {
-    publish(ESimAdd(time,actor.toString(),t))
+    publish(ESimAdd(self, time,actor.toString(),t))
     if (t >= time) events += StartingSim(t, actor)
   }
 
@@ -71,7 +71,7 @@ class Coordinator(
   }
 
   protected def startSimulation(name: String, simActor: ActorRef): Unit = {
-    publish(ESimStart(time,name))
+    publish(ESimStart(self, time,name))
     metrics.addSim(name,time)
     simulations += name
   }
@@ -79,7 +79,7 @@ class Coordinator(
   protected def stopSimulation(name: String, result: String, actor: ActorRef) = {
     metrics.simulation(name) (_.done(result,time))
     simulations -= name
-    publish(ESimEnd(time,name,result))
+    publish(ESimEnd(self, time,name,result))
     ready(actor)
   }
   
@@ -106,7 +106,7 @@ class Coordinator(
     val resourceCost = (0L /: t.taskResources(resourceMap)) { case (c,r) => c + r.costPerTick * t.duration }
     t.addCost(resourceCost)
 
-    publish(ETaskAdd(time,t))
+    publish(ETaskAdd(self, time,t))
     metrics.addTask(t)
 
     if (resources.length > 0)
@@ -120,7 +120,7 @@ class Coordinator(
 
   protected def startTask(task:Task) {
     tasks -= task
-    publish(ETaskStart(time,task))
+    publish(ETaskStart(self, time,task))
     // Mark the start of the task in the metrics
     metrics.task(task)(_.start(time))
     task.taskResources(resourceMap) map { r =>
@@ -129,9 +129,9 @@ class Coordinator(
       // Bind each resource to this task
       r.startTask(task, time) match {
         case None =>
-          publish(ETaskAttach(time,task,r.name))
+          publish(ETaskAttach(self, time,task,r.name))
         case Some(other) =>
-          publish(EError(time,s"Tried to attach task [${task.name}](${task.simulation}) to [${r.name}], but it was already attached to [${other.name}](${other.simulation}) "))
+          publish(EError(self, time,s"Tried to attach task [${task.name}](${task.simulation}) to [${r.name}], but it was already attached to [${other.name}](${other.simulation}) "))
       }
       // Add the task and resource cost to the resource metrics
       metrics.resource(r.name)(_.task(time, task))
@@ -145,7 +145,7 @@ class Coordinator(
   protected def detach(r: TaskResource) = {
     r.finishTask(time) match {
       case None => Unit
-      case Some(task) => publish(ETaskDetach(time,task,r.name))
+      case Some(task) => publish(ETaskDetach(self, time,task,r.name))
     }
   }
 
@@ -156,7 +156,7 @@ class Coordinator(
     val resultMetrics = metrics.taskMap.getOrElse(task.id, TaskMetrics(task).start(time - task.duration))
 
     waiting += task.actor
-    publish(ETaskDone(time,task))
+    publish(ETaskDone(self, time,task))
     task.actor ! SimulationActor.TaskCompleted(task.id, resultMetrics)
   }
 
@@ -176,7 +176,7 @@ class Coordinator(
 
   def start(a:ActorRef) = if (starter.isEmpty) {
     starter = Some(a)
-    publish(EStart)
+    publish(EStart(self))
     metrics.started
     tick()
   }
@@ -192,7 +192,7 @@ class Coordinator(
       val event = events.dequeue()
       // Did we somehow go past the event time? This should never happen.
       if (event.time < time) {
-        publish(EError(time, s"Unable to handle past event for time: [${event.time}]"))
+        publish(EError(self, time, s"Unable to handle past event for time: [${event.time}]"))
       } else {
         // Jump ahead to the event time. This is a priority queue so we shouldn't skip any events
     	time = event.time
@@ -204,7 +204,7 @@ class Coordinator(
       }
     }
     else if (tasks.isEmpty && simulations.isEmpty) {
-      publish(EDone(time))
+      publish(EDone(self, time))
       metrics.ended
       // Tell whoever started us that we are done
       starter map { a => a ! Coordinator.Done(time,metrics) }

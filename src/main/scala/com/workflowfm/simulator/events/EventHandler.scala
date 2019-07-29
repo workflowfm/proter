@@ -7,7 +7,7 @@ import scala.concurrent.Promise
 trait EventHandler extends (Event => Unit) {
   def onDone(e: Event)(f: Long=>Unit) = {
     e match {
-      case EDone(t) => f(t)
+      case EDone(_,t) => f(t)
       case _ => Unit
     }
   }

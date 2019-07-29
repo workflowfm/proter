@@ -148,25 +148,25 @@ class SimMetricsHandler extends ResultHandler[SimMetricsAggregator] {
   val metrics = new SimMetricsAggregator()
 
   override def apply(evt: Event) = evt match {
-    case EStart => metrics.started
-    case EDone(t) => {
+    case EStart(src) => metrics.started
+    case EDone(src,t) => {
       metrics.allResources(_.idle(t))
       metrics.ended
     }
-    case EResourceAdd(t,n,c) => metrics.addResource(n,c)
-    case ESimAdd(t,a,s) => Unit
-    case ESimStart(t,n) => metrics.addSim(n,t)
-    case ESimEnd(t,n,r) => metrics.simulation(n) (_.done(r,t))
-    case ETaskAdd(t,task) => metrics.addTask(task)
-    case ETaskStart(t,task) => {
+    case EResourceAdd(src,t,n,c) => metrics.addResource(n,c)
+    case ESimAdd(src,t,a,s) => Unit
+    case ESimStart(src,t,n) => metrics.addSim(n,t)
+    case ESimEnd(src,t,n,r) => metrics.simulation(n) (_.done(r,t))
+    case ETaskAdd(src,t,task) => metrics.addTask(task)
+    case ETaskStart(src,t,task) => {
       metrics.task(task) (_.start(t))
       metrics.simulation(task.simulation) (_.task(task).addDelay(t - task.created))
     }
-    case ETaskAttach(t,task,r) => metrics.resource(r) (_.task(t,task))
-    case ETaskDetach(t,task,r) => Unit
-    case ETaskDone(t,task) => Unit
+    case ETaskAttach(src,t,task,r) => metrics.resource(r) (_.task(t,task))
+    case ETaskDetach(src,t,task,r) => Unit
+    case ETaskDone(src,t,task) => Unit
 
-    case EError(t, error) => Unit
+    case EError(src,t, error) => Unit
   }
 
   override def result = metrics

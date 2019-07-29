@@ -25,23 +25,26 @@ class PublisherTests extends TestKit(ActorSystem("PublisherTests", ConfigFactory
     TestKit.shutdownActorSystem(system)
   }
 
+  val EStartMock = { a:ActorRef => EStart(a) }
+  val EDoneMock = { a:ActorRef => EDone(a,0L) }
+
   "The Publisher" must {
 
     "publish a single event" in {
-      val p = MockPublisher.actor(system,EStart)
+      val p = MockPublisher.actor(system,EStartMock)
 
       val probe = MockObserver.probe(p)
 
       p ! MockPublisher.Publish
 
-      probe.expectMsg(EStart)
+      probe.expectMsgType[EStart]
       probe.reply(Publisher.StreamAck)
 
       probe.expectNoMessage
     }
 
     "publish 10 events" in {
-      val es = Seq(EStart,EStart,EStart,EStart,EStart,EStart,EStart,EStart,EStart,EStart)
+      val es = Seq(EStartMock,EStartMock,EStartMock,EStartMock,EStartMock,EStartMock,EStartMock,EStartMock,EStartMock,EStartMock)
       val p = MockPublisher.actor(system,es:_*)
 
       val probe = MockObserver.probe(p)
@@ -49,7 +52,7 @@ class PublisherTests extends TestKit(ActorSystem("PublisherTests", ConfigFactory
       p ! MockPublisher.Publish
 
       es map { x =>
-        probe.expectMsg(x)
+        probe.expectMsgType[EStart]
         probe.reply(Publisher.StreamAck)
       }
 
@@ -57,7 +60,7 @@ class PublisherTests extends TestKit(ActorSystem("PublisherTests", ConfigFactory
     }
 
     "publish 1 event to twice subscriber" in {
-      val p = MockPublisher.actor(system,EStart)
+      val p = MockPublisher.actor(system,EStartMock)
 
       val probe = MockObserver.probe(p)
 
@@ -67,38 +70,38 @@ class PublisherTests extends TestKit(ActorSystem("PublisherTests", ConfigFactory
 
       p ! MockPublisher.Publish
 
-      probe.expectMsg(EStart)
+      probe.expectMsgType[EStart]
       probe.reply(Publisher.StreamAck)
-      probe.expectMsg(EStart)
+      probe.expectMsgType[EStart]
       probe.reply(Publisher.StreamAck)
       probe.expectNoMessage
     }
 
     "publish events to 2 probes" in {
-      val p = MockPublisher.actor(system,EStart,EDone(0L))
+      val p = MockPublisher.actor(system,EStartMock,EDoneMock)
 
       val probe1 = MockObserver.probe(p)
       val probe2 = MockObserver.probe(p)
 
       p ! MockPublisher.Publish
 
-      probe1.expectMsg(EStart)
+      probe1.expectMsgType[EStart]
       probe1.reply(Publisher.StreamAck)
-      probe1.expectMsg(EDone(0L))
+      probe1.expectMsgType[EDone]
       probe1.reply(Publisher.StreamAck)
       probe1.expectMsg(Publisher.StreamDone)
       probe1.expectNoMessage
 
-      probe2.expectMsg(EStart)
+      probe2.expectMsgType[EStart]
       probe2.reply(Publisher.StreamAck)
-      probe2.expectMsg(EDone(0L))
+      probe2.expectMsgType[EDone]
       probe2.reply(Publisher.StreamAck)
       probe2.expectMsg(Publisher.StreamDone)
       probe2.expectNoMessage
     }
 
     "publish events to 3 observers" in {
-      val p = MockPublisher.actor(system,EStart,EStart,EDone(0L))
+      val p = MockPublisher.actor(system,EStartMock,EStartMock,EDoneMock)
 
       val f1 = MockObserver.observer(new CounterHandler())(system,p)
       val f2 = MockObserver.observer(new CounterHandler())(system,p)
@@ -114,20 +117,21 @@ class PublisherTests extends TestKit(ActorSystem("PublisherTests", ConfigFactory
   }
 }
 
-class MockPublisher(override val system: ActorSystem, events: Event*) extends PublisherActor {
+class MockPublisher(override val system: ActorSystem, events: (ActorRef => Event)*) extends PublisherActor {
   override def receiveBehaviour = {
     case MockPublisher.Publish => events map mpublish
   }
 
-  def mpublish(e: Event) = {
-    println(s">>> ${Event.asString(e)}")
-    publish(e)
+  def mpublish(e: ActorRef => Event) = {
+    val evt = e(self)
+    println(s">>> ${Event.asString(evt)}")
+    publish(evt)
   }
 }
 object MockPublisher {
   case object Publish
 
-  def actor(system: ActorSystem, events: Event*): ActorRef = system.actorOf(Props(
+  def actor(system: ActorSystem, events: (ActorRef => Event)*): ActorRef = system.actorOf(Props(
     new MockPublisher(system, events :_*)
   ))
 
