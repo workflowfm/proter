@@ -55,15 +55,15 @@ object SimulationActor {
 
 
 trait SimulatedProcess {
-   def name: String
-   def actor: SimulationActor
+   def simulationName: String
+   def simulationActor: SimulationActor
 
    def simulate[T](
      gen: TaskGenerator,
      result:TaskMetrics => T,
      resources:String*
    )(implicit executionContext: ExecutionContext):Future[T] = {
-     actor.task(gen, resources:_*).map(m => result(m))
+     simulationActor.task(gen, resources:_*).map(m => result(m))
    }
 }
 
