@@ -36,7 +36,9 @@ trait Publisher {
       ackMessage = Publisher.StreamAck,
       onCompleteMessage = Publisher.StreamDone,
       onFailureMessage = onErrorMessage))
-  def subHandler(handler: EventHandler): Unit = source.runWith(Sink.foreach(handler))
+
+  // Subscribing handlers like this will not pass on init, done, and fail messages
+  //def subHandler(handler: EventHandler): Unit = source.runWith(Sink.foreach(handler.onEvent))
 
   def onErrorMessage(ex: Throwable) = Publisher.StreamFail(ex)
 }
@@ -62,11 +64,11 @@ trait PublisherActor extends Publisher with Actor with ActorLogging {
     case Publisher.Subscribe(ack) => {
       subscribe(sender,ack.getOrElse(sender()))
     }
-    case Publisher.SubHandler(handler,ack) => {
+/*    case Publisher.SubHandler(handler,ack) => {
       subHandler(handler)
       val a = ack.getOrElse(sender())
       a ! Publisher.StreamInit(a)
-    }
+    }*/
     case Publisher.StreamAck => Unit
 
   }

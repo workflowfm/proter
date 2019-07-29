@@ -147,7 +147,7 @@ class SimMetricsAggregator {
 class SimMetricsHandler extends ResultHandler[SimMetricsAggregator] {
   val metrics = new SimMetricsAggregator()
 
-  override def apply(evt: Event) = evt match {
+  override def onEvent(evt: Event) = evt match {
     case EStart(src) => metrics.started
     case EDone(src,t) => {
       metrics.allResources(_.idle(t))

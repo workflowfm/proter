@@ -5,15 +5,18 @@ import akka.actor.Actor
 import akka.actor.ActorRef
 import akka.actor.ActorSystem
 import com.workflowfm.simulator.Coordinator
-import com.workflowfm.simulator.events.{ EventHandler, Event, Observer }
+import com.workflowfm.simulator.events.{ EDone, Event, EventHandler, Observer }
 
 
 class SimOutputHandler(output: SimMetricsOutput) extends EventHandler {
   val metricsHandler = new SimMetricsHandler()
 
-  override def apply(evt: Event) = {
-    metricsHandler(evt)
-    onDone(evt) { t => output(t, metricsHandler.result) }
+  override def onEvent(evt: Event) = {
+    metricsHandler.onEvent(evt)
+    evt match {
+      case EDone(_,t) => output(t, metricsHandler.result)
+      case _ => Unit
+    }
   }
 }
 
