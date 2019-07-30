@@ -6,8 +6,12 @@ import scala.collection.mutable.{ Map, Queue }
 import scala.concurrent.{ ExecutionContext, Future, Promise }
 import java.util.UUID
 
-abstract class SimulationActor(name: String, coordinator: ActorRef) extends Actor {
-  implicit val executionContext: ExecutionContext
+abstract class SimulationActor (
+  val name: String,
+  val coordinator: ActorRef)
+  (implicit executionContext: ExecutionContext)
+    extends Actor {
+  //  implicit val executionContext: ExecutionContext
 
   def run(): Future[Any]
 
@@ -22,10 +26,9 @@ abstract class SimulationActor(name: String, coordinator: ActorRef) extends Acto
     p.future
   }
 
-  def ready(): Unit = {
-    val seq = queue.clone().toSeq
-    queue.clear()
-    coordinator ! Coordinator.AddTasks(seq)
+  private def complete(id: UUID, metrics: TaskMetrics) = {
+    tasks.get(id).map (_.success(metrics))
+    tasks -= id
   }
 
   private def start(): Unit = {
@@ -35,38 +38,26 @@ abstract class SimulationActor(name: String, coordinator: ActorRef) extends Acto
     }
   }
 
-  private def complete(id: UUID, metrics: TaskMetrics) = {
-    tasks.get(id).map (_.success(metrics))
-    tasks -= id
+  def ready(): Unit = {
+    val seq = queue.clone().toSeq
+    queue.clear()
+    coordinator ! Coordinator.AddTasks(seq)
   }
 
   def receive = {
     case SimulationActor.Start => start()
+    case SimulationActor.Ready => ready()
     case SimulationActor.TaskCompleted(id, metrics) => complete(id, metrics)
+    case SimulationActor.AddTask(t, r) => task(t, r)
   }
 }
 
 object SimulationActor {
   case object Start
+  case object Ready
+  case class AddTask(t: TaskGenerator, resources: String*)
   case class TaskCompleted(id: UUID, metrics: TaskMetrics)
-
-
 }
-
-
-trait SimulatedProcess {
-   def simulationName: String
-   def simulationActor: SimulationActor
-
-   def simulate[T](
-     gen: TaskGenerator,
-     result:TaskMetrics => T,
-     resources:String*
-   )(implicit executionContext: ExecutionContext):Future[T] = {
-     simulationActor.task(gen, resources:_*).map(m => result(m))
-   }
-}
-
 
 class TaskSimulatorActor(
   name: String,
@@ -76,7 +67,8 @@ class TaskSimulatorActor(
   cost: ValueGenerator[Long]=new ConstantGenerator(0L),
   interrupt: Int=(-1),
   priority: Task.Priority=Task.Medium
-)(override implicit val executionContext: ExecutionContext) extends SimulationActor(name, coordinator) {
+)(implicit executionContext: ExecutionContext)
+    extends SimulationActor(name,coordinator) {
   def run() = {
     val generator = TaskGenerator(
       name + "Task",

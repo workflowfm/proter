@@ -209,9 +209,11 @@ class Coordinator(
       // Tell whoever started us that we are done
       starter map { a => a ! Coordinator.Done(time,metrics) }
 
-    } else if (waiting.isEmpty) { // this may happen if handleCEvent fails
+    } else if (waiting.isEmpty && !tasks.isEmpty) { // this may happen if handleCEvent fails
       allocateTasks()
       tick()
+    } else {
+      publish(EError(self, time, "No tasks left to run, but simulations have not finished."))
     }
   }
 

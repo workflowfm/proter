@@ -4,7 +4,8 @@ import akka.actor.ActorSystem
 import akka.testkit.{ ImplicitSender, TestActors, TestKit }
 import akka.pattern.ask
 import akka.util.Timeout
-import com.workflowfm.simulator.events.{ Observer, PrintEventHandler, Publisher }
+import com.typesafe.config.ConfigFactory
+import com.workflowfm.simulator.events.{ MockPublisher, Observer, PrintEventHandler, Publisher }
 import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -16,7 +17,7 @@ import com.workflowfm.simulator.events.{ MockObserver, CounterHandler }
 
 
 @RunWith(classOf[JUnitRunner])
-class CoordinatorTests extends TestKit(ActorSystem("CoordinatorTests")) with WordSpecLike with Matchers with BeforeAndAfterAll with ImplicitSender {
+class CoordinatorTests extends TestKit(ActorSystem("CoordinatorTests", ConfigFactory.parseString(MockPublisher.config))) with WordSpecLike with Matchers with BeforeAndAfterAll with ImplicitSender {
   implicit val executionContext = ExecutionContext.global //system.dispatchers.lookup("akka.my-dispatcher")  
   implicit val timeout:FiniteDuration = 10.seconds
 
