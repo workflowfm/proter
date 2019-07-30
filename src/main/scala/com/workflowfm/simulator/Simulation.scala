@@ -1,8 +1,12 @@
 package com.workflowfm.simulator
 
+import akka.pattern.{ pipe, ask }
 import akka.actor.{ Actor, ActorRef, Props }
+import akka.util.Timeout
 import com.workflowfm.simulator.metrics.TaskMetrics
+import java.util.concurrent.TimeUnit
 import scala.collection.mutable.{ Map, Queue }
+import scala.concurrent.duration.Duration
 import scala.concurrent.{ ExecutionContext, Future, Promise }
 import java.util.UUID
 
@@ -20,10 +24,18 @@ abstract class SimulationActor (
 
   def task(t: TaskGenerator, resources: String*): Future[TaskMetrics] = {
     val id = java.util.UUID.randomUUID
+    task(id, t, None, resources)
+  }
+
+  protected def task(id: UUID, t: TaskGenerator, caller: Option[ActorRef], resources: Seq[String]): Future[TaskMetrics] = {
+    val id = java.util.UUID.randomUUID
     val p = Promise[TaskMetrics]()
     tasks += id -> p
     queue += ((id, t, resources))
-    p.future
+    caller match {
+      case None => p.future
+      case Some(actor) => p.future pipeTo actor
+    }
   }
 
   private def complete(id: UUID, metrics: TaskMetrics) = {
@@ -44,19 +56,39 @@ abstract class SimulationActor (
     coordinator ! Coordinator.AddTasks(seq)
   }
 
-  def receive = {
+  def simulationActorReceive: Receive = {
     case SimulationActor.Start => start()
     case SimulationActor.Ready => ready()
     case SimulationActor.TaskCompleted(id, metrics) => complete(id, metrics)
-    case SimulationActor.AddTask(t, r) => task(t, r)
+    case SimulationActor.AddTask(id, t, r) => task(id, t, Some(sender), r)
   }
+
+  def receive = simulationActorReceive
 }
+
 
 object SimulationActor {
   case object Start
   case object Ready
-  case class AddTask(t: TaskGenerator, resources: String*)
+  case class AddTask(id: UUID, t: TaskGenerator, resources: Seq[String])
   case class TaskCompleted(id: UUID, metrics: TaskMetrics)
+}
+
+
+trait SimulatedProcess {
+   def simulationName: String
+   def simulationActor: ActorRef
+
+   def simulate[T](
+     gen: TaskGenerator,
+     result:TaskMetrics => T,
+     resources:String*
+   )(implicit executionContext: ExecutionContext):Future[T] = {
+     val id = java.util.UUID.randomUUID
+     (simulationActor ? SimulationActor.AddTask(id, gen, resources))(Timeout(1, TimeUnit.DAYS)).
+       mapTo[TaskMetrics].
+       map (result(_))
+   }
 }
 
 class TaskSimulatorActor(
