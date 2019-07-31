@@ -31,7 +31,6 @@ abstract class SimulationActor (
     val p = Promise[TaskMetrics]()
     tasks += id -> p
     queue += ((id, t, resources))
-    println(s"QQ: $queue")
     caller match {
       case None => p.future
       case Some(actor) => p.future pipeTo actor
@@ -52,7 +51,6 @@ abstract class SimulationActor (
 
   def ready(): Unit = {
     val seq = queue.clone().toSeq
-    println(s"Q SEND: $seq")
     queue.clear()
     coordinator ! Coordinator.AddTasks(seq)
   }

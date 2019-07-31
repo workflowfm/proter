@@ -228,7 +228,7 @@ class SimD3Timeline(path:String,file:String,tick:Int=1) extends SimMetricsOutput
   
   override def apply(totalTicks:Long, aggregator:SimMetricsAggregator) = {
     val result = build(aggregator,System.currentTimeMillis())
-    println(result)
+    //println(result)
     val dataFile = s"$path$file-simdata.js"
     writeToFile(dataFile, result)
   }

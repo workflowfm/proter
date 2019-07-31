@@ -23,7 +23,7 @@ class Observer(handler: EventHandler) extends Actor with ActorLogging {
     case Publisher.StreamDone => {
       log.debug("Stream completed.")
       handler.onDone(sender())
-      context.stop(self)
+      //context.stop(self)
     }
     case Publisher.StreamFail(ex) => {
       log.error(ex, "Stream failed!")

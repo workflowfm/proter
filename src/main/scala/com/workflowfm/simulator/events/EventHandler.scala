@@ -15,8 +15,14 @@ trait EventHandler {
 trait PoolEventHandler extends EventHandler {
   val coordinators: HashSet[ActorRef] = HashSet[ActorRef]()
 
-  override def onInit(a: ActorRef) = coordinators += a
-  override def onDone(a: ActorRef) = coordinators -= a
+  override def onInit(a: ActorRef) = {
+    println(s"Pool handler adding coordinator: $a")
+    coordinators += a
+  }
+  override def onDone(a: ActorRef) = {
+    println(s"Pool handler done with coordinator: $a")
+    coordinators -= a
+  }
 }
 
 
@@ -67,6 +73,10 @@ object PromiseHandler {
 class ShutdownHandler(implicit system: ActorSystem) extends PoolEventHandler {
   override def onDone(a: ActorRef): Unit = {
     super.onDone(a)
-    if (coordinators.isEmpty) system.terminate()
+    if (coordinators.isEmpty) {
+      println("********************************************* SHUTTING DOWN!!! ***********************************************")
+      Thread.sleep(1000)
+      system.terminate()
+    }
   }
 }
