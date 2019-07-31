@@ -212,9 +212,9 @@ class Coordinator(
     } else if (waiting.isEmpty && !tasks.isEmpty) { // this may happen if handleCEvent fails
       allocateTasks()
       tick()
-    } else {
-      publish(EError(self, time, "No tasks left to run, but simulations have not finished."))
-    }
+    } //else {
+      //publish(EError(self, time, "No tasks left to run, but simulations have not finished."))
+    //}
   }
 
   protected def allocateTasks() = {

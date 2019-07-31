@@ -28,22 +28,22 @@ abstract class SimulationActor (
   }
 
   protected def task(id: UUID, t: TaskGenerator, caller: Option[ActorRef], resources: Seq[String]): Future[TaskMetrics] = {
-    val id = java.util.UUID.randomUUID
     val p = Promise[TaskMetrics]()
     tasks += id -> p
     queue += ((id, t, resources))
+    println(s"QQ: $queue")
     caller match {
       case None => p.future
       case Some(actor) => p.future pipeTo actor
     }
   }
 
-  private def complete(id: UUID, metrics: TaskMetrics) = {
+  protected def complete(id: UUID, metrics: TaskMetrics) = {
     tasks.get(id).map (_.success(metrics))
     tasks -= id
   }
 
-  private def start(): Unit = {
+  protected def start(): Unit = {
     coordinator ! Coordinator.SimStarted(name)
     run().onComplete { x =>
       coordinator ! Coordinator.SimDone(name, x)
@@ -52,6 +52,7 @@ abstract class SimulationActor (
 
   def ready(): Unit = {
     val seq = queue.clone().toSeq
+    println(s"Q SEND: $seq")
     queue.clear()
     coordinator ! Coordinator.AddTasks(seq)
   }
@@ -76,19 +77,28 @@ object SimulationActor {
 
 
 trait SimulatedProcess {
-   def simulationName: String
-   def simulationActor: ActorRef
+  def simulationName: String
+  def simulationActor: ActorRef
 
-   def simulate[T](
-     gen: TaskGenerator,
-     result:TaskMetrics => T,
-     resources:String*
-   )(implicit executionContext: ExecutionContext):Future[T] = {
-     val id = java.util.UUID.randomUUID
-     (simulationActor ? SimulationActor.AddTask(id, gen, resources))(Timeout(1, TimeUnit.DAYS)).
-       mapTo[TaskMetrics].
-       map (result(_))
-   }
+  def simulate[T](
+    gen: TaskGenerator,
+    result:TaskMetrics => T,
+    resources:String*
+  )(implicit executionContext: ExecutionContext):Future[T] = {
+    val id = java.util.UUID.randomUUID
+    simulate(id,gen,result,resources:_*)
+  }
+
+  def simulate[T](
+    id: UUID,
+    gen: TaskGenerator,
+    result:TaskMetrics => T,
+    resources:String*
+  )(implicit executionContext: ExecutionContext):Future[T] = {
+    (simulationActor ? SimulationActor.AddTask(id, gen, resources))(Timeout(1, TimeUnit.DAYS)).
+      mapTo[TaskMetrics].
+      map (result(_))
+  }
 }
 
 class TaskSimulatorActor(
@@ -135,5 +145,5 @@ object TaskSimulatorActor {
         interrupt,
         priority
       )
-  )
+    )
 }

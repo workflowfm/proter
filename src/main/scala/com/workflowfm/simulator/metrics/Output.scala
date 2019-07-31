@@ -268,6 +268,6 @@ $times
     val start = m.started.getOrElse(1L) * tick 
     val finish = (m.started.getOrElse(1L) + m.duration) * tick
     val delay = m.delay * tick
-    s"""\t{"label":"${m.fullName}", task: "${m.task}", "id":${m.id}, "starting_time": $start, "ending_time": $finish, delay: $delay, cost: ${m.cost}}"""
+    s"""\t{"label":"${m.fullName}", task: "${m.task}", "id":"${m.id}", "starting_time": $start, "ending_time": $finish, delay: $delay, cost: ${m.cost}}"""
   }
 }
