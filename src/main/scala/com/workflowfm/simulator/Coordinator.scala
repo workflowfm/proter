@@ -36,7 +36,6 @@ class Coordinator(
   
   val events = new PriorityQueue[CEvent]()
   
-  var starter: Option[ActorRef] = None
   var time = startingTime
   
   val metrics = new SimMetricsAggregator()
@@ -80,6 +79,7 @@ class Coordinator(
     metrics.simulation(name) (_.done(result,time))
     simulations -= name
     publish(ESimEnd(self, time,name,result))
+    //println(s"[COORD] Stop: [${actor.path.name}] Waiting: ${waiting map (_.path.name)}")
     ready(actor)
   }
   
@@ -94,6 +94,7 @@ class Coordinator(
 
   protected def addTasks(actor: ActorRef, l: Seq[(UUID, TaskGenerator, Seq[String])]) {
     l map { case (i,g,r) => addTask(i,g,r) }
+    //println(s"[COORD] Update: [${actor.path.name}] Waiting: ${waiting map (_.path.name)}")
     ready(actor)
   }
 
@@ -156,6 +157,7 @@ class Coordinator(
     val resultMetrics = metrics.taskMap.getOrElse(task.id, TaskMetrics(task).start(time - task.duration))
 
     waiting += task.actor
+    //println(s"[COORD] Waiting: $waiting")
     publish(ETaskDone(self, time,task))
     task.actor ! SimulationActor.TaskCompleted(task.id, resultMetrics)
   }
@@ -174,8 +176,7 @@ class Coordinator(
     }
   }
 
-  def start(a:ActorRef) = if (starter.isEmpty) {
-    starter = Some(a)
+  def start() = {
     publish(EStart(self))
     metrics.started
     tick()
@@ -206,8 +207,6 @@ class Coordinator(
     else if (tasks.isEmpty && simulations.isEmpty) {
       publish(EDone(self, time))
       metrics.ended
-      // Tell whoever started us that we are done
-      starter map { a => a ! Coordinator.Done(time,metrics) }
 
     } else if (waiting.isEmpty && !tasks.isEmpty) { // this may happen if handleCEvent fails
       allocateTasks()
@@ -242,7 +241,7 @@ class Coordinator(
         ex.printStackTrace()
       }
     }
-    case Coordinator.Start => start(sender)
+    case Coordinator.Start => start()
     case Coordinator.Ping => sender() ! Coordinator.Time(time)
 
   }
@@ -251,7 +250,6 @@ class Coordinator(
 object Coordinator {
   case object Start
   //TODO case object Stop
-  case class Done(time: Long, metrics: SimMetricsAggregator)
   case object Ping
   case class Time(time: Long)
 
