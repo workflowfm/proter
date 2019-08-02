@@ -4,13 +4,9 @@ import akka.actor.{ ActorRef, ActorSystem }
 import java.text.SimpleDateFormat
 import scala.collection.mutable.HashSet
 import scala.concurrent.Promise
+import uk.ac.ed.inf.ppapapan.subakka.Subscriber
 
-trait EventHandler {
-  def onInit(a: ActorRef): Unit = ()
-  def onEvent(e: Event): Unit = ()
-  def onDone(a: ActorRef): Unit = ()
-  def onFail(e: Throwable): Unit = ()
-}
+trait EventHandler extends Subscriber[Event]
 
 trait PoolEventHandler extends EventHandler {
   val coordinators: HashSet[ActorRef] = HashSet[ActorRef]()
@@ -19,7 +15,7 @@ trait PoolEventHandler extends EventHandler {
     println(s"Pool handler adding coordinator: $a")
     coordinators += a
   }
-  override def onDone(a: ActorRef) = {
+  override def onDone(a: ActorRef, s: ActorRef) = {
     println(s"Pool handler done with coordinator: $a")
     coordinators -= a
   }
@@ -53,13 +49,13 @@ class PromiseHandler[R](handler: ResultHandler[R]) extends ResultHandler[R] {
   override def onInit(a: ActorRef): Unit = handler.onInit(a)
   override def onEvent(e: Event): Unit = handler.onEvent(e)
 
-  override def onDone(a: ActorRef): Unit = {
-    handler.onDone(a)
+  override def onDone(a: ActorRef, s: ActorRef): Unit = {
+    handler.onDone(a,s)
     if (!promise.isCompleted) promise.success(result)
   }
 
-  override def onFail(ex: Throwable) = {
-    handler.onFail(ex)
+  override def onFail(ex: Throwable, a: ActorRef, s: ActorRef) = {
+    handler.onFail(ex, a, s)
     if (!promise.isCompleted) promise.failure(ex)
   }
 
@@ -71,8 +67,8 @@ object PromiseHandler {
 
 
 class ShutdownHandler(implicit system: ActorSystem) extends PoolEventHandler {
-  override def onDone(a: ActorRef): Unit = {
-    super.onDone(a)
+  override def onDone(a: ActorRef, s: ActorRef): Unit = {
+    super.onDone(a,s)
     if (coordinators.isEmpty) {
       println("********************************************* SHUTTING DOWN!!! ***********************************************")
       Thread.sleep(1000)

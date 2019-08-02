@@ -7,6 +7,8 @@ import java.util.UUID
 sealed trait Event {
   val source: ActorRef
   val time: Long
+
+  override def toString = Event.asString(this)
 }
 
 case class EStart(override val source:ActorRef) extends Event {

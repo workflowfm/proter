@@ -1,6 +1,7 @@
 package com.workflowfm.simulator
 
 import akka.actor._
+import akka.event.LoggingReceive
 import akka.util.Timeout
 import akka.pattern.ask
 import com.workflowfm.simulator.events._
@@ -10,15 +11,13 @@ import scala.collection.mutable.{ Map, Queue, PriorityQueue, HashSet, SortedSet 
 import scala.concurrent.{ Promise, Await, ExecutionContext }
 import scala.util.{ Failure, Success, Try }
 import java.util.UUID
+import uk.ac.ed.inf.ppapapan.subakka.Publisher
 
 
 class Coordinator(
   scheduler :Scheduler,
   startingTime:Long
-)(
-  override implicit val system: ActorSystem,
-  implicit val executionContext:ExecutionContext
-) extends PublisherActor {
+) extends Publisher[Event] {
   
   sealed trait CEvent extends Ordered[CEvent] {
     def time:Long
@@ -221,7 +220,12 @@ class Coordinator(
     scheduler.getNextTasks(tasks, time, resourceMap).foreach(startTask)
   }
 
-  override def receiveBehaviour = {
+  override def isFinalEvent(e: Event) = e match {
+    case EDone(_,_) => true
+    case _ => false
+  }
+
+  def receiveBehaviour: Receive = {
     case Coordinator.AddSim(t, s) => addSimulation(t,s)
     case Coordinator.AddSims(l) => l map { case (t,s) => addSimulation(t,s) }
     case Coordinator.AddSimNow(s) => addSimulation(time, s)
@@ -243,8 +247,9 @@ class Coordinator(
     }
     case Coordinator.Start => start()
     case Coordinator.Ping => sender() ! Coordinator.Time(time)
-
   }
+
+  override def receive = LoggingReceive { publisherBehaviour orElse receiveBehaviour }
 }
 
 object Coordinator {
@@ -272,5 +277,5 @@ object Coordinator {
     scheduler: Scheduler,
     startingTime: Long = 0L
   )(implicit system: ActorSystem, executionContext:ExecutionContext
-  ): Props = Props(new Coordinator(scheduler,startingTime)(system,executionContext))
+  ): Props = Props(new Coordinator(scheduler,startingTime))
 }

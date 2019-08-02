@@ -18,6 +18,9 @@ lazy val root = (project in file("."))
 
     libraryDependencies += "com.typesafe.akka" %% "akka-stream"       % "2.5.13",
 
+    libraryDependencies += "uk.ac.ed.inf" %% "subakka" % "0.1-SNAPSHOT",
+    libraryDependencies += "uk.ac.ed.inf" %% "subakka" % "0.1-SNAPSHOT" % Test  classifier "tests",
+
     libraryDependencies += "org.apache.commons" % "commons-lang3" % "3.3.2",
 
     libraryDependencies += "junit" % "junit" % "4.8.2"

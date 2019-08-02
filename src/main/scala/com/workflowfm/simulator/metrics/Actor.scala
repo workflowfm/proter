@@ -5,7 +5,8 @@ import akka.actor.Actor
 import akka.actor.ActorRef
 import akka.actor.ActorSystem
 import com.workflowfm.simulator.Coordinator
-import com.workflowfm.simulator.events.{ EDone, Event, EventHandler, Observer }
+import com.workflowfm.simulator.events.{ EDone, Event, EventHandler }
+import uk.ac.ed.inf.ppapapan.subakka.SubscriberActor
 
 
 class SimOutputHandler(output: SimMetricsOutput) extends EventHandler {
@@ -18,10 +19,4 @@ class SimOutputHandler(output: SimMetricsOutput) extends EventHandler {
       case _ => Unit
     }
   }
-}
-
-class SimMetricsActor(m:SimMetricsOutput) extends Observer(new SimOutputHandler(m))
-
-object SimMetricsActor {
-  def props(m:SimMetricsOutput): Props = Props(new SimMetricsActor(m))
 }
