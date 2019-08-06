@@ -36,26 +36,24 @@ class Coordinator(
   val events = new PriorityQueue[CEvent]()
   
   var time = startingTime
-  
-  val metrics = new SimMetricsAggregator()
-  
-  //implicit val timeout = Timeout(timeoutMillis.millis)
+ 
   
   def addResource(r:TaskResource) = if (!resourceMap.contains(r.name)) {
     publish(EResourceAdd(self, time, r.name, r.costPerTick))
     resourceMap += r.name -> r
-    metrics.addResource(r.name, r.costPerTick)
   }
 
-  protected def handleCEvent(event:CEvent) = event match {
-    //println(s"[$time] ========= CEvent! ========= ")
-    // A task is finished
-    case FinishingTask(t,task) if (t == time) => stopTask(time,task)
+  protected def handleCEvent(event:CEvent) = {
+    log.debug(s"[COORD:$time] Event!")
+    event match {
+      // A task is finished
+      case FinishingTask(t,task) if (t == time) => stopTask(time,task)
 
-    // A simulation (workflow) is starting now
-    case StartingSim(t, sim) if (t == time)=> startSimulationActor(sim)
+      // A simulation (workflow) is starting now
+      case StartingSim(t, sim) if (t == time)=> startSimulationActor(sim)
 
-    case _ => publish(EError(self, time, s"Failed to handle event: $event"))
+      case _ => publish(EError(self, time, s"Failed to handle event: $event"))
+    }
   }
 
   protected def addSimulation(t: Long, actor: ActorRef) = {
@@ -70,30 +68,19 @@ class Coordinator(
 
   protected def startSimulation(name: String, simActor: ActorRef): Unit = {
     publish(ESimStart(self, time,name))
-    metrics.addSim(name,time)
     simulations += name
   }
 
   protected def stopSimulation(name: String, result: String, actor: ActorRef) = {
-    metrics.simulation(name) (_.done(result,time))
     simulations -= name
     publish(ESimEnd(self, time,name,result))
-    //println(s"[COORD] Stop: [${actor.path.name}] Waiting: ${waiting map (_.path.name)}")
+    log.debug(s"[COORD:$time] Finished: [${actor.path.name}]")
     ready(actor)
   }
   
-  //  protected def updateSimulation(s:String, f:WorkflowMetricTracker=>WorkflowMetricTracker) = simulations = simulations map {
-  //    case (n,m,e) if n.equals(s) => (n,f(m),e)
-  //    case x => x
-  //  }
-  
-  protected def resourceIdle(r:TaskResource) = if (r.isIdle) {
-    metrics.resource(r.name)(_.idle(time))
-  }
-
   protected def addTasks(actor: ActorRef, l: Seq[(UUID, TaskGenerator, Seq[String])]) {
     l map { case (i,g,r) => addTask(i,g,r) }
-    //println(s"[COORD] Update: [${actor.path.name}] Waiting: ${waiting map (_.path.name)}")
+    log.debug(s"[COORD:$time] Ready: [${actor.path.name}]")
     ready(actor)
   }
 
@@ -107,7 +94,6 @@ class Coordinator(
     t.addCost(resourceCost)
 
     publish(ETaskAdd(self, time,t))
-    metrics.addTask(t)
 
     if (resources.length > 0)
       tasks += t
@@ -122,10 +108,7 @@ class Coordinator(
     tasks -= task
     publish(ETaskStart(self, time,task))
     // Mark the start of the task in the metrics
-    metrics.task(task)(_.start(time))
     task.taskResources(resourceMap) map { r =>
-      // Update idle time if resource has been idle
-      if (r.isIdle) metrics.resource(r.name)(_.idle(time))
       // Bind each resource to this task
       r.startTask(task, time) match {
         case None =>
@@ -133,11 +116,7 @@ class Coordinator(
         case Some(other) =>
           publish(EError(self, time,s"Tried to attach task [${task.name}](${task.simulation}) to [${r.name}], but it was already attached to [${other.name}](${other.simulation}) "))
       }
-      // Add the task and resource cost to the resource metrics
-      metrics.resource(r.name)(_.task(time, task))
     }
-    // Add the task to the simulation metrics
-    metrics.simulation(task.simulation)(_.task(task).addDelay(time - task.created))
     // Generate a FinishTask event to be triggered at the end of the event
     events += FinishingTask(time+task.duration,task)
   }
@@ -153,21 +132,15 @@ class Coordinator(
     // Unbind the resources
     task.taskResources(resourceMap).foreach(detach)
 
-    val resultMetrics = metrics.taskMap.getOrElse(task.id, TaskMetrics(task).start(time - task.duration))
-
     waiting += task.actor
-    //println(s"[COORD] Waiting: $waiting")
+    log.debug(s"[COORD:$time] Waiting post-task: ${task.actor.path.name}")
     publish(ETaskDone(self, time,task))
-    task.actor ! SimulationActor.TaskCompleted(task.id, resultMetrics)
+    task.actor ! SimulationActor.TaskCompleted(task, time)
   }
-
-  //  /**
-  //    * Runs all tasks that require no resources
-  //    */
-  //  protected def runNoResourceTasks(): Int = tasks.dequeueAll(_.resources.isEmpty).map(startTask).length
 
   protected def ready(actor: ActorRef): Unit = {
     waiting -= actor
+    log.debug(s"[COORD:$time] Waiting: ${waiting map (_.path.name)}")
     // Are all actors ready?
     if (waiting.isEmpty) {
       allocateTasks()
@@ -177,15 +150,10 @@ class Coordinator(
 
   def start() = {
     publish(EStart(self))
-    metrics.started
     tick()
   }
 
   protected def tick(): Unit = {
-    //println("***TICK!***")
-
-    // Update idle resources
-    resourceMap.values.foreach(resourceIdle)
     // Are events pending?
     if (!events.isEmpty) {
       // Grab the first event
@@ -205,7 +173,6 @@ class Coordinator(
     }
     else if (tasks.isEmpty && simulations.isEmpty) {
       publish(EDone(self, time))
-      metrics.ended
 
     } else if (waiting.isEmpty && !tasks.isEmpty) { // this may happen if handleCEvent fails
       allocateTasks()
@@ -254,7 +221,6 @@ class Coordinator(
 
 object Coordinator {
   case object Start
-  //TODO case object Stop
   case object Ping
   case class Time(time: Long)
 
@@ -269,7 +235,6 @@ object Coordinator {
   case class SimStarted(name: String)
   case class SimDone(name: String, result: Try[Any])
 
-  //case class AddTask(id: UUID, t: TaskGenerator, resources: Seq[String])
   case class AddTasks(l: Seq[(UUID, TaskGenerator, Seq[String])])
   case object AckTask
 

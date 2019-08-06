@@ -15,20 +15,19 @@ abstract class SimulationActor (
   val coordinator: ActorRef)
   (implicit executionContext: ExecutionContext)
     extends Actor {
-  //  implicit val executionContext: ExecutionContext
 
   def run(): Future[Any]
 
-  private val tasks: Map[UUID,Promise[TaskMetrics]] = Map()
+  private val tasks: Map[UUID,Promise[(Task,Long)]] = Map()
   private val queue: Queue[(UUID, TaskGenerator, Seq[String])] = Queue()
 
-  def task(t: TaskGenerator, resources: String*): Future[TaskMetrics] = {
+  def task(t: TaskGenerator, resources: String*): Future[(Task,Long)] = {
     val id = java.util.UUID.randomUUID
     task(id, t, None, resources)
   }
 
-  protected def task(id: UUID, t: TaskGenerator, caller: Option[ActorRef], resources: Seq[String]): Future[TaskMetrics] = {
-    val p = Promise[TaskMetrics]()
+  protected def task(id: UUID, t: TaskGenerator, caller: Option[ActorRef], resources: Seq[String]): Future[(Task,Long)] = {
+    val p = Promise[(Task,Long)]()
     tasks += id -> p
     queue += ((id, t, resources))
     caller match {
@@ -37,9 +36,9 @@ abstract class SimulationActor (
     }
   }
 
-  protected def complete(id: UUID, metrics: TaskMetrics) = {
-    tasks.get(id).map (_.success(metrics))
-    tasks -= id
+  protected def complete(task: Task, time: Long) = {
+    tasks.get(task.id).map (_.success((task,time)))
+    tasks -= task.id
   }
 
   protected def start(): Unit = {
@@ -58,7 +57,7 @@ abstract class SimulationActor (
   def simulationActorReceive: Receive = {
     case SimulationActor.Start => start()
     case SimulationActor.Ready => ready()
-    case SimulationActor.TaskCompleted(id, metrics) => complete(id, metrics)
+    case SimulationActor.TaskCompleted(task, time) => complete(task, time)
     case SimulationActor.AddTask(id, t, r) => task(id, t, Some(sender), r)
   }
 
@@ -70,7 +69,7 @@ object SimulationActor {
   case object Start
   case object Ready
   case class AddTask(id: UUID, t: TaskGenerator, resources: Seq[String])
-  case class TaskCompleted(id: UUID, metrics: TaskMetrics)
+  case class TaskCompleted(task: Task, time: Long)
 }
 
 

@@ -16,19 +16,13 @@ class TaskResource(val name:String,val costPerTick:Int) {
   def isIdle :Boolean = currentTask == None 
   
   def finishTask(currentTime:Long) :Option[Task] = currentTask match {
-    case None => {
-        //println("["+currentTime+"] \"" + name + "\" is idle.")
-        None
-    }
+    case None => None
     case Some((startTime,task)) => 
       if (currentTime >= startTime + task.duration) {
         currentTask = None
         Some(task)
       }
-      else {
-        //println("["+currentTime+"] \"" + name + "\" is attached to task \"" + task.name + " (" + task.simulation +")\" - " + (startTime + duration - currentTime) + " ticks remaining.")
-        None
-      }
+      else None
   }
   
   def startTask(task:Task,currentTime:Long) = {
