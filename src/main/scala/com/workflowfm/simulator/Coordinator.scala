@@ -11,13 +11,13 @@ import scala.collection.mutable.{ Map, Queue, PriorityQueue, HashSet, SortedSet 
 import scala.concurrent.{ Promise, Await, ExecutionContext }
 import scala.util.{ Failure, Success, Try }
 import java.util.UUID
-import uk.ac.ed.inf.ppapapan.subakka.Publisher
+import uk.ac.ed.inf.ppapapan.subakka.HashSetPublisher
 
 
 class Coordinator(
   scheduler :Scheduler,
   startingTime:Long
-) extends Publisher[Event] {
+) extends HashSetPublisher[Event] {
   
   sealed trait CEvent extends Ordered[CEvent] {
     def time:Long
