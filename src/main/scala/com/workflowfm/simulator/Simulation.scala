@@ -1,12 +1,9 @@
 package com.workflowfm.simulator
 
-import akka.pattern.{ pipe, ask }
+import akka.pattern.pipe
 import akka.actor.{ Actor, ActorRef, Props }
 import akka.util.Timeout
-import com.workflowfm.simulator.metrics.TaskMetrics
-import java.util.concurrent.TimeUnit
 import scala.collection.mutable.{ Map, Queue }
-import scala.concurrent.duration.Duration
 import scala.concurrent.{ ExecutionContext, Future, Promise }
 import java.util.UUID
 
@@ -72,31 +69,6 @@ object SimulationActor {
   case class TaskCompleted(task: Task, time: Long)
 }
 
-
-trait SimulatedProcess {
-  def simulationName: String
-  def simulationActor: ActorRef
-
-  def simulate[T](
-    gen: TaskGenerator,
-    result:TaskMetrics => T,
-    resources:String*
-  )(implicit executionContext: ExecutionContext):Future[T] = {
-    val id = java.util.UUID.randomUUID
-    simulate(id,gen,result,resources:_*)
-  }
-
-  def simulate[T](
-    id: UUID,
-    gen: TaskGenerator,
-    result:TaskMetrics => T,
-    resources:String*
-  )(implicit executionContext: ExecutionContext):Future[T] = {
-    (simulationActor ? SimulationActor.AddTask(id, gen, resources))(Timeout(1, TimeUnit.DAYS)).
-      mapTo[TaskMetrics].
-      map (result(_))
-  }
-}
 
 class TaskSimulatorActor(
   name: String,
