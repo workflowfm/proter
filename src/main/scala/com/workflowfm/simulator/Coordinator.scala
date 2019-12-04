@@ -121,6 +121,12 @@ class Coordinator(
     events += FinishingTask(time+task.duration,task)
   }
 
+  protected def waitFor(actor: ActorRef) {
+    waiting += actor
+    log.debug(s"[COORD:$time] Wait requested: ${actor.path.name}")
+    actor ! Coordinator.AckWait
+  }
+
   protected def detach(r: TaskResource) = {
     r.finishTask(time) match {
       case None => Unit
@@ -202,6 +208,7 @@ class Coordinator(
     case Coordinator.AddResources(r) => r foreach addResource
       
     case Coordinator.AddTasks(l) => addTasks(sender, l)
+    case Coordinator.WaitFor(actor) => waitFor(actor)
     case Coordinator.SimStarted(name) => startSimulation(name, sender)
     case Coordinator.SimDone(name, result) => result match {
       case Success(res) => {
@@ -237,6 +244,8 @@ object Coordinator {
 
   case class AddTasks(l: Seq[(UUID, TaskGenerator, Seq[String])])
   case object AckTask
+  case class WaitFor(actor: ActorRef)
+  case object AckWait
 
   def props(
     scheduler: Scheduler,

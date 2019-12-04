@@ -1,8 +1,10 @@
 package com.workflowfm.simulator
 
-import akka.pattern.pipe
+import akka.pattern.{ ask, pipe }
 import akka.actor.{ Actor, ActorRef, Props }
 import akka.util.Timeout
+import java.util.concurrent.TimeUnit
+import scala.concurrent.duration.Duration
 import scala.collection.mutable.{ Map, Queue }
 import scala.concurrent.{ ExecutionContext, Future, Promise }
 import java.util.UUID
@@ -49,6 +51,10 @@ abstract class SimulationActor (
     val seq = queue.clone().toSeq
     queue.clear()
     coordinator ! Coordinator.AddTasks(seq)
+  }
+
+  def requestWait(ack: ActorRef): Unit = {
+    (coordinator ? Coordinator.WaitFor(self))(Timeout(1, TimeUnit.DAYS)) pipeTo ack
   }
 
   def simulationActorReceive: Receive = {
