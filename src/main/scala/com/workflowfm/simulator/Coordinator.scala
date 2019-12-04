@@ -43,6 +43,62 @@ class Coordinator(
     resourceMap += r.name -> r
   }
 
+  protected def dequeueEvents(t: Long): Seq[CEvent] = {
+    val elems = scala.collection.immutable.Seq.newBuilder[CEvent]
+    while(events.headOption.exists(_.time == t)) {
+      elems += events.dequeue
+    }
+    elems.result()
+  }
+
+  protected def tick(): Unit = {
+    // Are events pending?
+    if (!events.isEmpty) {
+      // Grab the first event
+      val firstEvent = events.head
+
+      // Did we somehow go past the event time? This should never happen.
+      if (firstEvent.time < time) {
+        publish(EError(self, time, s"Unable to handle past event for time: [${firstEvent.time}]"))
+      } else {
+        // Jump ahead to the event time. This is a priority queue so we shouldn't skip any events
+    	time = firstEvent.time
+
+        // Dequeue all the events that need to happen now
+        val eventsToHandle = dequeueEvents(firstEvent.time)
+
+        // Release all resources from finished tasks before you notify anyone
+        eventsToHandle foreach releaseResources
+        // Handle the event
+        eventsToHandle foreach handleCEvent
+      }
+
+    }
+    else if (tasks.isEmpty && simulations.isEmpty) {
+      publish(EDone(self, time))
+
+    } else if (waiting.isEmpty && !tasks.isEmpty) { // this may happen if handleCEvent fails
+      allocateTasks()
+      tick()
+    } //else {
+      //publish(EError(self, time, "No tasks left to run, but simulations have not finished."))
+    //}
+  }
+
+  protected def allocateTasks() = {
+    // Assign the next tasks
+    scheduler.getNextTasks(tasks, time, resourceMap).foreach(startTask)
+  }
+
+  protected def releaseResources(event: CEvent) = {
+    event match {
+      case FinishingTask(t,task) if (t == time) =>
+        // Unbind the resources
+        task.taskResources(resourceMap).foreach(detach)
+      case _ => Unit
+    }
+  }
+
   protected def handleCEvent(event:CEvent) = {
     log.debug(s"[COORD:$time] Event!")
     event match {
@@ -135,9 +191,6 @@ class Coordinator(
   }
 
   protected def stopTask(t: Long, task: Task) {
-    // Unbind the resources
-    task.taskResources(resourceMap).foreach(detach)
-
     waiting += task.actor
     log.debug(s"[COORD:$time] Waiting post-task: ${task.actor.path.name}")
     publish(ETaskDone(self, time,task))
@@ -157,40 +210,6 @@ class Coordinator(
   def start() = {
     publish(EStart(self))
     tick()
-  }
-
-  protected def tick(): Unit = {
-    // Are events pending?
-    if (!events.isEmpty) {
-      // Grab the first event
-      val event = events.dequeue()
-      // Did we somehow go past the event time? This should never happen.
-      if (event.time < time) {
-        publish(EError(self, time, s"Unable to handle past event for time: [${event.time}]"))
-      } else {
-        // Jump ahead to the event time. This is a priority queue so we shouldn't skip any events
-    	time = event.time
-        handleCEvent(event)
-
-        // Handle all events that are supposed to happen now, so that we free resources for the Scheduler
-        while (events.headOption.map(_.time == time).getOrElse(false))
-          handleCEvent(events.dequeue)
-      }
-    }
-    else if (tasks.isEmpty && simulations.isEmpty) {
-      publish(EDone(self, time))
-
-    } else if (waiting.isEmpty && !tasks.isEmpty) { // this may happen if handleCEvent fails
-      allocateTasks()
-      tick()
-    } //else {
-      //publish(EError(self, time, "No tasks left to run, but simulations have not finished."))
-    //}
-  }
-
-  protected def allocateTasks() = {
-    // Assign the next tasks
-    scheduler.getNextTasks(tasks, time, resourceMap).foreach(startTask)
   }
 
   override def isFinalEvent(e: Event) = e match {
