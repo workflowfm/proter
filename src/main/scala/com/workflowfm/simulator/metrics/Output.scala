@@ -108,7 +108,7 @@ trait SimMetricsStringOutput extends SimMetricsOutput {
     * @param m the [[ResourceMetrics]] instance to be handled
     */
   def resCSV(separator:String)(m:ResourceMetrics) = m match {
-    case ResourceMetrics(name,b,i,ts,c) => 
+    case ResourceMetrics(name,_,_,b,i,ts,c) => 
       Seq(name,b,i,ts,c).mkString(separator)
   }
 
@@ -228,7 +228,7 @@ class SimD3Timeline(path:String,file:String,tick:Int=1) extends SimMetricsOutput
   
   override def apply(totalTicks:Long, aggregator:SimMetricsAggregator) = {
     val result = build(aggregator,System.currentTimeMillis())
-    println(result)
+    //println(result)
     val dataFile = s"$path$file-simdata.js"
     writeToFile(dataFile, result)
   }
@@ -268,6 +268,6 @@ $times
     val start = m.started.getOrElse(1L) * tick 
     val finish = (m.started.getOrElse(1L) + m.duration) * tick
     val delay = m.delay * tick
-    s"""\t{"label":"${m.fullName}", task: "${m.task}", "id":${m.id}, "starting_time": $start, "ending_time": $finish, delay: $delay, cost: ${m.cost}}"""
+    s"""\t{"label":"${m.fullName}", task: "${m.task}", "id":"${m.id}", "starting_time": $start, "ending_time": $finish, delay: $delay, cost: ${m.cost}}"""
   }
 }

@@ -1,3 +1,0 @@
-[submodule "d3-timeline"]
-	path = output/d3-timeline
-	url = git@github.com:workflowfm/d3-workflow-timeline.git

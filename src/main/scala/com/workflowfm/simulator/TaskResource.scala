@@ -12,39 +12,27 @@ object TaskResource {
 
 class TaskResource(val name:String,val costPerTick:Int) { 
   var currentTask :Option[(Long,Task)] = None
-  var lastUpdate :Long = 1
   
   def isIdle :Boolean = currentTask == None 
   
   def finishTask(currentTime:Long) :Option[Task] = currentTask match {
-    case None => {
-        //println("["+currentTime+"] \"" + name + "\" is idle.")
-        None
-    }
+    case None => None
     case Some((startTime,task)) => 
       if (currentTime >= startTime + task.duration) {
-        println("["+currentTime+"] \"" + name + "\" detached from task \"" + task.name + " (" + task.simulation +")\".")
         currentTask = None
-        lastUpdate = currentTime
         Some(task)
       }
-      else {
-        //println("["+currentTime+"] \"" + name + "\" is attached to task \"" + task.name + " (" + task.simulation +")\" - " + (startTime + duration - currentTime) + " ticks remaining.")
-        None
-      }
+      else None
   }
   
   def startTask(task:Task,currentTime:Long) = {
     currentTask match {
       case None => {
-        println("["+currentTime+"] \"" + name + "\" is NOW attached to task \"" + task.name + " (" + task.simulation +")\" - " + task.duration + " ticks remaining.")
         currentTask = Some(currentTime,task)
-        lastUpdate = currentTime
-        true
+        None
       }
       case Some((_,currentTask)) => {
-        println("["+currentTime+"] <*> <*> <*> ERROR <*> <*> <*> \"" + name + "\" tried to attach to \"" + task.name + " (" + task.simulation +")\" but is already attached to \"" + currentTask.name + "\"!")
-        false
+        Some(currentTask)
       }
     }
   }
@@ -56,7 +44,4 @@ class TaskResource(val name:String,val costPerTick:Int) {
       startTime + t.estimatedDuration
     }
   }
-  
-  
-  def update(time:Long) = lastUpdate = time
 }

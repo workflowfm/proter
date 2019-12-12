@@ -3,10 +3,10 @@ package com.workflowfm.simulator
 import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
+import scala.collection.mutable.SortedSet
 
 @RunWith(classOf[JUnitRunner])
-class SchedulerTests extends WordSpecLike with Matchers with BeforeAndAfterAll
-    with TaskTester with ScheduleTester {
+class SchedulerTests extends TaskTester with ScheduleTester {
 
   "The Schedule" must {
 
@@ -163,29 +163,37 @@ class SchedulerTests extends WordSpecLike with Matchers with BeforeAndAfterAll
         t(3L,Seq("A"),Task.VeryLow,0L,2L)) should be (List(3L))
     }
 
+    "select higher priority tasks" in {
+      val m = new TestResourceMap("A", "B")
+      m.s(
+        t(2L, Seq("A","B"), Task.Medium),
+        t(1L, Seq("A"), Task.Highest)
+      ) should be (List(1L))
+    }
   }
 
+  class TestResourceMap(names:String*) {
+    // create a resource map
+    val m:Map[String,TaskResource] = Map[String,TaskResource]() ++ (names map { n => (n,r(n)) })
+
+    // create a resource
+    def r(name:String) = new TaskResource(name,0)
+
+    // pre-attach Tasks to resources
+    def +(r:String,duration:Long):TestResourceMap = {
+      m.get(r).map { _.startTask(t(0L,Seq(r),Task.Medium,0L,duration), 0L) }
+      this
+    }
+
+    // test DefaultScheduler
+    def s(tasks:Task*):Seq[Long] =
+      DefaultScheduler.getNextTasks(SortedSet[Task]() ++ tasks, 0L, m) map (_.id.getMostSignificantBits())
+
+  }
 }
 
 trait ScheduleTester {
   def s(l:(Long,Long)*) = Schedule(l.toList)
 }
 
-class TestResourceMap(names:String*) {
-  // create a resource map
-  val m:Map[String,TaskResource] = Map[String,TaskResource]() ++ (names map { n => (n,r(n)) })
 
-  // create a resource
-  def r(name:String) = new TaskResource(name,0)
-
-  // pre-attach Tasks to resources
-  def +(r:String,duration:Long):TestResourceMap = {
-    m.get(r).map { _.startTask(new Task(0,"_","_",0L,Seq(r),duration,duration,0L), 0L) }
-    this
-  }
-
-  // test DefaultScheduler
-  def s(tasks:Task*):Seq[Long] =
-    DefaultScheduler.getNextTasks(tasks.sorted, 0L, m) map (_.id)
-
-}

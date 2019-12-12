@@ -1,4 +1,4 @@
-ThisBuild / version          := "0.1.1"
+ThisBuild / version          := "0.2"
 ThisBuild / organization     := "com.workflowfm"
 ThisBuild / scalaVersion     := "2.12.6"
 
@@ -16,8 +16,10 @@ lazy val root = (project in file("."))
     libraryDependencies += "com.typesafe.akka" %% "akka-actor" % "2.4.12",
     libraryDependencies += "com.typesafe.akka" %% "akka-testkit" % "2.5.16" % "test",
 
-    libraryDependencies += "com.typesafe.akka" %% "akka-stream-kafka" % "0.21.1",
     libraryDependencies += "com.typesafe.akka" %% "akka-stream"       % "2.5.13",
+
+    libraryDependencies += "uk.ac.ed.inf" %% "subakka" % "0.1-SNAPSHOT",
+    libraryDependencies += "uk.ac.ed.inf" %% "subakka" % "0.1-SNAPSHOT" % Test  classifier "tests",
 
     libraryDependencies += "org.apache.commons" % "commons-lang3" % "3.3.2",
 

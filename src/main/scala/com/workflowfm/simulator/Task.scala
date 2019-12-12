@@ -6,6 +6,7 @@ import akka.util.Timeout
 import scala.concurrent.Promise
 import scala.concurrent.duration._
 import com.workflowfm.simulator.metrics._
+import java.util.UUID
 
 object Task {
   sealed trait Priority extends Ordered[Priority] {
@@ -20,35 +21,31 @@ object Task {
 }
 
 class Task (
-    val id:Long, 
-    val name:String, 
-    val simulation:String, 
-    val created:Long,
-    val resources:Seq[String], 
-    val duration:Long, 
-    val estimatedDuration:Long, 
-    val initialCost:Long, 
-    val interrupt:Int=Int.MaxValue, 
-    val priority:Task.Priority=Task.Medium
-      ) extends Ordered[Task] {
+  val id: UUID,
+  val name: String,
+  val simulation: String,
+  val actor: ActorRef,
+  val created: Long,
+  val resources: Seq[String],
+  val duration: Long,
+  val estimatedDuration: Long,
+  val initialCost: Long,
+  val interrupt: Int = Int.MaxValue,
+  val priority: Task.Priority = Task.Medium
+) extends Ordered[Task] {
   
-  val promise:Promise[TaskMetrics] = Promise()
-  
-  var cost:Long = initialCost 
-  
-  // execute will be called once by each associated TaskResource 
-  def complete(metrics:TaskMetrics) = if (!promise.isCompleted) promise.success(metrics)
-  
+  var cost:Long = initialCost
+ 
   def addCost(extra:Long) = cost += extra
   
-  def nextPossibleStart(currentTime:Long, resourceMap:Map[String,TaskResource]) = {
+  def nextPossibleStart(currentTime: Long, resourceMap: collection.Map[String,TaskResource]) = {
     (currentTime /: resources){ case (i,rN) => resourceMap.get(rN) match {
       case None => throw new RuntimeException(s"Resource $rN not found!")
       case Some(r) => Math.max(i,r.nextAvailableTimestamp(currentTime))
     }}
   }
 
-  def taskResources(resourceMap:Map[String,TaskResource]) = resources flatMap (resourceMap.get(_))
+  def taskResources(resourceMap: collection.Map[String,TaskResource]) = resources flatMap (resourceMap.get(_))
 
   
   def compare(that:Task) = {
@@ -57,7 +54,7 @@ class Task (
     lazy val cAge = this.created.compare(that.created)
     lazy val cDuration = that.estimatedDuration.compare(this.estimatedDuration)
     lazy val cInterrupt = this.interrupt.compare(that.interrupt)
-    lazy val cID = this.id.compare(that.id)
+    lazy val cID = this.id.compareTo(that.id)
     
     if (cPriority != 0) cPriority
     else if (cAge != 0) cAge
@@ -69,7 +66,7 @@ class Task (
   
   override def toString = {
     val res = resources.mkString(",")
-    s"Task($name)($res)"
+    s"Task($name,$simulation,$created,[$res],$duration,$priority)"
   }
 }
 
@@ -82,20 +79,12 @@ case class TaskGenerator (
   priority:Task.Priority=Task.Medium,
   createTime:Long=(-1)
 ) {
-  def create(id:Long, time:Long, resources:String*) = new Task(id,name,simulation,time,resources,duration.get,duration.estimate,cost.get,interrupt,priority)
+  def create(id: UUID, time: Long, actor: ActorRef, resources: String*) =
+    new Task(id,name,simulation,actor,time,resources,duration.get,duration.estimate,cost.get,interrupt,priority)
   def withPriority(p:Task.Priority) = copy(priority = p)
   def withInterrupt(int:Int) = copy(interrupt = int)
   def withDuration(dur:ValueGenerator[Long]) = copy(duration = dur)
   def withName(n:String) = copy(name = n)
   def withSimulation(s:String) = copy(simulation=s)
   def withCreationTime(t:Long) = copy(createTime=t)
-  
-  def addTo(coordinator:ActorRef, resources:String*)(implicit system: ActorSystem) = {
-    //implicit val timeout = Timeout(1.second)
-    // change this to ? to require an acknowledgement
-    val promise = Promise[TaskMetrics]()
-    coordinator ! Coordinator.AddTask(this,promise,resources)
-    promise.future
-  }
-
 }
