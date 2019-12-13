@@ -87,7 +87,10 @@ class Coordinator(
 
   protected def allocateTasks() = {
     // Assign the next tasks
-    scheduler.getNextTasks(tasks, time, resourceMap).foreach(startTask)
+    scheduler.getNextTasks(tasks, time, resourceMap).foreach { task =>
+      tasks -= task
+      startTask(task)
+    }
   }
 
   protected def releaseResources(event: CEvent) = {
@@ -171,7 +174,6 @@ class Coordinator(
   }
 
   protected def startTask(task:Task) {
-    tasks -= task
     publish(ETaskStart(self, time,task))
     // Mark the start of the task in the metrics
     task.taskResources(resourceMap) map { r =>
