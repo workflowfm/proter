@@ -117,6 +117,16 @@ class Coordinator(
     if (t >= time) events += StartingSim(t, actor)
   }
 
+  protected def addSimulations(sims: Seq[(Long,ActorRef)]) = {
+    events ++= sims.flatMap { case(t, actor) => {
+      publish(ESimAdd(self, time,actor.toString(),t)) }
+      if (t >= time)
+        Some(StartingSim(t, actor))
+      else
+        None
+    }
+  }
+
   protected def startSimulationActor(simActor: ActorRef) = {
     waiting += simActor
     simActor ! SimulationActor.Start
@@ -219,9 +229,9 @@ class Coordinator(
 
   def receiveBehaviour: Receive = {
     case Coordinator.AddSim(t, s) => addSimulation(t,s)
-    case Coordinator.AddSims(l) => l map { case (t,s) => addSimulation(t,s) }
+    case Coordinator.AddSims(l) => addSimulations(l)
     case Coordinator.AddSimNow(s) => addSimulation(time, s)
-    case Coordinator.AddSimsNow(l) => l map { s => addSimulation(time,s) }
+    case Coordinator.AddSimsNow(l) => addSimulations(l.map((time,_)))
 
     case Coordinator.AddResource(r) => addResource(r)
     case Coordinator.AddResources(r) => r foreach addResource
