@@ -87,7 +87,10 @@ class Coordinator(
 
   protected def allocateTasks() = {
     // Assign the next tasks
-    scheduler.getNextTasks(tasks, time, resourceMap).foreach(startTask)
+    scheduler.getNextTasks(tasks, time, resourceMap).foreach { task =>
+      tasks -= task
+      startTask(task)
+    }
   }
 
   protected def releaseResources(event: CEvent) = {
@@ -115,6 +118,16 @@ class Coordinator(
   protected def addSimulation(t: Long, actor: ActorRef) = {
     publish(ESimAdd(self, time,actor.toString(),t))
     if (t >= time) events += StartingSim(t, actor)
+  }
+
+  protected def addSimulations(sims: Seq[(Long,ActorRef)]) = {
+    events ++= sims.flatMap { case(t, actor) => {
+      publish(ESimAdd(self, time,actor.toString(),t)) }
+      if (t >= time)
+        Some(StartingSim(t, actor))
+      else
+        None
+    }
   }
 
   protected def startSimulationActor(simActor: ActorRef) = {
@@ -161,7 +174,6 @@ class Coordinator(
   }
 
   protected def startTask(task:Task) {
-    tasks -= task
     publish(ETaskStart(self, time,task))
     // Mark the start of the task in the metrics
     task.taskResources(resourceMap) map { r =>
@@ -219,9 +231,9 @@ class Coordinator(
 
   def receiveBehaviour: Receive = {
     case Coordinator.AddSim(t, s) => addSimulation(t,s)
-    case Coordinator.AddSims(l) => l map { case (t,s) => addSimulation(t,s) }
+    case Coordinator.AddSims(l) => addSimulations(l)
     case Coordinator.AddSimNow(s) => addSimulation(time, s)
-    case Coordinator.AddSimsNow(l) => l map { s => addSimulation(time,s) }
+    case Coordinator.AddSimsNow(l) => addSimulations(l.map((time,_)))
 
     case Coordinator.AddResource(r) => addResource(r)
     case Coordinator.AddResources(r) => r foreach addResource
