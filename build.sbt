@@ -1,6 +1,6 @@
 ThisBuild / version          := "0.2.1"
 ThisBuild / organization     := "com.workflowfm"
-ThisBuild / scalaVersion     := "2.12.6"
+ThisBuild / scalaVersion     := "2.12.10"
 
 ThisBuild / autoAPIMappings  := true
 // Fixes some sbt import problems.
