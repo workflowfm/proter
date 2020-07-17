@@ -20,4 +20,4 @@ A flow consists of tasks and opperators inspired by BPMN gateways. The currently
 - `And` for parallel
 - `All` for multiple parallel tasks
 
-See the example for detaild usage.
+See the example for detailed usage.
