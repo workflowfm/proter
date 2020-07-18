@@ -56,8 +56,8 @@ object FlowsMain {
 
         // Define tasks 
         val task1 = FlowTask(TaskGenerator("task1","sim1",ConstantGenerator(5L),ConstantGenerator(0L)),Seq("r1"))
-        val task2 = FlowTask(TaskGenerator("task2","sim1",ConstantGenerator(6L),ConstantGenerator(0L)),Seq("r1"))
-        val task3 = FlowTask(TaskGenerator("task3","sim1",ConstantGenerator(7L),ConstantGenerator(0L)),Seq("r2"))
+        val task2 = FlowTask(TaskGenerator("task2","sim1",ConstantGenerator(6L),ConstantGenerator(0L)),Seq("r2"))
+        val task3 = FlowTask(TaskGenerator("task3","sim1",ConstantGenerator(7L),ConstantGenerator(0L)),Seq("r3"))
         val task4 = FlowTask(TaskGenerator("task4","sim1",ConstantGenerator(7L),ConstantGenerator(0L)),Seq("r3","r2"))
         val task5 = FlowTask(TaskGenerator("task5","sim1",ConstantGenerator(6L),ConstantGenerator(0L)),Seq("r4"))
         val task6 = FlowTask(TaskGenerator("task6","sim1",ConstantGenerator(7L),ConstantGenerator(0L)),Seq("r5"))
@@ -65,14 +65,13 @@ object FlowsMain {
 
         val flow1 = And(And(And(And(And(task2,task3),task4),task5),task6),task7)
         val flow2 = And(task2,And(task3,And(task4,And(task5,And(task6,NoTask)))))
-        val flow3 = And(And(And(task2,task3),And(task4,task5)),And(task6,task7))
-        val flow4 = And(Then(And(And(task2,task3),task4),task5),task6)
-        val flow5 = All(task1,task2,task3,task4,task5,task6,task7)
+        val flow3 = All(task1,task2,task3,task4,task5,task6,task7)
+        val flow4 = And(Then(task5,task1),Then(task2,task3))
 
         val generator = new ConstantGenerator[Long](3L)
-        coordinator ! Coordinator.AddSim(0L,system.actorOf(FlowSimulationActor.props("sim1",coordinator,flow5),"sim1"))
-        coordinator ! Coordinator.AddSim(15L,system.actorOf(FlowSimulationActor.props("sim2",coordinator,flow1),"sim2"))
-        coordinator ! Coordinator.AddSim(20L,system.actorOf(FlowSimulationActor.props("sim3",coordinator,flow2),"sim3"))
+        //coordinator ! Coordinator.AddSim(0L,system.actorOf(FlowSimulationActor.props("sim1",coordinator,flow5),"sim1"))
+        //coordinator ! Coordinator.AddSim(15L,system.actorOf(FlowSimulationActor.props("sim2",coordinator,flow1),"sim2"))
+        coordinator ! Coordinator.AddSim(20L,system.actorOf(FlowSimulationActor.props("sim3",coordinator,flow4),"sim3"))
         coordinator ! Coordinator.Start
     }
 
