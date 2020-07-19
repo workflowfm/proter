@@ -20,4 +20,10 @@ A flow consists of tasks and opperators inspired by BPMN gateways. The currently
 - `And` for parallel
 - `All` for multiple parallel tasks
 
+You may also combine tasks with infix operators:
+- `+` to "And" two tasks
+- `>` to "Then" two tasks 
+
+e.g.: (task1 + task2) > task3 == Then( And( task1, task2 ), task3 ) 
+
 See the example for detailed usage.
