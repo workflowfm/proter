@@ -135,7 +135,7 @@ class Coordinator(
     else if (tasks.isEmpty && simulations.isEmpty) {
       publish(EDone(self, time))
 
-    } else if (waiting.isEmpty && !tasks.isEmpty) { // this may happen if handleCEvent fails
+    } else if (waitingForTask.isEmpty && !tasks.isEmpty) { // this may happen if handleCEvent fails
       allocateTasks()
       tick()
     } //else {
