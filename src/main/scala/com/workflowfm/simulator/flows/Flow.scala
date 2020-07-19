@@ -2,12 +2,16 @@ package com.workflowfm.simulator.flows
 
 import com.workflowfm.simulator._
 //import com.workflowfm.simulator.flows._
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ ExecutionContext, Future, Promise }
 import akka.actor.{ Actor, ActorRef, Props }
+import java.util.UUID
 
-sealed trait Flow
+sealed trait Flow {
+     def +(f:Flow) = And(this,f)
+     def >(f:Flow) = Then(this,f)
+}
 case object NoTask extends Flow
-case class FlowTask(generator:TaskGenerator, resources:Seq[String]) extends Flow
+case class FlowTask(generator:TaskGenerator, resources:Seq[String]) extends Flow { val p = Promise[(Task,Long)]() }
 case class Just(flowTask:FlowTask) extends Flow
 case class Then(left:Flow,right:Flow) extends Flow
 case class And(left:Flow,right:Flow) extends Flow
@@ -21,49 +25,56 @@ class FlowSimulationActor (
 extends SimulationActor(name,coordinator) {
     
     override def run() = {
-        //the first output is the future that is completed when the coordinator is done with the task
-        //the second output is the future that is completed once the flow element and all of its children are ready
-        def execute(flow:Flow,block:Boolean=false):(Future[Any],Future[Any]) = {
+        val invis = FlowTask(TaskGenerator("invis","",ConstantGenerator(0L),ConstantGenerator(0L)),Seq.empty[String])
+        def execute(flow:Flow):Future[Any] = {
             flow match {
-                case NoTask => (Future.unit,Future.unit)
+                case NoTask => Future.unit
 
-                case FlowTask(generator,resources) => {
-                    println("registered: "+generator.name)   
-                    (task(generator,resources:_*),Future.unit)
+                case flowTask: FlowTask => { 
+                    task(flowTask.generator, flowTask.resources:_*) map { x=> flowTask.p success x}
+                    flowTask.p.future
                 }
 
-                case Just(flowTask) => { execute(And(flowTask,NoTask)) }
+                case Just(flowTask) => { execute(Then(flowTask,NoTask)) }
 
                 case Then(left,right) => {
-                    val leftFuture = execute(left,block)
-                    if( (!block) && (left!=NoTask) ) { leftFuture._2.onComplete{ _=> ready() } }
-                    val rightFuture = leftFuture._1.flatMap{ x =>
-                        val future = execute(right,block)
-                        if(!block) { future._2.onComplete{ _=> ready() } }
-                        future._1
+                    val leftFuture = execute(left)
+                    ready(Seq.empty[UUID])
+                    val rightFuture = leftFuture.flatMap{ x =>
+                        val future = execute(right)
+                        left match {
+                            case f:FlowTask => f.p.future map {x=> ready(Seq(x._1.id))}
+                            case _ => ready(Seq.empty[UUID])
+                        }
+                        future
                     }
-                    (rightFuture,leftFuture._2) //TODO                       
+                    right match {
+                            case f:FlowTask => f.p.future map {x=> ready(Seq(x._1.id))}
+                            case _ => rightFuture map {_=> ready(Seq.empty[UUID]) }
+                        }
+                    rightFuture
                 }  
 
                 case And(left,right) => {
-                    val futureLeft = execute(left,true)
-                    val futureRight = execute(right,true)
-                    if(!block) { 
-                        Future.sequence(Seq(futureLeft._2,futureRight._2)).onComplete{ _=> ready() }
-                    }
-                    if (!(left==NoTask || right==NoTask)) {
-                        futureLeft._1.onComplete{ x => if(!futureRight._1.isCompleted) ready() }
-                        futureRight._1.onComplete{ x => if(!futureLeft._1.isCompleted) ready() }
-                    }
-
-                    (Future.sequence(Seq(futureLeft._1,futureRight._1)),Future.sequence(Seq(futureLeft._2,futureRight._2)))
+                    val leftFuture = execute(left)
+                    val rightFuture = execute(right)
+                    ready(Seq.empty[UUID])
+                    left match {
+                            case f:FlowTask => f.p.future map {x=> ready(Seq(x._1.id))}
+                            case _ => leftFuture map {_=> ready(Seq.empty[UUID]) }
+                        }
+                    right match {
+                            case f:FlowTask => f.p.future map {x=> ready(Seq(x._1.id))}
+                            case _ => rightFuture map {_=> ready(Seq.empty[UUID]) }
+                        }
+                    Future.sequence(Seq(leftFuture,rightFuture))
                 }
 
-                case All(elem@_*) => { execute(elem.fold(NoTask) { (l, r) =>  And(l,r) }, block) }
+                case All(elem@_*) => { execute(elem.fold(NoTask) { (l, r) =>  And(l,r) }) }
 
             }
         }
-        execute(flow)._1
+        execute(Then(invis,flow))
     }
 }
 

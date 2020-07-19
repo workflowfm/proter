@@ -30,6 +30,7 @@ class Coordinator(
   
   val resourceMap: Map[String,TaskResource] = Map[String,TaskResource]()
   val waiting: HashSet[ActorRef] = HashSet[ActorRef]()
+  val waitingForTask: HashSet[UUID] = HashSet[UUID]()
   val simulations: HashSet[String] = HashSet[String]()
   val tasks: SortedSet[Task] = SortedSet()
   
@@ -77,7 +78,7 @@ class Coordinator(
     else if (tasks.isEmpty && simulations.isEmpty) {
       publish(EDone(self, time))
 
-    } else if (waiting.isEmpty && !tasks.isEmpty) { // this may happen if handleCEvent fails
+    } else if (waitingForTask.isEmpty && !tasks.isEmpty) { // this may happen if handleCEvent fails
       allocateTasks()
       tick()
     } //else {
@@ -144,13 +145,13 @@ class Coordinator(
     simulations -= name
     publish(ESimEnd(self, time,name,result))
     log.debug(s"[COORD:$time] Finished: [${actor.path.name}]")
-    ready(actor)
+    ready(actor,Seq.empty[UUID])
   }
   
-  protected def addTasks(actor: ActorRef, l: Seq[(UUID, TaskGenerator, Seq[String])]) {
+  protected def addTasks(actor: ActorRef, l: Seq[(UUID, TaskGenerator, Seq[String])], ack: Seq[UUID]) {
     l map { case (i,g,r) => addTask(i,g,r) }
     log.debug(s"[COORD:$time] Ready: [${actor.path.name}]")
-    ready(actor)
+    ready(actor,ack)
   }
 
   protected def addTask(id: UUID, gen: TaskGenerator, resources: Seq[String]) {
@@ -204,16 +205,18 @@ class Coordinator(
 
   protected def stopTask(t: Long, task: Task) {
     waiting += task.actor
+    waitingForTask += task.id
     log.debug(s"[COORD:$time] Waiting post-task: ${task.actor.path.name}")
     publish(ETaskDone(self, time,task))
     task.actor ! SimulationActor.TaskCompleted(task, time)
   }
 
-  protected def ready(actor: ActorRef): Unit = {
+  protected def ready(actor: ActorRef, ack: Seq[UUID]): Unit = {
     waiting -= actor
+    ack map {x=> waitingForTask -= x}
     log.debug(s"[COORD:$time] Waiting: ${waiting map (_.path.name)}")
     // Are all actors ready?
-    if (waiting.isEmpty) {
+    if (waitingForTask.isEmpty) {
       allocateTasks()
       tick()
     }
@@ -238,7 +241,7 @@ class Coordinator(
     case Coordinator.AddResource(r) => addResource(r)
     case Coordinator.AddResources(r) => r foreach addResource
       
-    case Coordinator.AddTasks(l) => addTasks(sender, l)
+    case Coordinator.AddAndAckTasks(l,ack) => addTasks(sender, l, ack)
     case Coordinator.WaitFor(actor) => waitFor(actor)
     case Coordinator.SimStarted(name) => startSimulation(name, sender)
     case Coordinator.SimDone(name, result) => result match {
@@ -273,7 +276,7 @@ object Coordinator {
   case class SimStarted(name: String)
   case class SimDone(name: String, result: Try[Any])
 
-  case class AddTasks(l: Seq[(UUID, TaskGenerator, Seq[String])])
+  case class AddAndAckTasks(l: Seq[(UUID, TaskGenerator, Seq[String])], ack: Seq[UUID])
   case object AckTask
   case class WaitFor(actor: ActorRef)
   case object AckWait
