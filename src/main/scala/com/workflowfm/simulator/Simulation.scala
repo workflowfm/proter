@@ -47,10 +47,10 @@ abstract class SimulationActor (
     }
   }
 
-  def ready(): Unit = {
+  def ready(ack:Seq[UUID]): Unit = {
     val seq = queue.clone().toSeq
     queue.clear()
-    coordinator ! Coordinator.AddTasks(seq)
+    coordinator ! Coordinator.AddAndAckTasks(seq,ack)
   }
 
   def requestWait(ack: ActorRef): Unit = {
@@ -59,7 +59,7 @@ abstract class SimulationActor (
 
   def simulationActorReceive: Receive = {
     case SimulationActor.Start => start()
-    case SimulationActor.Ready => ready()
+    case SimulationActor.Ready => ready(Seq.empty[UUID])
     case SimulationActor.TaskCompleted(task, time) => complete(task, time)
     case SimulationActor.AddTask(id, t, r) => task(id, t, Some(sender), r)
   }
@@ -95,7 +95,7 @@ class TaskSimulatorActor(
       interrupt,
       priority)
     val future = task(generator, resources: _*)
-    ready()
+    ready(Seq.empty[UUID])
     future
   }
 }
