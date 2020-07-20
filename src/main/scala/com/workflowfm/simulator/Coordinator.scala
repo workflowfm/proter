@@ -326,10 +326,9 @@ class Coordinator(
   * 
   * - Uses [[TaskGenerator.create]] to create the [[Task]], which will now have a fixed duration and cost.
   * 
-  * - Uses the current time as the creation time, unless the [[TaskGenerator]] has a custom creation time.
-  * 
   * - Calculates the cost of the involved resources by adding the [[TaskResource.costPerTick]] 
-  * multipled by the [[Task.duration]]. Adds this to the [[Task.cost]].
+  * multipled by the [[Task.duration]]. Adds this to the [[Task.cost]]. 
+  * This is done at runtime instead of at creation time to support variable resources.
   * 
   * - Publishes a [[com.workflowfm.simulator.events.ETaskAdd]].
   * 
@@ -342,9 +341,8 @@ class Coordinator(
   * @param resources The list of [[TaskResource]] names that need to be used by the [[Task]].
   */
   protected def addTask(id: UUID, gen: TaskGenerator, resources: Seq[String]) {
-    val creation = if (gen.createTime >= 0) gen.createTime else time
     // Create the task
-    val t: Task = gen.create(id, creation, sender, resources:_*)
+    val t: Task = gen.create(id, time, sender, resources:_*)
     
     // Calculate the cost of all resource usage. We only know this now!
     val resourceCost = (0L /: t.taskResources(resourceMap)) { case (c,r) => c + r.costPerTick * t.duration }
