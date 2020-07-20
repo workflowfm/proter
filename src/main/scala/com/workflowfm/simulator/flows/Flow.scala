@@ -9,6 +9,7 @@ import java.util.UUID
 sealed trait Flow {
      def +(f:Flow) = And(this,f)
      def >(f:Flow) = Then(this,f)
+     def |(f:Flow) = Or(this,f)
 }
 case object NoTask extends Flow
 case class FlowTask(generator:TaskGenerator, resources:Seq[String]) extends Flow { val p = Promise[(Task,Long)]() }
@@ -16,6 +17,7 @@ case class Just(flowTask:FlowTask) extends Flow
 case class Then(left:Flow,right:Flow) extends Flow
 case class And(left:Flow,right:Flow) extends Flow
 case class All(elements:Flow*) extends Flow
+case class Or(left:Flow,right:Flow) extends Flow
 
 class FlowSimulationActor (
     name: String,
@@ -71,6 +73,28 @@ extends SimulationActor(name,coordinator) {
                 }
 
                 case All(elem@_*) => { execute(elem.fold(NoTask) { (l, r) =>  And(l,r) }) }
+
+                case Or(left,right) => {
+                    val leftFuture = execute(left)
+                    val rightFuture = execute(right)
+                    val orDone = Promise[Any]
+                    ready(Seq.empty[UUID])
+                    leftFuture map { x=> 
+                        if (!orDone.isCompleted) { orDone success Unit}
+                        left match {
+                                case f:FlowTask => f.p.future map {x=> ready(Seq(x._1.id))}
+                                case _ => ready(Seq.empty[UUID])
+                            }
+                    }
+                    rightFuture map { x=> 
+                        if (!orDone.isCompleted) { orDone success Unit}
+                        right match {
+                                case f:FlowTask => f.p.future map {x=> ready(Seq(x._1.id))}
+                                case _ => ready(Seq.empty[UUID])
+                            }
+                    }
+                    orDone.future
+                }
 
             }
         }

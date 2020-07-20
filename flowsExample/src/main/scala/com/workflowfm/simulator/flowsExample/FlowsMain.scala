@@ -14,7 +14,7 @@ import java.io.File
 
 object FlowsMain {
     //toggle for debug
-    val DEBUG = false
+    val DEBUG = true
 
     def main(args: Array[String]): Unit = {
 
@@ -56,7 +56,7 @@ object FlowsMain {
 
         // Define tasks 
         val invis = FlowTask(TaskGenerator("invis","sim1",ConstantGenerator(0L),ConstantGenerator(0L)),Seq.empty[String])
-        val task1 = FlowTask(TaskGenerator("task1","sim1",ConstantGenerator(5L),ConstantGenerator(0L)),Seq("r1"))
+        val task1 = FlowTask(TaskGenerator("task1","sim1",ConstantGenerator(3L),ConstantGenerator(0L)),Seq("r1"))
         val task2 = FlowTask(TaskGenerator("task2","sim1",ConstantGenerator(6L),ConstantGenerator(0L)),Seq("r2"))
         val task3 = FlowTask(TaskGenerator("task3","sim1",ConstantGenerator(7L),ConstantGenerator(0L)),Seq("r3"))
         val task4 = FlowTask(TaskGenerator("task4","sim1",ConstantGenerator(7L),ConstantGenerator(0L)),Seq("r3","r2"))
@@ -68,7 +68,7 @@ object FlowsMain {
         // val flow2 = And(task2,And(task3,And(task4,And(task5,And(task6,NoTask)))))
         // val flow3 = All(task1,task2,task3,task4,task5,task6,task7)
         // val flow4 = And(Then(task5,task1),Then(task2,task3))
-        val flow = (task1 > task2) + (task5 > task6)
+        val flow = (task1 | task2) > (task3 | task5) > task6
 
         val generator = new ConstantGenerator[Long](3L)
         //coordinator ! Coordinator.AddSim(0L,system.actorOf(FlowSimulationActor.props("sim1",coordinator,flow5),"sim1"))
