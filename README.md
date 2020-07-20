@@ -3,7 +3,6 @@
 ### Setup and example code
 ```shell
 $> sbt
-sbt> project flows
 sbt> publishLocal
 sbt> project flowsExample
 sbt> run
