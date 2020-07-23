@@ -88,7 +88,7 @@ object DefaultScheduler extends Scheduler {
       val t = tasks.head
       val start = Schedule.merge(t.resources.flatMap(schedules.get(_))) ? (currentTime,t)
       val schedules2 = (schedules /: t.resources) {
-        case (s,r) => s + (r -> (s.getOrElse(r,Schedule(Nil)) +> (start,t)))
+        case (s,r) => s + (r -> (s.getOrElse(r,Schedule()) +> (start,t)))
       }
       val result2 = if (start == currentTime && t.taskResources(resourceMap).forall(_.isIdle)) result :+ t else result
       findNextTasks(currentTime, resourceMap, schedules2, tasks.tail, result2)
@@ -113,8 +113,12 @@ case class Schedule(tasks: List[(Long,Long)]) {
     * The new interval can only be added if it does not clash with any of the existing intervals.
     * 
     * Uses [[Schedule.add]] for the calculation.
+    * 
+    * @example Schedule(List((1L,2L), (6L,7L))) + (3,5) == Some(Schedule(List((1,2), (3,5), (6,7))))
+    * @example Schedule(List((1L,3L), (6L,7L))) + (3,5) == Some(Schedule(List((1,5), (6,7))))
+    * @example Schedule(List((1L,4L), (6L,7L))) + (3,5) == None
+    * 
     * @see [[Schedule.add]]
-    *
     * @param start The start timestamp of the new interval.
     * @param end The end timestamp of the new interval.
     * @return Some updated Schedule or [[scala.None]] upon failure.
@@ -130,8 +134,12 @@ case class Schedule(tasks: List[(Long,Long)]) {
     * The new interval can only be added if it does not clash with any of the existing intervals.
     * 
     * Uses [[Schedule.add]] for the calculation. Upon failure, returns the schedule unchanged.
+    * 
+    * @example Schedule(List((1L,2L), (6L,7L))) +> (3,5) == Schedule(List((1,2), (3,5), (6,7)))
+    * @example Schedule(List((1L,3L), (6L,7L))) +> (3,5) == Schedule(List((1,5), (6,7)))
+    * @example Schedule(List((1L,4L), (6L,7L))) +> (3,5) == Schedule(List((1,4), (6,7)))
+    * 
     * @see [[Schedule.add]]
-    *
     * @param start The start timestamp of the new interval.
     * @param end The end timestamp of the new interval.
     * @return The updated schedule, or the same schedule if the update fails.
@@ -150,8 +158,9 @@ case class Schedule(tasks: List[(Long,Long)]) {
     * The new interval can only be added if it does not clash with any of the existing intervals.
     * 
     * Uses [[Schedule.add]] for the calculation. Upon failure, returns the schedule unchanged.
+    * 
+    * @see [[Schedule.+>]]
     * @see [[Schedule.add]]
-    *
     * @param startTime The timestamp the [[Task]] started.
     * @param t The [[Task]] to be added.
     * @return The updated schedule, or the same schedule if the update fails.
@@ -181,6 +190,8 @@ case class Schedule(tasks: List[(Long,Long)]) {
     * 
     * Uses [[Schedule.merge]] for the calculation. 
     * @see [[Schedule.merge]]
+    * @example Schedule(List((1L,2L), (5L,6L))) ++ Schedule(List((3L,4L))) == Schedule(List((1,2), (3,4), (5,6))
+    * @example Schedule(List((1L,2L), (3L,5L))) ++ Schedule(List((2L,4L))) == Schedule(List((1,5)))
     *
     * @param s The other schedule to merge.
     * @return The new merged schedule.
@@ -208,13 +219,20 @@ object Schedule {
   import scala.collection.immutable.Queue
 
   /**
+    * Shorthand for an empty schedule.
+    *
+    * @return An empty [[Schedule]].
+    */
+  def apply(): Schedule = Schedule(List.empty[(Long,Long)])
+
+  /**
     * Creates a [[Schedule]] from a [[TaskResource]] based on its currently running [[Task]] (if any).
     *
     * @param r The [[TaskResource]] to schedule for.
     * @return The initialised schedule.
     */
   def apply(r: TaskResource): Schedule = r.currentTask match {
-    case None => Schedule(List())
+    case None => Schedule()
     case Some((s,t)) => Schedule((s,s + t.estimatedDuration) :: Nil)
   }
 
@@ -224,6 +242,12 @@ object Schedule {
     * Fails and returns [[scala.None]] if the new interval clashes with
     * any of the existing intervals, i.e. there is overlapping time.
     *
+    * @example add(3, 5, List((1,2), (6,7))) == Some(List((1,2), (3,5), (6,7)))
+    * @example add(3, 5, List((1,3), (6,7))) == Some(List((1,5), (6,7)))
+    * @example add(3, 5, List((1,4), (6,7))) == None
+    * 
+    * @see [[Schedule.+]]
+    * @see [[Schedule.+>]]
     * @param start The start timestamp of the interval.
     * @param end The end timestamp of the interval.
     * @param tasks The list of intervals to add to.
@@ -254,6 +278,11 @@ object Schedule {
     * has no overlap with the existing intervals in the list. It can '''always''' fit after the 
     * end of the last interval in the list, but the function returns the earliest possible start.
     *
+    * @example fit(0, 2, List((0,2), (3,4), (6,7))) == 4
+    * @example fit(0, 2, List((0,2), (3,4), (5,7))) == 7
+    * @example fit(0, 2, List((2,4), (5,7))) == 0
+    * 
+    * @see [[Schedule.?]]
     * @param start The initial starting time to check for.
     * @param duration The task duration to consider.
     * @param tasks The list of intervals to check against.
@@ -276,6 +305,10 @@ object Schedule {
     * Intervals that overlap partially or fully, or are adjacent (the end time of one is
     * the start time of the other) are merged into one interval.
     * 
+    * @example merge(List((1,2), (5,6)), List((3,4))) == List((1,2), (3,4), (5,6))
+    * @example merge(List((1,2), (3,5)), List((2,4))) == List((1,5))
+    * 
+    * @see [[Schedule.++]]
     * @param g1 The first list of intervals to merge.
     * @param g2 The second list of intervals to merge.
     * @param result The accumulated result so far (for tail recursion).
@@ -309,7 +342,7 @@ object Schedule {
     * @return The merged schedule.
     */
   def merge(schedules: Seq[Schedule]): Schedule = {
-    (Schedule(List()) /: schedules)(_ ++ _)
+    (Schedule() /: schedules)(_ ++ _)
   }
 
   @deprecated("No longer using gaps in Schedule","1.2.0")
