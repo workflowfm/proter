@@ -9,22 +9,69 @@ import scala.collection.mutable.{ Map, Queue }
 import scala.concurrent.{ ExecutionContext, Future, Promise }
 import java.util.UUID
 
+/**
+  * An actor managing the interaction between a simulation and a [[Coordinator]].
+  * 
+  * We view a simulation as a case or workflow of simulated tasks. This actor is responsible
+  * for keeping track of all the tasks for this simulation, informing the [[Coordinator]] of new
+  * tasks to be added and informing the simulation processes when a task is completed.
+  *
+  * @param name The name of the simulation being managed.
+  * @param coordinator A reference to the [[Coordinator]] actor running the simulation.
+  * @param executionContext
+  */
 abstract class SimulationActor (
   val name: String,
   val coordinator: ActorRef)
   (implicit executionContext: ExecutionContext)
     extends Actor {
 
+  /**
+    * Initiates the execution of the simulation.
+    *
+    * @return A `Future` that completes with a custom output when the simulation is completed.
+    */
   def run(): Future[Any]
 
+  /**
+    * A map of [[Task]] IDs that have been sent to the [[Coordinator]] and the `Promise`s that
+    * need to be fulfilled when the tasks complete.
+    */
   private val tasks: Map[UUID,Promise[(Task,Long)]] = Map()
+
+  /**
+    * A queue of [[TaskGenerator]]s due to be sent to the [[Coordinator]].
+    * 
+    * Each entry contains a task ID, a [[TaskGenerator]], and a list of [[TaskResource]] names
+    * that need to be used by the generated [[Task]].
+    */
   private val queue: Queue[(UUID, TaskGenerator, Seq[String])] = Queue()
 
+  /**
+    * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation.
+    *
+    * @param t The [[TaskGenerator]] to send.
+    * @param resources The names of the [[TaskResource]]s that need to be used for the [[Task]].
+    * @return A `Future` that completes when the generated [[Task]] has completed, 
+    *         containing the [[Task]] and its completion time.
+    */
   def task(t: TaskGenerator, resources: String*): Future[(Task,Long)] = {
     val id = java.util.UUID.randomUUID
     task(id, t, None, resources)
   }
 
+  /**
+    * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation
+    * with a pre-determined ID.
+    *
+    * @param id The pre-determined task ID.
+    * @param t The [[TaskGenerator]] to send.
+    * @param caller Some reference to an actor that generated the task in order to notify them when
+    *               the task is completed, or `None` if no actor needs to be notified.
+    * @param resources The names of the [[TaskResource]]s that need to be used for the [[Task]].
+    * @return A `Future` that completes when the generated [[Task]] has completed, 
+    *         containing the [[Task]] and its completion time.
+    */
   protected def task(id: UUID, t: TaskGenerator, caller: Option[ActorRef], resources: Seq[String]): Future[(Task,Long)] = {
     val p = Promise[(Task,Long)]()
     tasks += id -> p
@@ -35,11 +82,25 @@ abstract class SimulationActor (
     }
   }
 
+  /**
+    * Manages a [[Task]] whose simulation has completed.
+    * 
+    * Fulfils the corresponding `Promise` in the `tasks` map and then removes the entry.
+    *
+    * @param task The [[Task]] that completed.
+    * @param time The timestamp of its completion.
+    */
   protected def complete(task: Task, time: Long) = {
     tasks.get(task.id).map (_.success((task,time)))
     tasks -= task.id
   }
 
+  /**
+    * Starts the simulation via the [[run]] function.
+    * 
+    * Notifies the [[Coordinator]] that the simulation started. Also makes sure
+    * the [[Coordinator]] is notified when the simulation completes.
+    */
   protected def start(): Unit = {
     coordinator ! Coordinator.SimStarted(name)
     run().onComplete { x =>
@@ -47,6 +108,13 @@ abstract class SimulationActor (
     }
   }
 
+  /**
+    * Notifies the [[Coordinator]] that the simulation has finished calculating
+    * and is ready for virtual time to proceed.
+    * 
+    * Also sends the new tasks for simulation to the [[Coordinator]] and clears
+    * the queue.
+    */
   def ready(): Unit = {
     val seq = queue.clone().toSeq
     queue.clear()
