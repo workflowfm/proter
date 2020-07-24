@@ -184,9 +184,9 @@ Duration: ${SimMetricsOutput.formatDuration(aggregator.start, aggregator.end, du
 
 /** Outputs simulation metrics to files using a standard CSV format.
   * Generates 3 CSV files,
-  * 1. One for tasks with a "-tasks.csv" suffix,
-  * 2. One for simulations with a "-simulations.csv" suffix.
-  * 3. One for resources with a "-resources.csv" suffix.
+  *   1. One for tasks with a "-tasks.csv" suffix,
+  *   1. One for simulations with a "-simulations.csv" suffix.
+  *   1. One for resources with a "-resources.csv" suffix.
   *
   * @param path path to directory where the files will be placed
   * @param name file name prefix
