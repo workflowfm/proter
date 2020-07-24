@@ -407,7 +407,7 @@ class Coordinator(
   protected def waitFor(actor: ActorRef) {
     waiting += actor
     log.debug(s"[COORD:$time] Wait requested: ${actor.path.name}")
-    actor ! Coordinator.AckWait
+    actor ! SimulationActor.AckWait
   }
 
 /**
@@ -615,11 +615,6 @@ object Coordinator {
   * @group simulations
   */
   case class WaitFor(actor: ActorRef)
-/**
-  * Message to a [[SimulationActor]] to acknowledge that we are waiting.
-  * @group simulations
-  */
-  case object AckWait
 
 /**
   * Creates properties for a [[Coordinator]] actor.
