@@ -23,7 +23,7 @@ trait FileOutput {
 /** Manipulates a [[SimMetricsAggregator]] to produce some output via side-effects.
   *
   * As a function, takes 2 arguments:
-  * - a [[Long]] representing the total virtual time elapsed
+  * - a [[scala.Long]] representing the total virtual time elapsed
   * - the [[SimMetricsAggregator]] to act upon
   */
 trait SimMetricsOutput extends ((Long,SimMetricsAggregator) => Unit) {
@@ -46,17 +46,17 @@ object SimMetricsOutput {
     } getOrElse(nullValue)
 }
 
-/** A [[SimMetricsOutput]] consisting of a [[scala.collection.immutable.Queue]] of [[SimMetricsOutput]]s
+/** A [[SimMetricsOutput]] consisting of a [[scala.collection.immutable.Queue Queue]] of [[SimMetricsOutput]]s
   * to be run sequentially.
   */
 case class SimMetricsOutputs(handlers:Queue[SimMetricsOutput]) extends SimMetricsOutput {
-  /** Call all included [[MetricsOutput]]s. */
+  /** Call all included [[SimMetricsOutput]]s. */
   override def apply(time:Long,aggregator:SimMetricsAggregator) = handlers map (_.apply(time,aggregator))
   /** Add another [[SimMetricsOutput]] in sequence. */
   override def and(h:SimMetricsOutput) = SimMetricsOutputs(handlers :+ h)
 }
 object SimMetricsOutputs {
-  /** Shorthand constructor for a [[SimMetricsOutputs]] from a list of [[MetricsOutput]]s. */
+  /** Shorthand constructor for a [[SimMetricsOutputs]] from a list of [[SimMetricsOutput]]s. */
   def apply(handlers:SimMetricsOutput*):SimMetricsOutputs = SimMetricsOutputs(Queue[SimMetricsOutput]() ++ handlers)
 }
 
@@ -74,7 +74,7 @@ trait SimMetricsStringOutput extends SimMetricsOutput {
   /** String representation of a [[TaskMetrics]] instance.
     * 
     * @param separator a string (such as a space or comma) to separate the values
-    * @param resSeparator a string (such as a space or comma) to separate the list of names of [[TaskResources]] in the [[TaskMetrics]]
+    * @param resSeparator a string (such as a space or comma) to separate the list of names of [[TaskResource]]s in [[TaskMetrics]]
     * @param m the [[TaskMetrics]] instance to be handled
     */  
   def taskCSV(separator:String, resSeparator:String)(m:TaskMetrics) = m match {
@@ -118,7 +118,7 @@ trait SimMetricsStringOutput extends SimMetricsOutput {
     * @param aggregator the [[SimMetricsAggregator]] to retrieve the metrics to be formatted
     * @param separator a string (such as a space or comma) to separate values
     * @param lineSep a string (such as a new line) to separate tasks
-    * @param resSeparator a string (such as a space or comma) to separate the list of names of [[TaskResources]] in the [[TaskMetrics]]
+    * @param resSeparator a string (such as a space or comma) to separate the list of names of [[TaskResource]]s in [[TaskMetrics]]
     */  
   def tasks(aggregator:SimMetricsAggregator,separator:String,lineSep:String="\n",resSeparator:String=";") = 
     aggregator.taskMetrics.map(taskCSV(separator,resSeparator)).mkString(lineSep)

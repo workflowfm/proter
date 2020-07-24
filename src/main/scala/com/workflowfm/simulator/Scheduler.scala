@@ -86,7 +86,7 @@ object DefaultScheduler extends Scheduler {
     if (tasks.isEmpty) result
     else {
       val t = tasks.head
-      val start = Schedule.merge(t.resources.flatMap(schedules.get(_))) ? (currentTime,t)
+      val start = Schedule.mergeSchedules(t.resources.flatMap(schedules.get(_))) ? (currentTime,t)
       val schedules2 = (schedules /: t.resources) {
         case (s,r) => s + (r -> (s.getOrElse(r,Schedule()) +> (start,t)))
       }
@@ -159,7 +159,7 @@ case class Schedule(tasks: List[(Long,Long)]) {
     * 
     * Uses [[Schedule.add]] for the calculation. Upon failure, returns the schedule unchanged.
     * 
-    * @see [[Schedule.+>]]
+    * @see [[Schedule.+>(start:Long,end:Long)* Schedule.+>]]
     * @see [[Schedule.add]]
     * @param startTime The timestamp the [[Task]] started.
     * @param t The [[Task]] to be added.
@@ -247,7 +247,7 @@ object Schedule {
     * @example add(3, 5, List((1,4), (6,7))) == None
     * 
     * @see [[Schedule.+]]
-    * @see [[Schedule.+>]]
+    * @see [[Schedule.+>(start:Long,end:Long)* Schedule.+>]]
     * @param start The start timestamp of the interval.
     * @param end The end timestamp of the interval.
     * @param tasks The list of intervals to add to.
@@ -341,7 +341,7 @@ object Schedule {
     * @param schedules The sequence of schedules to merge.
     * @return The merged schedule.
     */
-  def merge(schedules: Seq[Schedule]): Schedule = {
+  def mergeSchedules(schedules: Seq[Schedule]): Schedule = {
     (Schedule() /: schedules)(_ ++ _)
   }
 

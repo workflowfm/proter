@@ -25,8 +25,8 @@ import java.util.UUID
   * 
   * The interface can be accessed in 2 modes:
   *   1. ```Direct Interface:``` The simulation logic can be coded directly in a subclass, by 
-  *      implementing [[run]] and using [[task]],
-  *      [[requestWait]] and [[ready]].
+  *      implementing [[run]] and using [[task(t* task]],
+  *      [[requestWait()* requestWait()]] and [[ready]].
   *   1. ```Actor Interface:``` The simulation logic can be distributed to other actors, typically
   *      [[SimulatedProcess]]es. These
   *      can interact with `SimulationActor` using the [[SimulationActor.AddTask]],
