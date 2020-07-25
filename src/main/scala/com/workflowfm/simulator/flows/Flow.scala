@@ -33,6 +33,7 @@ extends SimulationActor(name,coordinator) {
                 case NoTask => Future.unit
 
                 case flowTask: FlowTask => { 
+                    println("FLOW task registered")
                     task(flowTask.generator, flowTask.resources:_*) map { x=> flowTask.p success x}
                     flowTask.p.future
                 }
@@ -43,6 +44,7 @@ extends SimulationActor(name,coordinator) {
                     val leftFuture = execute(left)
                     ready(Seq.empty[UUID])
                     val rightFuture = leftFuture.flatMap{ x =>
+                        println("THEN LEFT done, registering right...")
                         val future = execute(right)
                         left match {
                             case f:FlowTask => f.p.future map {x=> ready(Seq(x._1.id))}
@@ -54,6 +56,7 @@ extends SimulationActor(name,coordinator) {
                             case f:FlowTask => f.p.future map {x=> ready(Seq(x._1.id))}
                             case _ => rightFuture map {_=> ready(Seq.empty[UUID]) }
                         }
+                    rightFuture.map{x=>println("THEN RIGHT done")}
                     rightFuture
                 }  
 
@@ -61,6 +64,8 @@ extends SimulationActor(name,coordinator) {
                     val leftFuture = execute(left)
                     val rightFuture = execute(right)
                     ready(Seq.empty[UUID])
+                    leftFuture.map{x=>println("LEFT done, about to ack")}
+                    rightFuture.map{x=>println("RIGHT done, about to ack")}
                     left match {
                             case f:FlowTask => f.p.future map {x=> ready(Seq(x._1.id))}
                             case _ => leftFuture map {_=> ready(Seq.empty[UUID]) }
