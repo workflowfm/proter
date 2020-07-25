@@ -326,7 +326,6 @@ class Coordinator(
 
   protected def ackTasks(actor: ActorRef, ack: Seq[UUID]) {
     ack map { x=> ackTask(x) }
-    ready(actor)
   }
 
   protected def ackTask(id: UUID) {
