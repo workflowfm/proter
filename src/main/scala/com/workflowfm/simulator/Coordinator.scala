@@ -135,7 +135,7 @@ class Coordinator(
     else if (tasks.isEmpty && simulations.isEmpty) {
       publish(EDone(self, time))
 
-    } else if (waitingForTask.isEmpty && !tasks.isEmpty) { // this may happen if handleCEvent fails
+    } else if (waitingForTask.isEmpty && !tasks.isEmpty) { // this may happen if handleCEvent fails //TODO
       allocateTasks()
       tick()
     } //else {
@@ -262,7 +262,7 @@ class Coordinator(
   * @param actor The [[akka.actor.ActorRef]] of the corresponding [[SimulationActor]].
   */
   protected def stopSimulation(name: String, result: String, actor: ActorRef) = {
-    simulations -= name
+    simulations -= name //TODO
     publish(ESimEnd(self, time,name,result))
     log.debug(s"[COORD:$time] Finished: [${actor.path.name}]")
     ready(actor,Seq.empty[UUID])

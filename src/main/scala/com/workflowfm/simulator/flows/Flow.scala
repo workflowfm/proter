@@ -27,7 +27,7 @@ class FlowSimulationActor (
 extends SimulationActor(name,coordinator) {
     
     override def run() = {
-        val invis = FlowTask(TaskGenerator("invis","",ConstantGenerator(0L),ConstantGenerator(0L)),Seq.empty[String])
+        val invis = FlowTask(TaskGenerator("initialise","",ConstantGenerator(0L),ConstantGenerator(0L)),Seq.empty[String])
         def execute(flow:Flow):Future[Any] = {
             flow match {
                 case NoTask => Future.unit
@@ -80,14 +80,14 @@ extends SimulationActor(name,coordinator) {
                     val orDone = Promise[Any]
                     ready(Seq.empty[UUID])
                     leftFuture map { x=> 
-                        if (!orDone.isCompleted) { orDone success Unit}
+                        if (!rightFuture.isCompleted) { orDone success Unit}
                         left match {
                                 case f:FlowTask => f.p.future map {x=> ready(Seq(x._1.id))}
                                 case _ => ready(Seq.empty[UUID])
                             }
                     }
                     rightFuture map { x=> 
-                        if (!orDone.isCompleted) { orDone success Unit}
+                        if (!leftFuture.isCompleted) { orDone success Unit}
                         right match {
                                 case f:FlowTask => f.p.future map {x=> ready(Seq(x._1.id))}
                                 case _ => ready(Seq.empty[UUID])
