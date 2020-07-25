@@ -326,6 +326,7 @@ class Coordinator(
 
   protected def ackTasks(actor: ActorRef, ack: Seq[UUID]) {
     ack map { x=> ackTask(x) }
+    ready(actor)
   }
 
   protected def ackTask(id: UUID) {
@@ -429,7 +430,7 @@ class Coordinator(
     waiting -= actor
     log.debug(s"[COORD:$time] Waiting: ${waiting map (_.path.name)}")
     // Are all actors ready?
-    if (waitingForTask.isEmpty) {
+    if (waitingForTask.isEmpty && waiting.isEmpty) {
       allocateTasks()
       tick()
     }
