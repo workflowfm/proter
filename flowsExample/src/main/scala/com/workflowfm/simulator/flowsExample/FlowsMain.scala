@@ -71,8 +71,8 @@ object FlowsMain {
         val task3 = FlowTask(TaskGenerator("task3","sim1",ConstantGenerator(4L),ConstantGenerator(0L)),Seq("r3"))
         val task4 = FlowTask(TaskGenerator("task4","sim1",ConstantGenerator(8L),ConstantGenerator(0L)),Seq("r4"))
         val task5 = FlowTask(TaskGenerator("task5","sim1",ConstantGenerator(16L),ConstantGenerator(0L)),Seq("r5"))
-        val flow1 = Then(Then(task1,Or(task2,task3)),And(task4,task5))
-        
+        val flow1 = Then(And(task1,Then(task2,task3)),And(task4,task5))
+        val flow2 = Then(task1,task2)
         val flow = Just(task1)
 
 

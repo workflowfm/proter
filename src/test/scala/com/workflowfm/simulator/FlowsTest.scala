@@ -256,7 +256,7 @@ class FlowsTest extends FlowsTester {
             coordinator ! Coordinator.AddSim(0L,system.actorOf(FlowSimulationActor.props("sim2",coordinator,flow2),"sim2"))
             coordinator ! Coordinator.Start
             
-            Await.result(system.whenTerminated, 5.seconds)     
+            Await.result(system.whenTerminated, 3.seconds)     
             smh.metrics.taskMap map {x=> testMetrics += (x._2.fullName -> x._2.finished) }
     
             testMetrics.get("task1 (sim1)").get.get should be (1)
@@ -291,7 +291,7 @@ class FlowsTest extends FlowsTester {
             coordinator ! Coordinator.AddSim(0L,system.actorOf(FlowSimulationActor.props("sim2",coordinator,flow2),"sim2"))
             coordinator ! Coordinator.Start
             
-            Await.result(system.whenTerminated, 5.seconds)     
+            Await.result(system.whenTerminated, 3.seconds)     
             smh.metrics.taskMap map {x=> testMetrics += (x._2.fullName -> x._2.finished) }
     
             testMetrics.get("task1 (sim1)").get.get should be (1)
@@ -319,7 +319,7 @@ class FlowsTester extends TestKit(ActorSystem("FlowsTest"))
         coordinator ! Coordinator.AddSim(0L,system.actorOf(FlowSimulationActor.props(simName,coordinator,flow),simName))
         coordinator ! Coordinator.Start
         
-        Await.result(system.whenTerminated, 5.seconds)     
+        Await.result(system.whenTerminated, 3.seconds)     
         smh.metrics.taskMap map {x=> testMetrics += (x._2.fullName -> x._2.finished) }
         testMetrics
     }

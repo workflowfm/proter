@@ -19,7 +19,7 @@ abstract class SimulationActor (
 
   private val tasks: Map[UUID,Promise[(Task,Long)]] = Map()
   private val queue: Queue[(UUID, TaskGenerator, Seq[String])] = Queue()
-  private var waitingCount: Int = 0
+  var waitingCount: Int = 0
 
   def task(t: TaskGenerator, resources: String*): Future[(Task,Long)] = {
     val id = java.util.UUID.randomUUID
@@ -48,16 +48,20 @@ abstract class SimulationActor (
     }
   }
 
-  def ready(ack:Seq[UUID]): Unit = {
+  def ready(): Unit = {
     val seq = queue.clone().toSeq
     queue.clear()
-    if (waitingCount>0) waitingCount -= 1
-    coordinator ! Coordinator.AckTasks(ack) //must ack before adding
-    if (waitingCount==0) coordinator ! Coordinator.AddTasks(seq)
+    println("waitingCount: "+waitingCount)
+    if (waitingCount<=0) coordinator ! Coordinator.AddTasks(seq)
     
   }
 
+  def ack(ack:Seq[UUID]): Unit = {
+    coordinator ! Coordinator.AckTasks(ack)
+  }
+
   def addWaitingCount(i:Int=1) = {
+    println("edit: "+i)
     waitingCount += i
   }
 
@@ -67,7 +71,7 @@ abstract class SimulationActor (
 
   def simulationActorReceive: Receive = {
     case SimulationActor.Start => start()
-    case SimulationActor.Ready => ready(Seq.empty[UUID])
+    case SimulationActor.Ready => ready()
     case SimulationActor.TaskCompleted(task, time) => complete(task, time)
     case SimulationActor.AddTask(id, t, r) => task(id, t, Some(sender), r)
   }
@@ -103,7 +107,7 @@ class TaskSimulatorActor(
       interrupt,
       priority)
     val future = task(generator, resources: _*)
-    ready(Seq.empty[UUID])
+    ready()
     future
   }
 }
