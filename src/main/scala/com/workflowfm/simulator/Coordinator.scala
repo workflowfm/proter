@@ -55,8 +55,9 @@ class Coordinator(
   /** Set of [[SimulationActor]] references that we need to wait for before we can progress time. */
   val waiting: HashSet[ActorRef] = HashSet[ActorRef]()
 
-  /** Set of simulation names that are running, i.e. they have already started but not finished. */
   val waitingForTask: HashSet[UUID] = HashSet[UUID]()
+
+  /** Set of simulation names that are running, i.e. they have already started but not finished. */
   val simulations: HashSet[String] = HashSet[String]()
 
   /** A sorted queue of tasks that need to be run. */
