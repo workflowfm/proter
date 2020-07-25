@@ -50,7 +50,8 @@ abstract class SimulationActor (
   def ready(ack:Seq[UUID]): Unit = {
     val seq = queue.clone().toSeq
     queue.clear()
-    coordinator ! Coordinator.AddAndAckTasks(seq,ack)
+    coordinator ! Coordinator.AddTasks(seq)
+    coordinator ! Coordinator.AckTasks(ack)
   }
 
   def requestWait(ack: ActorRef): Unit = {

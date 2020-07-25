@@ -54,6 +54,7 @@ class Coordinator(
 
   /** Set of [[SimulationActor]] references that we need to wait for before we can progress time. */
   val waiting: HashSet[ActorRef] = HashSet[ActorRef]()
+
   val waitingForTask: HashSet[UUID] = HashSet[UUID]()
 
   /** Set of simulation names that are running, i.e. they have already started but not finished. */
@@ -262,10 +263,11 @@ class Coordinator(
   * @param actor The [[akka.actor.ActorRef]] of the corresponding [[SimulationActor]].
   */
   protected def stopSimulation(name: String, result: String, actor: ActorRef) = {
-    simulations -= name //TODO
+    simulations -= name
+    //remove all tasks associated with this simulation
     publish(ESimEnd(self, time,name,result))
     log.debug(s"[COORD:$time] Finished: [${actor.path.name}]")
-    ready(actor,Seq.empty[UUID])
+    ready(actor)
   }
   
 /**
@@ -277,10 +279,10 @@ class Coordinator(
   * @param l The list of tasks to be generated, each represented by a triplet with its unique ID, 
   *          [[TaskGenerator]] and list of [[TaskResource]] names that need to be used.
   */
-  protected def addTasks(actor: ActorRef, l: Seq[(UUID, TaskGenerator, Seq[String])], ack: Seq[UUID]) { //TODO update scaladoc
+  protected def addTasks(actor: ActorRef, l: Seq[(UUID, TaskGenerator, Seq[String])]) {
     l map { case (i,g,r) => addTask(i,g,r) }
     log.debug(s"[COORD:$time] Ready: [${actor.path.name}]")
-    ready(actor,ack)
+    ready(actor)
   }
 
 /**
@@ -320,6 +322,15 @@ class Coordinator(
       startTask(t)
 
     //sender() ! Coordinator.AckTask(t) //uncomment this to acknowledge AddTask
+  }
+
+
+  protected def ackTasks(actor: ActorRef, ack: Seq[UUID]) {
+    ack map { x=> ackTask(x) }
+  }
+
+  protected def ackTask(id: UUID) {
+    if (waitingForTask.contains(id)) waitingForTask -= id
   }
 
 /**
@@ -415,9 +426,8 @@ class Coordinator(
   *
   * @param actor The [[akka.actor.ActorRef]] of the [[SimulationActor]] that is ready.
   */
-  protected def ready(actor: ActorRef, ack: Seq[UUID]): Unit = {
+  protected def ready(actor: ActorRef): Unit = {
     waiting -= actor
-    ack map {x=> waitingForTask -= x}
     log.debug(s"[COORD:$time] Waiting: ${waiting map (_.path.name)}")
     // Are all actors ready?
     if (waitingForTask.isEmpty) {
@@ -460,7 +470,8 @@ class Coordinator(
     case Coordinator.AddResource(r) => addResource(r)
     case Coordinator.AddResources(r) => r foreach addResource
       
-    case Coordinator.AddAndAckTasks(l,ack) => addTasks(sender, l, ack)
+    case Coordinator.AddTasks(l) => addTasks(sender, l)
+    case Coordinator.AckTasks(ack) => ackTasks(sender,ack) //TODO
     case Coordinator.WaitFor(actor) => waitFor(actor)
     case Coordinator.SimStarted(name) => startSimulation(name, sender)
     case Coordinator.SimDone(name, result) => result match {
@@ -500,7 +511,8 @@ object Coordinator {
   case class SimStarted(name: String)
   case class SimDone(name: String, result: Try[Any])
 
-  case class AddAndAckTasks(l: Seq[(UUID, TaskGenerator, Seq[String])], ack: Seq[UUID])
+  case class AddTasks(l: Seq[(UUID, TaskGenerator, Seq[String])])
+  case class AckTasks(ack: Seq[UUID])
   case object AckTask
   case class WaitFor(actor: ActorRef)
   case object AckWait
