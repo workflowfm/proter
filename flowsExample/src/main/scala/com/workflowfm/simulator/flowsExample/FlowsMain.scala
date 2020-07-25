@@ -70,7 +70,7 @@ object FlowsMain {
         // val flow4 = And(Then(task5,task1),Then(task2,task3))
         
         val flow = Just(task1)
-        val flow2 = task3 > task2 > task3
+        val flow2 = task3 > task2 > task6
 
 
         val generator = new ConstantGenerator[Long](3L)
