@@ -20,6 +20,7 @@ case class And(left:Flow,right:Flow) extends Flow
 case class All(elements:Flow*) extends Flow
 case class Or(left:Flow,right:Flow) extends Flow
 
+/*
 class FlowSimulationActor (
     name: String,
     coordinator: ActorRef,
@@ -137,4 +138,4 @@ object FlowSimulationActor {
         flow: Flow)
     (implicit executionContext: ExecutionContext): Props =
         Props(new FlowSimulationActor(name, coordinator, flow))
-}
+}*/

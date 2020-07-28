@@ -17,26 +17,22 @@ abstract class SimulationActor (
 
   def run(): Future[Any]
 
-  private val tasks: Map[UUID,Promise[(Task,Long)]] = Map()
+  private val tasks: Map[UUID,(Task,Long)=>Unit] = Map()
   private val queue: Queue[(UUID, TaskGenerator, Seq[String])] = Queue()
   implicit val timeout = Timeout(2.seconds)
   var waitCount: Int = 0
   var moreTasks: Boolean = false
 
-  def task(t: TaskGenerator, resources: String*): Future[(Task,Long)] = {
+  def task(t: TaskGenerator, callback: (Task,Long)=>Unit, resources: String*): Unit = {
     val id = java.util.UUID.randomUUID
     println("adding a task")
-    task(id, t, None, resources)
+    task(id, t, callback, resources)
   }
 
-  protected def task(id: UUID, t: TaskGenerator, caller: Option[ActorRef], resources: Seq[String]): Future[(Task,Long)] = {
+  protected def task(id: UUID, t: TaskGenerator, callback: (Task,Long)=>Unit, resources: Seq[String]): Unit = {
     val p = Promise[(Task,Long)]()
-    tasks += id -> p
+    tasks += id -> callback
     queue += ((id, t, resources))
-    caller match {
-      case None => p.future
-      case Some(actor) => p.future pipeTo actor
-    }
   }
 
   def changeWaitCount(i:Int,sender:ActorRef) {
@@ -55,7 +51,7 @@ abstract class SimulationActor (
     waitCount += 1
     moreTasks = true
     println(waitCount+ " (complete)")
-    tasks.get(task.id).map (_.success((task,time)))
+    tasks.get(task.id).map (_(task,time))
     tasks -= task.id
   }
 
@@ -97,7 +93,10 @@ abstract class SimulationActor (
     case SimulationActor.Start => start()
     case SimulationActor.Ready => ready()
     case SimulationActor.TaskCompleted(task, time) => complete(task, time)
-    case SimulationActor.AddTask(id, t, r) => task(id, t, Some(sender), r)
+    case SimulationActor.AddTask(id, t, r) => {
+      def callback: (Task,Long)=>Unit = { case (x,y) => sender ! (x,y) }
+      task(id, t, callback, r)
+    }
     case SimulationActor.CoordinatorDone => noMoreTasks()
     case SimulationActor.ChangeWaitCount(i) => changeWaitCount(i,sender)
     case SimulationActor.Foo(s) => println(s)
@@ -136,9 +135,11 @@ class TaskSimulatorActor(
       cost,
       interrupt,
       priority)
-    val future = task(generator, resources: _*)
+    val promise = Promise[(Task,Long)]()
+    def callback: (Task,Long)=>Unit = { case (x,y) => promise.success((x,y)) }
+    val future = task(generator, callback, resources: _*)
     ready()
-    future
+    promise.future
   }
 }
 
