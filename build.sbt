@@ -7,6 +7,11 @@ ThisBuild / autoAPIMappings  := true
 // https://github.com/sbt/sbt-native-packager/issues/1063
 resolvers += Resolver.sbtPluginRepo("releases")
 
+/* Only invoked when you do `doc` in SBT */
+scalacOptions in (Compile, doc) += "-groups"
+scalacOptions in (Compile, doc) += "-diagrams"
+scalacOptions in (Compile, doc) += "-diagrams-debug"
+
 lazy val root = (project in file("."))
   .settings(
     name := "wfm-simulator",
