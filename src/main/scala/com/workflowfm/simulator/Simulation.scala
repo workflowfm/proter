@@ -17,6 +17,93 @@ abstract class SimulationActor (
 
   def run(): Future[Any]
 
+
+/*
+
+Then (id) task1 task2 : 
+run(task1) callback: run(task 2) callback: complete(id); ready()
+
+
+And (id) task1 task2: 
+run(task1) callback f: if (!tasks.contains(task2)) complete(id))
+run(task2) callback g: if (!tasks.contains(task1)) complete(id))
+
+
+Then (id) task1 (And (aid) task2 task3)
+run(task1) callback: run((And (aid) task2 task3)) callback: complete(id); ready()
+ready()
+
+tasks:
+task1.id -> [ run((And (aid) task2 task3)) callback: complete(id); ready() ]
+
+run(task2) callback f: if (!tasks.contains(task3)) complete(aid))
+run(task3) callback g: if (!tasks.contains(task2)) complete(aid))
+ready()
+
+aid -> complete(id)
+task2.id -> if (!tasks.contains(task3)) complete(aid))
+task3.id -> if (!tasks.contains(task2)) complete(aid))
+
+aid -> complete(id)
+task3.id -> if (!tasks.contains(task2)) complete(aid))
+
+
+
+And (aid) (Then (leftid) t1 t2) (Then (rightid) t3 t4)
+
+aid -> promise.success(...)
+
+run(Then (leftid) t1 t2) callback f: if (!tasks.contains(rightid)) complete(id))
+   run(t1) callback: run(t2) callback: complete(leftid); ready()
+run(Then (rightid) t3 t4) callback g: if (!tasks.contains(leftid)) complete(id))
+   run(t3) callback: run(t4) callback: complete(rightid); ready()
+ready()
+
+leftid ->  if (!tasks.contains(rightid)) complete(aid))
+t1 -> run(t2) callback: complete(leftid); ready()
+rightid ->  if (!tasks.contains(leftid)) complete(aid))
+t3 -> run(t4) callback: complete(rightid); ready()
+
+t1!
+leftid ->  if (!tasks.contains(rightid)) complete(aid))
+t2 -> complete(leftid)
+rightid ->  if (!tasks.contains(leftid)) complete(aid))
+t3 -> run(t4) callback: complete(rightid)
+
+t2!
+rightid ->  if (!tasks.contains(leftid)) complete(aid))
+t3 -> run(t4) callback: complete(rightid)
+
+t3! 
+rightid ->  if (!tasks.contains(leftid)) complete(aid))
+t4 -> complete(rightid)
+
+t4!
+complete(aid)
+
+
+Then (aid) t1 (Then (bid) t2 t3)
+
+run(t1) callback: { run(Then (bid) t2 t3) callback: complete(aid); ready() }
+
+t1 -> run(Then (bid) t2 t3) callback: complete(aid); ready()
+
+
+start (flow) {
+ create promise
+ run(flow) callback: promise.success
+ ready()
+ }
+
+run (x, callback) {
+ add x.id -> callback in tasks
+ x is a task -> add to queue
+ x is a flow -> flow.execute()
+ }
+
+ */
+
+
   private val tasks: Map[UUID,(Task,Long)=>Unit] = Map()
   private val queue: Queue[(UUID, TaskGenerator, Seq[String])] = Queue()
   implicit val timeout = Timeout(2.seconds)
