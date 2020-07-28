@@ -4,9 +4,9 @@ import akka.pattern.{ ask, pipe }
 import akka.actor.{ Actor, ActorRef, Props }
 import akka.util.Timeout
 import java.util.concurrent.TimeUnit
-import scala.concurrent.duration.Duration
+import scala.concurrent.duration._
 import scala.collection.mutable.{ Map, Queue }
-import scala.concurrent.{ ExecutionContext, Future, Promise }
+import scala.concurrent.{ ExecutionContext, Future, Promise, Await }
 import java.util.UUID
 
 abstract class SimulationActor (
@@ -19,10 +19,13 @@ abstract class SimulationActor (
 
   private val tasks: Map[UUID,Promise[(Task,Long)]] = Map()
   private val queue: Queue[(UUID, TaskGenerator, Seq[String])] = Queue()
-  var waitingCount: Int = 0
+  implicit val timeout = Timeout(2.seconds)
+  var waitCount: Int = 0
+  var moreTasks: Boolean = false
 
   def task(t: TaskGenerator, resources: String*): Future[(Task,Long)] = {
     val id = java.util.UUID.randomUUID
+    println("adding a task")
     task(id, t, None, resources)
   }
 
@@ -36,7 +39,22 @@ abstract class SimulationActor (
     }
   }
 
+  def changeWaitCount(i:Int,sender:ActorRef) {
+    waitCount += i
+    println(waitCount + " changeWaitCount")
+  }
+
+  def noMoreTasks() {
+    moreTasks = false
+    println("coordinator done")
+    if (waitCount==0) ready()
+  }
+
   protected def complete(task: Task, time: Long) = {
+    
+    waitCount += 1
+    moreTasks = true
+    println(waitCount+ " (complete)")
     tasks.get(task.id).map (_.success((task,time)))
     tasks -= task.id
   }
@@ -49,20 +67,26 @@ abstract class SimulationActor (
   }
 
   def ready(): Unit = {
-    val seq = queue.clone().toSeq
-    queue.clear()
-    println("waitingCount: "+waitingCount)
-    if (waitingCount<=0) coordinator ! Coordinator.AddTasks(seq)
-    
+    println(waitCount + " (ready)")
+    println("moreTasks: "+moreTasks)
+    if (waitCount==0 && !moreTasks) {
+      println("calling coordinator")
+      val seq = queue.clone().toSeq
+      queue.clear()
+      coordinator ! Coordinator.AddTasks(seq)
+    }
   }
 
-  def ack(ack:Seq[UUID]): Unit = {
-    coordinator ! Coordinator.AckTasks(ack)
+  def ack(ack:Seq[UUID]): Future[Any] = {
+    //waitCount -= ack.size
+    self ! SimulationActor.ChangeWaitCount(-(ack.size))
+    coordinator ? Coordinator.AckTasks(ack)
   }
 
-  def addWaitingCount(i:Int=1) = {
-    println("edit: "+i)
-    waitingCount += i
+  def waitForAck(ack:UUID): Unit = {
+    //waitCount += 1
+    self ! SimulationActor.ChangeWaitCount(1)
+    coordinator ! Coordinator.WaitForAck(ack)
   }
 
   def requestWait(ack: ActorRef): Unit = {
@@ -74,6 +98,9 @@ abstract class SimulationActor (
     case SimulationActor.Ready => ready()
     case SimulationActor.TaskCompleted(task, time) => complete(task, time)
     case SimulationActor.AddTask(id, t, r) => task(id, t, Some(sender), r)
+    case SimulationActor.CoordinatorDone => noMoreTasks()
+    case SimulationActor.ChangeWaitCount(i) => changeWaitCount(i,sender)
+    case SimulationActor.Foo(s) => println(s)
   }
 
   def receive = simulationActorReceive
@@ -85,6 +112,9 @@ object SimulationActor {
   case object Ready
   case class AddTask(id: UUID, t: TaskGenerator, resources: Seq[String])
   case class TaskCompleted(task: Task, time: Long)
+  case object CoordinatorDone
+  case class ChangeWaitCount(i:Int)
+  case class Foo(s:String)
 }
 
 

@@ -130,6 +130,9 @@ class Coordinator(
         eventsToHandle foreach releaseResources
         // Handle the event
         eventsToHandle foreach handleCEvent
+
+        //tell each simulation the coordinator is done for this tick
+        waiting map {x=> x ! SimulationActor.CoordinatorDone }
       }
 
     }
@@ -327,10 +330,15 @@ class Coordinator(
 
   protected def ackTasks(actor: ActorRef, ack: Seq[UUID]) {
     ack map { x=> ackTask(x) }
+    actor ! Unit
   }
 
   protected def ackTask(id: UUID) {
     if (waitingForTask.contains(id)) waitingForTask -= id
+  }
+
+  protected def waitForAck(actor:ActorRef, id: UUID) {
+    waitingForTask += id
   }
 
 /**
@@ -432,6 +440,7 @@ class Coordinator(
     // Are all actors ready?
     if (waitingForTask.isEmpty && waiting.isEmpty) {
       allocateTasks()
+      println("TICK")
       tick()
     }
   }
@@ -472,6 +481,7 @@ class Coordinator(
       
     case Coordinator.AddTasks(l) => addTasks(sender, l)
     case Coordinator.AckTasks(ack) => ackTasks(sender,ack) //TODO
+    case Coordinator.WaitForAck(ack) => waitForAck(sender,ack)
     case Coordinator.WaitFor(actor) => waitFor(actor)
     case Coordinator.SimStarted(name) => startSimulation(name, sender)
     case Coordinator.SimDone(name, result) => result match {
@@ -513,6 +523,7 @@ object Coordinator {
 
   case class AddTasks(l: Seq[(UUID, TaskGenerator, Seq[String])])
   case class AckTasks(ack: Seq[UUID])
+  case class WaitForAck(ack: UUID)
   case object AckTask
   case class WaitFor(actor: ActorRef)
   case object AckWait

@@ -33,58 +33,68 @@ extends SimulationActor(name,coordinator) {
             flow match {
                 case Wrapper(flow) => {
                     val e = execute(Then(invis,flow))
-                    e.onComplete{x=> addWaitingCount(-1)}
+                    e.onComplete{x=> ready()}
                     e
                 }
 
-                case NoTask => addWaitingCount(); Future.unit
+                case NoTask => Future.unit
 
                 case flowTask: FlowTask => { 
                     task(flowTask.generator, flowTask.resources:_*) map { x=> flowTask.p success x}
-                    println("adding a task")
                     flowTask.p.future
                 }
 
                 case Just(flowTask) => { execute(Then(flowTask,NoTask)) }
 
                 case Then(left,right) => {
+                    val id = java.util.UUID.randomUUID
+                    waitForAck(id)
                     val leftFuture = execute(left)
+                    ack(Seq(id))
                     ready()
                     val rightFuture = leftFuture.flatMap{ x =>
+                        waitForAck(id)
                         val future = execute(right)
+                        ack(Seq(id))
                         left match {
                             case f:FlowTask => f.p.future map {x=> ack(Seq(x._1.id)); ready()}
-                            case _ => {addWaitingCount(-1); ready()}
+                            case _ => ready()
                         }
                         future
                     }
-                    rightFuture map { _=>
-                        addWaitingCount()
+                    rightFuture flatMap { _=>
                         right match {
-                                case f:FlowTask => f.p.future map {x=> ack(Seq(x._1.id)); ready()}
-                                case _ => {addWaitingCount(-1); ready()}
+                                case f:FlowTask => f.p.future map {x=> ack(Seq(x._1.id))}
+                                case _ => ack(Seq())
                             }
-                        println("THEN completed; +1")
                         
                     }
-                    rightFuture
                 }  
 
                 case And(left,right) => {
+                    val id = java.util.UUID.randomUUID
+                    waitForAck(id)
                     val leftFuture = execute(left)
                     val rightFuture = execute(right)
+                    ack(Seq(id))
                     ready()
-                    left match {
-                            case f:FlowTask => f.p.future map {x=> ack(Seq(x._1.id)); ready()}
-                            case _ => leftFuture map {_=> addWaitingCount(-1); ready()}
-                        }
-                    right match {
-                            case f:FlowTask => f.p.future map {x=> ack(Seq(x._1.id)); ready()}
-                            case _ => rightFuture map {_=> addWaitingCount(-1); ready() }
-                        }
-                    val andFuture = Future.sequence(Seq(leftFuture,rightFuture))
-                    andFuture map {_=> println("AND completed; +1"); addWaitingCount()}
-                    andFuture
+                    val leftFuture2 = leftFuture flatMap { x=> 
+                        val f = left match {
+                                case f:FlowTask => f.p.future map {x=> ack(Seq(x._1.id))}
+                                case _ => ack(Seq())
+                            }
+                        f map {_=> if (!rightFuture.isCompleted) ready()}
+                        f
+                    }
+                    val rightFuture2 = rightFuture flatMap { x=> 
+                        val f = right match {
+                                case f:FlowTask => f.p.future map {x=> ack(Seq(x._1.id))}
+                                case _ => ack(Seq())
+                            }
+                        f map {_=> if (!leftFuture.isCompleted) ready()}
+                        f
+                    }
+                    Future.sequence(Seq(leftFuture2,rightFuture2))
                 }
 
                 case All(elem@_*) => { execute(elem.fold(NoTask) { (l, r) =>  And(l,r) }) }
@@ -94,19 +104,21 @@ extends SimulationActor(name,coordinator) {
                     val rightFuture = execute(right)
                     val orDone = Promise[Any]
                     ack(Seq.empty[UUID])
-                    leftFuture map { x=> 
-                        if (!rightFuture.isCompleted) { orDone success Unit}
-                        left match {
-                                case f:FlowTask => f.p.future map {x=> ack(Seq(x._1.id)); ready()}
-                                case _ => ready()
+                    val leftFuture2 = leftFuture flatMap { x=> 
+                        val f =left match {
+                                case f:FlowTask => f.p.future map {x=> ack(Seq(x._1.id))}
+                                case _ => ack(Seq())
                             }
+                        f map {_=> if (!rightFuture.isCompleted) orDone success Unit else ready() }
+                        f
                     }
-                    rightFuture map { x=> 
-                        if (!leftFuture.isCompleted) { orDone success Unit}
-                        right match {
-                                case f:FlowTask => f.p.future map {x=> ack(Seq(x._1.id)); ready()}
-                                case _ => ready()
+                    val rightFuture2 = rightFuture flatMap { x=> 
+                        val f = right match {
+                                case f:FlowTask => f.p.future map {x=> ack(Seq(x._1.id))}
+                                case _ => ack(Seq())
                             }
+                        f map {_=> if (!leftFuture.isCompleted) orDone success Unit else ready() }
+                        f
                     }
                     orDone.future
                 }
