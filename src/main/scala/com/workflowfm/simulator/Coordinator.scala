@@ -16,6 +16,11 @@ import uk.ac.ed.inf.ppapapan.subakka.HashSetPublisher
 /**
   * Provides coordination for discrete event simulation of multiple asynchronous simulations.
   *
+  * @groupname tasks Managing tasks
+  * @groupname simulations Managing simulations
+  * @groupname resources Managing resources
+  * @groupname toplevel Top level
+  * 
   * @param scheduler The [[Scheduler]] responsible for task allocation at any given time.
   * @param startingTime The starting timestamp of the entire simulation. 
   */
@@ -24,7 +29,10 @@ class Coordinator(
   startingTime:Long
 ) extends HashSetPublisher[Event] {
  
-  /** Discrete Events that need to be handled. */
+  /** 
+    * Discrete Events that need to be handled. 
+    * @group toplevel
+    */
   sealed trait CEvent extends Ordered[CEvent] {
     /** The timestamp of the event  */
     def time: Long
@@ -37,6 +45,7 @@ class Coordinator(
 
   /** 
     * Event fired when a [[Task]] has finished.
+    * @group tasks
     * @param time The timestamp of the event
     * @param task The [[Task]] that was finished.
     */ 
@@ -44,31 +53,53 @@ class Coordinator(
 
   /** 
     * Event fired when a simulation needs to start.
+    * @group simulations
     * @param time The timestamp of the event
     * @param simulation The actor reference to the [[SimulationActor]] that needs to start.
     */ 
   case class StartingSim(override val time: Long, simulation: ActorRef) extends CEvent
   
-  /** Map of the available [[TaskResource]]s */
+  /** 
+    * Map of the available [[TaskResource]]s 
+    * @group resources
+    */
   val resourceMap: Map[String,TaskResource] = Map[String,TaskResource]()
 
-  /** Set of [[SimulationActor]] references that we need to wait for before we can progress time. */
+  /** 
+    * Set of [[SimulationActor]] references that we need to wait for before we can progress time. 
+    * @group simulations
+    */
   val waiting: HashSet[ActorRef] = HashSet[ActorRef]()
 
-  /** Set of simulation names that are running, i.e. they have already started but not finished. */
+  /** 
+    * Set of simulation names that are running.
+    * i.e. they have already started but not finished. 
+    * @group simulations
+    */
   val simulations: HashSet[String] = HashSet[String]()
 
-  /** A sorted queue of tasks that need to be run. */
+  /** 
+    * A sorted queue of tasks that need to be run. 
+    * @group tasks
+    */
   val tasks: SortedSet[Task] = SortedSet()
   
-  /** [[scala.collection.mutable.PriorityQueue]] of discrete [[CEvent]]s to be processed, ordered by (future) timestamp. */
+  /** 
+    * [[scala.collection.mutable.PriorityQueue]] of discrete [[CEvent]]s to be processed, 
+    * ordered by (future) timestamp. 
+    * @group toplevel
+    */
   val events = new PriorityQueue[CEvent]()
   
-  /** The current virtual time. */
+  /** 
+    * The current virtual time. 
+    * @group toplevel
+    */
   var time = startingTime
  
   /** 
     * Add a new [[TaskResource]] the our map of available resources. 
+    * @group resources
     * @param r The [[TaskResource]] to be added.
     */ 
   def addResource(r: TaskResource) = if (!resourceMap.contains(r.name)) {
@@ -80,6 +111,7 @@ class Coordinator(
     * Extract all [[CEvent]]s in the queue that need to be processed in a given timestamp.
     * Sequentially builds a [[scala.collection.immutable.Seq]].
     * At the same time it dequeues the events from the event queue.
+    * @group toplevel
     * @param t The given timestamp to look out for. We assume it is less than or equal to
     *          the timestamp of the first [[CEvent]] in the queue.
     */ 
@@ -107,6 +139,8 @@ class Coordinator(
     * If there are no events and no simulations to wait for, but there are still tasks to run, we
     * attempt to allocate and run them. This may happen if something breaks when handling a previous
     * event. 
+    * 
+    * @group toplevel
     */
   protected def tick(): Unit = {
     // Are events pending?
@@ -146,6 +180,7 @@ class Coordinator(
     * Allocates the tasks due to start next to their resources.
     * Asks the [[Scheduler]] to determine what tasks need to start next.
     * Removes each of them from the queue and runs them using [[startTask]].
+    * @group resources
     */
   protected def allocateTasks() = {
     // Assign the next tasks
@@ -161,8 +196,8 @@ class Coordinator(
   * this means the resources used by that [[Task]] can now be released.
   * Other [[CEvent]]s are just ignored.
   * 
+  * @group resources
   * @param event The [[CEvent]] that potentially released resources.
-  * @return
   */
   protected def releaseResources(event: CEvent) = {
     event match {
@@ -177,9 +212,9 @@ class Coordinator(
   * Processes a [[CEvent]].
   * 
   * - [[FinishingTask]] means a task finished and we need to stop it with [[stopTask]].
-  * 
   * - [[StartingSim]] means a simulation needs to start and we do this with [[startSimulationActor]].
   *
+  * @group toplevel
   * @param event The [[CEvent]] to process.
   */
   protected def handleCEvent(event:CEvent) = {
@@ -198,10 +233,10 @@ class Coordinator(
 /**
   * Add a new simulation to be run.
   *
+  * @group simulations
   * @param t The timestamp when the simulation needs to start. Must be greater or equal to the current
   *          time.
   * @param actor The reference to the [[SimulationActor]] corresponding to the simulation.
-  * @return
   */
   protected def addSimulation(t: Long, actor: ActorRef) = {
     publish(ESimAdd(self, time,actor.toString(),t))
@@ -212,9 +247,9 @@ class Coordinator(
   * Adds multiple simulations at the same time.
   * This is equivalent to mapping [[addSimulation]] over the given sequence, but more efficient.
   * 
+  * @group simulations
   * @param sims A sequence of pairs, each consisting of a starting timestamp and a 
   * reference to a [[SimulationActor]]. Timestamps must be greater or equal to the current time.
-  * @return
   */
   protected def addSimulations(sims: Seq[(Long,ActorRef)]) = {
     events ++= sims.flatMap { case(t, actor) => {
@@ -231,6 +266,7 @@ class Coordinator(
   * Once the simulation starts, we exect to hear from it in case it wants to add some [[Task]]s.
   * We therefore add it to the waiting queue.
   *
+  * @group simulations
   * @param simActor The [[akka.actor.ActorRef]] of the [[SimulationActor]].
   */
   protected def startSimulationActor(simActor: ActorRef) = {
@@ -242,6 +278,7 @@ class Coordinator(
 /**
   * Wrapper of [[startSimulationActor]] that also publishes a [[com.workflowfm.simulator.events.ESimStart]].
   *
+  * @group simulations
   * @param name The name of the simulation.
   * @param simActor The [[akka.actor.ActorRef]] of the corresponding [[SimulationActor]].
   */
@@ -256,6 +293,7 @@ class Coordinator(
   * Publishes a [[com.workflowfm.simulator.events.ESimEnd]].
   * Calls [[ready]] to handle the fact that we no longer need to wait for this simulation.
   *
+  * @group simulations
   * @param name The name of the completed simulation.
   * @param result A string representation of the output of the simulation.
   * @param actor The [[akka.actor.ActorRef]] of the corresponding [[SimulationActor]].
@@ -272,6 +310,7 @@ class Coordinator(
   * Calls [[addTask]] for each [[Task]] to be generated.
   * Calls [[ready]] to handle the fact that we no longer need to wait for this simulation. 
   *
+  * @group tasks
   * @param actor The [[akka.actor.ActorRef]] of the [[SimulationActor]] that needs to generate the tasks.
   * @param l The list of tasks to be generated, each represented by a triplet with its unique ID, 
   *          [[TaskGenerator]] and list of [[TaskResource]] names that need to be used.
@@ -287,24 +326,23 @@ class Coordinator(
   * 
   * - Uses [[TaskGenerator.create]] to create the [[Task]], which will now have a fixed duration and cost.
   * 
-  * - Uses the current time as the creation time, unless the [[TaskGenerator]] has a custom creation time.
-  * 
   * - Calculates the cost of the involved resources by adding the [[TaskResource.costPerTick]] 
-  * multipled by the [[Task.duration]]. Adds this to the [[Task.cost]].
+  * multipled by the [[Task.duration]]. Adds this to the [[Task.cost]]. 
+  * This is done at runtime instead of at creation time to support variable resources.
   * 
   * - Publishes a [[com.workflowfm.simulator.events.ETaskAdd]].
   * 
   * - If the task does not require any resources, it is started immediately using [[startTask]].
   * Otherwise, we add it to the queue of [[Task]]s.
   *
+  * @group tasks
   * @param id A unique ID for the [[Task]].
   * @param gen The [[TaskGenerator]] that will generate the [[Task]].
   * @param resources The list of [[TaskResource]] names that need to be used by the [[Task]].
   */
   protected def addTask(id: UUID, gen: TaskGenerator, resources: Seq[String]) {
-    val creation = if (gen.createTime >= 0) gen.createTime else time
     // Create the task
-    val t: Task = gen.create(id, creation, sender, resources:_*)
+    val t: Task = gen.create(id, time, sender, resources:_*)
     
     // Calculate the cost of all resource usage. We only know this now!
     val resourceCost = (0L /: t.taskResources(resourceMap)) { case (c,r) => c + r.costPerTick * t.duration }
@@ -336,6 +374,7 @@ class Coordinator(
   * - Creates a [[FinishingTask]] event for this [[Task]] based on its duration, and adds it to 
   * the even queue.
   *
+  * @group tasks
   * @param task The [[Task]] to be started.
   */
   protected def startTask(task: Task) {
@@ -362,12 +401,13 @@ class Coordinator(
   * Other events that warrant waiting for a simulation to react do not call this method, but
   * add the simulation to the waiting list on their own.
   *
+  * @group simulations
   * @param actor The reference to the [[SimulationActor]] we need to wait for.
   */
   protected def waitFor(actor: ActorRef) {
     waiting += actor
     log.debug(s"[COORD:$time] Wait requested: ${actor.path.name}")
-    actor ! Coordinator.AckWait
+    actor ! SimulationActor.AckWait
   }
 
 /**
@@ -375,6 +415,7 @@ class Coordinator(
   * A wrapper of [[TaskResource.finishTask]] that 
   * publishes a [[com.workflowfm.simulator.events.ETaskDetach]].
   *
+  * @group resources
   * @param r The [[TaskResource]] to free up.
   */
   protected def detach(r: TaskResource) = {
@@ -395,6 +436,7 @@ class Coordinator(
     * 
     * Note that resources are detached before this in [[tick]] using [[releaseResources]].
     *
+    * @group tasks
     * @param task The [[Task]] that needs to be stopped.
     */
   protected def stopTask(task: Task) {
@@ -411,6 +453,7 @@ class Coordinator(
   * If it is, we can progress time. First, we allocate new tasks, because some of them
   * may be able to start immediately. We then progress time with [[tick]].
   *
+  * @group simulations
   * @param actor The [[akka.actor.ActorRef]] of the [[SimulationActor]] that is ready.
   */
   protected def ready(actor: ActorRef): Unit = {
@@ -425,6 +468,7 @@ class Coordinator(
 
 /**
   * Starts the entire simulation.
+  * @group toplevel
   */
   def start() = {
     publish(EStart(self))
@@ -435,6 +479,7 @@ class Coordinator(
   * Checks if a given [[com.workflowfm.simulator.events.Event]] in the output stream is the final one.
   * Causes the stream to shutdown after [[com.workflowfm.simulator.events.EDone]] is published.
   *
+  * @group toplevel
   * @param e The [[com.workflowfm.simulator.events.Event]] to check.
   * @return true if it is a [[com.workflowfm.simulator.events.EDone]], otherwise false.
   */
@@ -446,6 +491,7 @@ class Coordinator(
 /**
   * Defines the [[Receive]] behaviour related to the coordination of the simulations.
   *
+  * @group toplevel
   * @return The [[Receive]] behaviour.
   */
   def receiveBehaviour: Receive = {
@@ -476,35 +522,109 @@ class Coordinator(
 /**
   * Defines the complete [[Receive]] behaviour of the actor as a publisher and coordinator.
   *
+  * @group toplevel
   * @return The [[Receive]] behaviour.
   */
   override def receive = LoggingReceive { publisherBehaviour orElse receiveBehaviour }
 }
 
+/**
+  * Companion object for [[Coordinator]].
+  * Includes some of the actor messages that can be received and sent.
+  * 
+  * @groupname simulations Interaction with a SimulationActor
+  * @groupdesc simulations Messages exchanged with a [[SimulationActor]].
+  * @groupprio simulations 2
+  * @groupname toplevel General Interaction
+  * @groupprio toplevel 1
+  */
 object Coordinator {
+/**
+  * Message to start the entire simulation.
+  * @group toplevel
+  */
   case object Start
+
+/**
+  * Message to retrieve the current (virtual) time.
+  * @group toplevel
+  */
   case object Ping
+
+/**
+  * Response to [[Ping]] with current (virtual) time.
+  * @group toplevel
+  */
   case class Time(time: Long)
 
+/**
+  * Message to add a simulation.
+  * @group toplevel
+  */
   case class AddSim(t: Long, actor: ActorRef)
+/**
+  * Message to add a list of simulations.
+  * @group toplevel
+  */
   case class AddSims(l: Seq[(Long,ActorRef)])
+/**
+  * Message to add a simulation due to start right now.
+  * @group toplevel
+  */
   case class AddSimNow(actor: ActorRef)
+/**
+  * Message to add a list of simulations due to start right now.
+  * @group toplevel
+  */
   case class AddSimsNow(l: Seq[ActorRef])
 
+/**
+  * Message to add a [[TaskResource]].
+  * @group toplevel
+  */
   case class AddResource(r: TaskResource)
+/**
+  * Message to add a list of [[TaskResource]]s.
+  * @group toplevel
+  */
   case class AddResources(l: Seq[TaskResource])
   
+/**
+  * Message from a [[SimulationActor]] that the simulation has started.
+  * @group simulations
+  */
   case class SimStarted(name: String)
+/**
+  * Message from a [[SimulationActor]] that it has finished, with its output.
+  * @group simulations
+  */
   case class SimDone(name: String, result: Try[Any])
 
+/**
+  * Message from a [[SimulationActor]] to add new tasks.
+  * @group simulations
+  */
   case class AddTasks(l: Seq[(UUID, TaskGenerator, Seq[String])])
+/**
+  * Message to a [[SimulationActor]] to acknowledge tasks were added.
+  * @group simulations
+  */
   case object AckTask
+/**
+  * Message from a [[SimulationActor]] to wait for it before proceeding.
+  * @group simulations
+  */
   case class WaitFor(actor: ActorRef)
-  case object AckWait
 
+/**
+  * Creates properties for a [[Coordinator]] actor.
+  *
+  * @param scheduler The [[Scheduler]] to be used.
+  * @param startingTime The starting time of the entire simulation.
+  * @return
+  */
   def props(
     scheduler: Scheduler,
     startingTime: Long = 0L
-  )(implicit system: ActorSystem, executionContext:ExecutionContext
   ): Props = Props(new Coordinator(scheduler,startingTime))
 }
