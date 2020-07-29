@@ -63,13 +63,14 @@ class Coordinator(
     * Map of the available [[TaskResource]]s 
     * @group resources
     */
-  val resourceMap: Map[String,TaskResource] = Map[String,TaskResource]()
+  val resourceMap: Map[String, TaskResource] = Map[String, TaskResource]()
 
   /** 
     * Set of [[SimulationActor]] references that we need to wait for before we can progress time. 
+    * @todo Update for task-ack.
     * @group simulations
     */
-  val waiting: HashSet[ActorRef] = HashSet[ActorRef]()
+  val waiting: Map[ActorRef, List[UUID]] = Map[ActorRef, List[UUID]]()
 
   /** Set of simulation names that are running, i.e. they have already started but not finished. */
   /** 
@@ -78,7 +79,6 @@ class Coordinator(
     * @todo TODO update for task-acking
     * @group simulations
     */
-  val waitingForTask: HashSet[UUID] = HashSet[UUID]()
   val simulations: HashSet[String] = HashSet[String]()
 
   /** 
@@ -273,7 +273,7 @@ class Coordinator(
   * @param simActor The [[akka.actor.ActorRef]] of the [[SimulationActor]].
   */
   protected def startSimulationActor(simActor: ActorRef) = {
-    waiting += simActor
+    waiting += simActor -> List()
     simActor ! SimulationActor.Start
   }
 
@@ -303,7 +303,7 @@ class Coordinator(
   */
   protected def stopSimulation(name: String, result: String, actor: ActorRef) = {
     simulations -= name
-    //remove all tasks associated with this simulation
+    waiting -= actor
     publish(ESimEnd(self, time,name,result))
     log.debug(s"[COORD:$time] Finished: [${actor.path.name}]")
     ready(actor)
@@ -363,14 +363,21 @@ class Coordinator(
     //sender() ! Coordinator.AckTask(t) //uncomment this to acknowledge AddTask
   }
 
-
+  /**
+    * @todo Document this
+    *
+    * @group tasks
+    * @param actor
+    * @param ack
+    */
   protected def ackTasks(actor: ActorRef, ack: Seq[UUID]) {
-    ack map { x=> ackTask(x) }
-    ready(actor)
-  }
-
-  protected def ackTask(id: UUID) {
-    if (waitingForTask.contains(id)) waitingForTask -= id
+    waiting.get(actor) match {
+      case None => log.warning(s"[COORD:$time] Unexpected tasks acknowledged by ${actor.path.name}: $ack")
+      case Some(l) => {
+        waiting.update(actor, l.diff(ack))
+        ready(actor)
+      }
+    }
   }
 
 /**
@@ -419,7 +426,7 @@ class Coordinator(
   * @param actor The reference to the [[SimulationActor]] we need to wait for.
   */
   protected def waitFor(actor: ActorRef) {
-    waiting += actor
+    waiting += actor -> List()
     log.debug(s"[COORD:$time] Wait requested: ${actor.path.name}")
     actor ! SimulationActor.AckWait
   }
@@ -454,10 +461,12 @@ class Coordinator(
     * @param task The [[Task]] that needs to be stopped.
     */
   protected def stopTask(task: Task) {
-    waiting += task.actor
-    waitingForTask += task.id
+    waiting.get(task.actor) match {
+      case None => waiting += task.actor -> List(task.id)
+      case Some(l) => waiting.update(task.actor, task.id :: l)
+    }
     log.debug(s"[COORD:$time] Waiting post-task: ${task.actor.path.name}")
-    publish(ETaskDone(self, time,task))
+    publish(ETaskDone(self, time, task))
     task.actor ! SimulationActor.TaskCompleted(task, time)
   }
 
@@ -472,12 +481,18 @@ class Coordinator(
   * @param actor The [[akka.actor.ActorRef]] of the [[SimulationActor]] that is ready.
   */
   protected def ready(actor: ActorRef): Unit = {
-    waiting -= actor
-    log.debug(s"[COORD:$time] Waiting: ${waiting map (_.path.name)}")
-    // Are all actors ready?
-    if (waitingForTask.isEmpty && waiting.isEmpty) {
-      allocateTasks()
-      tick()
+    // Is there at least one task to wait for?
+    waiting.get(actor).flatMap(_.headOption) match {
+      case Some(_) => Unit
+      case _ => {
+        waiting -= actor
+        log.debug(s"[COORD:$time] Waiting: ${waiting.keys.map (_.path.name)}")
+        // Are all actors ready?
+        if (waiting.isEmpty) {
+          allocateTasks()
+          tick()
+        }
+      }
     }
   }
 
@@ -510,7 +525,7 @@ class Coordinator(
   * @return The [[Receive]] behaviour.
   */
   def receiveBehaviour: Receive = {
-    case Coordinator.AddSim(t, s) => addSimulation(t,s)
+    case Coordinator.AddSim(t, s) => addSimulation(t, s)
     case Coordinator.AddSims(l) => addSimulations(l)
     case Coordinator.AddSimNow(s) => addSimulation(time, s)
     case Coordinator.AddSimsNow(l) => addSimulations(l.map((time,_)))
@@ -519,7 +534,7 @@ class Coordinator(
     case Coordinator.AddResources(r) => r foreach addResource
       
     case Coordinator.AddTasks(l) => addTasks(sender, l)
-    case Coordinator.AckTasks(ack) => ackTasks(sender,ack) //TODO
+    case Coordinator.AckTasks(ack) => ackTasks(sender, ack)
     case Coordinator.WaitFor(actor) => waitFor(actor)
     case Coordinator.SimStarted(name) => startSimulation(name, sender)
     case Coordinator.SimDone(name, result) => result match {
