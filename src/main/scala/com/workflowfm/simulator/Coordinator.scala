@@ -321,8 +321,6 @@ class Coordinator(
   */
   protected def addTasks(actor: ActorRef, l: Seq[(UUID, TaskGenerator, Seq[String])]) {
     l map { case (i,g,r) => addTask(i,g,r) }
-    log.debug(s"[COORD:$time] Ready: [${actor.path.name}]")
-    ready(actor)
   }
 
 /**
@@ -371,6 +369,7 @@ class Coordinator(
     * @param ack
     */
   protected def ackTasks(actor: ActorRef, ack: Seq[UUID]) {
+    log.debug(s"[COORD:$time] Ack [${actor.path.name}]: $ack")
     waiting.get(actor) match {
       case None => log.warning(s"[COORD:$time] Unexpected tasks acknowledged by ${actor.path.name}: $ack")
       case Some(l) => {
@@ -378,6 +377,17 @@ class Coordinator(
         ready(actor)
       }
     }
+  }
+
+  /**
+    * @todo Document this
+    *
+    * @param actor
+    */
+  protected def ackAll(actor: ActorRef) {
+    log.debug(s"[COORD:$time] Ack ALL [${actor.path.name}]")
+    waiting -= actor
+    ready(actor)
   }
 
 /**
@@ -534,7 +544,11 @@ class Coordinator(
     case Coordinator.AddResources(r) => r foreach addResource
       
     case Coordinator.AddTasks(l) => addTasks(sender, l)
+    case Coordinator.AddTask(id, generator, resources) => addTask(id, generator, resources)
+
     case Coordinator.AckTasks(ack) => ackTasks(sender, ack)
+    case Coordinator.SimReady => ackAll(sender)
+
     case Coordinator.WaitFor(actor) => waitFor(actor)
     case Coordinator.SimStarted(name) => startSimulation(name, sender)
     case Coordinator.SimDone(name, result) => result match {
@@ -632,6 +646,12 @@ object Coordinator {
   case class SimDone(name: String, result: Try[Any])
 
 /**
+  * Message from a [[SimulationActor]] to add a new task.
+  * @group simulations
+  */
+  case class AddTask(id: UUID, generator: TaskGenerator, resources: Seq[String])
+
+/**
   * Message from a [[SimulationActor]] to add new tasks.
   * @group simulations
   */
@@ -640,11 +660,8 @@ object Coordinator {
 //  * @todo TODO update for task-acking
   case class AckTasks(ack: Seq[UUID])
 
-/**
-  * Message to a [[SimulationActor]] to acknowledge tasks were added.
-  * @group simulations
-  */
-  case object AckTask
+//  * @todo TODO update for task-acking
+  case object SimReady
 
 /**
   * Message from a [[SimulationActor]] to wait for it before proceeding.
