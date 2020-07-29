@@ -83,16 +83,6 @@ abstract class SimulationActor (
   private val tasks: Map[UUID,Promise[(Task,Long)]] = Map()
 
   /**
-    * A queue of [[TaskGenerator]]s due to be sent to the [[Coordinator]].
-    * 
-    * Each entry contains a task ID, a [[TaskGenerator]], and a list of [[TaskResource]] names
-    * that need to be used by the generated [[Task]].
-    * 
-    * @group internal
-    */
-  private val queue: Queue[(UUID, TaskGenerator, Seq[String])] = Queue()
-
-  /**
     * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation.
     * 
     * The returned `Future` will complete when the [[Task]] simulation is completed. The simulation
@@ -138,7 +128,7 @@ abstract class SimulationActor (
   protected def task(id: UUID, t: TaskGenerator, caller: Option[ActorRef], resources: Seq[String]): Future[(Task,Long)] = {
     val p = Promise[(Task,Long)]()
     tasks += id -> p
-    queue += ((id, t, resources))
+    coordinator ! Coordinator.AddTask(id, t, resources)
     caller match {
       case None => p.future
       case Some(actor) => p.future pipeTo actor
@@ -181,14 +171,15 @@ abstract class SimulationActor (
     * 
     * Also sends the new tasks for simulation to the [[Coordinator]] and clears
     * the queue.
-    * 
+    * @todo update
     * @group api
     */
-  def ready(ack:Seq[UUID]): Unit = {
-    val seq = queue.clone().toSeq
-    queue.clear()
-    coordinator ! Coordinator.AddTasks(seq)
-    coordinator ! Coordinator.AckTasks(ack)
+  def ack(tasks: Seq[UUID]): Unit = {
+    coordinator ! Coordinator.AckTasks(tasks)
+  }
+
+  def ready(): Unit = {
+    coordinator ! Coordinator.SimReady
   }
 
   /**
@@ -254,7 +245,8 @@ abstract class SimulationActor (
     */
   def simulationActorReceive: Receive = {
     case SimulationActor.Start => start()
-    case SimulationActor.Ready => ready(Seq.empty[UUID])
+    case SimulationActor.Ready => ready()
+    case SimulationActor.AckTasks(tasks) => ack(tasks)
     case SimulationActor.TaskCompleted(task, time) => complete(task, time)
     case SimulationActor.AddTask(id, t, r) => task(id, t, Some(sender), r)
     case SimulationActor.RequestWait => requestWait(sender())
@@ -317,6 +309,9 @@ object SimulationActor {
     * @group coordinator
     */  
   case object AckWait
+
+// TODO document
+  case class AckTasks(tasks: Seq[UUID])
 }
 
 /**
@@ -357,7 +352,7 @@ class TaskSimulatorActor(
       interrupt,
       priority)
     val future = task(generator, resources: _*)
-    ready(Seq.empty[UUID])
+    ready()
     future
   }
 }
