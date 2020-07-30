@@ -87,12 +87,12 @@ trait SimulatedProcess {
     result: (Task, Long) => T,
     resources: String*
   )(implicit executionContext: ExecutionContext): Future[T] = {
-    (simulationActor ? SimulationActor.AddTask(id, gen, resources))(Timeout(1, TimeUnit.DAYS)).
+    (simulationActor ? Simulation.AddTaskWithId(id, gen, resources))(Timeout(1, TimeUnit.DAYS)).
       mapTo[(Task,Long)].
       map { case (task, time) => result(task,time) }
   }
 
   def simWait() {
-    (simulationActor ? SimulationActor.Wait)(Timeout(1, TimeUnit.DAYS))
+    (simulationActor ? Simulation.Wait)(Timeout(1, TimeUnit.DAYS))
   }
 }

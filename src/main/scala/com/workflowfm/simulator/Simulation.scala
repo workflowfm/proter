@@ -29,19 +29,19 @@ import java.util.UUID
   *      [[requestWait()* requestWait()]] and [[ready]].
   *   1. ```Actor Interface:``` The simulation logic can be distributed to other actors, typically
   *      [[SimulatedProcess]]es. These
-  *      can interact with `SimulationActor` using the [[SimulationActor.AddTask]],
-  *      [[SimulationActor.RequestWait]] and [[SimulationActor.Ready]] messages.
+  *      can interact with `Simulation` using the [[Simulation.AddTask]],
+  *      [[Simulation.RequestWait]] and [[Simulation.Ready]] messages.
   * 
   * = Interaction Flow =
   * The interaction flow with the [[Coordinator]] is expected as follows:
-  *   1. Receiving a [[SimulationActor.Start]] message starts the simulation. This is confirmed 
+  *   1. Receiving a [[Simulation.Start]] message starts the simulation. This is confirmed 
   *      via a [[Coordinator.SimStarted]] response.
-  *   1. The simulation logic starts executing via [[SimulationActor.run]] and produces some 
+  *   1. The simulation logic starts executing via [[Simulation.run]] and produces some 
   *      simulation ``tasks``.
   *   1. When the simulation logic finishes producing tasks, it is ``ready``. Sending a 
   *      [[Coordinator.AddTasks]] message informs the [[Coordinator]] about any new
   *      tasks and that the simulation is ready to proceed.
-  *   1. Eventually, one of the tasks completes and we receive a [[SimulationActor.TaskCompleted]]
+  *   1. Eventually, one of the tasks completes and we receive a [[Simulation.TaskCompleted]]
   *      message. The simulation logic resumes execution.
   *   1. The [[Coordinator]] is now waiting for either new tasks ([[Coordinator.AddTasks]]) or
   *      the simulation to end ([[Coordinator.SimDone]]):
@@ -49,7 +49,7 @@ import java.util.UUID
   *      a. If the simulation logic completes, the [[Coordinator.SimDone]] message is sent
   *         automatically.
   *   1. The simulation may also react to things happening to other simulations. It can send a
-  *      request to ``wait``. The [[Coordinator]] will then wait for the [[SimulationActor]] to 
+  *      request to ``wait``. The [[Coordinator]] will then wait for the [[Simulation]] to 
   *      send new tasks or to complete, as if a task just completed. This needs to happen while 
   *      the [[Coordinator]] is still waiting for the other simulation(s) we are reacting to.
   * 
@@ -163,16 +163,13 @@ abstract class Simulation (
     * In other words, the [[Coordinator]] will expect either a `AddTasks` (via [[ready]]) 
     * or `SimDone` (via the [[run]] `Future` completing) before it continues.
     * 
-    * @note Uses the Akka `ask` pattern, so assumes no other interaction with the 
-    *       [[Coordinator]] during this.
-    * 
     * @note We assume the [[Coordinator]] is already waiting for another simulation when the
     *       request is made. Otherwise virtual time may progress unexpectedly and cause 
     *       unpredictable behaviour depending on the timing of the [[Coordinator]] messages.
     *
     * @group api
     * 
-    * @return A `Future` of the acknowledgement message [[SimulationActor.AckWait]]
+    * @return A `Future` of the acknowledgement message [[Simulation.AckWait]]
     */
   def simWait(): Future[Any] = {
     (coordinator ? Coordinator.WaitFor(self))(Timeout(1, TimeUnit.DAYS))
@@ -188,20 +185,20 @@ abstract class Simulation (
     * @return The [[Receive]] behaviour for the simulation interface.
     */
   def simulationReceive: Receive = {
-    case SimulationActor.Start => start()
-    case SimulationActor.TaskCompleted(task, time) => complete(task, time)
+    case Simulation.Start => start()
+    case Simulation.TaskCompleted(task, time) => complete(task, time)
   }
 
   def receive = simulationReceive
 }
 
 /**
-  * Defines the messages a [[SimulationActor]] can receive by default.
+  * Defines the messages a [[Simulation]] can receive by default.
   * 
   * @groupname coordinator Sent by Coordinator
   * @groupname process Sent by SimulatedProcess
   */
-object SimulationActor {
+object Simulation {
   /**
     * Instructs the start of simulation logic execution.
     * 
@@ -209,27 +206,30 @@ object SimulationActor {
     */
   case object Start
   /**
-    * Triggers [[SimulationActor.ready]].
+    * Triggers [[Simulation.ready]].
     *
-    * @see [[SimulationActor.ready]]
+    * @see [[Simulation.ready]]
     * @group process
     */
   case object Ready
   /**
     * Produces a new [[TaskGenerator]] for simulation.
     * 
-    * @see [[SimulationActor.task(i* task(id, t, resources)]]
+    * @see [[Simulation.task(i* task(id, t, resources)]]
     * @group process
     *
     * @param id The [[Task]] ID to be used.
     * @param t The [[TaskGenerator]] to generate the [[Task]].
     * @param resources The names of the [[TaskResource]]s the [[Task]] will require.
     */
-  case class AddTask(id: UUID, t: TaskGenerator, resources: Seq[String])
+  case class AddTaskWithId(id: UUID, t: TaskGenerator, resources: Seq[String])
+
+  case class AddTask(t: TaskGenerator, resources: Seq[String])
+
   /**
     * Informs a [[Task]] has completed
     *
-    * @see [[SimulationActor.complete]]
+    * @see [[Simulation.complete]]
     * @group process
     * 
     * @param task The completed [[Task]].
@@ -237,9 +237,9 @@ object SimulationActor {
     */  
   case class TaskCompleted(task: Task, time: Long)
   /**
-    * Tells the [[SimulationActor]] to request that [[Coordinator]] waits.
+    * Tells the [[Simulation]] to request that [[Coordinator]] waits.
     *
-    * @see [[SimulationActor.requestWait(a* requestWait(ActorRef)]]
+    * @see [[Simulation.requestWait(a* requestWait(ActorRef)]]
     * @group process
     */  
   case object Wait
@@ -432,12 +432,13 @@ abstract class AsyncSimulation (
     * @return The [[Receive]] behaviour for the simulation interface.
     */
   override def simulationReceive: Receive = {
-    case SimulationActor.Start => start()
-    case SimulationActor.Ready => ready()
-    case SimulationActor.AckTasks(tasks) => ack(tasks)
-    case SimulationActor.TaskCompleted(task, time) => complete(task, time)
-    case SimulationActor.AddTask(id, t, r) => task(id, t, actorCallback(sender), r)
-    case SimulationActor.Wait => coordinator.forward(Coordinator.WaitFor(self))
+    case Simulation.Start => start()
+    case Simulation.Ready => ready()
+    case Simulation.AckTasks(tasks) => ack(tasks)
+    case Simulation.TaskCompleted(task, time) => complete(task, time)
+    case Simulation.AddTaskWithId(id, t, r) => task(id, t, actorCallback(sender), r)
+    case Simulation.AddTask(t, r) => task(t, actorCallback(sender), r: _*)
+    case Simulation.Wait => coordinator.forward(Coordinator.WaitFor(self))
   }
 }
 
