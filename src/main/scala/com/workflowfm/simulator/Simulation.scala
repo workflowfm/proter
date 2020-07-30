@@ -60,10 +60,10 @@ import java.util.UUID
   * @param coordinator A reference to the [[Coordinator]] actor running the simulation.
   * @param executionContext
   */
-abstract class SimulationActor (
-  val name: String,
-  val coordinator: ActorRef)
-  (implicit executionContext: ExecutionContext)
+abstract class Simulation (
+  name: String,
+  coordinator: ActorRef
+)(implicit executionContext: ExecutionContext)
     extends Actor {
 
   /**
@@ -74,13 +74,7 @@ abstract class SimulationActor (
     */
   def run(): Future[Any]
 
-  /**
-    * A map of [[Task]] IDs that have been sent to the [[Coordinator]] and the `Promise`s that
-    * need to be fulfilled when the tasks complete.
-    * 
-    * @group internal
-    */
-  private val tasks: Map[UUID,Promise[(Task,Long)]] = Map()
+  def complete(task: Task, time: Long): Unit
 
   /**
     * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation.
@@ -99,9 +93,9 @@ abstract class SimulationActor (
     * @return A `Future` that completes when the generated [[Task]] has completed, 
     *         containing the [[Task]] and its completion time.
     */
-  def task(t: TaskGenerator, resources: String*): Future[(Task,Long)] = {
+  def task(t: TaskGenerator, resources: String*): Unit = {
     val id = java.util.UUID.randomUUID
-    task(id, t, None, resources)
+    task(id, t, resources)
   }
 
   /**
@@ -125,29 +119,8 @@ abstract class SimulationActor (
     * @return A `Future` that completes when the generated [[Task]] has completed, 
     *         containing the [[Task]] and its completion time.
     */
-  protected def task(id: UUID, t: TaskGenerator, caller: Option[ActorRef], resources: Seq[String]): Future[(Task,Long)] = {
-    val p = Promise[(Task,Long)]()
-    tasks += id -> p
+  protected def task(id: UUID, t: TaskGenerator, resources: Seq[String]): Unit = {
     coordinator ! Coordinator.AddTask(id, t, resources)
-    caller match {
-      case None => p.future
-      case Some(actor) => p.future pipeTo actor
-    }
-  }
-
-  /**
-    * Manages a [[Task]] whose simulation has completed.
-    * 
-    * Fulfils the corresponding `Promise` in the `tasks` map and then removes the entry.
-    * 
-    * @group internal
-    *
-    * @param task The [[Task]] that completed.
-    * @param time The timestamp of its completion.
-    */
-  protected def complete(task: Task, time: Long) = {
-    tasks.get(task.id).map (_.success((task,time)))
-    tasks -= task.id
   }
 
   /**
@@ -201,37 +174,8 @@ abstract class SimulationActor (
     * 
     * @return A `Future` of the acknowledgement message [[SimulationActor.AckWait]]
     */
-  def requestWait(): Future[Any] = {
+  def simWait(): Future[Any] = {
     (coordinator ? Coordinator.WaitFor(self))(Timeout(1, TimeUnit.DAYS))
-  }
-
-  /**
-    * Requests that the [[Coordinator]] waits for this simulation before it continues, and 
-    * forwards the acknowledgement.
-    * 
-    * Same as [[requestWait():scala\.concurrent\.Future[Any]* requestWait()]], 
-    * but pipes the [[SimulationActor.AckWait]] response
-    * to another actor.
-    * 
-    * The simulation needs to either register more tasks and become ``ready`` or finish.
-    * 
-    * In other words, the [[Coordinator]] will expect either a `AddTasks` (via [[ready]]) 
-    * or `SimDone` (via the [[run]] `Future` completing) before it continues.
-    * 
-    * @note Uses the Akka `ask` pattern, so assumes no other interaction with the 
-    *       [[Coordinator]] during this.
-    * 
-    * @note We assume the [[Coordinator]] is already waiting for another simulation when the
-    *       request is made. Otherwise virtual time may progress unexpectedly and cause 
-    *       unpredictable behaviour depending on the timing of the [[Coordinator]] messages.
-    *
-    * @see [[requestWait():scala\.concurrent\.Future[Any]* requestWait()]]
-    * @group api
-    * 
-    * @return A `Future` of the acknowledgement message [[SimulationActor.AckWait]]
-    */
-  def requestWait(ack: ActorRef): Future[Any] = {
-    requestWait() pipeTo ack
   }
 
   /**
@@ -243,16 +187,12 @@ abstract class SimulationActor (
     *
     * @return The [[Receive]] behaviour for the simulation interface.
     */
-  def simulationActorReceive: Receive = {
+  def simulationReceive: Receive = {
     case SimulationActor.Start => start()
-    case SimulationActor.Ready => ready()
-    case SimulationActor.AckTasks(tasks) => ack(tasks)
     case SimulationActor.TaskCompleted(task, time) => complete(task, time)
-    case SimulationActor.AddTask(id, t, r) => task(id, t, Some(sender), r)
-    case SimulationActor.RequestWait => requestWait(sender())
   }
 
-  def receive = simulationActorReceive
+  def receive = simulationReceive
 }
 
 /**
@@ -302,7 +242,7 @@ object SimulationActor {
     * @see [[SimulationActor.requestWait(a* requestWait(ActorRef)]]
     * @group process
     */  
-  case object RequestWait
+  case object Wait
   /**
     * Acknowledges that the [[Coordinator]] is waiting as requested.
     *
@@ -315,7 +255,7 @@ object SimulationActor {
 }
 
 /**
-  * A [[SimulationActor]] that simulates a single [[Task]].
+  * A [[Simulation]] that simulates a single [[Task]].
   *
   * @param name The simulation name.
   * @param coordinator The [[Coordinator]].
@@ -326,7 +266,7 @@ object SimulationActor {
   * @param priority The explicit priority of the [[Task]].
   * @param executionContext
   */
-class TaskSimulatorActor(
+class SingleTaskSimulation(
   name: String,
   coordinator: ActorRef,
   resources: Seq[String],
@@ -335,7 +275,10 @@ class TaskSimulatorActor(
   interrupt: Int=(-1),
   priority: Task.Priority=Task.Medium
 )(implicit executionContext: ExecutionContext)
-    extends SimulationActor(name,coordinator) {
+    extends Simulation(name, coordinator)(executionContext) {
+
+  private val promise = Promise[(Task, Long)]()
+
   /**
     * @inheritdoc
     * 
@@ -343,7 +286,7 @@ class TaskSimulatorActor(
     *
     * @return
     */
-  def run() = {
+  override def run() = if (promise.isCompleted) promise.future else {
     val generator = TaskGenerator(
       name + "Task",
       name,
@@ -351,13 +294,15 @@ class TaskSimulatorActor(
       cost,
       interrupt,
       priority)
-    val future = task(generator, resources: _*)
+    task(generator, resources: _*)
     ready()
-    future
+    promise.future
   }
+
+  override def complete(task: Task, time: Long) = promise.success((task, time))
 }
 
-object TaskSimulatorActor {
+object SingleTaskSimulation {
   /**
     * Creates props of a [[TaskSimulatorActor]].
     *
@@ -381,7 +326,7 @@ object TaskSimulatorActor {
     priority: Task.Priority=Task.Medium
   )(implicit executionContext: ExecutionContext): Props =
     Props(
-      new TaskSimulatorActor(
+      new SingleTaskSimulation(
         name,
         coordinator,
         resources,
@@ -392,3 +337,123 @@ object TaskSimulatorActor {
       )
     )
 }
+
+
+abstract class AsyncSimulation (
+  name: String,
+  coordinator: ActorRef
+)(implicit executionContext: ExecutionContext) 
+    extends Simulation(name, coordinator)(executionContext) {
+
+  type Callback = (Task,Long) => Unit
+
+  /**
+    * A map of [[Task]] IDs that have been sent to the [[Coordinator]] and the `Promise`s that
+    * need to be fulfilled when the tasks complete.
+    * 
+    * @group internal
+    */
+  private val tasks: Map[UUID, Callback] = Map()
+
+  /**
+    * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation.
+    * 
+    * The returned `Future` will complete when the [[Task]] simulation is completed. The simulation
+    * logic must react to this by either registering more tasks and becoming ``ready`` or finishing.
+    * 
+    * In other words, after the `Future` completes, the [[Coordinator]] will expect either a 
+    * `AddTasks` (via [[ready]]) or `SimDone` (via the [[run]] `Future` completing) before 
+    * it continues.
+    * 
+    * @group api
+    *
+    * @param t The [[TaskGenerator]] to send.
+    * @param resources The names of the [[TaskResource]]s that need to be used for the [[Task]].
+    * @return A `Future` that completes when the generated [[Task]] has completed, 
+    *         containing the [[Task]] and its completion time.
+    */
+  def task(t: TaskGenerator, callback: Callback, resources: String*): Unit = {
+    val id = java.util.UUID.randomUUID
+    task(id, t, callback, resources)
+  }
+
+  /**
+    * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation
+    * with a pre-determined ID.
+    * 
+    * The returned `Future` will complete when the [[Task]] simulation is completed. The simulation
+    * logic must react to this by either registering more tasks and becoming ``ready`` or finishing.
+    * 
+    * In other words, after the `Future` completes, the [[Coordinator]] will expect either a 
+    * `AddTasks` (via [[ready]]) or `SimDone` (via the [[run]] `Future` completing) before 
+    * it continues.
+    * 
+    * @group api
+    *
+    * @param id The pre-determined task ID.
+    * @param t The [[TaskGenerator]] to send.
+    * @param caller Some reference to an actor that generated the task in order to notify them when
+    *               the task is completed, or `None` if no actor needs to be notified.
+    * @param resources The names of the [[TaskResource]]s that need to be used for the [[Task]].
+    * @return A `Future` that completes when the generated [[Task]] has completed, 
+    *         containing the [[Task]] and its completion time.
+    */
+  protected def task(id: UUID, t: TaskGenerator, callback: Callback, resources: Seq[String]): Unit = {
+    tasks += id -> callback
+    super.task(id, t, resources)
+  }
+
+  /**
+    * Manages a [[Task]] whose simulation has completed.
+    * 
+    * Fulfils the corresponding `Promise` in the `tasks` map and then removes the entry.
+    * 
+    * @group internal
+    *
+    * @param task The [[Task]] that completed.
+    * @param time The timestamp of its completion.
+    */
+  override def complete(task: Task, time: Long) = {
+    tasks.get(task.id).map (_(task,time))
+    tasks -= task.id
+  }
+
+  def actorCallback(actor: ActorRef): Callback = (task, time) => {
+    actor ! (task,time)
+  }
+
+  /**
+    * Defines the actor receive behaviour for the simulation interface.
+    * 
+    * This allows subclasses to extend [[receive]] with additional behaviour.
+    * 
+    * @group api
+    *
+    * @return The [[Receive]] behaviour for the simulation interface.
+    */
+  override def simulationReceive: Receive = {
+    case SimulationActor.Start => start()
+    case SimulationActor.Ready => ready()
+    case SimulationActor.AckTasks(tasks) => ack(tasks)
+    case SimulationActor.TaskCompleted(task, time) => complete(task, time)
+    case SimulationActor.AddTask(id, t, r) => task(id, t, actorCallback(sender), r)
+    case SimulationActor.Wait => coordinator.forward(Coordinator.WaitFor(self))
+  }
+}
+
+
+trait FutureTasks { self: AsyncSimulation =>
+
+  def futureTask(t: TaskGenerator, resources: String*): Future[(Task,Long)] = {
+    val id = java.util.UUID.randomUUID
+    futureTask(id, t, resources)
+  }
+
+  def futureTask(id: UUID, t: TaskGenerator, resources: Seq[String]): Future[(Task,Long)] = {
+    val p = Promise[(Task,Long)]()
+    def call: Callback = (task, time) => p.success(task,time)
+    task(id, t, call, resources)
+    p.future
+  }
+}
+
