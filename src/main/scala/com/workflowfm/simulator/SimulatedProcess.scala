@@ -91,4 +91,8 @@ trait SimulatedProcess {
       mapTo[(Task,Long)].
       map { case (task, time) => result(task,time) }
   }
+
+  def simWait() {
+    (simulationActor ? SimulationActor.Wait)(Timeout(1, TimeUnit.DAYS))
+  }
 }
