@@ -9,6 +9,7 @@ import scala.collection.mutable.{ Map, Queue }
 import scala.concurrent.{ ExecutionContext, Future, Promise }
 import java.util.UUID
 
+
 /**
   * An actor managing the interaction between a simulation and a [[Coordinator]].
   * 
