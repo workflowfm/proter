@@ -126,7 +126,7 @@ class Task (
   
   override def toString = {
     val res = resources.mkString(",")
-    s"Task($name,$simulation,$created,[$res],$duration,$priority)"
+    s"Task($id,$name,$simulation,$actor,c$created,[$res],d$duration($estimatedDuration),c$initialCost,i$interrupt,$priority)"
   }
 }
 
