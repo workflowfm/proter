@@ -10,6 +10,10 @@ resolvers += Resolver.sbtPluginRepo("releases")
 lazy val pew = "com.workflowfm" %% "pew" % "1.4.0-SNAPSHOT"
 lazy val sim = "com.workflowfm" %% "wfm-simulator" % "0.3-SNAPSHOT"
 lazy val pewsim = "com.workflowfm" %% "pew-simulator" % "1.4.0-SNAPSHOT"
+/* Only invoked when you do `doc` in SBT */
+scalacOptions in (Compile, doc) += "-groups"
+scalacOptions in (Compile, doc) += "-diagrams"
+scalacOptions in (Compile, doc) += "-diagrams-debug"
 
 lazy val root = (project in file("."))
   .settings(
