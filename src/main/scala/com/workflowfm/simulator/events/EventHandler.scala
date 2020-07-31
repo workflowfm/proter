@@ -4,7 +4,7 @@ import akka.actor.{ ActorRef, ActorSystem }
 import java.text.SimpleDateFormat
 import scala.collection.mutable.HashSet
 import scala.concurrent.Promise
-import uk.ac.ed.inf.ppapapan.subakka.Subscriber
+import uk.ac.ed.inf.ppapapan.subakka.{ Subscriber, SubscriptionSwitch }
 
 /**
   * A [[uk.ac.ed.inf.ppapapan.subakka.Subscriber]] for [[Coordinator]] [[Event]]s.
@@ -101,6 +101,29 @@ class PromiseHandler[R](handler: ResultHandler[R]) extends ResultHandler[R] {
 }
 object PromiseHandler {
   def of[R](handler: ResultHandler[R]): PromiseHandler[R] = new PromiseHandler[R](handler)
+}
+
+/**
+  * Listens for the end of a named simulation and handles its result.
+  *
+  * @param name The name of the [[Simulation]] to listen for.
+  * @param callback A function to handle the results of the simulation when it completes.
+  */
+class SimulationResultHandler(name: String, callback: String => Unit = { _ => Unit }) extends ResultHandler[Option[String]] {
+  var switch: Option[SubscriptionSwitch] = None
+  var simResult: Option[String] = None
+
+  override def onInit(publisher: ActorRef, s: SubscriptionSwitch): Unit = switch = Some(s)
+  override def onEvent(evt: Event) = evt match {
+    case ESimEnd(_, _, n, r) if n == name => {
+      switch.map(_.stop())
+      simResult = Some(r)
+      callback(r)
+    }
+    case _ => Unit
+  }
+
+  override def result = simResult
 }
 
 /**
