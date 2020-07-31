@@ -279,14 +279,13 @@ class Coordinator(
 
 
 /**
-  * Wrapper of [[startSimulation]] that also publishes a [[com.workflowfm.simulator.events.ESimStart]].
+  * @todo fix this documentation
   *
   * @group simulations
   * @param name The name of the simulation.
-  * @param simActor The [[akka.actor.ActorRef]] of the corresponding [[Simulation]].
   */
-  protected def startSimulation(name: String, simActor: ActorRef): Unit = {
-    publish(ESimStart(self, time,name))
+  protected def simulationStarted(name: String): Unit = {
+    publish(ESimStart(self, time, name))
     simulations += name
   }
 
@@ -550,7 +549,7 @@ class Coordinator(
     case Coordinator.SimReady => ackAll(sender)
 
     case Coordinator.WaitFor(actor) => waitFor(actor, sender())
-    case Coordinator.SimStarted(name) => startSimulation(name, sender)
+    case Coordinator.SimStarted(name) => simulationStarted(name)
     case Coordinator.SimDone(name, result) => result match {
       case Success(res) => {
         stopSimulation(name, res.toString, sender)
