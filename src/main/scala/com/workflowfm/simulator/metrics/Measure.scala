@@ -14,18 +14,18 @@ import java.util.UUID
   * @param cost the cost associated with the [[Task]]
   * @param resources the list of names of the [[TaskResource]]s this [[Task]] used
   */
-case class TaskMetrics (
-  id: UUID,
-  task: String,
-  simulation: String,
-  created: Long,
-  started: Option[Long],
-  duration: Long,
-  cost: Long,
-  resources: Seq[String]
+case class TaskMetrics(
+    id: UUID,
+    task: String,
+    simulation: String,
+    created: Long,
+    started: Option[Long],
+    duration: Long,
+    cost: Long,
+    resources: Seq[String]
 ) {
   /** Sets the starting time for the [[Task]]. */
-  def start(st: Long) = copy(started=Some(st))
+  def start(st: Long) = copy(started = Some(st))
 
   /** Calculates the task delay as the difference of the creation and starting times. */
   def delay = started match {
@@ -39,11 +39,21 @@ case class TaskMetrics (
   /** Returns the time of completion (if any). */
   def finished = started.map { s => s + duration }
 }
-object TaskMetrics {
-  /** Generates [[TaskMetrics]] from a given [[Task]] assuming it has not started yet. */
-  def apply(task: Task): TaskMetrics = TaskMetrics(task.id, task.name, task.simulation, task.created, None, task.duration, task.cost, task.resources)
-}
 
+object TaskMetrics {
+
+  /** Generates [[TaskMetrics]] from a given [[Task]] assuming it has not started yet. */
+  def apply(task: Task): TaskMetrics = TaskMetrics(
+    task.id,
+    task.name,
+    task.simulation,
+    task.created,
+    None,
+    task.duration,
+    task.cost,
+    task.resources
+  )
+}
 
 /** Metrics for a simulation that has already started.
   *
@@ -53,16 +63,16 @@ object TaskMetrics {
   * @param delay the sum of all delays for all involved [[Task]]s
   * @param tasks the number of [[Task]]s associated with the simulation so far
   * @param cost the total cost associated with the simulation so far
-  * @param result a `String` representation of the returned result from the simulation, or [[scala.None]] if it still running. In case of failure, the field is populated with the localized message of the exception thrown 
+  * @param result a `String` representation of the returned result from the simulation, or [[scala.None]] if it still running. In case of failure, the field is populated with the localized message of the exception thrown
   */
 case class SimulationMetrics(
-  name: String,
-  started: Long,
-  duration: Long,
-  delay: Long,
-  tasks: Int,
-  cost: Long,
-  result: Option[String]
+    name: String,
+    started: Long,
+    duration: Long,
+    delay: Long,
+    tasks: Int,
+    cost: Long,
+    result: Option[String]
 ) {
   /** Adds some time to the total duration. */
   def addDuration(d: Long) = copy(duration = duration + d)
@@ -76,13 +86,15 @@ case class SimulationMetrics(
     * @param res the result of the simulation or localized message of the exception in case of failure
     * @param time the virtual timestamp when the simulation finished
     */
-  def done(res: String, time: Long) = copy( result = Some(res), duration = duration + time - started )
-}
-object SimulationMetrics {
-  /** Initialize metrics for a named simulation starting at the given virtual time. */
-  def apply(name: String, t: Long): SimulationMetrics = SimulationMetrics(name,t,0L,0L,0,0L,None)
+  def done(res: String, time: Long) = copy(result = Some(res), duration = duration + time - started)
 }
 
+object SimulationMetrics {
+
+  /** Initialize metrics for a named simulation starting at the given virtual time. */
+  def apply(name: String, t: Long): SimulationMetrics =
+    SimulationMetrics(name, t, 0L, 0L, 0, 0L, None)
+}
 
 /** Metrics for at [[TaskResource]].
   *
@@ -92,17 +104,20 @@ object SimulationMetrics {
   * @param tasks the number of different [[Task]]s that have been attached to this [[TaskResource]]
   * @param cost the total cost associated with this [[TaskResource]]
   */
-case class ResourceMetrics (
-  name: String,
-  costPerTick: Int,
-  idleUpdate: Long,
-  busyTime: Long,
-  idleTime: Long,
-  tasks: Int,
-  cost: Long
+case class ResourceMetrics(
+    name: String,
+    costPerTick: Int,
+    idleUpdate: Long,
+    busyTime: Long,
+    idleTime: Long,
+    tasks: Int,
+    cost: Long
 ) {
+
   /** Adds some idle time to the total. */
-  def idle(t: Long) = if (idleUpdate < t) copy(idleTime = idleTime + t - idleUpdate, idleUpdate = t) else this
+  def idle(t: Long) =
+    if (idleUpdate < t) copy(idleTime = idleTime + t - idleUpdate, idleUpdate = t) else this
+
   /** Updates the metrics given a new [[Task]] has been attached to the [[TaskResource]]. */
   def task(t: Long, task: Task) = idle(t).copy(
     tasks = tasks + 1,
@@ -111,8 +126,10 @@ case class ResourceMetrics (
     idleUpdate = t + task.duration
   )
 }
-object ResourceMetrics {
-  /** Initialize metrics given the name of a [[TaskResource]]. */
-  def apply(name: String, costPerTick: Int): ResourceMetrics = ResourceMetrics(name,costPerTick,0L,0L,0L,0,0L)
-}
 
+object ResourceMetrics {
+
+  /** Initialize metrics given the name of a [[TaskResource]]. */
+  def apply(name: String, costPerTick: Int): ResourceMetrics =
+    ResourceMetrics(name, costPerTick, 0L, 0L, 0L, 0, 0L)
+}
