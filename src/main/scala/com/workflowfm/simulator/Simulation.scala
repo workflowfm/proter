@@ -353,7 +353,7 @@ abstract class AsyncSimulation (
     * 
     * @group internal
     */
-  private val tasks: Map[UUID, Callback] = Map()
+  protected val tasks: Map[UUID, Callback] = Map()
 
   /**
     * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation.
