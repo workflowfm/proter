@@ -68,7 +68,7 @@ object FlowsMain {
 
         val flow = Then( And( Then(task1,task2),Then(task3,task4) ), And( Then(task5,task6),Then(task7,task8)) )
         val flow2 = ( (task1>task2) + (task3>task4) ) > ( (task5>task6) + (task7>task8) )
-        val flow3 = task1 + task2
+        val flow3 = All(task1,task2,task3,task4,task5,task6,task7,task8)
 
         val generator = new ConstantGenerator[Long](3L)
         //coordinator ! Coordinator.AddSim(0L,system.actorOf(FlowSimulationActor.props("sim1",coordinator,flow4),"sim1"))

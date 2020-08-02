@@ -1,7 +1,6 @@
 package com.workflowfm.simulator.flows
 
 import com.workflowfm.simulator._
-//import com.workflowfm.simulator.flows._
 import scala.concurrent.{ ExecutionContext, Future, Promise }
 import akka.actor.{ Actor, ActorRef, Props }
 import java.util.UUID
@@ -13,12 +12,13 @@ sealed trait Flow {
     def >(f:Flow) = Then(this,f)
     //def |(f:Flow) = Or(this,f)
 }
-//case object NoTask extends Flow
+
+case class NoTask() extends Flow { val id: UUID = java.util.UUID.randomUUID }
 case class FlowTask(generator:TaskGenerator, resources:Seq[String]) extends Flow { val id: UUID = java.util.UUID.randomUUID }
 //case class Just(flowTask:FlowTask) extends Flow
 case class Then(left:Flow,right:Flow) extends Flow { val id: UUID = java.util.UUID.randomUUID }
 case class And(left:Flow,right:Flow) extends Flow { val id: UUID = java.util.UUID.randomUUID }
-//case class All(elements:Flow*) extends Flow
+case class All(elements:Flow*) extends Flow { val id: UUID = java.util.UUID.randomUUID }
 //case class Or(left:Flow,right:Flow) extends Flow
 
 
@@ -52,11 +52,10 @@ class FlowSimulationActor (
 
     private def execute(flow:Flow) {
         flow match {
-            //case object NoTask extends Flow
+            case f:NoTask => complete(f.id)
 
-            case FlowTask(generator:TaskGenerator, resources:Seq[String]) => {}
+            case FlowTask(generator:TaskGenerator, resources:Seq[String]) => {} //this is here for the sake of case completeness, should not be called
 
-            //case class Just(flowTask:FlowTask) extends Flow
 
             case f:Then => {
                 val rightCallback: Callback = (_,_) => complete(f.id)
@@ -70,7 +69,9 @@ class FlowSimulationActor (
                 runFlow(f.left,leftCallback)
                 runFlow(f.right,rightCallback)
             }
-            //case class All(elements:Flow*) extends Flow
+
+           case f @ All(elem@_*) => runFlow( (elem.fold(NoTask()) { (l,r)=>And(l,r) }), (_,_)=>complete(f.id) )
+
             //case class Or(left:Flow,right:Flow) extends Flow
         }
     }
