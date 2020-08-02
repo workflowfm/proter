@@ -176,9 +176,8 @@ class FlowsTest extends FlowsTester {
             testMetrics.get("task3 (sim1)").get.get should be (6)
             testMetrics.get("task4 (sim1)").get.get should be (14)
             testMetrics.get("task5 (sim1)").get.get should be (22)
-            //TODO this only works SOMETIMES- investigate
         }
-/*
+
         "execute OR followed by a THEN" in {
             val r1 = new TaskResource("r1",0)
             val r2 = new TaskResource("r2",0)
@@ -214,8 +213,6 @@ class FlowsTest extends FlowsTester {
             testMetrics.get("task4 (sim1)").get.get should be (11)
             testMetrics.get("task5 (sim1)").get.get should be (19)
         }
-
-        */
 
         "execute multpile tasks of same duration" in {
             val r1 = new TaskResource("r1",0)

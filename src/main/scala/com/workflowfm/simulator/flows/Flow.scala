@@ -10,7 +10,7 @@ sealed trait Flow {
     val id: UUID
     def +(f:Flow) = And(this,f)
     def >(f:Flow) = Then(this,f)
-    //def |(f:Flow) = Or(this,f)
+    def |(f:Flow) = Or(this,f)
 }
 
 case class NoTask() extends Flow { val id: UUID = java.util.UUID.randomUUID }
@@ -19,7 +19,7 @@ case class FlowTask(generator:TaskGenerator, resources:Seq[String]) extends Flow
 case class Then(left:Flow,right:Flow) extends Flow { val id: UUID = java.util.UUID.randomUUID }
 case class And(left:Flow,right:Flow) extends Flow { val id: UUID = java.util.UUID.randomUUID }
 case class All(elements:Flow*) extends Flow { val id: UUID = java.util.UUID.randomUUID }
-//case class Or(left:Flow,right:Flow) extends Flow
+case class Or(left:Flow,right:Flow) extends Flow { val id: UUID = java.util.UUID.randomUUID }
 
 
 class FlowSimulationActor (
@@ -56,7 +56,6 @@ class FlowSimulationActor (
 
             case FlowTask(generator:TaskGenerator, resources:Seq[String]) => {} //this is here for the sake of case completeness, should not be called
 
-
             case f:Then => {
                 val rightCallback: Callback = (_,_) => complete(f.id)
                 val leftCallback: Callback = (_,_) => runFlow(f.right, rightCallback)
@@ -70,9 +69,14 @@ class FlowSimulationActor (
                 runFlow(f.right,rightCallback)
             }
 
-           case f @ All(elem@_*) => runFlow( (elem.fold(NoTask()) { (l,r)=>And(l,r) }), (_,_)=>complete(f.id) )
+            case f @ All(elem@_*) => runFlow( (elem.fold(NoTask()) { (l,r)=>And(l,r) }), (_,_)=>complete(f.id) )
 
-            //case class Or(left:Flow,right:Flow) extends Flow
+            case f:Or => {
+                val leftCallback: Callback = (_,_) => ( if (tasks.contains(f.right.id)) complete(f.id) )
+                val rightCallback: Callback = (_,_) => ( if (tasks.contains(f.left.id)) complete(f.id) )
+                runFlow(f.left,leftCallback)
+                runFlow(f.right,rightCallback)
+            }
         }
     }
 }
