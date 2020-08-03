@@ -342,9 +342,11 @@ class FlowsTester extends TestKit(ActorSystem("FlowsTest"))
         implicit val timeout = Timeout(2.seconds)
         val coordinator = system.actorOf(Coordinator.props(DefaultScheduler))
         val shutdownActor = Subscriber.actor(new ShutdownHandler())
-        Await.result(shutdownActor ? Subscriber.SubAndForgetTo(coordinator), 3.seconds)
         val smh = new SimMetricsHandler
-        smh.subAndForgetTo(coordinator)
+
+        Await.result( smh.subAndForgetTo(coordinator), 1.second )
+        Await.result(shutdownActor ? Subscriber.SubAndForgetTo(coordinator), 3.seconds)
+        
 
         coordinator ! Coordinator.AddResources(resources)
         coordinator ! Coordinator.AddSim(0L,system.actorOf(FlowSimulationActor.props(simName,coordinator,flow),simName))
