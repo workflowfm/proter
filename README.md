@@ -14,7 +14,6 @@ Define a `FlowSimulationActor` using the companion object by providing a flow wh
 
 A flow consists of tasks and opperators inspired by BPMN gateways. The currently supported opperators are:
 - `NoTask` for a 'blank' task which does nothing
-- `Just` for the special case where one might want a simulation consisting of a single task
 - `Then` for sequence
 - `And` for parallel
 - `All` for multiple parallel tasks
