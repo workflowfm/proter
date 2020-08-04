@@ -36,7 +36,7 @@ class CoordinatorTests
 
       coordinator ! Coordinator.AddSim(0L, self)
       coordinator ! Coordinator.Start
-      expectMsg(SimulationActor.Start)
+      expectMsg(Simulation.Start)
       coordinator ! Coordinator.SimStarted("Test")
       coordinator ! Coordinator.SimDone("Test", Success(Unit))
       expectNoMsg()
@@ -47,7 +47,7 @@ class CoordinatorTests
 
       coordinator ! Coordinator.AddSim(0L, self)
       coordinator ! Coordinator.Start
-      expectMsg(SimulationActor.Start)
+      expectMsg(Simulation.Start)
       coordinator ! Coordinator.SimStarted("Test")
       coordinator ! Coordinator.Ping
       expectMsgType[Coordinator.Time].time should be(0L)
@@ -59,7 +59,7 @@ class CoordinatorTests
 
       coordinator ! Coordinator.AddSim(0L, self)
       coordinator ! Coordinator.Start
-      expectMsg(SimulationActor.Start)
+      expectMsg(Simulation.Start)
       coordinator ! Coordinator.SimStarted("Test")
 
       val id = UUID.randomUUID()
@@ -68,7 +68,7 @@ class CoordinatorTests
       coordinator ! Coordinator.AddTasks(Seq((id, tg, Seq())))
       coordinator ! Coordinator.SimReady
 
-      val SimulationActor.TaskCompleted(task, time) = expectMsgType[SimulationActor.TaskCompleted]
+      val Simulation.TaskCompleted(task, time) = expectMsgType[Simulation.TaskCompleted]
       time should be(2L)
       task.compare(expected) should be(0)
       coordinator ! Coordinator.Ping
@@ -81,7 +81,7 @@ class CoordinatorTests
 
       coordinator ! Coordinator.AddSim(0L, self)
       coordinator ! Coordinator.Start
-      expectMsg(SimulationActor.Start)
+      expectMsg(Simulation.Start)
       coordinator ! Coordinator.SimStarted("Test")
 
       // Add task T1 0..2
@@ -92,7 +92,7 @@ class CoordinatorTests
       coordinator ! Coordinator.SimReady
 
       // T1 completes
-      val SimulationActor.TaskCompleted(task1, time1) = expectMsgType[SimulationActor.TaskCompleted]
+      val Simulation.TaskCompleted(task1, time1) = expectMsgType[Simulation.TaskCompleted]
       time1 should be(2L)
       task1.compare(expected1) should be(0)
 
@@ -104,7 +104,7 @@ class CoordinatorTests
       coordinator ! Coordinator.AckTasks(Seq(id1))
 
       // T2 completes
-      val SimulationActor.TaskCompleted(task2, time2) = expectMsgType[SimulationActor.TaskCompleted]
+      val Simulation.TaskCompleted(task2, time2) = expectMsgType[Simulation.TaskCompleted]
       time2 should be(5L)
       task2.compare(expected2) should be(0)
 
@@ -117,7 +117,7 @@ class CoordinatorTests
 
       coordinator ! Coordinator.AddSim(0L, self)
       coordinator ! Coordinator.Start
-      expectMsg(SimulationActor.Start)
+      expectMsg(Simulation.Start)
       coordinator ! Coordinator.SimStarted("Test")
 
       // T1 0..2
@@ -135,8 +135,8 @@ class CoordinatorTests
       coordinator ! Coordinator.SimReady
 
       // T1 and T2 complete
-      expectMsgType[SimulationActor.TaskCompleted]
-      expectMsgType[SimulationActor.TaskCompleted]
+      expectMsgType[Simulation.TaskCompleted]
+      expectMsgType[Simulation.TaskCompleted]
 
       coordinator ! Coordinator.Ping
       expectMsgType[Coordinator.Time].time should be(2L)
@@ -159,7 +159,7 @@ class CoordinatorTests
       coordinator ! Coordinator.AckTasks(Seq(id2))
 
       // T3 completes
-      val SimulationActor.TaskCompleted(task3, time3) = expectMsgType[SimulationActor.TaskCompleted]
+      val Simulation.TaskCompleted(task3, time3) = expectMsgType[Simulation.TaskCompleted]
       time3 should be(5L)
       task3.compare(expected3) should be(0)
 
@@ -177,7 +177,7 @@ class CoordinatorTests
       coordinator ! Coordinator.Start
 
       // Test1 starts
-      expectMsg(SimulationActor.Start)
+      expectMsg(Simulation.Start)
       coordinator ! Coordinator.SimStarted("Test1")
 
       // T1a 0..2
@@ -188,7 +188,7 @@ class CoordinatorTests
       coordinator ! Coordinator.SimReady
 
       // Test2 starts
-      probe.expectMsg(SimulationActor.Start)
+      probe.expectMsg(Simulation.Start)
       probe.reply(Coordinator.SimStarted("Test2"))
 
       // T2a 1..2
@@ -199,14 +199,14 @@ class CoordinatorTests
       probe.send(coordinator, Coordinator.SimReady)
 
       // T1a completes
-      val SimulationActor.TaskCompleted(task1a, time1a) =
-        expectMsgType[SimulationActor.TaskCompleted]
+      val Simulation.TaskCompleted(task1a, time1a) =
+        expectMsgType[Simulation.TaskCompleted]
       time1a should be(2L)
       task1a.compare(expected1a) should be(0)
 
       // T2a completes
-      val SimulationActor.TaskCompleted(task2a, time2a) =
-        probe.expectMsgType[SimulationActor.TaskCompleted]
+      val Simulation.TaskCompleted(task2a, time2a) =
+        probe.expectMsgType[Simulation.TaskCompleted]
       time2a should be(2L)
       task2a.compare(expected2a) should be(0)
 
@@ -225,7 +225,7 @@ class CoordinatorTests
       coordinator ! Coordinator.Start
 
       // Test1 starts
-      expectMsg(SimulationActor.Start)
+      expectMsg(Simulation.Start)
       coordinator ! Coordinator.SimStarted("Test1")
 
       // T1a 0..10
@@ -237,7 +237,7 @@ class CoordinatorTests
       coordinator ! Coordinator.SimReady
 
       // Test2 starts
-      probe.expectMsg(SimulationActor.Start)
+      probe.expectMsg(Simulation.Start)
       probe.reply(Coordinator.SimStarted("Test2"))
 
       // T2a 1..2
@@ -248,14 +248,14 @@ class CoordinatorTests
       probe.send(coordinator, Coordinator.SimReady)
 
       // T2a completes
-      val SimulationActor.TaskCompleted(task2a, time2a) =
-        probe.expectMsgType[SimulationActor.TaskCompleted]
+      val Simulation.TaskCompleted(task2a, time2a) =
+        probe.expectMsgType[Simulation.TaskCompleted]
       time2a should be(2L)
       task2a.compare(expected2a) should be(0)
 
       // Test1 requests wait
       coordinator ! Coordinator.WaitFor(self)
-      expectMsg(SimulationActor.AckWait)
+      expectMsg(Simulation.AckWait)
 
       // Test2 completes
       probe.send(coordinator, Coordinator.SimDone("Test2", Success(Unit)))
@@ -273,15 +273,15 @@ class CoordinatorTests
       coordinator ! Coordinator.SimReady
 
       // T1b completes
-      val SimulationActor.TaskCompleted(task1b, time1b) =
-        expectMsgType[SimulationActor.TaskCompleted]
+      val Simulation.TaskCompleted(task1b, time1b) =
+        expectMsgType[Simulation.TaskCompleted]
       time1b should be(3L)
       task1b.compare(expected1b) should be(0)
       coordinator ! Coordinator.AckTasks(Seq(id1b))
 
       // T1a completes
-      val SimulationActor.TaskCompleted(task1a, time1a) =
-        expectMsgType[SimulationActor.TaskCompleted]
+      val Simulation.TaskCompleted(task1a, time1a) =
+        expectMsgType[Simulation.TaskCompleted]
       time1a should be(10L)
       task1a.compare(expected1a) should be(0)
 
