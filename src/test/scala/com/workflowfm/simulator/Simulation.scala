@@ -35,8 +35,9 @@ class SimulationTests
             class DummySim(name: String, coordinator: ActorRef)
             (implicit executionContext: ExecutionContext) 
             extends Simulation(name,coordinator) {
-                override def run():Future[Any] = { Future.unit } //finish instantly
-                override def complete(task: Task, time: Long): Unit = { Unit } //does nothing
+                override def run():Future[Any] = Future.unit //finish instantly
+                override def complete(task: Task, time: Long): Unit = Unit //does nothing
+                override def completeActor(actor: ActorRef, time: Long): Unit = Unit
             }
 
             val sim = system.actorOf(Props(new DummySim("sim",self)))
@@ -114,6 +115,36 @@ class SimulationTests
             //expectMsg( Coordinator.AckTasks(Seq(id3)))
             val Coordinator.SimDone(name, future) = expectMsgType[ Coordinator.SimDone ]
             name should be ("sim")
+            expectNoMsg()
+
+        }
+
+        "innitiate child simulations" in {
+            class DummySim(name: String, coordinator: ActorRef)
+            (implicit executionContext: ExecutionContext) 
+            extends Simulation(name,coordinator) with ChildSims {
+                private val promise = Promise[Any]()
+                override def run():Future[Any] = { 
+                    val childSim = system.actorOf(SingleTaskSimulation.props("ChildSim",self,Seq("r1"),ConstantGenerator(2L)))
+                    sim(childSim)
+                    ready()
+
+                    promise.future
+                }
+                override def complete(task: Task, time: Long) = Unit //Does nothing
+                override def completeActor(actor: ActorRef, time: Long): Unit = promise.success(Unit)
+            }
+            
+            val sim = system.actorOf(Props(new DummySim("sim",self)))
+            
+            sim ! Simulation.Start
+            expectMsg( Coordinator.SimStarted("sim"))
+            val Coordinator.AddSimNow(actor,parent) = expectMsgType[ Coordinator.AddSimNow ]
+            parent should be (Some(sim))
+            expectMsg( Coordinator.SimReady )
+
+            sim ! Simulation.SimCompleted(actor,2L)
+            expectMsg( Coordinator.SimDone("sim",Success(Unit)))
             expectNoMsg()
 
         }

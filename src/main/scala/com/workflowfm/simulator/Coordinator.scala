@@ -72,6 +72,8 @@ class Coordinator(
     */
   val waiting: Map[ActorRef, List[UUID]] = Map[ActorRef, List[UUID]]()
 
+  val parents: Map[ActorRef, ActorRef] = Map[ActorRef, ActorRef]()
+
   /** Set of simulation names that are running, i.e. they have already started but not finished. */
   /**
     * Set of simulation names that are running.
@@ -240,9 +242,10 @@ class Coordinator(
     *          time.
     * @param actor The reference to the [[Simulation]] corresponding to the simulation.
     */
-  protected def addSimulation(t: Long, actor: ActorRef) = {
+  protected def addSimulation(t: Long, actor: ActorRef, parent: Option[ActorRef]=None) = {
     publish(ESimAdd(self, time, actor.toString(), t))
     if (t >= time) events += StartingSim(t, actor)
+    if (parent.isDefined) parents += actor -> parent.get
   }
 
   /**
@@ -303,6 +306,7 @@ class Coordinator(
   protected def stopSimulation(name: String, result: String, actor: ActorRef) = {
     simulations -= name
     waiting -= actor
+    parents.get(actor) map (x=> x ! Simulation.SimCompleted(actor,time))
     publish(ESimEnd(self, time, name, result))
     log.debug(s"[COORD:$time] Finished: [${actor.path.name}]")
     ready(actor)
@@ -543,9 +547,9 @@ class Coordinator(
     * @return The [[Receive]] behaviour.
     */
   def receiveBehaviour: Receive = {
-    case Coordinator.AddSim(t, s) => addSimulation(t, s)
+    case Coordinator.AddSim(t, s, p) => addSimulation(t, s, p)
     case Coordinator.AddSims(l) => addSimulations(l)
-    case Coordinator.AddSimNow(s) => addSimulation(time, s)
+    case Coordinator.AddSimNow(s,p) => addSimulation(time, s, p)
     case Coordinator.AddSimsNow(l) => addSimulations(l.map((time, _)))
 
     case Coordinator.AddResource(r) => addResource(r)
@@ -615,7 +619,7 @@ object Coordinator {
     * Message to add a simulation.
     * @group toplevel
     */
-  case class AddSim(t: Long, actor: ActorRef)
+  case class AddSim(t: Long, actor: ActorRef, parent: Option[ActorRef]=None)
   /**
     * Message to add a list of simulations.
     * @group toplevel
@@ -625,7 +629,7 @@ object Coordinator {
     * Message to add a simulation due to start right now.
     * @group toplevel
     */
-  case class AddSimNow(actor: ActorRef)
+  case class AddSimNow(actor: ActorRef, parent: Option[ActorRef]=None)
   /**
     * Message to add a list of simulations due to start right now.
     * @group toplevel

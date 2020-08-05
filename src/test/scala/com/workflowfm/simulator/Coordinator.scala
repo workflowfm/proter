@@ -288,6 +288,22 @@ class CoordinatorTests
       coordinator ! Coordinator.SimDone("Test1", Success(Unit))
     }
 
+    "interact correctly with a simulation creating child simulations" in {
+      val coordinator = system.actorOf(Coordinator.props(DefaultScheduler))
+      val childSim = system.actorOf(SingleTaskSimulation.props("ChildSim",coordinator,Seq("r1"),ConstantGenerator(2L)))
+
+      coordinator ! Coordinator.AddSim(0L, self)
+      coordinator ! Coordinator.Start
+      expectMsg(Simulation.Start)
+      coordinator ! Coordinator.SimStarted("Test")
+      coordinator ! Coordinator.AddSimNow(childSim,Option(self))
+      coordinator ! Coordinator.SimReady 
+      expectMsg(Simulation.SimCompleted(childSim,2L))
+
+      //coordinator ! Coordinator.SimDone("Test", Success(Unit))
+      //expectNoMsg()
+    }
+
   }
 
   /* "The Coordinator" must {

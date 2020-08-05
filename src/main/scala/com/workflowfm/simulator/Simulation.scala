@@ -62,7 +62,7 @@ import java.util.UUID
   */
 abstract class Simulation(
     name: String,
-    coordinator: ActorRef
+    coordinator: ActorRef,
 )(implicit executionContext: ExecutionContext)
     extends Actor {
 
@@ -72,9 +72,12 @@ abstract class Simulation(
     * @group api
     * @return A `Future` that completes with a custom output when the simulation is completed.
     */
+
   def run(): Future[Any]
 
   def complete(task: Task, time: Long): Unit
+
+  def completeActor(actor: ActorRef, time: Long): Unit
 
   /**
     * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation.
@@ -121,6 +124,10 @@ abstract class Simulation(
     */
   protected def task(id: UUID, t: TaskGenerator, resources: Seq[String]): Unit = {
     coordinator ! Coordinator.AddTask(id, t, resources)
+  }
+
+  def sim(actor: ActorRef) {
+    coordinator ! Coordinator.AddSimNow(actor,Option(self))
   }
 
   /**
@@ -187,6 +194,7 @@ abstract class Simulation(
   def simulationReceive: Receive = {
     case Simulation.Start => start()
     case Simulation.TaskCompleted(task, time) => complete(task, time)
+    case Simulation.SimCompleted(actor, time) => completeActor(actor, time)
   }
 
   def receive = simulationReceive
@@ -236,6 +244,8 @@ object Simulation {
     * @param time The (virtual) time of completion.
     */
   case class TaskCompleted(task: Task, time: Long)
+  //TODO document
+  case class SimCompleted(actor: ActorRef, time: Long)
   /**
     * Tells the [[Simulation]] to request that [[Coordinator]] waits.
     *
@@ -295,6 +305,7 @@ class SingleTaskSimulation(
   }
 
   override def complete(task: Task, time: Long) = promise.success((task, time))
+  override def completeActor(actor: ActorRef, time: Long): Unit = Unit
 }
 
 object SingleTaskSimulation {
@@ -418,6 +429,10 @@ abstract class AsyncSimulation(
     tasks -= task.id
   }
 
+  override def completeActor(actor: ActorRef, time: Long) = {
+
+  }
+
   def actorCallback(actor: ActorRef): Callback = (task, time) => {
     actor ! (task, time)
   }
@@ -436,6 +451,7 @@ abstract class AsyncSimulation(
     case Simulation.Ready => ready()
     case Simulation.AckTasks(tasks) => ack(tasks)
     case Simulation.TaskCompleted(task, time) => complete(task, time)
+    case Simulation.SimCompleted(actor, time) => completeActor(actor, time)
     case Simulation.AddTaskWithId(id, t, r) => task(id, t, actorCallback(sender), r)
     case Simulation.AddTask(t, r) => task(t, actorCallback(sender), r: _*)
     case Simulation.Wait => coordinator.forward(Coordinator.WaitFor(self))
