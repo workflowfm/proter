@@ -7,6 +7,7 @@ import java.util.UUID
 
 
 sealed trait Flow {
+    //todo uuid
     val id: UUID
     def +(f:Flow) = And(this,f)
     def >(f:Flow) = Then(this,f)
