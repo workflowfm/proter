@@ -123,6 +123,10 @@ abstract class Simulation(
     coordinator ! Coordinator.AddTask(id, t, resources)
   }
 
+  protected def task(id: UUID, t: TaskGenerator, time: Long, resources: Seq[String]): Unit = {
+    coordinator ! Coordinator.AddTaskAtTime(id, t, time, resources)
+  }
+
   /**
     * Starts the simulation via the [[run]] function.
     *
