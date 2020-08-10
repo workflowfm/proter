@@ -288,6 +288,42 @@ class CoordinatorTests
       coordinator ! Coordinator.SimDone("Test1", Success(Unit))
     }
 
+    "interact correctly with a simulation adding tasks in the future" in {
+      val coordinator = system.actorOf(Coordinator.props(DefaultScheduler))
+
+      coordinator ! Coordinator.AddSim(0L, self)
+      coordinator ! Coordinator.Start
+      
+      expectMsg(Simulation.Start)
+      coordinator ! Coordinator.SimStarted("Test")
+
+      val id = UUID.randomUUID()
+      val tg = TaskGenerator("T", "Test", ConstantGenerator(2L), ConstantGenerator(5L))
+      val id2 = UUID.randomUUID()
+      val tg2 = TaskGenerator("T2", "Test", ConstantGenerator(2L), ConstantGenerator(5L))
+      val id3 = UUID.randomUUID()
+      val tg3 = TaskGenerator("T3", "Test", ConstantGenerator(2L), ConstantGenerator(5L))
+
+      coordinator ! Coordinator.AddTaskAtTime(id, tg, 0L, Seq())
+      coordinator ! Coordinator.AddTaskAtTime(id2, tg2, 2L, Seq())
+      coordinator ! Coordinator.AddTaskAtTime(id3, tg3, 4L, Seq())
+      coordinator ! Coordinator.SimReady
+
+      val Simulation.TaskCompleted(task, time) = expectMsgType[Simulation.TaskCompleted]
+      coordinator ! Coordinator.AckTasks(Seq(task.id))
+      time should be(2L)
+
+      val Simulation.TaskCompleted(task2, time2) = expectMsgType[Simulation.TaskCompleted]
+      coordinator ! Coordinator.AckTasks(Seq(task2.id))
+      time2 should be(4L)
+
+      val Simulation.TaskCompleted(task3, time3) = expectMsgType[Simulation.TaskCompleted]
+      coordinator ! Coordinator.AckTasks(Seq(task3.id))
+      time3 should be(6L)
+
+      coordinator ! Coordinator.SimDone("Test", Success(Unit))
+    }
+
   }
 
   /* "The Coordinator" must {

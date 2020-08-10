@@ -373,7 +373,12 @@ abstract class AsyncSimulation(
     */
   def task(t: TaskGenerator, callback: Callback, resources: String*): Unit = {
     val id = java.util.UUID.randomUUID
-    task(id, t, callback, resources)
+    task(id, t, callback, None, resources)
+  }
+
+  def task(t: TaskGenerator, callback: Callback, time: Long, resources: String*): Unit = {
+    val id = java.util.UUID.randomUUID
+    task(id, t, callback, Some(time), resources)
   }
 
   /**
@@ -401,10 +406,15 @@ abstract class AsyncSimulation(
       id: UUID,
       t: TaskGenerator,
       callback: Callback,
+      time: Option[Long],
       resources: Seq[String]
   ): Unit = {
     tasks += id -> callback
-    super.task(id, t, resources)
+    time match {
+      case None => super.task(id, t, resources)
+      case Some(value) =>  super.task(id, t, value, resources)
+    }
+    
   }
 
   /**
@@ -440,7 +450,7 @@ abstract class AsyncSimulation(
     case Simulation.Ready => ready()
     case Simulation.AckTasks(tasks) => ack(tasks)
     case Simulation.TaskCompleted(task, time) => complete(task, time)
-    case Simulation.AddTaskWithId(id, t, r) => task(id, t, actorCallback(sender), r)
+    case Simulation.AddTaskWithId(id, t, r) => task(id, t, actorCallback(sender), None, r)
     case Simulation.AddTask(t, r) => task(t, actorCallback(sender), r: _*)
     case Simulation.Wait => coordinator.forward(Coordinator.WaitFor(self))
   }
@@ -453,10 +463,15 @@ trait FutureTasks { self: AsyncSimulation =>
     futureTask(id, t, resources)
   }
 
-  def futureTask(id: UUID, t: TaskGenerator, resources: Seq[String]): Future[(Task, Long)] = {
+  def futureTaskAtTime(t: TaskGenerator, time: Long, resources: String*): Future[(Task, Long)] = {
+    val id = java.util.UUID.randomUUID
+    futureTask(id, t, resources, Some(time))
+  }
+
+  def futureTask(id: UUID, t: TaskGenerator, resources: Seq[String], time: Option[Long]=None): Future[(Task, Long)] = {
     val p = Promise[(Task, Long)]()
     def call: Callback = (task, time) => p.success(task, time)
-    task(id, t, call, resources)
+    task(id, t, call, None, resources)
     p.future
   }
 }

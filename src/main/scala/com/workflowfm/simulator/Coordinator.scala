@@ -167,6 +167,9 @@ class Coordinator(
         eventsToHandle foreach releaseResources
         // Handle the event
         eventsToHandle foreach handleCEvent
+
+        allocateTasks()
+        if (waiting.isEmpty) tick()
       }
 
     } else if (tasks.isEmpty && simulations.isEmpty) {
@@ -516,7 +519,6 @@ class Coordinator(
         log.debug(s"[COORD:$time] Waiting: ${waiting.keys.map(_.path.name)}")
         // Are all actors ready?
         if (waiting.isEmpty) {
-          allocateTasks()
           tick()
         }
       }

@@ -117,6 +117,55 @@ class SimulationTests
             expectNoMsg()
 
         }
+        
+        "add tasks in the future" in {
+            class DummySim(name: String, coordinator: ActorRef)
+            (implicit executionContext: ExecutionContext) 
+            extends Simulation(name,coordinator) {
+                val promise = Promise[Any]()
+                override def run():Future[Any] = { 
+                    val id1 = java.util.UUID.randomUUID
+                    val id2 = java.util.UUID.randomUUID
+                    val id3 = java.util.UUID.randomUUID
+                    val task1 = task(id1, TaskGenerator("task1","sim",ConstantGenerator(2L),ConstantGenerator(0L)),0L,Seq("r1"))
+                    val task2 = task(id2,TaskGenerator("task2","sim",ConstantGenerator(2L),ConstantGenerator(0L)),2L,Seq("r1")) 
+                    val task3 = task(id3,TaskGenerator("task3","sim",ConstantGenerator(2L),ConstantGenerator(0L)),4L,Seq("r1"))
+                    ready()
+                    promise.future
+                } 
+
+                override def complete(task: Task, time: Long): Unit = {
+                    ack(Seq(task.id))
+                    if (task.name=="task3") promise.success(Unit)
+                }
+            }
+
+            val sim = system.actorOf(Props(new DummySim("sim",self)))
+
+            sim ! Simulation.Start
+            expectMsg( Coordinator.SimStarted("sim"))
+            val Coordinator.AddTaskAtTime(id1, generator1, time1, resources1) = expectMsgType[ Coordinator.AddTaskAtTime ]
+            val Coordinator.AddTaskAtTime(id2, generator2, time2, resources2) = expectMsgType[ Coordinator.AddTaskAtTime ]
+            val Coordinator.AddTaskAtTime(id3, generator3, time3, resources3) = expectMsgType[ Coordinator.AddTaskAtTime ]
+            expectMsg( Coordinator.SimReady )
+
+            val task1 = generator1.create(id1,0L,sim,"r1")
+            val task2 = generator2.create(id2,0L,sim,"r1")
+            val task3 = generator3.create(id3,0L,sim,"r1")
+
+            sim ! Simulation.TaskCompleted(task1,2L)
+            expectMsg( Coordinator.AckTasks(Seq(id1)))
+
+            sim ! Simulation.TaskCompleted(task2,4L)
+            expectMsg( Coordinator.AckTasks(Seq(id2)))
+
+            sim ! Simulation.TaskCompleted(task3,6L)
+            expectMsg( Coordinator.AckTasks(Seq(id3)))
+            val Coordinator.SimDone(name, future) = expectMsgType[ Coordinator.SimDone ]
+            name should be ("sim")
+            //expectNoMsg()
+
+        }
     }
 
 }
