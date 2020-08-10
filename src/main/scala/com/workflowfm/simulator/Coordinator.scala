@@ -306,7 +306,11 @@ class Coordinator(
   protected def stopSimulation(name: String, result: String, actor: ActorRef) = {
     simulations -= name
     waiting -= actor
-    parents.get(actor) map (x=> x ! Simulation.SimCompleted(actor,time))
+    parents.get(actor) map {x=> 
+      val id = java.util.UUID.randomUUID
+      waiting += x -> List(id)
+      x ! Simulation.SimCompleted(actor,time,id)
+    }
     publish(ESimEnd(self, time, name, result))
     log.debug(s"[COORD:$time] Finished: [${actor.path.name}]")
     ready(actor)

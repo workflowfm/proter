@@ -62,7 +62,7 @@ import java.util.UUID
   */
 abstract class Simulation(
     name: String,
-    coordinator: ActorRef,
+    val coordinator: ActorRef
 )(implicit executionContext: ExecutionContext)
     extends Actor {
 
@@ -77,7 +77,7 @@ abstract class Simulation(
 
   def complete(task: Task, time: Long): Unit
 
-  def completeActor(actor: ActorRef, time: Long): Unit
+  def completeActor(actor: ActorRef, time: Long, id: UUID): Unit = Unit
 
   /**
     * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation.
@@ -127,7 +127,7 @@ abstract class Simulation(
   }
 
   def sim(actor: ActorRef) {
-    coordinator ! Coordinator.AddSimNow(actor,Option(self))
+    coordinator ! Coordinator.AddSimNow(actor,Some(self))
   }
 
   /**
@@ -194,7 +194,7 @@ abstract class Simulation(
   def simulationReceive: Receive = {
     case Simulation.Start => start()
     case Simulation.TaskCompleted(task, time) => complete(task, time)
-    case Simulation.SimCompleted(actor, time) => completeActor(actor, time)
+    case Simulation.SimCompleted(actor, time, id) => completeActor(actor, time, id)
   }
 
   def receive = simulationReceive
@@ -245,7 +245,7 @@ object Simulation {
     */
   case class TaskCompleted(task: Task, time: Long)
   //TODO document
-  case class SimCompleted(actor: ActorRef, time: Long)
+  case class SimCompleted(actor: ActorRef, time: Long, id: UUID)
   /**
     * Tells the [[Simulation]] to request that [[Coordinator]] waits.
     *
@@ -305,7 +305,7 @@ class SingleTaskSimulation(
   }
 
   override def complete(task: Task, time: Long) = promise.success((task, time))
-  override def completeActor(actor: ActorRef, time: Long): Unit = Unit
+  override def completeActor(actor: ActorRef, time: Long, id: UUID): Unit = Unit
 }
 
 object SingleTaskSimulation {
@@ -360,6 +360,7 @@ abstract class AsyncSimulation(
     * @group internal
     */
   private val tasks: Map[UUID, Callback] = Map()
+  private val childSims: Map[String,UUID] = Map()
 
   /**
     * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation.
@@ -414,6 +415,13 @@ abstract class AsyncSimulation(
     super.task(id, t, resources)
   }
 
+  def sim(actor: ActorRef, callback: Callback): Unit = {
+    val id = java.util.UUID.randomUUID
+    tasks += id -> callback
+    childSims += actor.path.name -> id
+    super.sim(actor)
+  }
+
   /**
     * Manages a [[Task]] whose simulation has completed.
     *
@@ -429,8 +437,9 @@ abstract class AsyncSimulation(
     tasks -= task.id
   }
 
-  override def completeActor(actor: ActorRef, time: Long) = {
-
+  override def completeActor(actor: ActorRef, time: Long, id: UUID) = {
+    childSims.get(actor.path.name) map ( tasks.get(_).map(_(null, time)) )
+    ack(Seq(id))
   }
 
   def actorCallback(actor: ActorRef): Callback = (task, time) => {
@@ -451,7 +460,7 @@ abstract class AsyncSimulation(
     case Simulation.Ready => ready()
     case Simulation.AckTasks(tasks) => ack(tasks)
     case Simulation.TaskCompleted(task, time) => complete(task, time)
-    case Simulation.SimCompleted(actor, time) => completeActor(actor, time)
+    case Simulation.SimCompleted(actor, time, id) => completeActor(actor, time, id)
     case Simulation.AddTaskWithId(id, t, r) => task(id, t, actorCallback(sender), r)
     case Simulation.AddTask(t, r) => task(t, actorCallback(sender), r: _*)
     case Simulation.Wait => coordinator.forward(Coordinator.WaitFor(self))
@@ -472,3 +481,9 @@ trait FutureTasks { self: AsyncSimulation =>
     p.future
   }
 }
+
+// trait ChildSims { myself: Simulation =>
+//   def sim(actor: ActorRef) {
+//     myself.coordinator ! Coordinator.AddSimNow(actor,Some(self))
+//   }
+// }

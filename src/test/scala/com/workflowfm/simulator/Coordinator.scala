@@ -296,9 +296,11 @@ class CoordinatorTests
       coordinator ! Coordinator.Start
       expectMsg(Simulation.Start)
       coordinator ! Coordinator.SimStarted("Test")
-      coordinator ! Coordinator.AddSimNow(childSim,Option(self))
+      coordinator ! Coordinator.AddSimNow(childSim,Some(self))
       coordinator ! Coordinator.SimReady 
-      expectMsg(Simulation.SimCompleted(childSim,2L))
+      val Simulation.SimCompleted(actor,time,id) = expectMsgType[Simulation.SimCompleted]
+      actor should be (childSim)
+      time should be (2L)
 
       //coordinator ! Coordinator.SimDone("Test", Success(Unit))
       //expectNoMsg()
