@@ -65,6 +65,9 @@ abstract class Simulation(
     coordinator: ActorRef
 )(implicit executionContext: ExecutionContext)
     extends Actor {
+    
+  type Prereq = Seq[UUID] => Boolean
+
 
   /**
     * Initiates the execution of the simulation.
@@ -98,6 +101,7 @@ abstract class Simulation(
     task(id, t, resources)
   }
 
+
   /**
     * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation
     * with a pre-determined ID.
@@ -123,8 +127,13 @@ abstract class Simulation(
     coordinator ! Coordinator.AddTask(id, t, resources)
   }
 
-  protected def task(id: UUID, t: TaskGenerator, time: Long, resources: Seq[String]): Unit = {
-    coordinator ! Coordinator.AddTaskAtTime(id, t, time, resources)
+  protected def task(id: UUID, t: TaskGenerator, resources: Seq[String], time: Long, prerequisites: Prereq = (_)=>true): Unit = {
+    coordinator ! Coordinator.AddTaskInFuture(id, t, resources, time, prerequisites)
+  }
+
+  protected def task(id: UUID, t: TaskGenerator, resources: Seq[String], time: Long, prerequisites: Seq[UUID] ): Unit = {
+    val function: Seq[UUID]=>Boolean = (x:Seq[UUID])=> prerequisites forall (x.contains(_))
+    coordinator ! Coordinator.AddTaskInFuture(id, t, resources, time, function)
   }
 
   /**
@@ -373,12 +382,12 @@ abstract class AsyncSimulation(
     */
   def task(t: TaskGenerator, callback: Callback, resources: String*): Unit = {
     val id = java.util.UUID.randomUUID
-    task(id, t, callback, None, resources)
+    task(id, t, callback, resources, None)
   }
 
   def task(t: TaskGenerator, callback: Callback, time: Long, resources: String*): Unit = {
     val id = java.util.UUID.randomUUID
-    task(id, t, callback, Some(time), resources)
+    task(id, t, callback, resources, Some(time))
   }
 
   /**
@@ -406,13 +415,13 @@ abstract class AsyncSimulation(
       id: UUID,
       t: TaskGenerator,
       callback: Callback,
-      time: Option[Long],
-      resources: Seq[String]
+      resources: Seq[String],
+      time: Option[Long]
   ): Unit = {
     tasks += id -> callback
     time match {
       case None => super.task(id, t, resources)
-      case Some(value) =>  super.task(id, t, value, resources)
+      case Some(value) =>  super.task(id, t, resources, value)
     }
     
   }
@@ -450,7 +459,7 @@ abstract class AsyncSimulation(
     case Simulation.Ready => ready()
     case Simulation.AckTasks(tasks) => ack(tasks)
     case Simulation.TaskCompleted(task, time) => complete(task, time)
-    case Simulation.AddTaskWithId(id, t, r) => task(id, t, actorCallback(sender), None, r)
+    case Simulation.AddTaskWithId(id, t, r) => task(id, t, actorCallback(sender), r, None)
     case Simulation.AddTask(t, r) => task(t, actorCallback(sender), r: _*)
     case Simulation.Wait => coordinator.forward(Coordinator.WaitFor(self))
   }
@@ -471,7 +480,7 @@ trait FutureTasks { self: AsyncSimulation =>
   def futureTask(id: UUID, t: TaskGenerator, resources: Seq[String], time: Option[Long]=None): Future[(Task, Long)] = {
     val p = Promise[(Task, Long)]()
     def call: Callback = (task, time) => p.success(task, time)
-    task(id, t, call, None, resources)
+    task(id, t, call, resources, None)
     p.future
   }
 }

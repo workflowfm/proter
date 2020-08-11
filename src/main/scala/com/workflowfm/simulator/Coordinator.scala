@@ -13,6 +13,8 @@ import scala.util.{ Failure, Success, Try }
 import java.util.UUID
 import uk.ac.ed.inf.ppapapan.subakka.HashSetPublisher
 
+
+
 /**
   * Provides coordination for discrete event simulation of multiple asynchronous simulations.
   *
@@ -28,6 +30,7 @@ class Coordinator(
     scheduler: Scheduler,
     startingTime: Long
 ) extends HashSetPublisher[Event] {
+  type Prereq = Seq[UUID] => Boolean
 
   /**
     * Discrete Events that need to be handled.
@@ -59,7 +62,7 @@ class Coordinator(
     */
   case class StartingSim(override val time: Long, simulation: ActorRef) extends CEvent
 
-  case class AddingTask(override val time: Long, task: Task) extends CEvent
+  case class AddingTask(override val time: Long, task: Task, prerequisites: Prereq) extends CEvent
 
   /**
     * Map of the available [[TaskResource]]s
@@ -88,6 +91,8 @@ class Coordinator(
     * @group tasks
     */
   val tasks: SortedSet[Task] = SortedSet()
+
+  var completedUUIDs: Seq[UUID] = Seq()
 
   /**
     * [[scala.collection.mutable.PriorityQueue]] of discrete [[CEvent]]s to be processed,
@@ -233,7 +238,13 @@ class Coordinator(
       // A simulation (workflow) is starting now
       case StartingSim(t, sim) if (t == time) => startSimulation(sim)
 
-      case AddingTask(t, task) if (t ==time) => addTask(task) 
+      case AddingTask(t, task, prerequisites) if (t == time) => {
+        if (prerequisites(completedUUIDs))  addTask(task)
+        else {
+          val t = if (events.isEmpty) time+1 else events.head.time
+          events += AddingTask(t, task, prerequisites)
+        }
+      }
 
       case _ => publish(EError(self, time, s"Failed to handle event: $event"))
     }
@@ -326,11 +337,11 @@ class Coordinator(
     *          [[TaskGenerator]] and list of [[TaskResource]] names that need to be used.
     */
   protected def registerTasks(actor: ActorRef, l: Seq[(UUID, TaskGenerator, Seq[String])]) {
-    registerTasksAtTime(actor, ( l map { case (i, g, r) => (i, g, time, r)} ) )
+    registerTasksInFuture(actor, ( l map { case (i, g, r) => (i, g, r, time,  (x: Seq[UUID])=>true )} ) )
   }
 
-  protected def registerTasksAtTime(actor: ActorRef, l: Seq[(UUID, TaskGenerator, Long, Seq[String])]) {
-    l map { case (i, g, t, r) => registerTask(i, g, t, r) }
+  protected def registerTasksInFuture(actor: ActorRef, l: Seq[(UUID, TaskGenerator, Seq[String], Long, Prereq)]) {
+    l map { case (i, g, r, t, p) => registerTask(i, g, r, t, p) }
   }
 
   /**
@@ -362,16 +373,22 @@ class Coordinator(
       startTask(task)
   }
 
-  protected def registerTask(id: UUID, gen: TaskGenerator, startTime: Long, resources: Seq[String]) {
+  protected def registerTask(
+    id: UUID, 
+    gen: TaskGenerator, 
+    resources: Seq[String], 
+    startTime: Long, 
+    prerequisites: Seq[UUID]=>Boolean
+    ) {
     // Create the task
-    val t: Task = gen.create(id, time, sender, resources: _*)
+    val t: Task = gen.create(id, startTime, sender, resources: _*) //todo WithCreationTime???
 
     // Calculate the cost of all resource usage. We only know this now!
     val resourceCost = (0L /: t.taskResources(resourceMap)) {
       case (c, r) => c + r.costPerTick * t.duration
     }
     t.addCost(resourceCost)
-    events += AddingTask(startTime,t)
+    events += AddingTask(startTime, t, prerequisites)
   }
 
   /**
@@ -495,6 +512,7 @@ class Coordinator(
       case None => waiting += task.actor -> List(task.id)
       case Some(l) => waiting.update(task.actor, task.id :: l)
     }
+    completedUUIDs = completedUUIDs :+ task.id // maybe dont use seq?
     log.debug(s"[COORD:$time] Waiting post-task: ${task.actor.path.name}")
     publish(ETaskDone(self, time, task))
     task.actor ! Simulation.TaskCompleted(task, time)
@@ -563,9 +581,9 @@ class Coordinator(
     case Coordinator.AddResources(r) => r foreach addResource
 
     case Coordinator.AddTasks(l) => registerTasks(sender, l)
-    case Coordinator.AddTask(id, generator, resources) => registerTask(id, generator, time, resources)
-    case Coordinator.AddTaskAtTime(id, generator, t, resources) => registerTask(id, generator, t, resources)
-    case Coordinator.AddTasksAtTime(l) => registerTasksAtTime(sender,l)
+    case Coordinator.AddTask(id, generator, resources) => registerTask(id, generator, resources, time, ((_)=>true) )
+    case Coordinator.AddTaskInFuture(id, generator, resources, t, prerequisites) => registerTask(id, generator, resources, t, prerequisites)
+    case Coordinator.AddTasksInFuture(l) => registerTasksInFuture(sender,l)
 
     case Coordinator.AckTasks(ack) => ackTasks(sender, ack)
     case Coordinator.SimReady => ackAll(sender)
@@ -606,6 +624,7 @@ class Coordinator(
   * @groupprio toplevel 1
   */
 object Coordinator {
+  type Prereq = Seq[UUID] => Boolean
   /**
     * Message to start the entire simulation.
     * @group toplevel
@@ -679,8 +698,8 @@ object Coordinator {
     */
   case class AddTasks(l: Seq[(UUID, TaskGenerator, Seq[String])])
 
-  case class AddTaskAtTime(id: UUID, generator: TaskGenerator, t: Long, resources: Seq[String])
-  case class AddTasksAtTime(l: Seq[(UUID, TaskGenerator, Long, Seq[String])])
+  case class AddTaskInFuture(id: UUID, generator: TaskGenerator, resources: Seq[String], t: Long, prerequisites: Prereq )
+  case class AddTasksInFuture(l: Seq[(UUID, TaskGenerator, Seq[String], Long, Prereq )])
 
 //  * @todo TODO update for task-acking
   case class AckTasks(ack: Seq[UUID])
