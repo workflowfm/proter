@@ -35,12 +35,3 @@ lazy val root = (project in file("."))
     commonSettings,
     name := "wfm-simulator"
   )
-
-lazy val flowsExample = project
-  .in(file("flowsExample"))
-  .settings(
-    commonSettings,
-    libraryDependencies += "com.workflowfm" %% "wfm-simulator" % "0.3-SNAPSHOT",
-    scalaSource in Compile := baseDirectory.value / "src",
-    scalaSource in Test := baseDirectory.value / "test"
-  )

@@ -1,3 +1,0 @@
-[submodule "d3-timeline"]
-	path = flowsExample/output/d3-timeline
-	url = https://github.com/workflowfm/d3-workflow-timeline
