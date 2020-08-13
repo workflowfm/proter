@@ -10,7 +10,7 @@ import java.util.UUID
   * result analysis.
   */
 sealed trait Event {
-  /** 
+  /**
     * A reference to the [[Coordinator]] actor that generated the event.
     */
   val source: ActorRef
@@ -41,7 +41,12 @@ case class EStart(override val source: ActorRef) extends Event {
   * @param name The name of the resource.
   * @param costPerTick The [[TaskResource.costPerTick]] of the resource.
   */
-case class EResourceAdd(override val source: ActorRef, override val time: Long, name: String, costPerTick: Int) extends Event
+case class EResourceAdd(
+    override val source: ActorRef,
+    override val time: Long,
+    name: String,
+    costPerTick: Int
+) extends Event
 
 /**
   * A simulation was added.
@@ -51,7 +56,12 @@ case class EResourceAdd(override val source: ActorRef, override val time: Long, 
   * @param name The name of the simulation.
   * @param start The timestamp when this simulation is scheduled to start.
   */
-case class ESimAdd(override val source: ActorRef, override val time: Long, name: String, start: Long) extends Event
+case class ESimAdd(
+    override val source: ActorRef,
+    override val time: Long,
+    name: String,
+    start: Long
+) extends Event
 
 /**
   * A simulation was started.
@@ -60,7 +70,8 @@ case class ESimAdd(override val source: ActorRef, override val time: Long, name:
   * @param time
   * @param name The name of the simulation.
   */
-case class ESimStart(override val source: ActorRef, override val time: Long, name: String) extends Event
+case class ESimStart(override val source: ActorRef, override val time: Long, name: String)
+    extends Event
 
 /**
   * A simulation was finished.
@@ -70,7 +81,12 @@ case class ESimStart(override val source: ActorRef, override val time: Long, nam
   * @param name The name of the simulation.
   * @param result The output of the simulation (if any).
   */
-case class ESimEnd(override val source: ActorRef, override val time: Long, name: String, result: String) extends Event
+case class ESimEnd(
+    override val source: ActorRef,
+    override val time: Long,
+    name: String,
+    result: String
+) extends Event
 
 /**
   * A new [[Task]] was added in the queue.
@@ -80,9 +96,9 @@ case class ESimEnd(override val source: ActorRef, override val time: Long, name:
   * @param task The [[Task]] that was added.
   */
 case class ETaskAdd(
-  override val source: ActorRef, 
-  override val time: Long,
-  task: Task
+    override val source: ActorRef,
+    override val time: Long,
+    task: Task
 ) extends Event
 
 /**
@@ -93,9 +109,9 @@ case class ETaskAdd(
   * @param task The [[Task]] that was started.
   */
 case class ETaskStart(
-  override val source: ActorRef, 
-  override val time: Long,
-  task: Task
+    override val source: ActorRef,
+    override val time: Long,
+    task: Task
 ) extends Event
 
 /**
@@ -107,10 +123,10 @@ case class ETaskStart(
   * @param resource The involved [[TaskResource]].
   */
 case class ETaskAttach(
-  override val source: ActorRef, 
-  override val time: Long,
-  task: Task,
-  resource: String,
+    override val source: ActorRef,
+    override val time: Long,
+    task: Task,
+    resource: String
 ) extends Event
 
 /**
@@ -122,10 +138,10 @@ case class ETaskAttach(
   * @param resource The involved [[TaskResource]].
   */
 case class ETaskDetach(
-  override val source: ActorRef, 
-  override val time: Long,
-  task: Task,
-  resource: String
+    override val source: ActorRef,
+    override val time: Long,
+    task: Task,
+    resource: String
 ) extends Event
 
 /**
@@ -136,9 +152,9 @@ case class ETaskDetach(
   * @param task The [[Task]] that finished.
   */
 case class ETaskDone(
-  override val source: ActorRef, 
-  override val time: Long,
-  task: Task,
+    override val source: ActorRef,
+    override val time: Long,
+    task: Task
 ) extends Event
 
 /**
@@ -156,9 +172,11 @@ case class EDone(override val source: ActorRef, override val time: Long) extends
   * @param time
   * @param error A string representation of the error.
   */
-case class EError(override val source: ActorRef, override val time: Long, error: String) extends Event
+case class EError(override val source: ActorRef, override val time: Long, error: String)
+    extends Event
 
 object Event {
+
   /**
     * Generates a string representation of an [[Event]].
     *
@@ -167,17 +185,22 @@ object Event {
     */
   def asString(e: Event): String = e match {
     case EStart(src) => s"[$src] === Simulation started! ==="
-    case EDone(src,t) => s"[$t $src] === Simulation complete! ==="
-    case EResourceAdd(src,t,n,c) => s"[$t $src] Added resource: $n (CPT:$c)"
-    case ESimAdd(src,t,a,s) => s"[$t $src] Added simulation actor [$a] to be run at: $s"
-    case ESimStart(src,t,n) => s"[$t $src] Starting simulation: $n"
-    case ESimEnd(src,t,n,r) => s"[$t $src] Simulation [$n] completed. Result: $r"
-    case ETaskAdd(src,t,task) => s"[$t $src] Added task [${task.name}](${task.simulation}) created at [${task.created}]. (id:${task.id})"
-    case ETaskStart(src,t,task) => s"[$t $src] Starting task [${task.name}](${task.simulation}). Ticks remaining: ${task.duration}. (id:${task.id})"
-    case ETaskAttach(src,t,task,r) => s"[$t $src] Attaching task [${task.name}](${task.simulation}) to [$r]. Ticks remaining: ${task.duration}. (id:${task.id})"
-    case ETaskDetach(src,t,task,r) => s"[$t $src] Detaching task [${task.name}](${task.simulation}) from [$r]. (id:${task.id})"
-    case ETaskDone(src,t,task) => s"[$t $src] Task [${task.name}](${task.simulation}) completed. (id:${task.id})"
+    case EDone(src, t) => s"[$t $src] === Simulation complete! ==="
+    case EResourceAdd(src, t, n, c) => s"[$t $src] Added resource: $n (CPT:$c)"
+    case ESimAdd(src, t, a, s) => s"[$t $src] Added simulation actor [$a] to be run at: $s"
+    case ESimStart(src, t, n) => s"[$t $src] Starting simulation: $n"
+    case ESimEnd(src, t, n, r) => s"[$t $src] Simulation [$n] completed. Result: $r"
+    case ETaskAdd(src, t, task) =>
+      s"[$t $src] Added task [${task.name}](${task.simulation}) created at [${task.created}]. (id:${task.id})"
+    case ETaskStart(src, t, task) =>
+      s"[$t $src] Starting task [${task.name}](${task.simulation}). Ticks remaining: ${task.duration}. (id:${task.id})"
+    case ETaskAttach(src, t, task, r) =>
+      s"[$t $src] Attaching task [${task.name}](${task.simulation}) to [$r]. Ticks remaining: ${task.duration}. (id:${task.id})"
+    case ETaskDetach(src, t, task, r) =>
+      s"[$t $src] Detaching task [${task.name}](${task.simulation}) from [$r]. (id:${task.id})"
+    case ETaskDone(src, t, task) =>
+      s"[$t $src] Task [${task.name}](${task.simulation}) completed. (id:${task.id})"
 
-    case EError(src,t, error) => s"[$t $src] !ERROR! $error !ERROR!"
+    case EError(src, t, error) => s"[$t $src] !ERROR! $error !ERROR!"
   }
 }

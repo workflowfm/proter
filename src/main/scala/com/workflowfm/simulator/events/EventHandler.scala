@@ -4,7 +4,7 @@ import akka.actor.{ ActorRef, ActorSystem }
 import java.text.SimpleDateFormat
 import scala.collection.mutable.HashSet
 import scala.concurrent.Promise
-import uk.ac.ed.inf.ppapapan.subakka.Subscriber
+import uk.ac.ed.inf.ppapapan.subakka.{ Subscriber, SubscriptionSwitch }
 
 /**
   * A [[uk.ac.ed.inf.ppapapan.subakka.Subscriber]] for [[Coordinator]] [[Event]]s.
@@ -30,11 +30,11 @@ trait PoolEventHandler extends EventHandler {
     coordinators += a
   }
 
-  /** 
+  /**
     * Closes the event stream by removing the coordinator from [[coordinators]].
     *
     * @param a The reference to the [[Coordinator]] that closed the stream.
-    * @param s 
+    * @param s
     */
   override def onDone(a: ActorRef, s: ActorRef) = {
     println(s"Pool handler done with coordinator: $a")
@@ -44,10 +44,10 @@ trait PoolEventHandler extends EventHandler {
 
 /**
   * An [[EventHandler]] that prints events to standard error.
-  *
   */
-class PrintEventHandler extends EventHandler {   
+class PrintEventHandler extends EventHandler {
   val formatter = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS")
+
   override def onEvent(e: Event) = {
     val time = formatter.format(System.currentTimeMillis())
     System.err.println(s"[$time] ${Event.asString(e)}")
@@ -58,13 +58,12 @@ class PrintEventHandler extends EventHandler {
   * An [[EventHandler]] with a measured result.
   * @tparam R The type of the result.
   */
-trait ResultHandler[R] extends EventHandler {   
+trait ResultHandler[R] extends EventHandler {
   def result: R
 }
 
 /**
   * A [[ResultHandler]] that counts the events seen.
-  *
   */
 class CounterHandler extends ResultHandler[Int] {
   var count = 0
@@ -88,7 +87,7 @@ class PromiseHandler[R](handler: ResultHandler[R]) extends ResultHandler[R] {
   override def onEvent(e: Event): Unit = handler.onEvent(e)
 
   override def onDone(a: ActorRef, s: ActorRef): Unit = {
-    handler.onDone(a,s)
+    handler.onDone(a, s)
     if (!promise.isCompleted) promise.success(result)
   }
 
@@ -99,8 +98,34 @@ class PromiseHandler[R](handler: ResultHandler[R]) extends ResultHandler[R] {
 
   override def result = handler.result
 }
+
 object PromiseHandler {
   def of[R](handler: ResultHandler[R]): PromiseHandler[R] = new PromiseHandler[R](handler)
+}
+
+/**
+  * Listens for the end of a named simulation and handles its result.
+  *
+  * @param name The name of the [[Simulation]] to listen for.
+  * @param callback A function to handle the results of the simulation when it completes.
+  */
+class SimulationResultHandler(name: String, callback: String => Unit = { _ => Unit })
+    extends ResultHandler[Option[String]] {
+  var switch: Option[SubscriptionSwitch] = None
+  var simResult: Option[String] = None
+
+  override def onInit(publisher: ActorRef, s: SubscriptionSwitch): Unit = switch = Some(s)
+
+  override def onEvent(evt: Event) = evt match {
+    case ESimEnd(_, _, n, r) if n == name => {
+      switch.map(_.stop())
+      simResult = Some(r)
+      callback(r)
+    }
+    case _ => Unit
+  }
+
+  override def result = simResult
 }
 
 /**
@@ -109,10 +134,13 @@ object PromiseHandler {
   * @param system The [[akka.actor.ActorSystem]] to shut down.
   */
 class ShutdownHandler(implicit system: ActorSystem) extends PoolEventHandler {
+
   override def onDone(a: ActorRef, s: ActorRef): Unit = {
-    super.onDone(a,s)
+    super.onDone(a, s)
     if (coordinators.isEmpty) {
-      println("********************************************* SHUTTING DOWN!!! ***********************************************")
+      println(
+        "********************************************* SHUTTING DOWN!!! ***********************************************"
+      )
       Thread.sleep(1000)
       system.terminate()
     }
