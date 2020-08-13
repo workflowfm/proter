@@ -70,15 +70,15 @@ class SimulationTests
                     val id1 = java.util.UUID.randomUUID
                     val id2 = java.util.UUID.randomUUID
                     val id3 = java.util.UUID.randomUUID
-                    val task1 = futureTask(id1, TaskGenerator("task1","sim",ConstantGenerator(2L),ConstantGenerator(0L)),Seq("r1"))
+                    val task1 = futureTask(id1, TaskGenerator("task1","sim",ConstantGenerator(2L),ConstantGenerator(0L)),Seq("r1"):_*)
                     ready()
                     val task2 = task1 flatMap { _=> 
-                        val t = futureTask(id2,TaskGenerator("task2","sim",ConstantGenerator(2L),ConstantGenerator(0L)),Seq("r1"))
+                        val t = futureTask(id2,TaskGenerator("task2","sim",ConstantGenerator(2L),ConstantGenerator(0L)),Seq("r1"):_*)
                         ack(Seq(id1))
                         t
                     }
                     val task3 = task2 flatMap { _=> 
-                        val t = futureTask(id3,TaskGenerator("task3","sim",ConstantGenerator(2L),ConstantGenerator(0L)),Seq("r1"))
+                        val t = futureTask(id3,TaskGenerator("task3","sim",ConstantGenerator(2L),ConstantGenerator(0L)),Seq("r1"):_*)
                         ack(Seq(id2))
                         t
                     }
@@ -127,9 +127,9 @@ class SimulationTests
                     val id1 = java.util.UUID.randomUUID
                     val id2 = java.util.UUID.randomUUID
                     val id3 = java.util.UUID.randomUUID
-                    val task1 = task(id1, TaskGenerator("task1","sim",ConstantGenerator(2L),ConstantGenerator(0L)),0L,Seq("r1"))
-                    val task2 = task(id2,TaskGenerator("task2","sim",ConstantGenerator(2L),ConstantGenerator(0L)),2L,Seq("r1")) 
-                    val task3 = task(id3,TaskGenerator("task3","sim",ConstantGenerator(2L),ConstantGenerator(0L)),4L,Seq("r1"))
+                    val task1 = task(id1, TaskGenerator("task1","sim",ConstantGenerator(2L),ConstantGenerator(0L)),Seq("r1"),0L)
+                    val task2 = task(id2,TaskGenerator("task2","sim",ConstantGenerator(2L),ConstantGenerator(0L)),Seq("r1"),0L,Seq(id1)) 
+                    val task3 = task(id3,TaskGenerator("task3","sim",ConstantGenerator(2L),ConstantGenerator(0L)),Seq("r1"),0L,Seq(id2))
                     ready()
                     promise.future
                 } 
@@ -144,9 +144,9 @@ class SimulationTests
 
             sim ! Simulation.Start
             expectMsg( Coordinator.SimStarted("sim"))
-            val Coordinator.AddTaskAtTime(id1, generator1, time1, resources1) = expectMsgType[ Coordinator.AddTaskAtTime ]
-            val Coordinator.AddTaskAtTime(id2, generator2, time2, resources2) = expectMsgType[ Coordinator.AddTaskAtTime ]
-            val Coordinator.AddTaskAtTime(id3, generator3, time3, resources3) = expectMsgType[ Coordinator.AddTaskAtTime ]
+            val Coordinator.AddTaskInFuture(id1, generator1, resources1, time1, prerequisites1) = expectMsgType[ Coordinator.AddTaskInFuture ]
+            val Coordinator.AddTaskInFuture(id2, generator2, resources2, time2, prerequisites2) = expectMsgType[ Coordinator.AddTaskInFuture ]
+            val Coordinator.AddTaskInFuture(id3, generator3, resources3, time3, prerequisites3) = expectMsgType[ Coordinator.AddTaskInFuture ]
             expectMsg( Coordinator.SimReady )
 
             val task1 = generator1.create(id1,0L,sim,"r1")

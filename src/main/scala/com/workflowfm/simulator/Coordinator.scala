@@ -42,7 +42,11 @@ class Coordinator(
 
     /** Events need to be ordered based on their timestamp. */
     def compare(that: CEvent) = {
-      that.time.compare(time)
+      val timeOrder = that.time.compare(time)
+      if (timeOrder != 0) timeOrder
+      else { 
+        this.hashCode().compare(that.hashCode())
+      }
     }
   }
 
@@ -99,7 +103,8 @@ class Coordinator(
     * ordered by (future) timestamp.
     * @group toplevel
     */
-  val events = new PriorityQueue[CEvent]()
+  //val events2 = new PriorityQueue[CEvent]()
+  val events2: SortedSet[CEvent] = SortedSet()
 
   /**
     * The current virtual time.
@@ -127,8 +132,9 @@ class Coordinator(
     */
   protected def dequeueEvents(t: Long): Seq[CEvent] = {
     val elems = scala.collection.immutable.Seq.newBuilder[CEvent]
-    while (events.headOption.exists(_.time == t)) {
-      elems += events.dequeue
+    while (events2.headOption.exists(_.time == t)) {
+      elems += events2.head
+      events2 -= events2.head
     }
     elems.result()
   }
@@ -154,9 +160,9 @@ class Coordinator(
     */
   protected def tick(): Unit = {
     // Are events pending?
-    if (!events.isEmpty) {
+    if (!events2.isEmpty) {
       // Grab the first event
-      val firstEvent = events.head
+      val firstEvent = events2.head
 
       // Did we somehow go past the event time? This should never happen.
       if (firstEvent.time < time) {
@@ -170,6 +176,9 @@ class Coordinator(
 
         // Release all resources from finished tasks before you notify anyone
         eventsToHandle foreach releaseResources
+        println(time)
+        eventsToHandle foreach println
+        println()
         // Handle the event
         eventsToHandle foreach handleCEvent
 
@@ -241,11 +250,10 @@ class Coordinator(
       case AddingTask(t, task, prerequisites) if (t == time) => {
         if (prerequisites(completedUUIDs))  addTask(task)
         else {
-          val t = if (events.isEmpty) time+1 else events.head.time
-          events += AddingTask(t, task, prerequisites)
+          val t = if (events2.isEmpty) time+1 else events2.head.time
+          events2 += AddingTask(t, task, prerequisites)
         }
       }
-
       case _ => publish(EError(self, time, s"Failed to handle event: $event"))
     }
   }
@@ -260,7 +268,8 @@ class Coordinator(
     */
   protected def addSimulation(t: Long, actor: ActorRef) = {
     publish(ESimAdd(self, time, actor.toString(), t))
-    if (t >= time) events += StartingSim(t, actor)
+    println("addsim")
+    if (t >= time) events2 += StartingSim(t, actor)
   }
 
   /**
@@ -272,7 +281,7 @@ class Coordinator(
     * reference to a [[Simulation]]. Timestamps must be greater or equal to the current time.
     */
   protected def addSimulations(sims: Seq[(Long, ActorRef)]) = {
-    events ++= sims.flatMap {
+    events2 ++= sims.flatMap {
       case (t, actor) => {
           publish(ESimAdd(self, time, actor.toString(), t))
         }
@@ -344,6 +353,14 @@ class Coordinator(
     l map { case (i, g, r, t, p) => registerTask(i, g, r, t, p) }
   }
 
+  protected def removeTaskInFuture(id: UUID){
+    //TODO
+    // can't remove items from priorityQueue :(
+  }
+  protected def editFutureTask(id: UUID, t: Long, prerequisites: Prereq) {
+    // TODO
+  }
+
   /**
     * Adds a single new [[Task]].
     *
@@ -388,7 +405,7 @@ class Coordinator(
       case (c, r) => c + r.costPerTick * t.duration
     }
     t.addCost(resourceCost)
-    events += AddingTask(startTime, t, prerequisites)
+    events2 += AddingTask(startTime, t, prerequisites)
   }
 
   /**
@@ -458,7 +475,7 @@ class Coordinator(
       }
     }
     // Generate a FinishTask event to be triggered at the end of the event
-    events += FinishingTask(time + task.duration, task)
+    events2 += FinishingTask(time + task.duration, task)
   }
 
   /**
@@ -585,6 +602,9 @@ class Coordinator(
     case Coordinator.AddTaskInFuture(id, generator, resources, t, prerequisites) => registerTask(id, generator, resources, t, prerequisites)
     case Coordinator.AddTasksInFuture(l) => registerTasksInFuture(sender,l)
 
+    case Coordinator.RemoveTaskInFuture(id) => removeTaskInFuture(id)
+    case Coordinator.EditFutureTask(id, t, prerequisites) => editFutureTask(id, t, prerequisites)
+
     case Coordinator.AckTasks(ack) => ackTasks(sender, ack)
     case Coordinator.SimReady => ackAll(sender)
 
@@ -698,8 +718,11 @@ object Coordinator {
     */
   case class AddTasks(l: Seq[(UUID, TaskGenerator, Seq[String])])
 
+  //todo document
   case class AddTaskInFuture(id: UUID, generator: TaskGenerator, resources: Seq[String], t: Long, prerequisites: Prereq )
   case class AddTasksInFuture(l: Seq[(UUID, TaskGenerator, Seq[String], Long, Prereq )])
+  case class RemoveTaskInFuture(id: UUID)
+  case class EditFutureTask(id: UUID, t: Long, prerequisites: Prereq)
 
 //  * @todo TODO update for task-acking
   case class AckTasks(ack: Seq[UUID])

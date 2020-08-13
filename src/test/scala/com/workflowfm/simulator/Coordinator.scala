@@ -304,9 +304,9 @@ class CoordinatorTests
       val id3 = UUID.randomUUID()
       val tg3 = TaskGenerator("T3", "Test", ConstantGenerator(2L), ConstantGenerator(5L))
 
-      coordinator ! Coordinator.AddTaskAtTime(id, tg, 0L, Seq())
-      coordinator ! Coordinator.AddTaskAtTime(id2, tg2, 2L, Seq())
-      coordinator ! Coordinator.AddTaskAtTime(id3, tg3, 4L, Seq())
+      coordinator ! Coordinator.AddTaskInFuture(id, tg, Seq(), 0L, (_)=>true)
+      coordinator ! Coordinator.AddTaskInFuture(id2, tg2, Seq(), 0L, (x:Seq[UUID])=>x.contains(id))
+      coordinator ! Coordinator.AddTaskInFuture(id3, tg3, Seq(), 0L, (x:Seq[UUID])=>x.contains(id2))
       coordinator ! Coordinator.SimReady
 
       val Simulation.TaskCompleted(task, time) = expectMsgType[Simulation.TaskCompleted]
