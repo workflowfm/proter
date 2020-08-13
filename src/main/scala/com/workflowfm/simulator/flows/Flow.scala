@@ -7,19 +7,18 @@ import java.util.UUID
 
 
 sealed trait Flow {
-    //todo uuid
-    val id: UUID
+    val id: UUID = java.util.UUID.randomUUID
     def +(f:Flow) = And(this,f)
     def >(f:Flow) = Then(this,f)
     def |(f:Flow) = Or(this,f)
 }
 
-case class NoTask() extends Flow { val id: UUID = java.util.UUID.randomUUID }
-case class FlowTask(generator:TaskGenerator, resources:Seq[String]) extends Flow { val id: UUID = java.util.UUID.randomUUID }
-case class Then(left:Flow,right:Flow) extends Flow { val id: UUID = java.util.UUID.randomUUID }
-case class And(left:Flow,right:Flow) extends Flow { val id: UUID = java.util.UUID.randomUUID }
-case class All(elements:Flow*) extends Flow { val id: UUID = java.util.UUID.randomUUID }
-case class Or(left:Flow,right:Flow) extends Flow { val id: UUID = java.util.UUID.randomUUID }
+case class NoTask() extends Flow
+case class FlowTask(generator:TaskGenerator, resources:Seq[String]) extends Flow
+case class Then(left:Flow,right:Flow) extends Flow
+case class And(left:Flow,right:Flow) extends Flow
+case class All(elements:Flow*) extends Flow
+case class Or(left:Flow,right:Flow) extends Flow
 
 /**
   * An actor which implements the "Flows" interface which can be used to create simple workflow simulations.
@@ -59,7 +58,7 @@ class FlowSimulationActor (
       * @param flow The flow to run.
       * @param callback The callback function which is executed once this flow completes.
       */
-    private def runFlow(flow:Flow, callback:Callback):Unit = {
+    protected def runFlow(flow:Flow, callback:Callback):Unit = {
         flow match {
             case f: FlowTask => task(f.id, f.generator, ( (t,l)=>{callback(t,l); ack(Seq(f.id)) } ), f.resources)
             case f: Flow => { tasks += flow.id -> callback; execute(f) }
@@ -74,7 +73,7 @@ class FlowSimulationActor (
       * 
       * @param id The id to complete
       */
-    private def complete(id: UUID) = {
+    protected def complete(id: UUID) = {
         tasks.get(id).map (_(null,0L))
         tasks -= id
     }
@@ -85,7 +84,7 @@ class FlowSimulationActor (
       *
       * @param flow The flow to be executed
       */
-    private def execute(flow:Flow) {
+    protected def execute(flow:Flow) {
         flow match {
             case f:NoTask => complete(f.id)
 
@@ -125,7 +124,7 @@ object FlowSimulationActor {
       * @param coordinator The [[Coordinator]].
       * @param flow The [[Flow]] to be executed
       * @param executionContext
-      * @return
+      * @return The Props of a new flow simulation actor
       */
     def props (
         name: String,
