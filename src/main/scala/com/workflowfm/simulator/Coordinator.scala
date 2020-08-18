@@ -174,8 +174,8 @@ class Coordinator(
         // Handle the event
         eventsToHandle foreach handleCEvent
 
-        allocateTasks()
-        if (waiting.isEmpty) tick()
+        
+        if (waiting.isEmpty) {allocateTasks(); tick()}
       }
 
     } else if (tasks.isEmpty && simulations.isEmpty) {
