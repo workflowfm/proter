@@ -4,6 +4,7 @@ import akka.actor.{ActorSystem, ActorRef,Props}
 import akka.testkit.{ ImplicitSender, TestActors, TestKit, TestProbe }
 import akka.pattern.ask
 import akka.util.Timeout
+import java.util.concurrent.TimeUnit
 import com.typesafe.config.ConfigFactory
 import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
 import scala.concurrent._
@@ -164,6 +165,78 @@ class SimulationTests
             val Coordinator.SimDone(name, future) = expectMsgType[ Coordinator.SimDone ]
             name should be ("sim")
             //expectNoMsg()
+        }
+
+        "use the lookahead trait to maintain a map of lookahead replies" in {
+            class DummySim(name: String, coordinator: ActorRef)
+            (implicit executionContext: ExecutionContext) 
+            extends AsyncSimulation(name,coordinator) with Lookahead {
+                val promise = Promise[Any]()
+                override def run():Future[Any] = { 
+                    val id1 = java.util.UUID.randomUUID
+                    val id2 = java.util.UUID.randomUUID
+                    val id3 = java.util.UUID.randomUUID
+                    val generator1 = TaskGenerator("task1","sim",ConstantGenerator(2L),ConstantGenerator(0L))
+                    val generator2 = TaskGenerator("task2","sim",ConstantGenerator(2L),ConstantGenerator(0L))
+                    val generator3 = TaskGenerator("task3","sim",ConstantGenerator(2L),ConstantGenerator(0L))
+                    val resources = Seq("r1")
+                    
+                    addToLookahead(id1,id2,generator2,resources)
+                    addToLookahead(id2,id3,generator3,resources)
+
+                    val task1 = task(id1,generator1, 
+                        {(_,_)=> task(id2,generator2,
+                            {(_,_)=> task(id3,generator3, 
+                                {(_,_)=> promise.success(Unit)}, 
+                            resources, None, Seq()); ack(Seq(id2)) }, 
+                        resources, None, Seq()); ack(Seq(id1)) }, 
+                    resources, None, Seq())
+
+                    ready()
+                    promise.future
+                } 
+            }
+
+            val sim = system.actorOf(Props(new DummySim("sim",self)))
+            sim ! Simulation.Start
+            expectMsg( Coordinator.SimStarted("sim"))
+
+            val Coordinator.AddTask(id1, generator1, resources1) = expectMsgType[ Coordinator.AddTask ]
+            expectMsg( Coordinator.SimReady )
+
+            val response = (sim ? Simulation.TasksAfterThis(id1,2L))(Timeout(1, TimeUnit.DAYS))
+            Await.result(response,3.seconds)
+            val Success(result: Seq[Task]) = response.value.get
+            result.size should be (1)
+            result.head.name should be ("task2")
+
+            val task1 = generator1.create(id1,0L,sim,"r1")
+            sim ! Simulation.TaskCompleted(task1,2L)
+            val Coordinator.AddTask(id2, generator2, resources2) = expectMsgType[ Coordinator.AddTask ]
+            expectMsg( Coordinator.AckTasks(Seq(id1)))
+
+            val response2 = (sim ? Simulation.TasksAfterThis(id2,2L))(Timeout(1, TimeUnit.DAYS))
+            Await.result(response2,3.seconds)
+            val Success(result2: Seq[Task]) = response2.value.get
+            result2.size should be (1)
+            result2.head.name should be ("task3")
+
+            val task2 = generator2.create(id2,2L,sim,"r1")
+            sim ! Simulation.TaskCompleted(task2,4L)
+            val Coordinator.AddTask(id3, generator3, resources3) = expectMsgType[ Coordinator.AddTask ]
+            expectMsg( Coordinator.AckTasks(Seq(id2)))
+
+            val response3 = (sim ? Simulation.TasksAfterThis(id3,2L))(Timeout(1, TimeUnit.DAYS))
+            Await.result(response3,3.seconds)
+            val Success(result3: Seq[Task]) = response3.value.get
+            result3.size should be (0)
+
+            val task3 = generator3.create(id3,4L,sim,"r1")
+            sim ! Simulation.TaskCompleted(task3,6L)
+
+            val Coordinator.SimDone(name, future) = expectMsgType[ Coordinator.SimDone ]
+            name should be ("sim")
+
 
         }
     }

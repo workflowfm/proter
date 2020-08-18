@@ -414,3 +414,45 @@ object Schedule {
     case _ => false
   }
 }
+
+
+
+object LookaheadScheduler extends Scheduler {
+  import scala.collection.immutable.Queue
+  import akka.pattern.ask
+  import akka.actor._
+  import akka.util.Timeout
+  import java.util.concurrent.TimeUnit
+  import scala.concurrent.Await
+  import scala.concurrent.duration._
+
+  def getNextTasks(
+      tasks: SortedSet[Task],
+      currentTime: Long,
+      resourceMap: Map[String, TaskResource]
+  ): Seq[Task] = {
+    findNextTasks(currentTime, resourceMap, resourceMap.mapValues(Schedule(_)), tasks, Queue())
+  }
+
+  def findNextTasks(
+      currentTime: Long,
+      resourceMap: Map[String, TaskResource],
+      schedules: Map[String, Schedule],
+      tasks: SortedSet[Task],
+      result: Queue[Task]
+  ): Seq[Task] =
+    if (tasks.isEmpty) result
+    else {
+      val t = tasks.head
+      val start = Schedule.mergeSchedules(t.resources.flatMap(schedules.get(_))) ? (Math.max(currentTime,t.created), t)
+      val futureTasks = (t.actor ? Simulation.TasksAfterThis(t.id, start+t.estimatedDuration))(Timeout(1, TimeUnit.DAYS))
+      val schedules2 = (schedules /: t.resources) {
+        case (s, r) => s + (r -> (s.getOrElse(r, Schedule()) +> (start, t)))
+      }
+      val result2 =
+        if (start == currentTime && t.taskResources(resourceMap).forall(_.isIdle)) result :+ t
+        else result
+      val futureTasksResult = Await.result(futureTasks, 3.seconds)
+      findNextTasks(currentTime, resourceMap, schedules2, tasks.tail ++ futureTasksResult.asInstanceOf[Seq[Task]], result2)
+    }
+}

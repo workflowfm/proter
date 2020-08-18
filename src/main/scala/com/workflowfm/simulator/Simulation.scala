@@ -144,6 +144,8 @@ abstract class Simulation(
     coordinator ! Coordinator.EditFutureTask(id, time, prerequisites)
   }
 
+  protected def tasksAfterThis(task: UUID, time: Long, sender: ActorRef): Seq[Task] = Seq()
+
   /**
     * Starts the simulation via the [[run]] function.
     *
@@ -208,6 +210,7 @@ abstract class Simulation(
   def simulationReceive: Receive = {
     case Simulation.Start => start()
     case Simulation.TaskCompleted(task, time) => complete(task, time)
+    case Simulation.TasksAfterThis(task,time) => tasksAfterThis(task,time,sender())
   }
 
   def receive = simulationReceive
@@ -257,6 +260,9 @@ object Simulation {
     * @param time The (virtual) time of completion.
     */
   case class TaskCompleted(task: Task, time: Long)
+
+  case class TasksAfterThis(id: UUID, endTime: Long)
+  
   /**
     * Tells the [[Simulation]] to request that [[Coordinator]] waits.
     *
@@ -471,6 +477,7 @@ abstract class AsyncSimulation(
     case Simulation.AddTaskWithId(id, t, r) => task(id, t, actorCallback(sender), r, None, Seq())
     case Simulation.AddTask(t, r) => task(t, actorCallback(sender), r: _*)
     case Simulation.Wait => coordinator.forward(Coordinator.WaitFor(self))
+    case Simulation.TasksAfterThis(task,time) => tasksAfterThis(task,time,sender())
   }
 }
 
@@ -490,5 +497,36 @@ trait FutureTasks { self: AsyncSimulation =>
     def call: Callback = (task, time) => p.success(task, time)
     task(id, t, call, resources, None, Seq())
     p.future
+  }
+}
+
+trait Lookahead extends Simulation {
+
+  protected val lookaheadMap:  Map[UUID, List[(UUID, TaskGenerator, Seq[String])]] = Map()
+
+  override protected def tasksAfterThis(task: UUID, time: Long, sender: ActorRef): Seq[Task] = {
+    val tasks = lookaheadMap.getOrElse(task, List()) map {
+        case (id, gen, resources) => gen.create(id,time,self,resources:_*)
+      }
+      sender ! tasks
+      tasks
+    }
+
+  protected def addToLookahead(sourceID: UUID, resultID: UUID, generator: TaskGenerator, resources: Seq[String]) {
+    lookaheadMap.get(sourceID) match {
+      case None => lookaheadMap += sourceID -> List((resultID,generator,resources))
+      case Some(l) => lookaheadMap.update(sourceID, (resultID,generator,resources) :: l)
+    }
+  }
+
+  protected def removeFromLookahead(sourceID: UUID, resultID: UUID) {
+    lookaheadMap.get(sourceID) match {
+      case None => Unit
+      case Some(l) => {
+        lookaheadMap.update(sourceID, 
+          l.filter ( _ match { case (id,_,_)=> id != resultID} )
+        )
+      }
+    }
   }
 }
