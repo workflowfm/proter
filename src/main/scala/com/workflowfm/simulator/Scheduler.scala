@@ -431,7 +431,16 @@ object LookaheadScheduler extends Scheduler {
       currentTime: Long,
       resourceMap: Map[String, TaskResource]
   ): Seq[Task] = {
-    findNextTasks(currentTime, resourceMap, resourceMap.mapValues(Schedule(_)), tasks, Queue())
+    val r = resourceMap.values.filter(_.currentTask.isDefined).map{x=>
+      Await.result(
+        (x.currentTask.get._2.actor ? Simulation.TasksAfterThis(
+          x.currentTask.get._2.id,
+          x.nextAvailableTimestamp(currentTime)))(Timeout(1, TimeUnit.DAYS)),
+        3.seconds
+      ).asInstanceOf[Seq[Task]]
+    }.flatten
+
+    findNextTasks(currentTime, resourceMap, resourceMap.mapValues(Schedule(_)), tasks ++ r, Queue())
   }
 
   def findNextTasks(
