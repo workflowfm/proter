@@ -6,18 +6,18 @@ import akka.actor.{ Actor, ActorRef, Props }
 import java.util.UUID
 
 sealed trait Flow {
-  val id: UUID
+  val id: UUID = java.util.UUID.randomUUID
   def +(f: Flow) = And(this, f)
   def >(f: Flow) = Then(this, f)
   def |(f: Flow) = Or(this, f)
 }
 
-case class NoTask() extends Flow { val id = java.util.UUID.randomUUID }
-case class FlowTask(generator: TaskGenerator, resources: Seq[String]) extends Flow { val id = java.util.UUID.randomUUID }
-case class Then(left: Flow, right: Flow) extends Flow { val id = java.util.UUID.randomUUID }
-case class And(left: Flow, right: Flow) extends Flow { val id = java.util.UUID.randomUUID }
-case class All(elements: Flow*) extends Flow { val id = java.util.UUID.randomUUID }
-case class Or(left: Flow, right: Flow) extends Flow { val id = java.util.UUID.randomUUID }
+case class NoTask() extends Flow
+case class FlowTask(generator: TaskGenerator, resources: Seq[String]) extends Flow
+case class Then(left: Flow, right: Flow) extends Flow
+case class And(left: Flow, right: Flow) extends Flow
+case class All(elements: Flow*) extends Flow
+case class Or(left: Flow, right: Flow) extends Flow
 
 /**
   * An actor which implements the "Flows" interface which can be used to create simple workflow simulations.
