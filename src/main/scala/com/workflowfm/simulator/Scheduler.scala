@@ -439,7 +439,7 @@ object LookaheadScheduler extends Scheduler {
         3.seconds
       ).asInstanceOf[Seq[Task]]
     }.flatten
-
+    (( (tasks ++ r) map (_.actor) ).toSet) foreach { x:ActorRef => x ! Simulation.LookaheadNextItter }
     findNextTasks(currentTime, resourceMap, resourceMap.mapValues(Schedule(_)), tasks ++ r, Queue())
   }
 

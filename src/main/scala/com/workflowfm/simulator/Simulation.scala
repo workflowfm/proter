@@ -8,6 +8,7 @@ import scala.concurrent.duration.Duration
 import scala.collection.mutable.{ Map, Queue }
 import scala.concurrent.{ ExecutionContext, Future, Promise }
 import java.util.UUID
+import scala.collection.mutable
 
 /**
   * An actor managing the interaction between a simulation and a [[Coordinator]].
@@ -145,6 +146,7 @@ abstract class Simulation(
   }
 
   protected def tasksAfterThis(task: UUID, time: Long, sender: ActorRef): Seq[Task] = Seq()
+  protected def lookaheadNextItter() = Unit
 
   /**
     * Starts the simulation via the [[run]] function.
@@ -211,6 +213,7 @@ abstract class Simulation(
     case Simulation.Start => start()
     case Simulation.TaskCompleted(task, time) => complete(task, time)
     case Simulation.TasksAfterThis(task,time) => tasksAfterThis(task,time,sender())
+    case Simulation.LookaheadNextItter => lookaheadNextItter()
   }
 
   def receive = simulationReceive
@@ -262,6 +265,7 @@ object Simulation {
   case class TaskCompleted(task: Task, time: Long)
 
   case class TasksAfterThis(id: UUID, endTime: Long)
+  case object LookaheadNextItter
   
   /**
     * Tells the [[Simulation]] to request that [[Coordinator]] waits.
@@ -502,15 +506,30 @@ trait FutureTasks { self: AsyncSimulation =>
 
 trait Lookahead extends Simulation {
 
-  protected val lookaheadMap:  Map[UUID, List[(UUID, TaskGenerator, Seq[String])]] = Map()
+  protected val lookaheadMap = mutable.Set[Seq[UUID]=>List[(UUID, TaskGenerator, Seq[String])]]()
+  protected val completed = mutable.Set[UUID]()
+  protected val completedThisItter = mutable.Set[UUID]()
+  protected val lookaheadThisItter =  mutable.Set[Seq[UUID]=>List[(UUID, TaskGenerator, Seq[String])]]()
 
   override protected def tasksAfterThis(task: UUID, time: Long, sender: ActorRef): Seq[Task] = {
-    val tasks = lookaheadMap.getOrElse(task, List()) map {
-        case (id, gen, resources) => gen.create(id,time,self,resources:_*)
-      }
-      sender ! tasks
-      tasks
-    }
+    val taskData = lookaheadThisItter map (_( (completed++completedThisItter).toSeq) ) flatten
+    val tasks = Seq[Task]() ++ ( taskData map (x => x._2.create(x._1,time,self,x._3:_*)) )
+    sender ! tasks
+    completedThisItter += task
+    tasks //this return is not used?
+  }
+
+  abstract override def complete(task: Task, time: Long) = {
+    completed += task.id
+    super.complete(task,time)
+  }
+
+  override protected def lookaheadNextItter() = {
+    completedThisItter.clear()
+    lookaheadThisItter.clear()
+    lookaheadThisItter ++= lookaheadMap
+    Unit
+  }
 
   protected def addToLookahead(sourceID: UUID, resultID: UUID, generator: TaskGenerator, resources: Seq[String]) {
     lookaheadMap.get(sourceID) match {
