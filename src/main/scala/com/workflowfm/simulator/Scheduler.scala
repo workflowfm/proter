@@ -423,7 +423,7 @@ object LookaheadScheduler extends Scheduler {
   import akka.actor._
   import akka.util.Timeout
   import java.util.concurrent.TimeUnit
-  import scala.concurrent.Await
+  import scala.concurrent.{Await, Future, ExecutionContext}
   import scala.concurrent.duration._
 
   def getNextTasks(
@@ -431,15 +431,21 @@ object LookaheadScheduler extends Scheduler {
       currentTime: Long,
       resourceMap: Map[String, TaskResource]
   ): Seq[Task] = {
+    implicit val executionContext = ExecutionContext.global
+    println("      [New Schedule]")
     val r = resourceMap.values.filter(_.currentTask.isDefined).map{x=>
+      println("      r asking: ? about task: " + x.currentTask.get._2.name);
       Await.result(
         (x.currentTask.get._2.actor ? Simulation.TasksAfterThis(
           x.currentTask.get._2.id,
-          x.nextAvailableTimestamp(currentTime)))(Timeout(1, TimeUnit.DAYS)),
+          x.nextAvailableTimestamp(currentTime),
+          false))(Timeout(1, TimeUnit.DAYS)),
         3.seconds
       ).asInstanceOf[Seq[Task]]
     }.flatten
-    (( (tasks ++ r) map (_.actor) ).toSet) foreach { x:ActorRef => x ! Simulation.LookaheadNextItter }
+    val messages = (( (tasks ++ r) map (_.actor) ).toSet) map { x:ActorRef => (x ? Simulation.LookaheadNextItter)(3.seconds) }
+    println("      innit tasks to consider: " + (tasks.size+r.size))
+    Await.result(Future.sequence(messages), 5.seconds)
     findNextTasks(currentTime, resourceMap, resourceMap.mapValues(Schedule(_)), tasks ++ r, Queue())
   }
 
@@ -453,13 +459,14 @@ object LookaheadScheduler extends Scheduler {
     if (tasks.isEmpty) result
     else {
       val t = tasks.head
+      println("      considering task: "+t.name)
       val start = Schedule.mergeSchedules(t.resources.flatMap(schedules.get(_))) ? (Math.max(currentTime,t.created), t)
       val futureTasks = (t.actor ? Simulation.TasksAfterThis(t.id, start+t.estimatedDuration))(Timeout(1, TimeUnit.DAYS))
       val schedules2 = (schedules /: t.resources) {
         case (s, r) => s + (r -> (s.getOrElse(r, Schedule()) +> (start, t)))
       }
       val result2 =
-        if (start == currentTime && t.taskResources(resourceMap).forall(_.isIdle)) result :+ t
+        if (start == currentTime && t.taskResources(resourceMap).forall(_.isIdle)) { println("      accepting task: "+t.name) ;result :+ t }
         else result
       val futureTasksResult = Await.result(futureTasks, 3.seconds)
       findNextTasks(currentTime, resourceMap, schedules2, tasks.tail ++ futureTasksResult.asInstanceOf[Seq[Task]], result2)

@@ -145,8 +145,8 @@ abstract class Simulation(
     coordinator ! Coordinator.EditFutureTask(id, time, prerequisites)
   }
 
-  protected def tasksAfterThis(task: UUID, time: Long, sender: ActorRef): Seq[Task] = Seq()
-  protected def lookaheadNextItter() = Unit
+  protected def tasksAfterThis(task: UUID, time: Long, sender: ActorRef, official: Boolean): Seq[Task] = Seq()
+  protected def lookaheadNextItter(sender: ActorRef) = Unit
 
   /**
     * Starts the simulation via the [[run]] function.
@@ -212,8 +212,8 @@ abstract class Simulation(
   def simulationReceive: Receive = {
     case Simulation.Start => start()
     case Simulation.TaskCompleted(task, time) => complete(task, time)
-    case Simulation.TasksAfterThis(task,time) => tasksAfterThis(task,time,sender())
-    case Simulation.LookaheadNextItter => lookaheadNextItter()
+    case Simulation.TasksAfterThis(task,time, official) => tasksAfterThis(task,time,sender(), official)
+    case Simulation.LookaheadNextItter => lookaheadNextItter(sender)
   }
 
   def receive = simulationReceive
@@ -264,7 +264,7 @@ object Simulation {
     */
   case class TaskCompleted(task: Task, time: Long)
 
-  case class TasksAfterThis(id: UUID, endTime: Long)
+  case class TasksAfterThis(id: UUID, endTime: Long, official: Boolean = true)
   case object LookaheadNextItter
   
   /**
@@ -481,7 +481,8 @@ abstract class AsyncSimulation(
     case Simulation.AddTaskWithId(id, t, r) => task(id, t, actorCallback(sender), r, None, Seq())
     case Simulation.AddTask(t, r) => task(t, actorCallback(sender), r: _*)
     case Simulation.Wait => coordinator.forward(Coordinator.WaitFor(self))
-    case Simulation.TasksAfterThis(task,time) => tasksAfterThis(task,time,sender())
+    case Simulation.TasksAfterThis(task,time, official) => tasksAfterThis(task,time,sender(), official)
+    case Simulation.LookaheadNextItter => lookaheadNextItter(sender)
   }
 }
 
@@ -505,47 +506,70 @@ trait FutureTasks { self: AsyncSimulation =>
 }
 
 trait Lookahead extends Simulation {
+  type LookaheadFunctions = mutable.Set[( Seq[(UUID,Long)]=>Long, List[(UUID, TaskGenerator, Seq[String])] ) ]
 
-  protected val lookaheadMap = mutable.Set[Seq[UUID]=>List[(UUID, TaskGenerator, Seq[String])]]()
-  protected val completed = mutable.Set[UUID]()
-  protected val completedThisItter = mutable.Set[UUID]()
-  protected val lookaheadThisItter =  mutable.Set[Seq[UUID]=>List[(UUID, TaskGenerator, Seq[String])]]()
+  protected val lookaheadFunctions:LookaheadFunctions = mutable.Set()
+  protected val completed = mutable.Set[(UUID,Long)]()
+  protected val completedThisItter = mutable.Set[(UUID,Long)]()
+  protected val lookaheadThisItter:LookaheadFunctions = mutable.Set()
 
-  override protected def tasksAfterThis(task: UUID, time: Long, sender: ActorRef): Seq[Task] = {
-    val taskData = lookaheadThisItter map (_( (completed++completedThisItter).toSeq) ) flatten
-    val tasks = Seq[Task]() ++ ( taskData map (x => x._2.create(x._1,time,self,x._3:_*)) )
+  override protected def tasksAfterThis(task: UUID, time: Long, sender: ActorRef, official: Boolean): Seq[Task] = {
+    completedThisItter += ((task, time))
+    val tasks = getTasks(if (official) lookaheadThisItter else lookaheadFunctions, official)
     sender ! tasks
-    completedThisItter += task
+    //Thread.sleep(2000)
     tasks //this return is not used?
   }
 
+  private def getTasks(functions: LookaheadFunctions, official: Boolean): Seq[Task] = {
+    val taskData: List[(UUID, TaskGenerator, Seq[String], Long)] = ( 
+      functions flatMap { 
+        case(function, data) => 
+        val l = function(Seq() ++ completed ++ completedThisItter )
+        if (l>=0) { 
+          if (official) lookaheadThisItter.-=((function, data))
+          data foreach (d=> println("sim getTasks: " + d._2.name))
+          (data map (d => (d._1, d._2, d._3, l))) 
+        }
+        else List()
+      } ).toList
+    
+    Seq[Task]() ++ ( taskData map (x => x._2.create(x._1,x._4,self,x._3:_*)) )
+  }
+
   abstract override def complete(task: Task, time: Long) = {
-    completed += task.id
+    completed += ((task.id, time))
+    removeIdSource(task.id)
     super.complete(task,time)
   }
 
-  override protected def lookaheadNextItter() = {
+  override protected def lookaheadNextItter(sender: ActorRef) = {
     completedThisItter.clear()
     lookaheadThisItter.clear()
-    lookaheadThisItter ++= lookaheadMap
+    lookaheadThisItter ++= lookaheadFunctions
+    sender ! Unit
     Unit
   }
 
-  protected def addToLookahead(sourceID: UUID, resultID: UUID, generator: TaskGenerator, resources: Seq[String]) {
-    lookaheadMap.get(sourceID) match {
-      case None => lookaheadMap += sourceID -> List((resultID,generator,resources))
-      case Some(l) => lookaheadMap.update(sourceID, (resultID,generator,resources) :: l)
-    }
+  protected def add1To1Lookahead(sourceID: UUID, resultID: UUID, generator: TaskGenerator, resources: Seq[String]) {
+    lookaheadFunctions += ( ( (s:Seq[(UUID,Long)]) => (s collect { case (id,time) if id==sourceID => time }).headOption match {
+      case Some(value) => value
+      case None => -1L
+    } ), List((resultID, generator, resources)) ) 
+  } //could express this in terms of `addManyTo1Lookahead()`
+
+  protected def add1ToManyLookahead(sourceID: UUID, data: List[(UUID, TaskGenerator, Seq[String])]) {
+    data foreach ( d => add1To1Lookahead( sourceID, d._1, d._2, d._3 ) )
   }
 
-  protected def removeFromLookahead(sourceID: UUID, resultID: UUID) {
-    lookaheadMap.get(sourceID) match {
-      case None => Unit
-      case Some(l) => {
-        lookaheadMap.update(sourceID, 
-          l.filter ( _ match { case (id,_,_)=> id != resultID} )
-        )
-      }
-    }
+  protected def addManyTo1Lookahead(function: Seq[(UUID,Long)]=>Long, resultID: UUID, generator: TaskGenerator, resources: Seq[String]) {
+    lookaheadFunctions += ( (function, List((resultID, generator, resources)) ) )
+  }
+
+  protected def removeIdSource(id: UUID) {
+    //remove all entries that spawn this task
+    lookaheadFunctions retain { entry => entry._2 forall ( data => data._1 != id) }
+    //remove all entries that are spawned by this task (among others)
+    lookaheadFunctions retain { entry => entry._1(Seq()++completed)<0}
   }
 }

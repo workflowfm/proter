@@ -175,7 +175,9 @@ class Coordinator(
         eventsToHandle foreach handleCEvent
 
         
-        if (waiting.isEmpty) {allocateTasks(); tick()}
+
+        
+        if (waiting.isEmpty) { tick() }
       }
 
     } else if (tasks.isEmpty && simulations.isEmpty) {
@@ -197,7 +199,9 @@ class Coordinator(
     */
   protected def allocateTasks() = {
     // Assign the next tasks
+    tasks foreach (x=> println("   asking about task: "+ x.name) )
     scheduler.getNextTasks(tasks, time, resourceMap).foreach { task =>
+      println("   starting task " +task.name)
       tasks -= task
       startTask(task)
     }
@@ -373,6 +377,7 @@ class Coordinator(
     */
   protected def addTask(task: Task) {
     publish(ETaskAdd(self, time, task))
+    println("   adding task: " + task.name + " at time: " + time)
 
     if (task.taskResources(resourceMap).length > 0)
       tasks += task
@@ -545,6 +550,7 @@ class Coordinator(
         log.debug(s"[COORD:$time] Waiting: ${waiting.keys.map(_.path.name)}")
         // Are all actors ready?
         if (waiting.isEmpty) {
+          
           tick()
         }
       }

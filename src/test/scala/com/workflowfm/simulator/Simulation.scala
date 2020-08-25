@@ -181,8 +181,8 @@ class SimulationTests
                     val generator3 = TaskGenerator("task3","sim",ConstantGenerator(2L),ConstantGenerator(0L))
                     val resources = Seq("r1")
                     
-                    addToLookahead(id1,id2,generator2,resources)
-                    addToLookahead(id2,id3,generator3,resources)
+                    add1To1Lookahead(id1,id2,generator2,resources)
+                    add1To1Lookahead(id2,id3,generator3,resources)
 
                     val task1 = task(id1,generator1, 
                         {(_,_)=> task(id2,generator2,
