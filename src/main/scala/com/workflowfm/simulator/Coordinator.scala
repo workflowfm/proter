@@ -13,8 +13,6 @@ import scala.util.{ Failure, Success, Try }
 import java.util.UUID
 import uk.ac.ed.inf.ppapapan.subakka.HashSetPublisher
 
-
-
 /**
   * Provides coordination for discrete event simulation of multiple asynchronous simulations.
   *
@@ -30,7 +28,6 @@ class Coordinator(
     scheduler: Scheduler,
     startingTime: Long
 ) extends HashSetPublisher[Event] {
-  type Prereq = Seq[UUID] => Boolean
 
   /**
     * Discrete Events that need to be handled.
@@ -42,11 +39,7 @@ class Coordinator(
 
     /** Events need to be ordered based on their timestamp. */
     def compare(that: CEvent) = {
-      val timeOrder = that.time.compare(time)
-      if (timeOrder != 0) -timeOrder //invert because SortedSet is lowest to highest
-      else if (this.isInstanceOf[FinishingTask] && !that.isInstanceOf[FinishingTask] ) -1 
-      else if (!this.isInstanceOf[FinishingTask] && that.isInstanceOf[FinishingTask] )  1 
-      else this.hashCode() compare that.hashCode()
+      that.time.compare(time)
     }
   }
 
@@ -65,8 +58,6 @@ class Coordinator(
     * @param simulation The actor reference to the [[Simulation]] that needs to start.
     */
   case class StartingSim(override val time: Long, simulation: ActorRef) extends CEvent
-
-  case class AddingTask(override val time: Long, task: Task, prerequisites: Prereq) extends CEvent
 
   /**
     * Map of the available [[TaskResource]]s
@@ -96,10 +87,12 @@ class Coordinator(
     */
   val tasks: SortedSet[Task] = SortedSet()
 
-  var completedUUIDs: Seq[UUID] = Seq()
-
-  // todo documentation
-  val events: SortedSet[CEvent] = SortedSet()
+  /**
+    * [[scala.collection.mutable.PriorityQueue]] of discrete [[CEvent]]s to be processed,
+    * ordered by (future) timestamp.
+    * @group toplevel
+    */
+  val events = new PriorityQueue[CEvent]()
 
   /**
     * The current virtual time.
@@ -128,8 +121,7 @@ class Coordinator(
   protected def dequeueEvents(t: Long): Seq[CEvent] = {
     val elems = scala.collection.immutable.Seq.newBuilder[CEvent]
     while (events.headOption.exists(_.time == t)) {
-      elems += events.head
-      events -= events.head
+      elems += events.dequeue
     }
     elems.result()
   }
@@ -173,11 +165,6 @@ class Coordinator(
         eventsToHandle foreach releaseResources
         // Handle the event
         eventsToHandle foreach handleCEvent
-
-        
-
-        
-        if (waiting.isEmpty) { tick() }
       }
 
     } else if (tasks.isEmpty && simulations.isEmpty) {
@@ -199,9 +186,7 @@ class Coordinator(
     */
   protected def allocateTasks() = {
     // Assign the next tasks
-    tasks foreach (x=> println("   asking about task: "+ x.name) )
     scheduler.getNextTasks(tasks, time, resourceMap).foreach { task =>
-      println("   starting task " +task.name)
       tasks -= task
       startTask(task)
     }
@@ -243,13 +228,6 @@ class Coordinator(
       // A simulation (workflow) is starting now
       case StartingSim(t, sim) if (t == time) => startSimulation(sim)
 
-      case AddingTask(t, task, prerequisites) if (t == time) => {
-        if (prerequisites(completedUUIDs))  addTask(task)
-        else {
-          val t = if (events.isEmpty) time+1 else events.head.time
-          events += AddingTask(t, task, prerequisites)
-        }
-      }
       case _ => publish(EError(self, time, s"Failed to handle event: $event"))
     }
   }
@@ -340,20 +318,8 @@ class Coordinator(
     * @param l The list of tasks to be generated, each represented by a triplet with its unique ID,
     *          [[TaskGenerator]] and list of [[TaskResource]] names that need to be used.
     */
-  protected def registerTasks(actor: ActorRef, l: Seq[(UUID, TaskGenerator, Seq[String])]) {
-    registerTasksInFuture(actor, ( l map { case (i, g, r) => (i, g, r, time,  (x: Seq[UUID])=>true )} ) )
-  }
-
-  protected def registerTasksInFuture(actor: ActorRef, l: Seq[(UUID, TaskGenerator, Seq[String], Long, Prereq)]) {
-    l map { case (i, g, r, t, p) => registerTask(i, g, r, t, p) }
-  }
-
-  protected def removeTaskInFuture(id: UUID){
-    //TODO
-    // can't remove items from priorityQueue :(
-  }
-  protected def editFutureTask(id: UUID, t: Long, prerequisites: Prereq) {
-    // TODO
+  protected def addTasks(actor: ActorRef, l: Seq[(UUID, TaskGenerator, Seq[String])]) {
+    l map { case (i, g, r) => addTask(i, g, r) }
   }
 
   /**
@@ -375,33 +341,25 @@ class Coordinator(
     * @param gen The [[TaskGenerator]] that will generate the [[Task]].
     * @param resources The list of [[TaskResource]] names that need to be used by the [[Task]].
     */
-  protected def addTask(task: Task) {
-    publish(ETaskAdd(self, time, task))
-    println("   adding task: " + task.name + " at time: " + time)
-
-    if (task.taskResources(resourceMap).length > 0)
-      tasks += task
-    else
-      // if the task does not require resources, start it now
-      startTask(task)
-  }
-
-  protected def registerTask(
-    id: UUID, 
-    gen: TaskGenerator, 
-    resources: Seq[String], 
-    startTime: Long, 
-    prerequisites: Seq[UUID]=>Boolean
-    ) {
+  protected def addTask(id: UUID, gen: TaskGenerator, resources: Seq[String]) {
     // Create the task
-    val t: Task = gen.create(id, startTime, sender, resources: _*) //todo WithCreationTime???
+    val t: Task = gen.create(id, time, sender, resources: _*)
 
     // Calculate the cost of all resource usage. We only know this now!
     val resourceCost = (0L /: t.taskResources(resourceMap)) {
       case (c, r) => c + r.costPerTick * t.duration
     }
     t.addCost(resourceCost)
-    events += AddingTask(startTime, t, prerequisites)
+
+    publish(ETaskAdd(self, time, t))
+
+    if (resources.length > 0)
+      tasks += t
+    else
+      // if the task does not require resources, start it now
+      startTask(t)
+
+    //sender() ! Coordinator.AckTask(t) //uncomment this to acknowledge AddTask
   }
 
   /**
@@ -525,7 +483,6 @@ class Coordinator(
       case None => waiting += task.actor -> List(task.id)
       case Some(l) => waiting.update(task.actor, task.id :: l)
     }
-    completedUUIDs = completedUUIDs :+ task.id // maybe dont use seq?
     log.debug(s"[COORD:$time] Waiting post-task: ${task.actor.path.name}")
     publish(ETaskDone(self, time, task))
     task.actor ! Simulation.TaskCompleted(task, time)
@@ -550,7 +507,7 @@ class Coordinator(
         log.debug(s"[COORD:$time] Waiting: ${waiting.keys.map(_.path.name)}")
         // Are all actors ready?
         if (waiting.isEmpty) {
-          
+          allocateTasks()
           tick()
         }
       }
@@ -594,13 +551,8 @@ class Coordinator(
     case Coordinator.AddResource(r) => addResource(r)
     case Coordinator.AddResources(r) => r foreach addResource
 
-    case Coordinator.AddTasks(l) => registerTasks(sender, l)
-    case Coordinator.AddTask(id, generator, resources) => registerTask(id, generator, resources, time, ((_)=>true) )
-    case Coordinator.AddTaskInFuture(id, generator, resources, t, prerequisites) => registerTask(id, generator, resources, t, prerequisites)
-    case Coordinator.AddTasksInFuture(l) => registerTasksInFuture(sender,l)
-
-    case Coordinator.RemoveTaskInFuture(id) => removeTaskInFuture(id)
-    case Coordinator.EditFutureTask(id, t, prerequisites) => editFutureTask(id, t, prerequisites)
+    case Coordinator.AddTasks(l) => addTasks(sender, l)
+    case Coordinator.AddTask(id, generator, resources) => addTask(id, generator, resources)
 
     case Coordinator.AckTasks(ack) => ackTasks(sender, ack)
     case Coordinator.SimReady => ackAll(sender)
@@ -641,7 +593,6 @@ class Coordinator(
   * @groupprio toplevel 1
   */
 object Coordinator {
-  type Prereq = Seq[UUID] => Boolean
   /**
     * Message to start the entire simulation.
     * @group toplevel
@@ -714,12 +665,6 @@ object Coordinator {
     * @group simulations
     */
   case class AddTasks(l: Seq[(UUID, TaskGenerator, Seq[String])])
-
-  //todo document
-  case class AddTaskInFuture(id: UUID, generator: TaskGenerator, resources: Seq[String], t: Long, prerequisites: Prereq )
-  case class AddTasksInFuture(l: Seq[(UUID, TaskGenerator, Seq[String], Long, Prereq )])
-  case class RemoveTaskInFuture(id: UUID)
-  case class EditFutureTask(id: UUID, t: Long, prerequisites: Prereq)
 
 //  * @todo TODO update for task-acking
   case class AckTasks(ack: Seq[UUID])

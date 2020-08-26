@@ -128,23 +128,6 @@ abstract class Simulation(
     coordinator ! Coordinator.AddTask(id, t, resources)
   }
 
-  protected def task(id: UUID, t: TaskGenerator, resources: Seq[String], time: Long, prerequisites: Prereq = (_)=>true): Unit = {
-    coordinator ! Coordinator.AddTaskInFuture(id, t, resources, time, prerequisites)
-  }
-
-  protected def task(id: UUID, t: TaskGenerator, resources: Seq[String], time: Long, prerequisites: Seq[UUID] ): Unit = {
-    val function: Seq[UUID]=>Boolean = (x:Seq[UUID])=> prerequisites forall (x.contains(_))
-    coordinator ! Coordinator.AddTaskInFuture(id, t, resources, time, function)
-  }
-
-  protected def removeFutureTask(id: UUID) {
-    coordinator ! Coordinator.RemoveTaskInFuture(id)
-  }
-
-  protected def editFutureTask(id: UUID, time: Long, prerequisites: Prereq) {
-    coordinator ! Coordinator.EditFutureTask(id, time, prerequisites)
-  }
-
   protected def tasksAfterThis(task: UUID, time: Long, sender: ActorRef, official: Boolean): Seq[Task] = Seq()
   protected def lookaheadNextItter(sender: ActorRef) = Unit
 
@@ -400,12 +383,7 @@ abstract class AsyncSimulation(
     */
   def task(t: TaskGenerator, callback: Callback, resources: String*): Unit = {
     val id = java.util.UUID.randomUUID
-    task(id, t, callback, resources, None, Seq())
-  }
-
-  def task(t: TaskGenerator, callback: Callback, time: Long, prerequisites: Seq[UUID], resources: String*): Unit = {
-    val id = java.util.UUID.randomUUID
-    task(id, t, callback, resources, Some(time), prerequisites)
+    task(id, t, callback, resources)
   }
 
   /**
@@ -433,16 +411,10 @@ abstract class AsyncSimulation(
       id: UUID,
       t: TaskGenerator,
       callback: Callback,
-      resources: Seq[String],
-      time: Option[Long],
-      prerequisites: Seq[UUID]
+      resources: Seq[String]
   ): Unit = {
     tasks += id -> callback
-    time match {
-      case None => super.task(id, t, resources)
-      case Some(value) =>  super.task(id, t, resources, value, prerequisites)
-    }
-    
+    super.task(id, t, resources)
   }
 
   /**
@@ -478,7 +450,7 @@ abstract class AsyncSimulation(
     case Simulation.Ready => ready()
     case Simulation.AckTasks(tasks) => ack(tasks)
     case Simulation.TaskCompleted(task, time) => complete(task, time)
-    case Simulation.AddTaskWithId(id, t, r) => task(id, t, actorCallback(sender), r, None, Seq())
+    case Simulation.AddTaskWithId(id, t, r) => task(id, t, actorCallback(sender), r)
     case Simulation.AddTask(t, r) => task(t, actorCallback(sender), r: _*)
     case Simulation.Wait => coordinator.forward(Coordinator.WaitFor(self))
     case Simulation.TasksAfterThis(task,time, official) => tasksAfterThis(task,time,sender(), official)
@@ -490,20 +462,18 @@ trait FutureTasks { self: AsyncSimulation =>
 
   def futureTask(t: TaskGenerator, resources: String*): Future[(Task, Long)] = {
     val id = java.util.UUID.randomUUID
-    futureTask(id, t, resources, None, Seq())
+    futureTask(id, t, resources)
   }
 
-  def futureTask(id: UUID, t: TaskGenerator, resources: String*): Future[(Task, Long)] = {
-    futureTask(id, t, resources, None, Seq())
-  }
-
-  def futureTask(id: UUID, t: TaskGenerator, resources: Seq[String], time: Option[Long]=None, prerequisites: Seq[UUID]): Future[(Task, Long)] = {
+  def futureTask(id: UUID, t: TaskGenerator, resources: Seq[String]): Future[(Task, Long)] = {
     val p = Promise[(Task, Long)]()
     def call: Callback = (task, time) => p.success(task, time)
-    task(id, t, call, resources, None, Seq())
+    task(id, t, call, resources)
     p.future
   }
 }
+
+
 
 trait Lookahead extends Simulation {
   type LookaheadFunctions = mutable.Set[( Seq[(UUID,Long)]=>Long, List[(UUID, TaskGenerator, Seq[String])] ) ]

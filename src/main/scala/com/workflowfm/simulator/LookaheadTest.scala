@@ -73,17 +73,17 @@ object LookaheadTest {
                         {(_,_)=> task(id3,generator3, 
                             {(_,_)=> if (tick) promise.success(Unit) else {tick=true; ack(Seq(id3))}
                             }, 
-                        resources3, None, Seq()); ack(Seq(id2)) 
+                        resources3); ack(Seq(id2)) 
                     }, 
-                    resources2, None, Seq()
+                    resources2
                     ); 
                     task(id4,generator4, 
                         {(_,_)=> if (tick) promise.success(Unit) else {tick=true; ack(Seq(id4))}
                         }, 
-                    resources4, None, Seq());
+                    resources4);
                     ack(Seq(id1)) 
                 }, 
-                resources1, None, Seq())
+                resources1)
 
                 ready()
                 promise.future
@@ -124,20 +124,20 @@ object LookaheadTest {
                         {(_,_)=> task(id3,generator3, 
                             {(_,_)=> if (tick) promise.success(Unit) else {tick=true; ack(Seq(id3))}
                             }, 
-                        resources3, None, Seq()); ack(Seq(id2)) 
+                        resources3); ack(Seq(id2)) 
                     }, 
-                    resources2, None, Seq()
+                    resources2
                     ); 
                     task(id4,generator4, 
                         {(_,_)=> task(id5,generator5, 
                             {(_,_)=> if (tick) promise.success(Unit) else {tick=true; ack(Seq(id5))}
                             }, 
-                        resources5, None, Seq()); ack(Seq(id4)) 
+                        resources5); ack(Seq(id4)) 
                     }, 
-                    resources4, None, Seq());
+                    resources4);
                     ack(Seq(id1)) 
                 }, 
-                resources1, None, Seq())
+                resources1)
 
                 ready()
                 promise.future
@@ -186,37 +186,37 @@ object LookaheadTest {
                 def task5(){
                     task(id5,generator5,
                         {(_,_)=> if (tick) promise.success(Unit) else {tick=true; ack(Seq(id5))}},
-                        resources5, None, Seq()
+                        resources5
                     )
                 }
 
                 val task1 = task(id1,generator1, 
                     {(_,_)=> task(id2,generator2,
                         {(_,_)=> if (count==2) task5(); count+=1; ack(Seq(id2))},
-                        resources2, None, Seq()
+                        resources2
                     ); 
                     task(id3,generator3, 
                         {(_,_)=> if (count==2) task5(); count+=1; ack(Seq(id3))}, 
-                        resources3, None, Seq()
+                        resources3
                     );
                     task(id4,generator4, 
                         {(_,_)=> if (count==2) task5(); count+=1; ack(Seq(id4))},
-                        resources4, None, Seq()
+                        resources4
                     );
                     task(id6,generator6, 
                         {(_,_)=> if (tick) promise.success(Unit) else {tick=true; ack(Seq(id6))}},
-                        resources6, None, Seq()
+                        resources6
                     );
                     ack(Seq(id1)) 
                 }, 
-                resources1, None, Seq())
+                resources1)
 
                 ready()
                 promise.future
             } 
         }
 
-        val sim = system.actorOf(Props(new DummySim2("sim",coordinator)))
+        val sim = system.actorOf(Props(new DummySim3("sim",coordinator)))
 
 
         // Define resources
