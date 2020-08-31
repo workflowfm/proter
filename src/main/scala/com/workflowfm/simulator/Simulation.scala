@@ -498,7 +498,6 @@ trait Lookahead extends Simulation {
         val l = function(Seq() ++ completed ++ completedThisItter )
         if (l>=0) { 
           if (official) lookaheadThisItter.-=((function, data))
-          data foreach (d=> println("sim getTasks: " + d._2.name))
           (data map (d => (d._1, d._2, d._3, l))) 
         }
         else List()
