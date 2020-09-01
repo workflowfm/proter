@@ -77,6 +77,16 @@ class SimulationTests extends SimulationTester {
 
         }
 
+        "reply to LookaheadNextItter messages" in {
+            val sim = system.actorOf(Props(new SimLookaheadSeq("sim",self)))
+            sim ! Simulation.Start
+            expectMsg( Coordinator.SimStarted("sim"))
+            val Coordinator.AddTask(id1, generator1, resources1) = expectMsgType[ Coordinator.AddTask ]
+            expectMsg( Coordinator.SimReady )
+            val response = Await.result((sim ? Simulation.LookaheadNextItter)(3.seconds),3.seconds)
+            response should be (Unit)
+        }
+
         "reply to TasksAfterThis messages with future tasks" in {
             val sim = system.actorOf(Props(new SimLookaheadSeq("sim",self)))
 
