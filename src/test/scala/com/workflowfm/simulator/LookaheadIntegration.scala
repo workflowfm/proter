@@ -106,9 +106,10 @@ extends AsyncSimulation(name,coordinator) with Lookahead {
         val resources3 = Seq("r2")
         val resources4 = Seq("r2")
         
-        add1To1Lookahead(id1,id2,generator2,resources2)
-        add1To1Lookahead(id1,id4,generator4,resources4)
-        add1To1Lookahead(id2,id3,generator3,resources3)
+        lookahead.add1To1Lookahead(id1,id2,generator2,resources2)
+        lookahead.add1To1Lookahead(id1,id4,generator4,resources4)
+        lookahead.add1To1Lookahead(id2,id3,generator3,resources3)
+        coordinator ! Coordinator.SetSchedulerLookaheadObject(lookahead)
 
         //Equal to flow: task1 > ( (task2 > task3) + task4 )
         // i.e. the sequence task2>task3 happens in parallel to task4
@@ -156,10 +157,11 @@ extends AsyncSimulation(name,coordinator) with Lookahead {
         val resources4 = Seq("r3")
         val resources5 = Seq("r2")
         
-        add1To1Lookahead(id1,id2,generator2,resources2)
-        add1To1Lookahead(id1,id4,generator4,resources4)
-        add1To1Lookahead(id2,id3,generator3,resources3)
-        add1To1Lookahead(id4,id5,generator5,resources5)
+        lookahead.add1To1Lookahead(id1,id2,generator2,resources2)
+        lookahead.add1To1Lookahead(id1,id4,generator4,resources4)
+        lookahead.add1To1Lookahead(id2,id3,generator3,resources3)
+        lookahead.add1To1Lookahead(id4,id5,generator5,resources5)
+        coordinator ! Coordinator.SetSchedulerLookaheadObject(lookahead)
 
         val task1 = task(id1,generator1, 
             {(_,_)=> task(id2,generator2,
@@ -212,17 +214,19 @@ extends AsyncSimulation(name,coordinator) with Lookahead {
         val resources5 = Seq("r3")
         val resources6 = Seq("r3")
         
-        add1To1Lookahead(id1,id2,generator2,resources2)
-        add1To1Lookahead(id1,id3,generator3,resources3)
-        add1To1Lookahead(id1,id4,generator4,resources4)
-        add1To1Lookahead(id1,id6,generator6,resources6)
+        lookahead.add1To1Lookahead(id1,id2,generator2,resources2)
+        lookahead.add1To1Lookahead(id1,id3,generator3,resources3)
+        lookahead.add1To1Lookahead(id1,id4,generator4,resources4)
+        lookahead.add1To1Lookahead(id1,id6,generator6,resources6)
 
         def function(s: Seq[(java.util.UUID,Long)]): Long = {
             val prerequisites= Set(id2,id3,id4) forall (x=>s.exists {case(id,l)=>id==x} )
             if (prerequisites) ( s filter (x=> Set(id2,id3,id4) contains x._1) map (_._2) ).max
             else -1
         }
-        addManyTo1Lookahead(function, id5, generator5, resources5)
+        lookahead.addManyTo1Lookahead(function, id5, generator5, resources5)
+
+        coordinator ! Coordinator.SetSchedulerLookaheadObject(lookahead)
 
         def task5(){
             task(id5,generator5,

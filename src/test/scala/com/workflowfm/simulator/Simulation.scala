@@ -77,55 +77,55 @@ class SimulationTests extends SimulationTester {
 
         }
 
-        "reply to LookaheadNextItter messages" in {
-            val sim = system.actorOf(Props(new SimLookaheadSeq("sim",self)))
-            sim ! Simulation.Start
-            expectMsg( Coordinator.SimStarted("sim"))
-            val Coordinator.AddTask(id1, generator1, resources1) = expectMsgType[ Coordinator.AddTask ]
-            expectMsg( Coordinator.SimReady )
-            val response = Await.result((sim ? Simulation.LookaheadNextItter)(3.seconds),3.seconds)
-            response should be (Unit)
-        }
+        // "reply to LookaheadNextItter messages" in {
+        //     val sim = system.actorOf(Props(new SimLookaheadSeq("sim",self)))
+        //     sim ! Simulation.Start
+        //     expectMsg( Coordinator.SimStarted("sim"))
+        //     val Coordinator.AddTask(id1, generator1, resources1) = expectMsgType[ Coordinator.AddTask ]
+        //     expectMsg( Coordinator.SimReady )
+        //     val response = Await.result((sim ? Simulation.LookaheadNextItter)(3.seconds),3.seconds)
+        //     response should be (Unit)
+        // }
 
-        "reply to TasksAfterThis messages with future tasks" in {
-            val sim = system.actorOf(Props(new SimLookaheadSeq("sim",self)))
+        // "reply to TasksAfterThis messages with future tasks" in {
+        //     val sim = system.actorOf(Props(new SimLookaheadSeq("sim",self)))
 
-            sim ! Simulation.Start
-            expectMsg( Coordinator.SimStarted("sim"))
-            //task1
-            val Coordinator.AddTask(id1, generator1, resources1) = expectMsgType[ Coordinator.AddTask ]
-            expectMsg( Coordinator.SimReady )
-            val task1 = generator1.create(id1,0L,sim,resources1:_*)
+        //     sim ! Simulation.Start
+        //     expectMsg( Coordinator.SimStarted("sim"))
+        //     //task1
+        //     val Coordinator.AddTask(id1, generator1, resources1) = expectMsgType[ Coordinator.AddTask ]
+        //     expectMsg( Coordinator.SimReady )
+        //     val task1 = generator1.create(id1,0L,sim,resources1:_*)
 
-            Await.result((sim ? Simulation.LookaheadNextItter)(3.seconds),3.seconds)
-            val response1 = Await.result((sim ? Simulation.TasksAfterThis(id1,2L))(3.seconds),3.seconds).asInstanceOf[Seq[Task]]
-            response1.size should be (1)
-            response1.head.name should be ("task2")
+        //     Await.result((sim ? Simulation.LookaheadNextItter)(3.seconds),3.seconds)
+        //     val response1 = Await.result((sim ? Simulation.TasksAfterThis(id1,2L))(3.seconds),3.seconds).asInstanceOf[Seq[Task]]
+        //     response1.size should be (1)
+        //     response1.head.name should be ("task2")
 
-            sim ! Simulation.TaskCompleted(task1,2L)
-            //task2
-            val Coordinator.AddTask(id2, generator2, resources2) = expectMsgType[ Coordinator.AddTask ]
-            expectMsg( Coordinator.AckTasks(Seq(id1)))
-            val task2 = generator2.create(id2,2L,sim,resources2:_*)
+        //     sim ! Simulation.TaskCompleted(task1,2L)
+        //     //task2
+        //     val Coordinator.AddTask(id2, generator2, resources2) = expectMsgType[ Coordinator.AddTask ]
+        //     expectMsg( Coordinator.AckTasks(Seq(id1)))
+        //     val task2 = generator2.create(id2,2L,sim,resources2:_*)
 
-            Await.result((sim ? Simulation.LookaheadNextItter)(3.seconds),3.seconds)
-            val response2 = Await.result((sim ? Simulation.TasksAfterThis(id2,4L))(3.seconds),3.seconds).asInstanceOf[Seq[Task]]
-            response2.size should be (1)
-            response2.head.name should be ("task3")
+        //     Await.result((sim ? Simulation.LookaheadNextItter)(3.seconds),3.seconds)
+        //     val response2 = Await.result((sim ? Simulation.TasksAfterThis(id2,4L))(3.seconds),3.seconds).asInstanceOf[Seq[Task]]
+        //     response2.size should be (1)
+        //     response2.head.name should be ("task3")
 
-            sim ! Simulation.TaskCompleted(task2,4L)
-            //task3
-            val Coordinator.AddTask(id3, generator3, resources3) = expectMsgType[ Coordinator.AddTask ]
-            expectMsg( Coordinator.AckTasks(Seq(id2)))
-            val task3 = generator1.create(id3,4L,sim,resources3:_*)
+        //     sim ! Simulation.TaskCompleted(task2,4L)
+        //     //task3
+        //     val Coordinator.AddTask(id3, generator3, resources3) = expectMsgType[ Coordinator.AddTask ]
+        //     expectMsg( Coordinator.AckTasks(Seq(id2)))
+        //     val task3 = generator1.create(id3,4L,sim,resources3:_*)
 
-            Await.result((sim ? Simulation.LookaheadNextItter)(3.seconds),3.seconds)
-            val response3 = Await.result((sim ? Simulation.TasksAfterThis(id3,6L))(3.seconds),3.seconds).asInstanceOf[Seq[Task]]
-            response3.size should be (0)
+        //     Await.result((sim ? Simulation.LookaheadNextItter)(3.seconds),3.seconds)
+        //     val response3 = Await.result((sim ? Simulation.TasksAfterThis(id3,6L))(3.seconds),3.seconds).asInstanceOf[Seq[Task]]
+        //     response3.size should be (0)
 
-            sim ! Simulation.TaskCompleted(task3,6L)
+        //     sim ! Simulation.TaskCompleted(task3,6L)
 
-        }
+        // }
     }
 }
 
@@ -172,32 +172,32 @@ class SimulationTester
         } 
     }
 
-    class SimLookaheadSeq(name: String, coordinator: ActorRef)
-    (implicit executionContext: ExecutionContext) 
-    extends AsyncSimulation(name,coordinator) with Lookahead {
-        val promise = Promise[Any]()
-        override def run():Future[Any] = { 
-            val id1 = java.util.UUID.randomUUID
-            val id2 = java.util.UUID.randomUUID
-            val id3 = java.util.UUID.randomUUID
-            val generator1 = TaskGenerator("task1","sim",ConstantGenerator(2L),ConstantGenerator(0L))
-            val generator2 = TaskGenerator("task2","sim",ConstantGenerator(2L),ConstantGenerator(0L))
-            val generator3 = TaskGenerator("task3","sim",ConstantGenerator(2L),ConstantGenerator(0L))
-            val resources = Seq("r1")
+    // class SimLookaheadSeq(name: String, coordinator: ActorRef)
+    // (implicit executionContext: ExecutionContext) 
+    // extends AsyncSimulation(name,coordinator) with Lookahead {
+    //     val promise = Promise[Any]()
+    //     override def run():Future[Any] = { 
+    //         val id1 = java.util.UUID.randomUUID
+    //         val id2 = java.util.UUID.randomUUID
+    //         val id3 = java.util.UUID.randomUUID
+    //         val generator1 = TaskGenerator("task1","sim",ConstantGenerator(2L),ConstantGenerator(0L))
+    //         val generator2 = TaskGenerator("task2","sim",ConstantGenerator(2L),ConstantGenerator(0L))
+    //         val generator3 = TaskGenerator("task3","sim",ConstantGenerator(2L),ConstantGenerator(0L))
+    //         val resources = Seq("r1")
             
-            add1To1Lookahead(id1,id2,generator2,resources)
-            add1To1Lookahead(id2,id3,generator3,resources)
+    //         add1To1Lookahead(id1,id2,generator2,resources)
+    //         add1To1Lookahead(id2,id3,generator3,resources)
 
-            val task1 = task(id1,generator1, 
-                {(_,_)=> task(id2,generator2,
-                    {(_,_)=> task(id3,generator3, 
-                        {(_,_)=> promise.success(Unit)}, 
-                    resources); ack(Seq(id2)) }, 
-                resources); ack(Seq(id1)) }, 
-            resources)
+    //         val task1 = task(id1,generator1, 
+    //             {(_,_)=> task(id2,generator2,
+    //                 {(_,_)=> task(id3,generator3, 
+    //                     {(_,_)=> promise.success(Unit)}, 
+    //                 resources); ack(Seq(id2)) }, 
+    //             resources); ack(Seq(id1)) }, 
+    //         resources)
 
-            ready()
-            promise.future
-        } 
-    }
+    //         ready()
+    //         promise.future
+    //     } 
+    // }
 }

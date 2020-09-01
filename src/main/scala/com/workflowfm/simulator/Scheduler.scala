@@ -419,12 +419,14 @@ object Schedule {
 
 object LookaheadScheduler extends Scheduler {
   import scala.collection.immutable.Queue
-  import akka.pattern.ask
   import akka.actor._
-  import akka.util.Timeout
-  import java.util.concurrent.TimeUnit
   import scala.concurrent.{Await, Future, ExecutionContext}
-  import scala.concurrent.duration._
+
+  protected val lookaheadObjects: collection.mutable.Map[ActorRef,LookaheadObj] = collection.mutable.Map()
+
+  def setLookaheadObject(actor: ActorRef, obj: LookaheadObj) = {
+    lookaheadObjects += actor -> obj
+  }
 
   def getNextTasks(
       tasks: SortedSet[Task],
@@ -432,17 +434,12 @@ object LookaheadScheduler extends Scheduler {
       resourceMap: Map[String, TaskResource]
   ): Seq[Task] = {
     implicit val executionContext = ExecutionContext.global
-    val r = resourceMap.values.filter(_.currentTask.isDefined).map{
-      x=>
-        Await.result(
-          (x.currentTask.get._2.actor ? Simulation.TasksAfterThis(
+    val r = resourceMap.values.filter(_.currentTask.isDefined).flatMap{ x=>
+          lookaheadObjects.get(x.currentTask.get._2.actor).orNull.tasksAfterThis(
             x.currentTask.get._2.id,
             x.nextAvailableTimestamp(currentTime),
-            false))
-          (3.seconds),3.seconds).asInstanceOf[Seq[Task]]
-      }.flatten
-    val messages = (( (tasks ++ r) map (_.actor) ).toSet) map { x:ActorRef => (x ? Simulation.LookaheadNextItter)(3.seconds) }
-    Await.result(Future.sequence(messages), 5.seconds)
+            false).asInstanceOf[Seq[Task]]}
+    ( (((tasks ++ r) map (_.actor)).toSet) map {x=> lookaheadObjects.get(x)} ).flatten foreach (_.lookaheadNextItter)
     findNextTasks(currentTime, resourceMap, resourceMap.mapValues(Schedule(_)), tasks ++ r, Queue())
   }
 
@@ -457,14 +454,13 @@ object LookaheadScheduler extends Scheduler {
     else {
       val t = tasks.head
       val start = Schedule.mergeSchedules(t.resources.flatMap(schedules.get(_))) ? (Math.max(currentTime,t.created), t)
-      val futureTasks = (t.actor ? Simulation.TasksAfterThis(t.id, start+t.estimatedDuration))(3.seconds)
+      val futureTasks = lookaheadObjects.get(t.actor).orNull.tasksAfterThis(t.id, start+t.estimatedDuration)
       val schedules2 = (schedules /: t.resources) {
         case (s, r) => s + (r -> (s.getOrElse(r, Schedule()) +> (start, t)))
       }
       val result2 =
         if (start == currentTime && t.taskResources(resourceMap).forall(_.isIdle)) result :+ t
         else result
-      val futureTasksResult = Await.result(futureTasks, 3.seconds)
-      findNextTasks(currentTime, resourceMap, schedules2, tasks.tail ++ futureTasksResult.asInstanceOf[Seq[Task]], result2)
+      findNextTasks(currentTime, resourceMap, schedules2, tasks.tail ++ futureTasks, result2)
     }
 }

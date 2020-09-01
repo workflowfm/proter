@@ -571,6 +571,10 @@ class Coordinator(
       }
     case Coordinator.Start => start()
     case Coordinator.Ping => sender() ! Coordinator.Time(time)
+
+    //todo this is ugly
+    // I've never seen it happen, but surely there is a risk that scheduler.getNextTasks is called before the lookahead updates?
+    case Coordinator.SetSchedulerLookaheadObject(obj) => scheduler match { case LookaheadScheduler => LookaheadScheduler.setLookaheadObject(sender(),obj) }
   }
 
   /**
@@ -677,6 +681,9 @@ object Coordinator {
     * @group simulations
     */
   case class WaitFor(actor: ActorRef)
+
+  //todo document
+  case class SetSchedulerLookaheadObject(o: LookaheadObj)
 
   /**
     * Creates properties for a [[Coordinator]] actor.
