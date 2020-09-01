@@ -66,9 +66,6 @@ abstract class Simulation(
     coordinator: ActorRef
 )(implicit executionContext: ExecutionContext)
     extends Actor {
-    
-  type Prereq = Seq[UUID] => Boolean
-
 
   /**
     * Initiates the execution of the simulation.
@@ -247,6 +244,7 @@ object Simulation {
     */
   case class TaskCompleted(task: Task, time: Long)
 
+  // TODO documentation
   case class TasksAfterThis(id: UUID, endTime: Long, official: Boolean = true)
   case object LookaheadNextItter
   
@@ -474,7 +472,7 @@ trait FutureTasks { self: AsyncSimulation =>
 }
 
 
-
+//TODO documentation
 trait Lookahead extends Simulation {
   type LookaheadFunctions = mutable.Set[( Seq[(UUID,Long)]=>Long, List[(UUID, TaskGenerator, Seq[String])] ) ]
 
@@ -483,12 +481,12 @@ trait Lookahead extends Simulation {
   protected val completedThisItter = mutable.Set[(UUID,Long)]()
   protected val lookaheadThisItter:LookaheadFunctions = mutable.Set()
 
+  //return Seq[Task] of future tasks to the caller
   override protected def tasksAfterThis(task: UUID, time: Long, sender: ActorRef, official: Boolean): Seq[Task] = {
     completedThisItter += ((task, time))
     val tasks = getTasks(if (official) lookaheadThisItter else lookaheadFunctions, official)
     sender ! tasks
-    //Thread.sleep(2000)
-    tasks //this return is not used?
+    tasks //this return might not be necessary
   }
 
   private def getTasks(functions: LookaheadFunctions, official: Boolean): Seq[Task] = {
@@ -503,7 +501,7 @@ trait Lookahead extends Simulation {
         else List()
       } ).toList
     
-    Seq[Task]() ++ ( taskData map (x => x._2.create(x._1,x._4,self,x._3:_*)) )
+    ( taskData map (x => x._2.create(x._1,x._4,self,x._3:_*)) ).asInstanceOf[Seq[Task]]
   }
 
   abstract override def complete(task: Task, time: Long) = {
@@ -533,6 +531,10 @@ trait Lookahead extends Simulation {
 
   protected def addManyTo1Lookahead(function: Seq[(UUID,Long)]=>Long, resultID: UUID, generator: TaskGenerator, resources: Seq[String]) {
     lookaheadFunctions += ( (function, List((resultID, generator, resources)) ) )
+  }
+
+  protected def addManyToManyLookahead(function: Seq[(UUID,Long)]=>Long, data: List[(UUID, TaskGenerator, Seq[String])]) {
+    data foreach ( d => addManyTo1Lookahead( function, d._1, d._2, d._3 ) )
   }
 
   protected def removeIdSource(id: UUID) {

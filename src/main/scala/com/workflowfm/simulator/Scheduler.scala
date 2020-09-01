@@ -432,15 +432,15 @@ object LookaheadScheduler extends Scheduler {
       resourceMap: Map[String, TaskResource]
   ): Seq[Task] = {
     implicit val executionContext = ExecutionContext.global
-    val r = resourceMap.values.filter(_.currentTask.isDefined).map{x=>
-      Await.result(
-        (x.currentTask.get._2.actor ? Simulation.TasksAfterThis(
-          x.currentTask.get._2.id,
-          x.nextAvailableTimestamp(currentTime),
-          false))(Timeout(1, TimeUnit.DAYS)),
-        3.seconds
-      ).asInstanceOf[Seq[Task]]
-    }.flatten
+    val r = resourceMap.values.filter(_.currentTask.isDefined).map{
+      x=>
+        Await.result(
+          (x.currentTask.get._2.actor ? Simulation.TasksAfterThis(
+            x.currentTask.get._2.id,
+            x.nextAvailableTimestamp(currentTime),
+            false))
+          (3.seconds),3.seconds).asInstanceOf[Seq[Task]]
+      }.flatten
     val messages = (( (tasks ++ r) map (_.actor) ).toSet) map { x:ActorRef => (x ? Simulation.LookaheadNextItter)(3.seconds) }
     Await.result(Future.sequence(messages), 5.seconds)
     findNextTasks(currentTime, resourceMap, resourceMap.mapValues(Schedule(_)), tasks ++ r, Queue())
@@ -457,7 +457,7 @@ object LookaheadScheduler extends Scheduler {
     else {
       val t = tasks.head
       val start = Schedule.mergeSchedules(t.resources.flatMap(schedules.get(_))) ? (Math.max(currentTime,t.created), t)
-      val futureTasks = (t.actor ? Simulation.TasksAfterThis(t.id, start+t.estimatedDuration))(Timeout(1, TimeUnit.DAYS))
+      val futureTasks = (t.actor ? Simulation.TasksAfterThis(t.id, start+t.estimatedDuration))(3.seconds)
       val schedules2 = (schedules /: t.resources) {
         case (s, r) => s + (r -> (s.getOrElse(r, Schedule()) +> (start, t)))
       }
