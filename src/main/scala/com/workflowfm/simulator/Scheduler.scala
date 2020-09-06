@@ -438,11 +438,11 @@ object LookaheadScheduler extends Scheduler {
           lookaheadObjects.get(x.currentTask.get._2.actor).orNull.tasksAfterThis(
             x.currentTask.get._2.id,
             x.nextAvailableTimestamp(currentTime),
-            false).asInstanceOf[Seq[Task]]}
+            false).asInstanceOf[Seq[Task]]} //todo
     ( (((tasks ++ r) map (_.actor)).toSet) map {x=> lookaheadObjects.get(x)} ).flatten foreach (_.lookaheadNextItter)
     findNextTasks(currentTime, resourceMap, resourceMap.mapValues(Schedule(_)), tasks ++ r, Queue())
   }
-
+ //todo tailrec
   def findNextTasks(
       currentTime: Long,
       resourceMap: Map[String, TaskResource],

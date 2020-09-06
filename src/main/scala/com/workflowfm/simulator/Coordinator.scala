@@ -574,6 +574,7 @@ class Coordinator(
 
     //todo this is ugly
     // I've never seen it happen, but surely there is a risk that scheduler.getNextTasks is called before the lookahead updates?
+    //todo have setLookaheadObject in all schedulers but defaultscheduler doesnt use it
     case Coordinator.SetSchedulerLookaheadObject(obj) => scheduler match { case LookaheadScheduler => LookaheadScheduler.setLookaheadObject(sender(),obj) }
   }
 

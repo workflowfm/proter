@@ -135,6 +135,7 @@ abstract class Simulation(
     */
   protected def start(): Unit = {
     coordinator ! Coordinator.SimStarted(name)
+    
     run().onComplete { x =>
       coordinator ! Coordinator.SimDone(name, x)
     }
@@ -469,4 +470,10 @@ trait Lookahead extends Simulation {
     super.complete(task,time)
     coordinator ! Coordinator.SetSchedulerLookaheadObject(lookahead)
   }
+  
+  //def createLookahead(data) = {
+    //
+    //
+    //send to scheduler or override run
+  //}
 }

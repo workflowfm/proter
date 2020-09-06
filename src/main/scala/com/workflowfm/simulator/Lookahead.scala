@@ -9,7 +9,7 @@ class LookaheadObj(protected val simulation: ActorRef) {
 
     protected val lookaheadFunctions:LookaheadFunctions = mutable.Set()
     protected val completed = mutable.Set[(UUID,Long)]()
-    protected val completedThisItter = mutable.Set[(UUID,Long)]()
+    protected val completedThisItter = mutable.Set[(UUID,Long)]() //todo spelling
     protected val lookaheadThisItter:LookaheadFunctions = mutable.Set()
 
     def tasksAfterThis(task: UUID, time: Long, official: Boolean=true): Seq[Task] = {
@@ -28,7 +28,7 @@ class LookaheadObj(protected val simulation: ActorRef) {
                 }
                 else List()
         } ).toList
-        ( taskData map (x => x._2.create(x._1,x._4,simulation,x._3:_*)) ).asInstanceOf[Seq[Task]]
+        ( taskData map (x => x._2.create(x._1,x._4,simulation,x._3:_*)) ).toSeq
     }
 
     def complete(task: Task, time: Long) = {
