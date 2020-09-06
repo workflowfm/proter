@@ -181,7 +181,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       val m = new TestResourceMap("A")   
       val answer = Future( m.l(t(1L, Seq("A"), actor=probe.ref)) )
 
-      probe.expectMsg(TestCalls.LookaheadNextItter)
+      probe.expectMsg(TestCalls.LookaheadNextIter)
       //probe.reply(Unit)
     }
 
@@ -189,7 +189,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       val m = new TestResourceMap("A")   
       val answer = Future( m.l(t(1L, Seq("A"), actor=probe.ref)) )
 
-      probe.expectMsg(TestCalls.LookaheadNextItter)
+      probe.expectMsg(TestCalls.LookaheadNextIter)
       probe.reply(Unit)
       val TestCalls.TasksAfterThis(id,time,official) = probe.expectMsgType[TestCalls.TasksAfterThis]
       id.getMostSignificantBits should be (1L)
@@ -208,7 +208,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       id.getMostSignificantBits should be (0L)
 
       probe.reply(Seq()) // reply with no future tasks
-      probe.expectMsg(TestCalls.LookaheadNextItter) // the scheduler continues
+      probe.expectMsg(TestCalls.LookaheadNextIter) // the scheduler continues
       //probe.reply(Unit)
 
     }
@@ -217,7 +217,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       val m = new TestResourceMap("A")   
       val answer = Future( m.l(t(1L, Seq("A"), actor=probe.ref)) )
 
-      probe.expectMsg(TestCalls.LookaheadNextItter)
+      probe.expectMsg(TestCalls.LookaheadNextIter)
       probe.reply(Unit)
       probe.expectMsgType[TestCalls.TasksAfterThis]
       probe.reply(Seq())
@@ -233,7 +233,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
         t(2L, Seq("B"), actor=probe.ref)
       ) )
 
-      probe.expectMsg(TestCalls.LookaheadNextItter)
+      probe.expectMsg(TestCalls.LookaheadNextIter)
       probe.reply(Unit)
       probe.expectMsgType[TestCalls.TasksAfterThis]
       probe.reply(Seq())
@@ -250,7 +250,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
 
       probe.expectMsgType[TestCalls.TasksAfterThis] //unofficial
       probe.reply(Seq())
-      probe.expectMsg(TestCalls.LookaheadNextItter)
+      probe.expectMsg(TestCalls.LookaheadNextIter)
       probe.reply(Unit)
       probe.expectMsgType[TestCalls.TasksAfterThis] //official
       probe.reply(Seq())
@@ -266,7 +266,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
 
       probe.expectMsgType[TestCalls.TasksAfterThis] //unofficial
       probe.reply(Seq())
-      probe.expectMsg(TestCalls.LookaheadNextItter)
+      probe.expectMsg(TestCalls.LookaheadNextIter)
       probe.reply(Unit)
       probe.expectMsgType[TestCalls.TasksAfterThis] //official
       probe.reply(Seq())
@@ -282,7 +282,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
 
       probe.expectMsgType[TestCalls.TasksAfterThis] //unofficial
       probe.reply(Seq())
-      probe.expectMsg(TestCalls.LookaheadNextItter)
+      probe.expectMsg(TestCalls.LookaheadNextIter)
       probe.reply(Unit)
       probe.expectMsgType[TestCalls.TasksAfterThis] //official
       probe.reply(Seq())
@@ -298,7 +298,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
 
       probe.expectMsgType[TestCalls.TasksAfterThis] //unofficial
       probe.reply(Seq(t(2L, Seq("A"), Task.High, 1L))) // reply with a future task
-      probe.expectMsg(TestCalls.LookaheadNextItter)
+      probe.expectMsg(TestCalls.LookaheadNextIter)
       probe.reply(Unit)
       probe.expectMsgType[TestCalls.TasksAfterThis] //official
       probe.reply(Seq())
@@ -314,7 +314,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
 
       probe.expectMsgType[TestCalls.TasksAfterThis] //unofficial
       probe.reply(Seq(t(2L, Seq("A","B"), Task.Low, 1L))) // reply with a future task
-      probe.expectMsg(TestCalls.LookaheadNextItter)
+      probe.expectMsg(TestCalls.LookaheadNextIter)
       probe.reply(Unit)
       probe.expectMsgType[TestCalls.TasksAfterThis] //official
       probe.reply(Seq())
@@ -328,7 +328,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       val m = new TestResourceMap("A","B")
       val answer = Future(m.l(t(1L, Seq("A"), Task.Low),t(2L, Seq("B"), Task.High)))
 
-      probe.expectMsg(TestCalls.LookaheadNextItter)
+      probe.expectMsg(TestCalls.LookaheadNextIter)
       probe.reply(Unit)
       probe.expectMsgType[TestCalls.TasksAfterThis] //asks about task 2 first because of priority
       probe.reply(Seq(t(3L, Seq("A","B"), Task.High, 1L))) // reply with a task that uses A and B
@@ -349,9 +349,9 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       val answer = Future( m.l(t(1L, Seq("A"), Task.Low, actor=probe.ref), t(2L, Seq("B"), Task.High, actor=probe2.ref)))
 
       //This test is a bit tricky because probes are synchronous, so the order in which I write the expectMsg is important
-      probe.expectMsg(TestCalls.LookaheadNextItter) //tells probe1 first because of the order they were passed
+      probe.expectMsg(TestCalls.LookaheadNextIter) //tells probe1 first because of the order they were passed
       probe.reply(Unit)
-      probe2.expectMsg(TestCalls.LookaheadNextItter) // all the probes are notified before it starts waiting for replies 
+      probe2.expectMsg(TestCalls.LookaheadNextIter) // all the probes are notified before it starts waiting for replies 
       probe2.reply(Unit)
 
       probe2.expectMsgType[TestCalls.TasksAfterThis] // asks probe2 first because its task was high priority
@@ -392,8 +392,8 @@ class SchedulerTests extends TaskTester with ScheduleTester {
     import akka.pattern.ask
     val actor = simulation
 
-    override def lookaheadNextItter = {
-      Await.result((actor ? TestCalls.LookaheadNextItter)(3.seconds),3.seconds)
+    override def lookaheadNextIter = {
+      Await.result((actor ? TestCalls.LookaheadNextIter)(3.seconds),3.seconds)
     }
     override def tasksAfterThis(task: ju.UUID, time: Long, official: Boolean): Seq[Task] = {
       Await.result((actor ? TestCalls.TasksAfterThis(task,time,official))(3.seconds),3.seconds).asInstanceOf[Seq[Task]]
@@ -407,5 +407,5 @@ trait ScheduleTester {
 
 object TestCalls {
   case class TasksAfterThis(task: ju.UUID,time: Long, official: Boolean)
-  case object LookaheadNextItter
+  case object LookaheadNextIter
 }

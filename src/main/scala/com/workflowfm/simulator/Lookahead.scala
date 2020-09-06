@@ -9,21 +9,21 @@ class LookaheadObj(protected val simulation: ActorRef) {
 
     protected val lookaheadFunctions:LookaheadFunctions = mutable.Set()
     protected val completed = mutable.Set[(UUID,Long)]()
-    protected val completedThisItter = mutable.Set[(UUID,Long)]() //todo spelling
-    protected val lookaheadThisItter:LookaheadFunctions = mutable.Set()
+    protected val completedThisIter = mutable.Set[(UUID,Long)]() //todo spelling
+    protected val lookaheadThisIter:LookaheadFunctions = mutable.Set()
 
     def tasksAfterThis(task: UUID, time: Long, official: Boolean=true): Seq[Task] = {
-        completedThisItter += ((task, time))
-        getTasks(if (official) lookaheadThisItter else lookaheadFunctions, official)
+        completedThisIter += ((task, time))
+        getTasks(if (official) lookaheadThisIter else lookaheadFunctions, official)
     }
 
     private def getTasks(functions: LookaheadFunctions, official: Boolean): Seq[Task] = {
         val taskData: List[(TaskGenerator, Seq[String], Long)] = ( 
         functions flatMap { 
             case(function, data) => 
-                val l = function(Seq() ++ completed ++ completedThisItter )
+                val l = function(Seq() ++ completed ++ completedThisIter )
                 if (l>=0) { 
-                    if (official) lookaheadThisItter.-=((function, data))
+                    if (official) lookaheadThisIter.-=((function, data))
                     (data map (d => (d._1, d._2, l))) 
                 }
                 else List()
@@ -36,10 +36,10 @@ class LookaheadObj(protected val simulation: ActorRef) {
         removeIdSource(task.id)
     }
 
-    def lookaheadNextItter: Unit = {
-        completedThisItter.clear()
-        lookaheadThisItter.clear()
-        lookaheadThisItter ++= lookaheadFunctions
+    def lookaheadNextIter: Unit = {
+        completedThisIter.clear()
+        lookaheadThisIter.clear()
+        lookaheadThisIter ++= lookaheadFunctions
     }
 
     def add1To1Lookahead(sourceID: UUID, generator: TaskGenerator, resources: Seq[String]) {
