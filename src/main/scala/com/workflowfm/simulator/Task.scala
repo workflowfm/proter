@@ -200,7 +200,7 @@ case class TaskGenerator(
     * @param resources The names of the [[TaskResource]]s that will be used by the task.
     * @return The generated [[Task]].
     */
-  def create(id: UUID, currentTime: Long, actor: ActorRef, resources: String*) = {
+  def create(currentTime: Long, actor: ActorRef, resources: String*) = {
     val creation = if (createTime >= 0) createTime else currentTime
 
     new Task(
