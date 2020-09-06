@@ -36,10 +36,10 @@ class SimulationTests extends SimulationTester {
 
             sim ! Simulation.Start
             expectMsg( Coordinator.SimStarted("sim"))
-            val Coordinator.AddTask(id, generator, resources) = expectMsgType[ Coordinator.AddTask ]
+            val Coordinator.AddTask(generator, resources) = expectMsgType[ Coordinator.AddTask ]
             expectMsg( Coordinator.SimReady )
 
-            val task = generator.create(id,0L,sim,"r1")
+            val task = generator.create(0L,sim,"r1")
             sim ! Simulation.TaskCompleted(task,2L)
             val Coordinator.SimDone(name, future) = expectMsgType[ Coordinator.SimDone ]
             name should be ("sim")
@@ -53,21 +53,21 @@ class SimulationTests extends SimulationTester {
             expectMsg( Coordinator.SimStarted("sim"))
 
             //task1
-            val Coordinator.AddTask(id1, generator1, resources1) = expectMsgType[ Coordinator.AddTask ]
+            val Coordinator.AddTask(generator1, resources1) = expectMsgType[ Coordinator.AddTask ]
             expectMsg( Coordinator.SimReady )
-            val task1 = generator1.create(id1,0L,sim,resources1:_*)
+            val task1 = generator1.create(0L,sim,resources1:_*)
             sim ! Simulation.TaskCompleted(task1,2L)
 
             //task2
-            val Coordinator.AddTask(id2, generator2, resources2) = expectMsgType[ Coordinator.AddTask ]
-            expectMsg( Coordinator.AckTasks(Seq(id1)))
-            val task2 = generator2.create(id2,2L,sim,resources2:_*)
+            val Coordinator.AddTask(generator2, resources2) = expectMsgType[ Coordinator.AddTask ]
+            expectMsg( Coordinator.AckTasks(Seq(generator1.id)))
+            val task2 = generator2.create(2L,sim,resources2:_*)
             sim ! Simulation.TaskCompleted(task2,4L)
 
             //task3
-            val Coordinator.AddTask(id3, generator3, resources3) = expectMsgType[ Coordinator.AddTask ]
-            expectMsg( Coordinator.AckTasks(Seq(id2)))
-            val task3 = generator3.create(id3,2L,sim,resources3:_*)
+            val Coordinator.AddTask(generator3, resources3) = expectMsgType[ Coordinator.AddTask ]
+            expectMsg( Coordinator.AckTasks(Seq(generator2.id)))
+            val task3 = generator3.create(2L,sim,resources3:_*)
             sim ! Simulation.TaskCompleted(task3,6L)
 
             //expectMsg( Coordinator.AckTasks(Seq(id3)))
@@ -156,15 +156,15 @@ class SimulationTester
             val id1 = java.util.UUID.randomUUID
             val id2 = java.util.UUID.randomUUID
             val id3 = java.util.UUID.randomUUID
-            val task1 = futureTask(id1, TaskGenerator("task1","sim",ConstantGenerator(2L),ConstantGenerator(0L)),Seq("r1"))
+            val task1 = futureTask(TaskGenerator("task1",id1,"sim",ConstantGenerator(2L),ConstantGenerator(0L)),Seq("r1"))
             ready()
             val task2 = task1 flatMap { _=> 
-                val t = futureTask(id2,TaskGenerator("task2","sim",ConstantGenerator(2L),ConstantGenerator(0L)),Seq("r1"))
+                val t = futureTask(TaskGenerator("task2",id2,"sim",ConstantGenerator(2L),ConstantGenerator(0L)),Seq("r1"))
                 ack(Seq(id1))
                 t
             }
             val task3 = task2 flatMap { _=> 
-                val t = futureTask(id3,TaskGenerator("task3","sim",ConstantGenerator(2L),ConstantGenerator(0L)),Seq("r1"))
+                val t = futureTask(TaskGenerator("task3",id3,"sim",ConstantGenerator(2L),ConstantGenerator(0L)),Seq("r1"))
                 ack(Seq(id2))
                 t
             }

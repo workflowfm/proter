@@ -97,32 +97,32 @@ extends AsyncSimulation(name,coordinator) with Lookahead {
         val id2 = java.util.UUID.randomUUID
         val id3 = java.util.UUID.randomUUID
         val id4 = java.util.UUID.randomUUID
-        val generator1 = TaskGenerator("task1","sim",ConstantGenerator(2L),ConstantGenerator(0L),(-1),Task.High)
-        val generator2 = TaskGenerator("task2","sim",ConstantGenerator(2L),ConstantGenerator(0L),(-1),Task.High)
-        val generator3 = TaskGenerator("task3","sim",ConstantGenerator(4L),ConstantGenerator(0L),(-1),Task.High)
-        val generator4 = TaskGenerator("task4","sim",ConstantGenerator(4L),ConstantGenerator(0L),(-1),Task.Low)
+        val generator1 = TaskGenerator("task1",id1,"sim",ConstantGenerator(2L),ConstantGenerator(0L),(-1),Task.High)
+        val generator2 = TaskGenerator("task2",id2,"sim",ConstantGenerator(2L),ConstantGenerator(0L),(-1),Task.High)
+        val generator3 = TaskGenerator("task3",id3,"sim",ConstantGenerator(4L),ConstantGenerator(0L),(-1),Task.High)
+        val generator4 = TaskGenerator("task4",id4,"sim",ConstantGenerator(4L),ConstantGenerator(0L),(-1),Task.Low)
         val resources1 = Seq("r3")
         val resources2 = Seq("r1")
         val resources3 = Seq("r2")
         val resources4 = Seq("r2")
         
-        lookahead.add1To1Lookahead(id1,id2,generator2,resources2)
-        lookahead.add1To1Lookahead(id1,id4,generator4,resources4)
-        lookahead.add1To1Lookahead(id2,id3,generator3,resources3)
+        lookahead.add1To1Lookahead(id1,generator2,resources2)
+        lookahead.add1To1Lookahead(id1,generator4,resources4)
+        lookahead.add1To1Lookahead(id2,generator3,resources3)
         coordinator ! Coordinator.SetSchedulerLookaheadObject(lookahead)
 
         //Equal to flow: task1 > ( (task2 > task3) + task4 )
         // i.e. the sequence task2>task3 happens in parallel to task4
-        val task1 = task(id1,generator1, 
-            {(_,_)=> task(id2,generator2,
-                {(_,_)=> task(id3,generator3, 
+        val task1 = task(generator1, 
+            {(_,_)=> task(generator2,
+                {(_,_)=> task(generator3, 
                     {(_,_)=> if (tick) promise.success(Unit) else {tick=true; ack(Seq(id3))}
                     }, 
                 resources3); ack(Seq(id2)) 
             }, 
             resources2
             ); 
-            task(id4,generator4, 
+            task(generator4, 
                 {(_,_)=> if (tick) promise.success(Unit) else {tick=true; ack(Seq(id4))}
                 }, 
             resources4);
@@ -146,34 +146,34 @@ extends AsyncSimulation(name,coordinator) with Lookahead {
         val id3 = java.util.UUID.randomUUID
         val id4 = java.util.UUID.randomUUID
         val id5 = java.util.UUID.randomUUID
-        val generator1 = TaskGenerator("task1","sim",ConstantGenerator(2L),ConstantGenerator(0L),(-1),Task.High)
-        val generator2 = TaskGenerator("task2","sim",ConstantGenerator(4L),ConstantGenerator(0L),(-1),Task.High)
-        val generator3 = TaskGenerator("task3","sim",ConstantGenerator(3L),ConstantGenerator(0L),(-1),Task.High)
-        val generator4 = TaskGenerator("task4","sim",ConstantGenerator(2L),ConstantGenerator(0L),(-1),Task.Low)
-        val generator5 = TaskGenerator("task5","sim",ConstantGenerator(3L),ConstantGenerator(0L),(-1),Task.Low)
+        val generator1 = TaskGenerator("task1",id1,"sim",ConstantGenerator(2L),ConstantGenerator(0L),(-1),Task.High)
+        val generator2 = TaskGenerator("task2",id2,"sim",ConstantGenerator(4L),ConstantGenerator(0L),(-1),Task.High)
+        val generator3 = TaskGenerator("task3",id3,"sim",ConstantGenerator(3L),ConstantGenerator(0L),(-1),Task.High)
+        val generator4 = TaskGenerator("task4",id4,"sim",ConstantGenerator(2L),ConstantGenerator(0L),(-1),Task.Low)
+        val generator5 = TaskGenerator("task5",id5,"sim",ConstantGenerator(3L),ConstantGenerator(0L),(-1),Task.Low)
         val resources1 = Seq("r2")
         val resources2 = Seq("r1")
         val resources3 = Seq("r2")
         val resources4 = Seq("r3")
         val resources5 = Seq("r2")
         
-        lookahead.add1To1Lookahead(id1,id2,generator2,resources2)
-        lookahead.add1To1Lookahead(id1,id4,generator4,resources4)
-        lookahead.add1To1Lookahead(id2,id3,generator3,resources3)
-        lookahead.add1To1Lookahead(id4,id5,generator5,resources5)
+        lookahead.add1To1Lookahead(id1,generator2,resources2)
+        lookahead.add1To1Lookahead(id1,generator4,resources4)
+        lookahead.add1To1Lookahead(id2,generator3,resources3)
+        lookahead.add1To1Lookahead(id4,generator5,resources5)
         coordinator ! Coordinator.SetSchedulerLookaheadObject(lookahead)
 
-        val task1 = task(id1,generator1, 
-            {(_,_)=> task(id2,generator2,
-                {(_,_)=> task(id3,generator3, 
+        val task1 = task(generator1, 
+            {(_,_)=> task(generator2,
+                {(_,_)=> task(generator3, 
                     {(_,_)=> if (tick) promise.success(Unit) else {tick=true; ack(Seq(id3))}
                     }, 
                 resources3); ack(Seq(id2)) 
             }, 
             resources2
             ); 
-            task(id4,generator4, 
-                {(_,_)=> task(id5,generator5, 
+            task(generator4, 
+                {(_,_)=> task(generator5, 
                     {(_,_)=> if (tick) promise.success(Unit) else {tick=true; ack(Seq(id5))}
                     }, 
                 resources5); ack(Seq(id4)) 
@@ -201,12 +201,12 @@ extends AsyncSimulation(name,coordinator) with Lookahead {
         val id4 = java.util.UUID.randomUUID
         val id5 = java.util.UUID.randomUUID
         val id6 = java.util.UUID.randomUUID
-        val generator1 = TaskGenerator("task1","sim",ConstantGenerator(2L),ConstantGenerator(0L),(-1),Task.High)
-        val generator2 = TaskGenerator("task2","sim",ConstantGenerator(4L),ConstantGenerator(0L),(-1),Task.High)
-        val generator3 = TaskGenerator("task3","sim",ConstantGenerator(3L),ConstantGenerator(0L),(-1),Task.High)
-        val generator4 = TaskGenerator("task4","sim",ConstantGenerator(2L),ConstantGenerator(0L),(-1),Task.High)
-        val generator5 = TaskGenerator("task5","sim",ConstantGenerator(4L),ConstantGenerator(0L),(-1),Task.High)
-        val generator6 = TaskGenerator("task6","sim",ConstantGenerator(10L),ConstantGenerator(0L),(-1),Task.Low)
+        val generator1 = TaskGenerator("task1",id1,"sim",ConstantGenerator(2L),ConstantGenerator(0L),(-1),Task.High)
+        val generator2 = TaskGenerator("task2",id2,"sim",ConstantGenerator(4L),ConstantGenerator(0L),(-1),Task.High)
+        val generator3 = TaskGenerator("task3",id3,"sim",ConstantGenerator(3L),ConstantGenerator(0L),(-1),Task.High)
+        val generator4 = TaskGenerator("task4",id4,"sim",ConstantGenerator(2L),ConstantGenerator(0L),(-1),Task.High)
+        val generator5 = TaskGenerator("task5",id5,"sim",ConstantGenerator(4L),ConstantGenerator(0L),(-1),Task.High)
+        val generator6 = TaskGenerator("task6",id6,"sim",ConstantGenerator(10L),ConstantGenerator(0L),(-1),Task.Low)
         val resources1 = Seq("r2")
         val resources2 = Seq("r1")
         val resources3 = Seq("r2")
@@ -214,41 +214,41 @@ extends AsyncSimulation(name,coordinator) with Lookahead {
         val resources5 = Seq("r3")
         val resources6 = Seq("r3")
         
-        lookahead.add1To1Lookahead(id1,id2,generator2,resources2)
-        lookahead.add1To1Lookahead(id1,id3,generator3,resources3)
-        lookahead.add1To1Lookahead(id1,id4,generator4,resources4)
-        lookahead.add1To1Lookahead(id1,id6,generator6,resources6)
+        lookahead.add1To1Lookahead(id1,generator2,resources2)
+        lookahead.add1To1Lookahead(id1,generator3,resources3)
+        lookahead.add1To1Lookahead(id1,generator4,resources4)
+        lookahead.add1To1Lookahead(id1,generator6,resources6)
 
         def function(s: Seq[(java.util.UUID,Long)]): Long = {
             val prerequisites= Set(id2,id3,id4) forall (x=>s.exists {case(id,l)=>id==x} )
             if (prerequisites) ( s filter (x=> Set(id2,id3,id4) contains x._1) map (_._2) ).max
             else -1
         }
-        lookahead.addManyTo1Lookahead(function, id5, generator5, resources5)
+        lookahead.addManyTo1Lookahead(function, generator5, resources5)
 
         coordinator ! Coordinator.SetSchedulerLookaheadObject(lookahead)
 
         def task5(){
-            task(id5,generator5,
+            task(generator5,
                 {(_,_)=> if (tick) promise.success(Unit) else {tick=true; ack(Seq(id5))}},
                 resources5
             )
         }
 
-        val task1 = task(id1,generator1, 
-            {(_,_)=> task(id2,generator2,
+        val task1 = task(generator1, 
+            {(_,_)=> task(generator2,
                 {(_,_)=> if (count==2) task5(); count+=1; ack(Seq(id2))},
                 resources2
             ); 
-            task(id3,generator3, 
+            task(generator3, 
                 {(_,_)=> if (count==2) task5(); count+=1; ack(Seq(id3))}, 
                 resources3
             );
-            task(id4,generator4, 
+            task(generator4, 
                 {(_,_)=> if (count==2) task5(); count+=1; ack(Seq(id4))},
                 resources4
             );
-            task(id6,generator6, 
+            task(generator6, 
                 {(_,_)=> if (tick) promise.success(Unit) else {tick=true; ack(Seq(id6))}},
                 resources6
             );
