@@ -6,6 +6,14 @@ import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import java.util.UUID
+import akka.actor.Actor
+
+import akka.testkit.{ ImplicitSender, TestActors, TestKit, TestProbe }
+import com.typesafe.config.ConfigFactory
+import uk.ac.ed.inf.ppapapan.subakka.MockPublisher
+import scala.concurrent._
+import scala.concurrent.Await
+import scala.concurrent.duration._
 
 @RunWith(classOf[JUnitRunner])
 class TaskTests extends TaskTester {
@@ -67,10 +75,13 @@ class TaskTests extends TaskTester {
 }
 
 class TaskTester
-    extends TestKit(ActorSystem("TaskTests"))
+    extends TestKit(ActorSystem("TaskTests", ConfigFactory.parseString(MockPublisher.config)))
     with WordSpecLike
     with Matchers
-    with BeforeAndAfterAll {
+    with BeforeAndAfterAll
+    with ImplicitSender {
+    implicit val executionContext = ExecutionContext.global
+    implicit val timeout: FiniteDuration = 10.seconds
 
   final val probe: TestProbe = TestProbe.apply("TaskTestsProbe")(system);
   final val mock: ActorRef = probe.ref;
@@ -86,13 +97,14 @@ class TaskTester
       created: Long = 0L,
       duration: Long = 1L,
       interrupt: Int = 0,
-      name: String = "X"
+      name: String = "X",
+      actor: ActorRef = mock
   ) =
     new Task(
       new UUID(id, id),
       name,
       "Test",
-      mock,
+      actor,
       created,
       resources,
       duration,
