@@ -181,6 +181,7 @@ object Task {
   */
 case class TaskGenerator(
     name: String,
+    id: UUID,
     simulation: String,
     duration: ValueGenerator[Long],
     cost: ValueGenerator[Long],
