@@ -404,7 +404,7 @@ trait Lookahead extends Simulation {
   val lookahead = new LookaheadObj(self)
 
   abstract override def complete(task: Task, time: Long) = {
-    lookahead.complete(task,time)
+    //lookahead.complete(task,time)
     super.complete(task,time)
     coordinator ! Coordinator.SetSchedulerLookaheadObject(lookahead)
   }
