@@ -43,7 +43,6 @@ trait SimulatedProcess {
     * @param id The pre-determined ID for the [[Task]].
     * @param gen The [[TaskGenerator]] that will generate the [[Task]].
     * @param result A function returning a custom output.
-    * @param resources The names of the [[TaskResource]]s the [[Task]] will require.
     * @param executionContext
     * @return A `Future` with the calculated custom result when the [[Task]] is
     *         completed in the simulation.
@@ -51,9 +50,8 @@ trait SimulatedProcess {
   def simulate[T](
       gen: TaskGenerator,
       result: (Task, Long) => T,
-      resources: String*
   )(implicit executionContext: ExecutionContext): Future[T] = {
-    (simulationActor ? Simulation.AddTask(gen, resources))(Timeout(1, TimeUnit.DAYS))
+    (simulationActor ? Simulation.AddTask(gen))(Timeout(1, TimeUnit.DAYS))
       .mapTo[(Task, Long)]
       .map { case (task, time) => result(task, time) }
   }

@@ -318,8 +318,8 @@ class Coordinator(
     * @param l The list of tasks to be generated, each represented by a triplet with its unique ID,
     *          [[TaskGenerator]] and list of [[TaskResource]] names that need to be used.
     */
-  protected def addTasks(actor: ActorRef, l: Seq[(TaskGenerator, Seq[String])]) {
-    l map { case (g, r) => addTask(g, r) }
+  protected def addTasks(actor: ActorRef, l: Seq[TaskGenerator]) {
+    l foreach addTask
   }
 
   /**
@@ -341,9 +341,9 @@ class Coordinator(
     * @param gen The [[TaskGenerator]] that will generate the [[Task]].
     * @param resources The list of [[TaskResource]] names that need to be used by the [[Task]].
     */
-  protected def addTask(gen: TaskGenerator, resources: Seq[String]) {
+  protected def addTask(gen: TaskGenerator) {
     // Create the task
-    val t: Task = gen.create(time, sender, resources: _*)
+    val t: Task = gen.create(time, sender)
 
     // Calculate the cost of all resource usage. We only know this now!
     val resourceCost = (0L /: t.taskResources(resourceMap)) {
@@ -353,7 +353,7 @@ class Coordinator(
 
     publish(ETaskAdd(self, time, t))
 
-    if (resources.length > 0)
+    if (gen.resources.length > 0)
       tasks += t
     else
       // if the task does not require resources, start it now
@@ -552,7 +552,7 @@ class Coordinator(
     case Coordinator.AddResources(r) => r foreach addResource
 
     case Coordinator.AddTasks(l) => addTasks(sender, l)
-    case Coordinator.AddTask(generator, resources) => addTask(generator, resources)
+    case Coordinator.AddTask(generator) => addTask(generator)
 
     case Coordinator.AckTasks(ack) => ackTasks(sender, ack)
     case Coordinator.SimReady => ackAll(sender)
@@ -658,13 +658,13 @@ object Coordinator {
     * Message from a [[Simulation]] to add a new task.
     * @group simulations
     */
-  case class AddTask(generator: TaskGenerator, resources: Seq[String])
+  case class AddTask(generator: TaskGenerator)
 
   /**
     * Message from a [[Simulation]] to add new tasks.
     * @group simulations
     */
-  case class AddTasks(l: Seq[(TaskGenerator, Seq[String])])
+  case class AddTasks(l: Seq[TaskGenerator])
 
 //  * @todo TODO update for task-acking
   case class AckTasks(ack: Seq[UUID])

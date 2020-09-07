@@ -97,8 +97,8 @@ abstract class Simulation(
     * @return A `Future` that completes when the generated [[Task]] has completed,
     *         containing the [[Task]] and its completion time.
     */
-  protected def task(t: TaskGenerator, resources: Seq[String]): Unit = {
-    coordinator ! Coordinator.AddTask(t, resources)
+  protected def task(t: TaskGenerator): Unit = {
+    coordinator ! Coordinator.AddTask(t)
   }
 
   /**
@@ -191,7 +191,7 @@ object Simulation {
     */
   case object Ready
 
-  case class AddTask(t: TaskGenerator, resources: Seq[String])
+  case class AddTask(t: TaskGenerator)
 
   /**
     * Informs a [[Task]] has completed
@@ -256,8 +256,8 @@ class SingleTaskSimulation(
   override def run() = if (promise.isCompleted) promise.future
   else {
     val id = UUID.randomUUID() //todo maybe move id generation to taskgenerator if user does not care about id?
-    val generator = TaskGenerator(name + "Task", id, name, duration, cost, interrupt, priority)
-    task(generator, resources)
+    val generator = TaskGenerator(name + "Task", id, name, duration, cost, resources, interrupt, priority)
+    task(generator)
     ready()
     promise.future
   }
@@ -341,11 +341,10 @@ abstract class AsyncSimulation(
     */
   protected def task(
       t: TaskGenerator,
-      callback: Callback,
-      resources: Seq[String]
+      callback: Callback
   ): Unit = {
     tasks += t.id -> callback //todo id might be protected?
-    super.task(t, resources)
+    super.task(t)
   }
 
   /**
@@ -381,17 +380,17 @@ abstract class AsyncSimulation(
     case Simulation.Ready => ready()
     case Simulation.AckTasks(tasks) => ack(tasks)
     case Simulation.TaskCompleted(task, time) => complete(task, time)
-    case Simulation.AddTask(t, r) => task(t, actorCallback(sender), r)
+    case Simulation.AddTask(t) => task(t, actorCallback(sender))
     case Simulation.Wait => coordinator.forward(Coordinator.WaitFor(self))
   }
 }
 
 trait FutureTasks { self: AsyncSimulation =>
 
-  def futureTask(t: TaskGenerator, resources: Seq[String]): Future[(Task, Long)] = {
+  def futureTask(t: TaskGenerator): Future[(Task, Long)] = {
     val p = Promise[(Task, Long)]()
     def call: Callback = (task, time) => p.success(task, time)
-    task(t, call, resources)
+    task(t, call)
     p.future
   }
 }
