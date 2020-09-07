@@ -1,15 +1,33 @@
 package com.workflowfm.simulator
 
-import scala.collection.mutable
+import scala.collection.immutable
 import java.util.UUID
 import akka.actor.ActorRef
+
+trait LookaheadStructure{
+    type LookaheadFunctions = Set[( Seq[(UUID,Long)]=>Long, List[(TaskGenerator, Seq[String])] ) ]
+    val lookaheadFunctions:LookaheadFunctions = Set()
+    val lookaheadThisIter:LookaheadFunctions =  Set()
+    val completed = Set[(UUID,Long)]()
+    val completedThisIter = Set[(UUID,Long)]()
+
+    def add1To1Lookahead(sourceID: UUID, generator: TaskGenerator, resources: Seq[String]): Unit
+    def add1ToManyLookahead(sourceID: UUID, data: List[(TaskGenerator, Seq[String])]): Unit
+    def addManyTo1Lookahead(function: Seq[(UUID,Long)]=>Long, generator: TaskGenerator, resources: Seq[String]): Unit
+    def addManyToManyLookahead(function: Seq[(UUID,Long)]=>Long, data: List[(TaskGenerator, Seq[String])]): Unit
+    def removeIdSource(id: UUID): Unit
+}
+
+case class LookaheadS() extends LookaheadStructure {
+    
+}
 
 class LookaheadObj(protected val simulation: ActorRef) {
     type LookaheadFunctions = mutable.Set[( Seq[(UUID,Long)]=>Long, List[(TaskGenerator, Seq[String])] ) ]
 
     protected val lookaheadFunctions:LookaheadFunctions = mutable.Set()
     protected val completed = mutable.Set[(UUID,Long)]()
-    protected val completedThisIter = mutable.Set[(UUID,Long)]() //todo spelling
+    protected val completedThisIter = mutable.Set[(UUID,Long)]()
     protected val lookaheadThisIter:LookaheadFunctions = mutable.Set()
 
     def tasksAfterThis(task: UUID, time: Long, official: Boolean=true): Seq[Task] = {
