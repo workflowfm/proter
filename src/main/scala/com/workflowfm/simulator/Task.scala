@@ -185,6 +185,7 @@ case class TaskGenerator(
     simulation: String,
     duration: ValueGenerator[Long],
     cost: ValueGenerator[Long],
+    resources: Seq[String] = Seq(),
     interrupt: Int = (-1),
     priority: Task.Priority = Task.Medium,
     createTime: Long = (-1)
@@ -200,7 +201,7 @@ case class TaskGenerator(
     * @param resources The names of the [[TaskResource]]s that will be used by the task.
     * @return The generated [[Task]].
     */
-  def create(currentTime: Long, actor: ActorRef, resources: String*) = {
+  def create(currentTime: Long, actor: ActorRef) = {
     val creation = if (createTime >= 0) createTime else currentTime
 
     new Task(
