@@ -9,6 +9,8 @@ import akka.testkit.TestProbe
 import scala.concurrent.{Await, Future, ExecutionContext}
 import scala.concurrent.duration._
 import akka.util.Timeout
+import java.{util => ju}
+import scala.collection.mutable
 
 @RunWith(classOf[JUnitRunner])
 class SchedulerTests extends TaskTester with ScheduleTester {
@@ -172,13 +174,14 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       ) should be(List(1L))
     }
   }
-
+/*
   "The LookaheadScheduler" must {
+    LookaheadScheduler.setLookaheadObject(mock, new LookaheadObj(mock) with dummyLookahead)
     "notify of a new itteration of lookahead" in {
       val m = new TestResourceMap("A")   
       val answer = Future( m.l(t(1L, Seq("A"), actor=probe.ref)) )
 
-      probe.expectMsg(Simulation.LookaheadNextItter)
+      probe.expectMsg(TestCalls.LookaheadNextIter)
       //probe.reply(Unit)
     }
 
@@ -186,9 +189,9 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       val m = new TestResourceMap("A")   
       val answer = Future( m.l(t(1L, Seq("A"), actor=probe.ref)) )
 
-      probe.expectMsg(Simulation.LookaheadNextItter)
+      probe.expectMsg(TestCalls.LookaheadNextIter)
       probe.reply(Unit)
-      val Simulation.TasksAfterThis(id,time,official) = probe.expectMsgType[Simulation.TasksAfterThis]
+      val TestCalls.TasksAfterThis(id,time,official) = probe.expectMsgType[TestCalls.TasksAfterThis]
       id.getMostSignificantBits should be (1L)
       time should be (1L)
       official should be (true)
@@ -199,13 +202,13 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       val m = new TestResourceMap("A") + ("A",1L)  
       val answer = Future( m.l(t(1L, Seq("A"))))
 
-      val Simulation.TasksAfterThis(id,time,official) = probe.expectMsgType[Simulation.TasksAfterThis]
+      val TestCalls.TasksAfterThis(id,time,official) = probe.expectMsgType[TestCalls.TasksAfterThis]
       official should be (false)
       time should be (1L)
       id.getMostSignificantBits should be (0L)
 
       probe.reply(Seq()) // reply with no future tasks
-      probe.expectMsg(Simulation.LookaheadNextItter) // the scheduler continues
+      probe.expectMsg(TestCalls.LookaheadNextIter) // the scheduler continues
       //probe.reply(Unit)
 
     }
@@ -214,9 +217,9 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       val m = new TestResourceMap("A")   
       val answer = Future( m.l(t(1L, Seq("A"), actor=probe.ref)) )
 
-      probe.expectMsg(Simulation.LookaheadNextItter)
+      probe.expectMsg(TestCalls.LookaheadNextIter)
       probe.reply(Unit)
-      probe.expectMsgType[Simulation.TasksAfterThis]
+      probe.expectMsgType[TestCalls.TasksAfterThis]
       probe.reply(Seq())
       
       val r = Await.result(answer, 5.seconds)
@@ -230,11 +233,11 @@ class SchedulerTests extends TaskTester with ScheduleTester {
         t(2L, Seq("B"), actor=probe.ref)
       ) )
 
-      probe.expectMsg(Simulation.LookaheadNextItter)
+      probe.expectMsg(TestCalls.LookaheadNextIter)
       probe.reply(Unit)
-      probe.expectMsgType[Simulation.TasksAfterThis]
+      probe.expectMsgType[TestCalls.TasksAfterThis]
       probe.reply(Seq())
-      probe.expectMsgType[Simulation.TasksAfterThis]
+      probe.expectMsgType[TestCalls.TasksAfterThis]
       probe.reply(Seq())
       
       val r = Await.result(answer,5.seconds)
@@ -245,13 +248,13 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       val m = new TestResourceMap("A", "B") + ("B", 1L)
       val answer = Future(m.l(t(1L, Seq("A", "B"), Task.Highest, actor=probe.ref), t(2L, Seq("A"), Task.VeryLow, 0L, 2L, actor=probe.ref)))
 
-      probe.expectMsgType[Simulation.TasksAfterThis] //unofficial
+      probe.expectMsgType[TestCalls.TasksAfterThis] //unofficial
       probe.reply(Seq())
-      probe.expectMsg(Simulation.LookaheadNextItter)
+      probe.expectMsg(TestCalls.LookaheadNextIter)
       probe.reply(Unit)
-      probe.expectMsgType[Simulation.TasksAfterThis] //official
+      probe.expectMsgType[TestCalls.TasksAfterThis] //official
       probe.reply(Seq())
-      probe.expectMsgType[Simulation.TasksAfterThis]
+      probe.expectMsgType[TestCalls.TasksAfterThis]
       probe.reply(Seq())
       
       Await.result(answer,5.seconds) should be(Nil)
@@ -261,13 +264,13 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       val m = new TestResourceMap("A", "B") + ("B", 1L)
       val answer = Future(m.l(t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("A"), Task.VeryLow)))
 
-      probe.expectMsgType[Simulation.TasksAfterThis] //unofficial
+      probe.expectMsgType[TestCalls.TasksAfterThis] //unofficial
       probe.reply(Seq())
-      probe.expectMsg(Simulation.LookaheadNextItter)
+      probe.expectMsg(TestCalls.LookaheadNextIter)
       probe.reply(Unit)
-      probe.expectMsgType[Simulation.TasksAfterThis] //official
+      probe.expectMsgType[TestCalls.TasksAfterThis] //official
       probe.reply(Seq())
-      probe.expectMsgType[Simulation.TasksAfterThis]
+      probe.expectMsgType[TestCalls.TasksAfterThis]
       probe.reply(Seq())
       
       Await.result(answer, 5.seconds) should be(List(2L))
@@ -277,13 +280,13 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       val m = new TestResourceMap("A", "B") + ("B", 1L)
       val answer = Future(m.l(t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("A"), Task.VeryLow, 0L, 100L))) 
 
-      probe.expectMsgType[Simulation.TasksAfterThis] //unofficial
+      probe.expectMsgType[TestCalls.TasksAfterThis] //unofficial
       probe.reply(Seq())
-      probe.expectMsg(Simulation.LookaheadNextItter)
+      probe.expectMsg(TestCalls.LookaheadNextIter)
       probe.reply(Unit)
-      probe.expectMsgType[Simulation.TasksAfterThis] //official
+      probe.expectMsgType[TestCalls.TasksAfterThis] //official
       probe.reply(Seq())
-      probe.expectMsgType[Simulation.TasksAfterThis]
+      probe.expectMsgType[TestCalls.TasksAfterThis]
       probe.reply(Seq())
       
       Await.result(answer, 5.seconds) should be(Nil)
@@ -293,13 +296,13 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       val m = new TestResourceMap("A") + ("A", 1L)
       val answer = Future(m.l(t(1L, Seq("A"), Task.Low))) 
 
-      probe.expectMsgType[Simulation.TasksAfterThis] //unofficial
+      probe.expectMsgType[TestCalls.TasksAfterThis] //unofficial
       probe.reply(Seq(t(2L, Seq("A"), Task.High, 1L))) // reply with a future task
-      probe.expectMsg(Simulation.LookaheadNextItter)
+      probe.expectMsg(TestCalls.LookaheadNextIter)
       probe.reply(Unit)
-      probe.expectMsgType[Simulation.TasksAfterThis] //official
+      probe.expectMsgType[TestCalls.TasksAfterThis] //official
       probe.reply(Seq())
-      probe.expectMsgType[Simulation.TasksAfterThis]
+      probe.expectMsgType[TestCalls.TasksAfterThis]
       probe.reply(Seq())
       
       Await.result(answer, 5.seconds) should be(Nil)
@@ -309,13 +312,13 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       val m = new TestResourceMap("A","B") + ("A", 1L)
       val answer = Future(m.l(t(1L, Seq("B"), Task.High))) 
 
-      probe.expectMsgType[Simulation.TasksAfterThis] //unofficial
+      probe.expectMsgType[TestCalls.TasksAfterThis] //unofficial
       probe.reply(Seq(t(2L, Seq("A","B"), Task.Low, 1L))) // reply with a future task
-      probe.expectMsg(Simulation.LookaheadNextItter)
+      probe.expectMsg(TestCalls.LookaheadNextIter)
       probe.reply(Unit)
-      probe.expectMsgType[Simulation.TasksAfterThis] //official
+      probe.expectMsgType[TestCalls.TasksAfterThis] //official
       probe.reply(Seq())
-      probe.expectMsgType[Simulation.TasksAfterThis]
+      probe.expectMsgType[TestCalls.TasksAfterThis]
       probe.reply(Seq())
       
       Await.result(answer, 5.seconds) should be(List(1L))
@@ -325,15 +328,15 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       val m = new TestResourceMap("A","B")
       val answer = Future(m.l(t(1L, Seq("A"), Task.Low),t(2L, Seq("B"), Task.High)))
 
-      probe.expectMsg(Simulation.LookaheadNextItter)
+      probe.expectMsg(TestCalls.LookaheadNextIter)
       probe.reply(Unit)
-      probe.expectMsgType[Simulation.TasksAfterThis] //asks about task 2 first because of priority
+      probe.expectMsgType[TestCalls.TasksAfterThis] //asks about task 2 first because of priority
       probe.reply(Seq(t(3L, Seq("A","B"), Task.High, 1L))) // reply with a task that uses A and B
-      probe.expectMsgType[Simulation.TasksAfterThis] // asks about the above task (task 3)
+      probe.expectMsgType[TestCalls.TasksAfterThis] // asks about the above task (task 3)
       probe.reply(Seq()) //reply with nothing
-      probe.expectMsgType[Simulation.TasksAfterThis] //now asks about low priority task
+      probe.expectMsgType[TestCalls.TasksAfterThis] //now asks about low priority task
       probe.reply(Seq(t(4L, Seq("A"), Task.Low, 1L))) // reply with task that uses A - will be blocked because of the high-priority task above
-      probe.expectMsgType[Simulation.TasksAfterThis] // asks about the above (task 4)
+      probe.expectMsgType[TestCalls.TasksAfterThis] // asks about the above (task 4)
       probe.reply(Seq()) //reply with nothing
       
       Await.result(answer, 5.seconds) should be(List(2L,1L))
@@ -341,24 +344,25 @@ class SchedulerTests extends TaskTester with ScheduleTester {
 
     "ask multiple simulations about their respective tasks" in {
       val probe2: TestProbe = TestProbe.apply("TaskTestsProbe")(system);
+      LookaheadScheduler.setLookaheadObject(probe2.ref, new LookaheadObj(probe2.ref) with dummyLookahead)
       val m = new TestResourceMap("A", "B")
       val answer = Future( m.l(t(1L, Seq("A"), Task.Low, actor=probe.ref), t(2L, Seq("B"), Task.High, actor=probe2.ref)))
 
       //This test is a bit tricky because probes are synchronous, so the order in which I write the expectMsg is important
-      probe.expectMsg(Simulation.LookaheadNextItter) //tells probe1 first because of the order they were passed
-      probe2.expectMsg(Simulation.LookaheadNextItter) // all the probes are notified before it starts waiting for replies
+      probe.expectMsg(TestCalls.LookaheadNextIter) //tells probe1 first because of the order they were passed
       probe.reply(Unit)
+      probe2.expectMsg(TestCalls.LookaheadNextIter) // all the probes are notified before it starts waiting for replies 
       probe2.reply(Unit)
 
-      probe2.expectMsgType[Simulation.TasksAfterThis] // asks probe2 first because its task was high priority
+      probe2.expectMsgType[TestCalls.TasksAfterThis] // asks probe2 first because its task was high priority
       probe2.reply(Seq()) // waits for a reply before it moves on
 
-      probe.expectMsgType[Simulation.TasksAfterThis]
+      probe.expectMsgType[TestCalls.TasksAfterThis]
       probe.reply(Seq())
       
       Await.result(answer,5.seconds) should be(Seq(2L, 1L)) //response is ordered by priority
     }
-  }
+  } */
 
   class TestResourceMap(names: String*) {
     // create a resource map
@@ -382,7 +386,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
     def l(tasks: Task*): Seq[Long] =
       LookaheadScheduler.getNextTasks(SortedSet[Task]() ++ tasks, 0L, m) map (_.id
             .getMostSignificantBits())
-  }
+  } 
 }
 
 trait ScheduleTester {

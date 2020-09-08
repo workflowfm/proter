@@ -318,8 +318,8 @@ class Coordinator(
     * @param l The list of tasks to be generated, each represented by a triplet with its unique ID,
     *          [[TaskGenerator]] and list of [[TaskResource]] names that need to be used.
     */
-  protected def addTasks(actor: ActorRef, l: Seq[(UUID, TaskGenerator, Seq[String])]) {
-    l map { case (i, g, r) => addTask(i, g, r) }
+  protected def addTasks(actor: ActorRef, l: Seq[TaskGenerator]) {
+    l foreach addTask
   }
 
   /**
@@ -341,9 +341,9 @@ class Coordinator(
     * @param gen The [[TaskGenerator]] that will generate the [[Task]].
     * @param resources The list of [[TaskResource]] names that need to be used by the [[Task]].
     */
-  protected def addTask(id: UUID, gen: TaskGenerator, resources: Seq[String]) {
+  protected def addTask(gen: TaskGenerator) {
     // Create the task
-    val t: Task = gen.create(id, time, sender, resources: _*)
+    val t: Task = gen.create(time, sender)
 
     // Calculate the cost of all resource usage. We only know this now!
     val resourceCost = (0L /: t.taskResources(resourceMap)) {
@@ -353,7 +353,7 @@ class Coordinator(
 
     publish(ETaskAdd(self, time, t))
 
-    if (resources.length > 0)
+    if (gen.resources.length > 0)
       tasks += t
     else
       // if the task does not require resources, start it now
@@ -552,7 +552,7 @@ class Coordinator(
     case Coordinator.AddResources(r) => r foreach addResource
 
     case Coordinator.AddTasks(l) => addTasks(sender, l)
-    case Coordinator.AddTask(id, generator, resources) => addTask(id, generator, resources)
+    case Coordinator.AddTask(generator) => addTask(generator)
 
     case Coordinator.AckTasks(ack) => ackTasks(sender, ack)
     case Coordinator.SimReady => ackAll(sender)
@@ -571,6 +571,11 @@ class Coordinator(
       }
     case Coordinator.Start => start()
     case Coordinator.Ping => sender() ! Coordinator.Time(time)
+
+    //todo this is ugly
+    // I've never seen it happen, but surely there is a risk that scheduler.getNextTasks is called before the lookahead updates?
+    //todo have setLookaheadObject in all schedulers but defaultscheduler doesnt use it
+    case Coordinator.SetSchedulerLookaheadObject(obj) => scheduler match { case LookaheadScheduler => LookaheadScheduler.setLookaheadObject(sender(),obj) }
   }
 
   /**
@@ -658,13 +663,13 @@ object Coordinator {
     * Message from a [[Simulation]] to add a new task.
     * @group simulations
     */
-  case class AddTask(id: UUID, generator: TaskGenerator, resources: Seq[String])
+  case class AddTask(generator: TaskGenerator)
 
   /**
     * Message from a [[Simulation]] to add new tasks.
     * @group simulations
     */
-  case class AddTasks(l: Seq[(UUID, TaskGenerator, Seq[String])])
+  case class AddTasks(l: Seq[TaskGenerator])
 
 //  * @todo TODO update for task-acking
   case class AckTasks(ack: Seq[UUID])
@@ -677,6 +682,9 @@ object Coordinator {
     * @group simulations
     */
   case class WaitFor(actor: ActorRef)
+
+  //todo document
+  case class SetSchedulerLookaheadObject(o: LookaheadStructure)
 
   /**
     * Creates properties for a [[Coordinator]] actor.
