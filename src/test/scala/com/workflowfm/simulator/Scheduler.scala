@@ -174,7 +174,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       ) should be(List(1L))
     }
   }
-
+/*
   "The LookaheadScheduler" must {
     LookaheadScheduler.setLookaheadObject(mock, new LookaheadObj(mock) with dummyLookahead)
     "notify of a new itteration of lookahead" in {
@@ -362,7 +362,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       
       Await.result(answer,5.seconds) should be(Seq(2L, 1L)) //response is ordered by priority
     }
-  }
+  } */
 
   class TestResourceMap(names: String*) {
     // create a resource map
@@ -386,26 +386,9 @@ class SchedulerTests extends TaskTester with ScheduleTester {
     def l(tasks: Task*): Seq[Long] =
       LookaheadScheduler.getNextTasks(SortedSet[Task]() ++ tasks, 0L, m) map (_.id
             .getMostSignificantBits())
-  }
-
-  trait dummyLookahead extends LookaheadObj {
-    import akka.pattern.ask
-    val actor = simulation
-
-    override def lookaheadNextIter = {
-      Await.result((actor ? TestCalls.LookaheadNextIter)(3.seconds),3.seconds)
-    }
-    override def tasksAfterThis(task: ju.UUID, time: Long, official: Boolean): Seq[Task] = {
-      Await.result((actor ? TestCalls.TasksAfterThis(task,time,official))(3.seconds),3.seconds).asInstanceOf[Seq[Task]]
-    }
-  }
+  } 
 }
 
 trait ScheduleTester {
   def s(l: (Long, Long)*) = Schedule(l.toList)
-}
-
-object TestCalls {
-  case class TasksAfterThis(task: ju.UUID,time: Long, official: Boolean)
-  case object LookaheadNextIter
 }

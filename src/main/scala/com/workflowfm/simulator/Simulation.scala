@@ -400,12 +400,12 @@ trait FutureTasks { self: AsyncSimulation =>
 }
 
 trait Lookahead extends Simulation {
-  val lookahead = new LookaheadObj(self)
+  var lookahead: LookaheadStructure = LookaheadObj(self)
 
   abstract override def complete(task: Task, time: Long) = {
-    //lookahead.complete(task,time)
+    lookahead = ( lookahead.complete(task.id,time) ) - task.id
+    coordinator ! Coordinator.SetSchedulerLookaheadObject(lookahead) //todo optimise 
     super.complete(task,time)
-    coordinator ! Coordinator.SetSchedulerLookaheadObject(lookahead)
   }
   
   //def createLookahead(data) = {

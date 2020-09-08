@@ -684,7 +684,7 @@ object Coordinator {
   case class WaitFor(actor: ActorRef)
 
   //todo document
-  case class SetSchedulerLookaheadObject(o: LookaheadObj)
+  case class SetSchedulerLookaheadObject(o: LookaheadStructure)
 
   /**
     * Creates properties for a [[Coordinator]] actor.
