@@ -4,6 +4,7 @@ import scala.collection.immutable._
 import java.util.UUID
 import akka.actor.ActorRef
 
+//todo documentation
 trait LookaheadStructure{
     val lookaheadSet: Set[( Seq[(UUID,Long)]=>Long, List[(TaskGenerator)] )]
     val completed: Set[(UUID,Long)]

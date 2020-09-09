@@ -347,7 +347,7 @@ abstract class AsyncSimulation(
       t: TaskGenerator,
       callback: Callback
   ): Unit = {
-    tasks += t.id -> callback //todo id might be protected?
+    tasks += t.id -> callback
     super.task(t)
   }
 

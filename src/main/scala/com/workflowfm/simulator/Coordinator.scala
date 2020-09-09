@@ -303,6 +303,7 @@ class Coordinator(
   protected def stopSimulation(name: String, result: String, actor: ActorRef) = {
     simulations -= name
     waiting -= actor
+    scheduler.removeLookaheadObject(actor)
     publish(ESimEnd(self, time, name, result))
     log.debug(s"[COORD:$time] Finished: [${actor.path.name}]")
     ready(actor)
@@ -572,10 +573,7 @@ class Coordinator(
     case Coordinator.Start => start()
     case Coordinator.Ping => sender() ! Coordinator.Time(time)
 
-    //todo this is ugly
-    // I've never seen it happen, but surely there is a risk that scheduler.getNextTasks is called before the lookahead updates?
-    //todo have setLookaheadObject in all schedulers but defaultscheduler doesnt use it
-    case Coordinator.SetSchedulerLookaheadObject(obj) => scheduler match { case LookaheadScheduler => LookaheadScheduler.setLookaheadObject(sender(),obj) }
+    case Coordinator.SetSchedulerLookaheadObject(obj) => scheduler.setLookaheadObject(sender(),obj)
   }
 
   /**

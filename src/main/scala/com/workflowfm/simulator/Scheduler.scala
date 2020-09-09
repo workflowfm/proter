@@ -2,6 +2,7 @@ package com.workflowfm.simulator
 
 import scala.annotation.tailrec
 import scala.collection.{ Map, SortedSet }
+import akka.actor.ActorRef
 
 /**
   * A scheduler selects the next [[Task]]s to be started by the [[Coordinator]] at a given time.
@@ -35,6 +36,10 @@ trait Scheduler {
     case None => false
     case Some(s) => s.isIdle
   }
+
+  //todo Document this
+  def setLookaheadObject(actor: ActorRef, obj: LookaheadStructure): Unit = {Unit}
+  def removeLookaheadObject(actor: ActorRef): Unit = {Unit}
 
 }
 
@@ -416,17 +421,15 @@ object Schedule {
 }
 
 
-
+//todo Document everything
 object LookaheadScheduler extends Scheduler {
   import scala.collection.immutable.Queue
-  import akka.actor._
   import scala.concurrent.{Await, Future, ExecutionContext}
 
   protected val lookaheadObjects: collection.mutable.Map[ActorRef,LookaheadStructure] = collection.mutable.Map()
 
-  def setLookaheadObject(actor: ActorRef, obj: LookaheadStructure) = {
-    lookaheadObjects += actor -> obj //todo remove completed simulations (otherwise map constantly grows)
-  }
+  override def setLookaheadObject(actor: ActorRef, obj: LookaheadStructure) = lookaheadObjects += actor -> obj 
+  override def removeLookaheadObject(actor: ActorRef): Unit = lookaheadObjects -= actor 
 
   def getNextTasks(
       tasks: SortedSet[Task],
@@ -434,7 +437,7 @@ object LookaheadScheduler extends Scheduler {
       resourceMap: Map[String, TaskResource]
   ): Seq[Task] = {
     implicit val executionContext = ExecutionContext.global
-    val lookaheadSetThisIter = lookaheadObjects.values.reduce((a,b)=>a+b)
+    val lookaheadSetThisIter = if (!lookaheadObjects.isEmpty) lookaheadObjects.values.reduce((a,b)=>a+b) else null
     var futureTasksFoundSoFar = Seq[(java.util.UUID,Long)]()
     val inProgressFutureTasks = resourceMap.values.filter(_.currentTask.isDefined).flatMap{ x=>
       futureTasksFoundSoFar = futureTasksFoundSoFar :+ ((x.currentTask.get._2.id,x.nextAvailableTimestamp(currentTime)))
