@@ -190,6 +190,17 @@ case class TaskGenerator(
     priority: Task.Priority = Task.Medium,
     createTime: Long = (-1)
 ) {
+  //todo clean this up
+  def this(name: String, simulation: String, duration: ValueGenerator[Long], cost: ValueGenerator[Long]) = 
+    this(name, UUID.randomUUID(), simulation, duration, cost)
+  def this(name: String, simulation: String, duration: ValueGenerator[Long], cost: ValueGenerator[Long], resources: Seq[String]) =
+    this(name, UUID.randomUUID(), simulation, duration, cost, resources)
+  def this(name: String, simulation: String, duration: ValueGenerator[Long], cost: ValueGenerator[Long], resources: Seq[String], interrupt: Int) =
+    this(name, UUID.randomUUID(), simulation, duration, cost, resources, interrupt)
+  def this(name: String, simulation: String, duration: ValueGenerator[Long], cost: ValueGenerator[Long], resources: Seq[String], interrupt: Int, priority: Task.Priority) =
+    this(name, UUID.randomUUID(), simulation, duration, cost, resources, interrupt, priority)
+  def this(name: String, simulation: String, duration: ValueGenerator[Long], cost: ValueGenerator[Long], resources: Seq[String], interrupt: Int, priority: Task.Priority, createTime: Long) =
+    this(name, UUID.randomUUID(), simulation, duration, cost, resources, interrupt, priority, createTime)
 
   /**
     * Generate a [[Task]].
