@@ -128,8 +128,8 @@ abstract class Simulation(
     * @group api
     */
   def ack(tasks: Seq[UUID]): Unit = {
-    coordinator ! Coordinator.AckTasks(tasks)
-  }
+    coordinator ! Coordinator.AckTasks(tasks) //send lookahead here
+  } //todo maybe send lookahead obj here
 
   def ready(): Unit = {
     coordinator ! Coordinator.SimReady

@@ -437,17 +437,18 @@ object LookaheadScheduler extends Scheduler {
       resourceMap: Map[String, TaskResource]
   ): Seq[Task] = {
     implicit val executionContext = ExecutionContext.global
-    val lookaheadSetThisIter = if (!lookaheadObjects.isEmpty) lookaheadObjects.values.reduce((a,b)=>a+b) else null
+    val lookaheadSetThisIter = if (!lookaheadObjects.isEmpty) lookaheadObjects.values.reduce((a,b)=>a+b) else null //todo use fold with default empty structure
     var futureTasksFoundSoFar = Seq[(java.util.UUID,Long)]()
-    val inProgressFutureTasks = resourceMap.values.filter(_.currentTask.isDefined).flatMap{ x=>
-      futureTasksFoundSoFar = futureTasksFoundSoFar :+ ((x.currentTask.get._2.id,x.nextAvailableTimestamp(currentTime)))
-      tasksAfterThis(
-        x.currentTask.get._2.actor,
-        x.currentTask.get._2.id,
-        x.nextAvailableTimestamp(currentTime),
-        futureTasksFoundSoFar,
-        lookaheadSetThisIter
-      )
+    val inProgressFutureTasks = resourceMap.flatMap{ case (_,x) => if (!x.currentTask.isDefined) Seq() else {
+        futureTasksFoundSoFar = futureTasksFoundSoFar :+ ((x.currentTask.get._2.id,x.nextAvailableTimestamp(currentTime)))
+        tasksAfterThis(
+          x.currentTask.get._2.actor,
+          x.currentTask.get._2.id,
+          x.nextAvailableTimestamp(currentTime),
+          futureTasksFoundSoFar,
+          lookaheadSetThisIter
+        )
+      }
     }
     findNextTasks(currentTime, resourceMap, resourceMap.mapValues(Schedule(_)), tasks++inProgressFutureTasks, Seq(), lookaheadSetThisIter, Queue())
   }
@@ -486,7 +487,7 @@ object LookaheadScheduler extends Scheduler {
       lookaheadStructureThisIter: LookaheadStructure
     ): Seq[Task] = {
       val taskData = {
-        lookaheadStructureThisIter.lookaheadSet flatMap {
+        lookaheadStructureThisIter.lookaheadSet flatMap { //todo getTaskData
           case(function, data) => 
             val l = function( (scheduled ++ lookaheadStructureThisIter.completed).to[collection.immutable.Seq] )
             if (l>0) (data map ((_,l))).toSeq

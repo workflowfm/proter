@@ -35,7 +35,7 @@ class Task(
     val name: String,
     val simulation: String,
     val actor: ActorRef,
-    val created: Long,
+    val created: Long, //todo minStartTime
     val resources: Seq[String],
     val duration: Long,
     val estimatedDuration: Long,
@@ -262,3 +262,10 @@ case class TaskGenerator(
     */
   def withCreationTime(t: Long) = copy(createTime = t)
 }
+
+// object TaskGenerator {
+//   def apply(...): TaskGenerator = {
+//     //todo
+//   }
+//   ]
+// }

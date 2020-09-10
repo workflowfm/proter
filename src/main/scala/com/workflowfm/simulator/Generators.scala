@@ -62,7 +62,7 @@ case class ConstantGenerator[T](value: T) extends ValueGenerator[T] {
   * @param min The minimum possible value.
   * @param max The maximum possible value.
   */
-case class UniformGenerator(min: Int, max: Int) extends ValueGenerator[Int] {
+case class UniformGenerator(min: Int, max: Int) extends ValueGenerator[Int] { //todo make version for Longs
   /**
     * Provides a random value uniformly sampled between [[min]] and [[max]].
     *

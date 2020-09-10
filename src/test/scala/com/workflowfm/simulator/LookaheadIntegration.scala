@@ -104,7 +104,7 @@ extends AsyncSimulation(name,coordinator) with Lookahead {
 
         
         lookahead = lookahead + (id1,generator2) + (id1,generator4) + (id2,generator3)
-        coordinator ! Coordinator.SetSchedulerLookaheadObject(lookahead)
+        coordinator ! Coordinator.SetSchedulerLookaheadObject(lookahead) //todo wrapper
 
         //Equal to flow: task1 > ( (task2 > task3) + task4 )
         // i.e. the sequence task2>task3 happens in parallel to task4

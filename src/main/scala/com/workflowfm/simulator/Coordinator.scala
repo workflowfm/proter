@@ -573,7 +573,7 @@ class Coordinator(
     case Coordinator.Start => start()
     case Coordinator.Ping => sender() ! Coordinator.Time(time)
 
-    case Coordinator.SetSchedulerLookaheadObject(obj) => scheduler.setLookaheadObject(sender(),obj)
+    case Coordinator.SetSchedulerLookaheadObject(obj) => scheduler.setLookaheadObject(sender(),obj) //put this in simRady and ackTasks etc
   }
 
   /**
