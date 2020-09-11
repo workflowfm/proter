@@ -13,7 +13,6 @@ import com.workflowfm.simulator.metrics._
 import uk.ac.ed.inf.ppapapan.subakka.Subscriber
 import com.workflowfm.simulator.events.{ ShutdownHandler }
 import akka.util.Timeout
-import com.workflowfm.simulator.flows._
 import com.workflowfm.simulator._
 import scala.collection.mutable.Map
 import scala.reflect._
@@ -104,7 +103,6 @@ extends AsyncSimulation(name,coordinator) with Lookahead {
 
         
         lookahead = lookahead + (id1,generator2) + (id1,generator4) + (id2,generator3)
-        coordinator ! Coordinator.SetSchedulerLookaheadObject(lookahead) //todo wrapper
 
         //Equal to flow: task1 > ( (task2 > task3) + task4 )
         // i.e. the sequence task2>task3 happens in parallel to task4
@@ -144,7 +142,6 @@ extends AsyncSimulation(name,coordinator) with Lookahead {
         val generator5 = TaskGenerator("task5",id5,"sim",ConstantGenerator(3L),ConstantGenerator(0L),Seq("r2"),(-1),Task.Low)
         
         lookahead = lookahead + (id1,generator2) + (id1,generator4) + (id2,generator3) + (id4,generator5)
-        coordinator ! Coordinator.SetSchedulerLookaheadObject(lookahead)
 
         val task1 = task(generator1, 
             {(_,_)=> task(generator2,
@@ -194,8 +191,6 @@ extends AsyncSimulation(name,coordinator) with Lookahead {
             else -1
         }
         lookahead = lookahead + (function _, generator5)
-
-        coordinator ! Coordinator.SetSchedulerLookaheadObject(lookahead)
 
         def task5(){
             task(generator5,

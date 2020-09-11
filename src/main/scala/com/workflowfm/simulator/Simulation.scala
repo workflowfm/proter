@@ -128,10 +128,12 @@ abstract class Simulation(
     * @group api
     */
   def ack(tasks: Seq[UUID]): Unit = {
-    coordinator ! Coordinator.AckTasks(tasks) //send lookahead here
-  } //todo maybe send lookahead obj here
+    sendLookaheadStructure()
+    coordinator ! Coordinator.AckTasks(tasks)
+  }
 
   def ready(): Unit = {
+    sendLookaheadStructure()
     coordinator ! Coordinator.SimReady
   }
 
@@ -154,6 +156,8 @@ abstract class Simulation(
   def simWait(): Future[Any] = {
     (coordinator ? Coordinator.WaitFor(self))(Timeout(1, TimeUnit.DAYS))
   }
+
+  def sendLookaheadStructure():Unit = { Unit }
 
   /**
     * Defines the actor receive behaviour for the simulation interface.
@@ -401,6 +405,8 @@ trait FutureTasks { self: AsyncSimulation =>
 
 trait Lookahead extends Simulation {
   var lookahead: LookaheadStructure = LookaheadObj(self)
+
+  override def sendLookaheadStructure():Unit = {  coordinator ! Coordinator.SetSchedulerLookaheadObject(lookahead) }
 
   abstract override def complete(task: Task, time: Long) = {
     lookahead = ( lookahead.complete(task.id,time) ) - task.id

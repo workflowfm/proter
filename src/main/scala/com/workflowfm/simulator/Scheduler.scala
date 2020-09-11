@@ -437,14 +437,13 @@ object LookaheadScheduler extends Scheduler {
       resourceMap: Map[String, TaskResource]
   ): Seq[Task] = {
     implicit val executionContext = ExecutionContext.global
-    val lookaheadSetThisIter = if (!lookaheadObjects.isEmpty) lookaheadObjects.values.reduce((a,b)=>a+b) else null //todo use fold with default empty structure
+    val lookaheadSetThisIter = lookaheadObjects.values.fold(EmptyStructure){(a,b)=>a and b}
     var futureTasksFoundSoFar = Seq[(java.util.UUID,Long)]()
     val inProgressFutureTasks = resourceMap.flatMap{ case (_,x) => if (!x.currentTask.isDefined) Seq() else {
         futureTasksFoundSoFar = futureTasksFoundSoFar :+ ((x.currentTask.get._2.id,x.nextAvailableTimestamp(currentTime)))
         tasksAfterThis(
           x.currentTask.get._2.actor,
           x.currentTask.get._2.id,
-          x.nextAvailableTimestamp(currentTime),
           futureTasksFoundSoFar,
           lookaheadSetThisIter
         )
@@ -469,7 +468,7 @@ object LookaheadScheduler extends Scheduler {
       val start = Schedule.mergeSchedules(t.resources.flatMap(schedules.get(_))) ? (Math.max(currentTime,t.created), t)
       val scheduledThisIter2 = scheduledThisIter :+ ((t.id, start+t.estimatedDuration))
       val lookaheadSetThisIter2 = lookaheadSetThisIter-t.id
-      val futureTasks = tasksAfterThis(t.actor, t.id, start+t.estimatedDuration, scheduledThisIter2, lookaheadSetThisIter2)
+      val futureTasks = tasksAfterThis(t.actor, t.id, scheduledThisIter2, lookaheadSetThisIter2)
       val schedules2 = (schedules /: t.resources) {
         case (s, r) => s + (r -> (s.getOrElse(r, Schedule()) +> (start, t)))
       }
@@ -482,18 +481,10 @@ object LookaheadScheduler extends Scheduler {
     private def tasksAfterThis(
       actor: ActorRef, 
       id: java.util.UUID, 
-      time: Long, 
       scheduled: Seq[(java.util.UUID,Long)], 
       lookaheadStructureThisIter: LookaheadStructure
     ): Seq[Task] = {
-      val taskData = {
-        lookaheadStructureThisIter.lookaheadSet flatMap { //todo getTaskData
-          case(function, data) => 
-            val l = function( (scheduled ++ lookaheadStructureThisIter.completed).to[collection.immutable.Seq] )
-            if (l>0) (data map ((_,l))).toSeq
-            else Seq()
-        }
-      }
+      val taskData = lookaheadStructureThisIter.getTaskData((scheduled).to[collection.immutable.Seq])
       (taskData map (x=> x._1.create(x._2, actor))).toSeq
     }
 }
