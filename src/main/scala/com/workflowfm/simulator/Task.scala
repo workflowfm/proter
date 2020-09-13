@@ -220,12 +220,20 @@ case class TaskGenerator(
   }
   
   /**
-    * Updae the ID to use
+    * Update the ID to use.
     *
     * @param i The new ID.
     * @return An updated [[TaskGenerator]].
     */
   def withID(i: UUID) = copy(id = i)
+
+  /**
+    * Update the resources to use.
+    *
+    * @param r The new resources.
+    * @return An updated [[TaskGenerator]].
+    */
+  def withResources(r: Seq[String]) = copy(resources = r)
 
   /**
     * Update the priority to use.
