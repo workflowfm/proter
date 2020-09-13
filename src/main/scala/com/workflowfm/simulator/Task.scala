@@ -218,6 +218,14 @@ case class TaskGenerator(
       priority
     )
   }
+  
+  /**
+    * Updae the ID to use
+    *
+    * @param i The new ID.
+    * @return An updated [[TaskGenerator]].
+    */
+  def withID(i: UUID) = copy(id = i)
 
   /**
     * Update the priority to use.
@@ -261,4 +269,14 @@ case class TaskGenerator(
     * @return An updated [[TaskGenerator]].
     */
   def withCreationTime(t: Long) = copy(createTime = t)
+}
+
+case object TaskGenerator {
+  def apply(
+    name: String,
+    simulation: String,
+    duration: ValueGenerator[Long],
+    cost: ValueGenerator[Long]
+  ):TaskGenerator =
+  TaskGenerator(name, UUID.randomUUID(), simulation, duration, cost)
 }
