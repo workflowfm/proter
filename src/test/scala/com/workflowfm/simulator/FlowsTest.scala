@@ -23,8 +23,7 @@ class FlowsTest extends FlowsTester {
     "execute a single flow" in {
       val r1 = new TaskResource("r1", 0)
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)),
-        Seq("r1")
+        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(Seq("r1"))
       )
       val flow1 = task1
       val testMetrics = singleFlowTest(flow1, List(r1))
@@ -37,12 +36,10 @@ class FlowsTest extends FlowsTester {
       val r1 = new TaskResource("r1", 0)
       val r2 = new TaskResource("r2", 0)
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)),
-        Seq("r1")
+        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(Seq("r1"))
       )
       val task2 = FlowTask(
-        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)),
-        Seq("r2")
+        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)).withResources(Seq("r2"))
       )
       val flow1 = And(task1, task2)
       val testMetrics = singleFlowTest(flow1, List(r1, r2))
@@ -56,12 +53,10 @@ class FlowsTest extends FlowsTester {
     "execute an AND of two tasks which use the same resources" in {
       val r1 = new TaskResource("r1", 0)
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)),
-        Seq("r1")
+        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(Seq("r1"))
       )
       val task2 = FlowTask(
-        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)),
-        Seq("r1")
+        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)).withResources(Seq("r1"))
       )
       val flow1 = And(task1, task2)
       val testMetrics = singleFlowTest(flow1, List(r1))
@@ -78,12 +73,10 @@ class FlowsTest extends FlowsTester {
       val r1 = new TaskResource("r1", 0)
       val r2 = new TaskResource("r2", 0)
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)),
-        Seq("r1")
+        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(Seq("r1"))
       )
       val task2 = FlowTask(
-        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)),
-        Seq("r2")
+        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)).withResources(Seq("r2"))
       )
       val flow1 = Then(task1, task2)
       val testMetrics = singleFlowTest(flow1, List(r1, r2))
@@ -101,24 +94,19 @@ class FlowsTest extends FlowsTester {
       val r4 = new TaskResource("r4", 0)
       val r5 = new TaskResource("r5", 0)
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)),
-        Seq("r1")
+        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(Seq("r1"))
       )
       val task2 = FlowTask(
-        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)),
-        Seq("r2")
+        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)).withResources(Seq("r2"))
       )
       val task3 = FlowTask(
-        TaskGenerator("task3", "sim1", ConstantGenerator(4L), ConstantGenerator(0L)),
-        Seq("r3")
+        TaskGenerator("task3", "sim1", ConstantGenerator(4L), ConstantGenerator(0L)).withResources(Seq("r3"))
       )
       val task4 = FlowTask(
-        TaskGenerator("task4", "sim1", ConstantGenerator(8L), ConstantGenerator(0L)),
-        Seq("r4")
+        TaskGenerator("task4", "sim1", ConstantGenerator(8L), ConstantGenerator(0L)).withResources(Seq("r4"))
       )
       val task5 = FlowTask(
-        TaskGenerator("task5", "sim1", ConstantGenerator(16L), ConstantGenerator(0L)),
-        Seq("r5")
+        TaskGenerator("task5", "sim1", ConstantGenerator(16L), ConstantGenerator(0L)).withResources(Seq("r5"))
       )
       val flow1 = And(And(And(And(task1, task2), task3), task4), task5)
       val testMetrics = singleFlowTest(flow1, List(r1, r2, r3, r4, r5))
@@ -137,24 +125,19 @@ class FlowsTest extends FlowsTester {
       val r4 = new TaskResource("r4", 0)
       val r5 = new TaskResource("r5", 0)
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)),
-        Seq("r1")
+        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(Seq("r1"))
       )
       val task2 = FlowTask(
-        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)),
-        Seq("r2")
+        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)).withResources(Seq("r2"))
       )
       val task3 = FlowTask(
-        TaskGenerator("task3", "sim1", ConstantGenerator(4L), ConstantGenerator(0L)),
-        Seq("r3")
+        TaskGenerator("task3", "sim1", ConstantGenerator(4L), ConstantGenerator(0L)).withResources(Seq("r3"))
       )
       val task4 = FlowTask(
-        TaskGenerator("task4", "sim1", ConstantGenerator(8L), ConstantGenerator(0L)),
-        Seq("r4")
+        TaskGenerator("task4", "sim1", ConstantGenerator(8L), ConstantGenerator(0L)).withResources(Seq("r4"))
       )
       val task5 = FlowTask(
-        TaskGenerator("task5", "sim1", ConstantGenerator(16L), ConstantGenerator(0L)),
-        Seq("r5")
+        TaskGenerator("task5", "sim1", ConstantGenerator(16L), ConstantGenerator(0L)).withResources(Seq("r5"))
       )
       val flow1 = And(task1, And(task2, And(task3, And(task4, task5))))
       val testMetrics = singleFlowTest(flow1, List(r1, r2, r3, r4, r5))
@@ -173,24 +156,19 @@ class FlowsTest extends FlowsTester {
       val r4 = new TaskResource("r4", 0)
       val r5 = new TaskResource("r5", 0)
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)),
-        Seq("r1")
+        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(Seq("r1"))
       )
       val task2 = FlowTask(
-        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)),
-        Seq("r2")
+        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)).withResources(Seq("r2"))
       )
       val task3 = FlowTask(
-        TaskGenerator("task3", "sim1", ConstantGenerator(4L), ConstantGenerator(0L)),
-        Seq("r3")
+        TaskGenerator("task3", "sim1", ConstantGenerator(4L), ConstantGenerator(0L)).withResources(Seq("r3"))
       )
       val task4 = FlowTask(
-        TaskGenerator("task4", "sim1", ConstantGenerator(8L), ConstantGenerator(0L)),
-        Seq("r4")
+        TaskGenerator("task4", "sim1", ConstantGenerator(8L), ConstantGenerator(0L)).withResources(Seq("r4"))
       )
       val task5 = FlowTask(
-        TaskGenerator("task5", "sim1", ConstantGenerator(16L), ConstantGenerator(0L)),
-        Seq("r5")
+        TaskGenerator("task5", "sim1", ConstantGenerator(16L), ConstantGenerator(0L)).withResources(Seq("r5"))
       )
       val flow1 = Then(Then(Then(Then(task1, task2), task3), task4), task5)
       val testMetrics = singleFlowTest(flow1, List(r1, r2, r3, r4, r5))
@@ -209,24 +187,19 @@ class FlowsTest extends FlowsTester {
       val r4 = new TaskResource("r4", 0)
       val r5 = new TaskResource("r5", 0)
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)),
-        Seq("r1")
+        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(Seq("r1"))
       )
       val task2 = FlowTask(
-        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)),
-        Seq("r2")
+        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)).withResources(Seq("r2"))
       )
       val task3 = FlowTask(
-        TaskGenerator("task3", "sim1", ConstantGenerator(4L), ConstantGenerator(0L)),
-        Seq("r3")
+        TaskGenerator("task3", "sim1", ConstantGenerator(4L), ConstantGenerator(0L)).withResources(Seq("r3"))
       )
       val task4 = FlowTask(
-        TaskGenerator("task4", "sim1", ConstantGenerator(8L), ConstantGenerator(0L)),
-        Seq("r4")
+        TaskGenerator("task4", "sim1", ConstantGenerator(8L), ConstantGenerator(0L)).withResources(Seq("r4"))
       )
       val task5 = FlowTask(
-        TaskGenerator("task5", "sim1", ConstantGenerator(16L), ConstantGenerator(0L)),
-        Seq("r5")
+        TaskGenerator("task5", "sim1", ConstantGenerator(16L), ConstantGenerator(0L)).withResources(Seq("r5"))
       )
       val flow1 = Then(task1, Then(task2, Then(task3, Then(task4, task5))))
       val testMetrics = singleFlowTest(flow1, List(r1, r2, r3, r4, r5))
@@ -245,24 +218,19 @@ class FlowsTest extends FlowsTester {
       val r4 = new TaskResource("r4", 0)
       val r5 = new TaskResource("r5", 0)
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)),
-        Seq("r1")
+        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(Seq("r1"))
       )
       val task2 = FlowTask(
-        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)),
-        Seq("r2")
+        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)).withResources(Seq("r2"))
       )
       val task3 = FlowTask(
-        TaskGenerator("task3", "sim1", ConstantGenerator(4L), ConstantGenerator(0L)),
-        Seq("r3")
+        TaskGenerator("task3", "sim1", ConstantGenerator(4L), ConstantGenerator(0L)).withResources(Seq("r3"))
       )
       val task4 = FlowTask(
-        TaskGenerator("task4", "sim1", ConstantGenerator(8L), ConstantGenerator(0L)),
-        Seq("r4")
+        TaskGenerator("task4", "sim1", ConstantGenerator(8L), ConstantGenerator(0L)).withResources(Seq("r4"))
       )
       val task5 = FlowTask(
-        TaskGenerator("task5", "sim1", ConstantGenerator(16L), ConstantGenerator(0L)),
-        Seq("r5")
+        TaskGenerator("task5", "sim1", ConstantGenerator(16L), ConstantGenerator(0L)).withResources(Seq("r5"))
       )
       val flow1 = Then(And(task1, Then(task2, task3)), And(task4, task5))
       val testMetrics = singleFlowTest(flow1, List(r1, r2, r3, r4, r5))
@@ -279,16 +247,13 @@ class FlowsTest extends FlowsTester {
       val r2 = new TaskResource("r2", 0)
       val r3 = new TaskResource("r3", 0)
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)),
-        Seq("r1")
+        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(Seq("r1"))
       )
       val task2 = FlowTask(
-        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)),
-        Seq("r2")
+        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)).withResources(Seq("r2"))
       )
       val task3 = FlowTask(
-        TaskGenerator("task3", "sim1", ConstantGenerator(4L), ConstantGenerator(0L)),
-        Seq("r3")
+        TaskGenerator("task3", "sim1", ConstantGenerator(4L), ConstantGenerator(0L)).withResources(Seq("r3"))
       )
       val flow1 = Then(Or(task1, task2), task3)
       val testMetrics = singleFlowTest(flow1, List(r1, r2, r3))
@@ -305,24 +270,19 @@ class FlowsTest extends FlowsTester {
       val r4 = new TaskResource("r4", 0)
       val r5 = new TaskResource("r5", 0)
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)),
-        Seq("r1")
+        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(Seq("r1"))
       )
       val task2 = FlowTask(
-        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)),
-        Seq("r2")
+        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)).withResources(Seq("r2"))
       )
       val task3 = FlowTask(
-        TaskGenerator("task3", "sim1", ConstantGenerator(4L), ConstantGenerator(0L)),
-        Seq("r3")
+        TaskGenerator("task3", "sim1", ConstantGenerator(4L), ConstantGenerator(0L)).withResources(Seq("r3"))
       )
       val task4 = FlowTask(
-        TaskGenerator("task4", "sim1", ConstantGenerator(8L), ConstantGenerator(0L)),
-        Seq("r4")
+        TaskGenerator("task4", "sim1", ConstantGenerator(8L), ConstantGenerator(0L)).withResources(Seq("r4"))
       )
       val task5 = FlowTask(
-        TaskGenerator("task5", "sim1", ConstantGenerator(16L), ConstantGenerator(0L)),
-        Seq("r5")
+        TaskGenerator("task5", "sim1", ConstantGenerator(16L), ConstantGenerator(0L)).withResources(Seq("r5"))
       )
       val flow1 = Then(Then(task1, Or(task2, task3)), And(task4, task5))
       val testMetrics = singleFlowTest(flow1, List(r1, r2, r3, r4, r5))
@@ -344,36 +304,28 @@ class FlowsTest extends FlowsTester {
       val r7 = new TaskResource("r7", 0)
       val r8 = new TaskResource("r8", 0)
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)),
-        Seq("r1")
+        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(Seq("r1"))
       )
       val task2 = FlowTask(
-        TaskGenerator("task2", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)),
-        Seq("r2")
+        TaskGenerator("task2", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(Seq("r2"))
       )
       val task3 = FlowTask(
-        TaskGenerator("task3", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)),
-        Seq("r3")
+        TaskGenerator("task3", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(Seq("r3"))
       )
       val task4 = FlowTask(
-        TaskGenerator("task4", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)),
-        Seq("r4")
+        TaskGenerator("task4", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(Seq("r4"))
       )
       val task5 = FlowTask(
-        TaskGenerator("task5", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)),
-        Seq("r5")
+        TaskGenerator("task5", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(Seq("r5"))
       )
       val task6 = FlowTask(
-        TaskGenerator("task6", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)),
-        Seq("r6")
+        TaskGenerator("task6", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(Seq("r6"))
       )
       val task7 = FlowTask(
-        TaskGenerator("task7", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)),
-        Seq("r7")
+        TaskGenerator("task7", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(Seq("r7"))
       )
       val task8 = FlowTask(
-        TaskGenerator("task8", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)),
-        Seq("r8")
+        TaskGenerator("task8", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(Seq("r8"))
       )
 
       val flow1 = Then(
@@ -397,12 +349,10 @@ class FlowsTest extends FlowsTester {
       val r1 = new TaskResource("r1", 0)
       val r2 = new TaskResource("r2", 0)
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)),
-        Seq("r1")
+        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(Seq("r1"))
       )
       val task2 = FlowTask(
-        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)),
-        Seq("r2")
+        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)).withResources(Seq("r2"))
       )
       val flow1 = Then(And(task1, task2), task1)
       val testMetrics = singleFlowTest(flow1, List(r1, r2))
@@ -431,16 +381,13 @@ class FlowsTest extends FlowsTester {
       coordinator ! Coordinator.AddResources(List(r1, r2, r3))
 
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)),
-        Seq("r1")
+        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(Seq("r1"))
       )
       val task2 = FlowTask(
-        TaskGenerator("task2", "sim2", ConstantGenerator(2L), ConstantGenerator(0L)),
-        Seq("r2")
+        TaskGenerator("task2", "sim2", ConstantGenerator(2L), ConstantGenerator(0L)).withResources(Seq("r2"))
       )
       val task3 = FlowTask(
-        TaskGenerator("task3", "sim2", ConstantGenerator(4L), ConstantGenerator(0L)),
-        Seq("r3")
+        TaskGenerator("task3", "sim2", ConstantGenerator(4L), ConstantGenerator(0L)).withResources(Seq("r3"))
       )
       val flow1 = task1
       val flow2 = Then(task2, task3)
@@ -481,16 +428,13 @@ class FlowsTest extends FlowsTester {
       coordinator ! Coordinator.AddResources(List(r1, r2, r3))
 
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)),
-        Seq("r1")
+        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(Seq("r1"))
       )
       val task2 = FlowTask(
-        TaskGenerator("task2", "sim2", ConstantGenerator(2L), ConstantGenerator(0L)),
-        Seq("r2")
+        TaskGenerator("task2", "sim2", ConstantGenerator(2L), ConstantGenerator(0L)).withResources(Seq("r2"))
       )
       val task3 = FlowTask(
-        TaskGenerator("task3", "sim2", ConstantGenerator(4L), ConstantGenerator(0L)),
-        Seq("r3")
+        TaskGenerator("task3", "sim2", ConstantGenerator(4L), ConstantGenerator(0L)).withResources(Seq("r3"))
       )
       val flow1 = task1
       val flow2 = Then(task2, task1)
