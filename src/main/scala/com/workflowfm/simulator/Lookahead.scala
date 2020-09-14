@@ -23,6 +23,15 @@ trait LookaheadStructure{
         }
         this.+(function, generator)
     }
+    def +(source: Set[UUID], generator: TaskGenerator): LookaheadStructure = {
+        val function: Seq[(UUID,Long)]=>Long = { s=>
+            val sMap = s.foldLeft(Map.empty[UUID,Long]) { (a,b) => a + ((b._1,b._2)) }
+            val times = source map (sMap.get(_))
+            if (times.contains(None)) -1
+            else (times map (_.get)).max
+        }
+        this.+(function, generator)
+    }
     def and(that: LookaheadStructure): LookaheadStructure = {
         LookaheadStructures(this,that)
     }

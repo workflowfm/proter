@@ -34,7 +34,7 @@ case class Or(left: Flow, right: Flow) extends Flow
 class FlowSimulationActor(
     name: String,
     coordinator: ActorRef,
-    flow: Flow
+    protected val flow: Flow
 )(implicit executionContext: ExecutionContext)
     extends AsyncSimulation(name, coordinator)(executionContext) {
 
@@ -132,4 +132,29 @@ object FlowSimulationActor {
       implicit executionContext: ExecutionContext
   ): Props =
     Props(new FlowSimulationActor(name, coordinator, flow))
+}
+
+trait FlowsLookahead extends FlowSimulationActor with Lookahead {
+  override def run(): Future[Any] = {
+    parseFlow(flow)
+    super.run()
+  }
+
+  private def parseFlow(flow: Flow, extraConditions: Set[UUID] = Set()): Set[UUID] = {
+    flow match {
+      case f: NoTask => Set()
+      case FlowTask(g) => Set(g.id)
+      case f: Then => {
+        val l = parseFlow(f.left,extraConditions)
+        f.right match { case FlowTask(g) => lookahead = lookahead + (l++extraConditions,g); case _ => Unit}
+        f.left  match { case t:FlowTask => parseFlow(f.right,extraConditions+t.id); case _ => parseFlow(f.right,extraConditions)}
+      }
+      case f: And => parseFlow(f.left,extraConditions) ++ parseFlow(f.right,extraConditions)
+      case f @ All(elem @ _*) => elem.foldLeft(Set.empty[UUID]){ (a,b) => a ++ parseFlow(b,extraConditions) }
+      case f: Or => {
+        parseFlow(f.left,extraConditions) ++ parseFlow(f.right,extraConditions)
+      }
+    }
+    Set()
+  }
 }
