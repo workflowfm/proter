@@ -99,15 +99,15 @@ class LookaheadTester
 
   def singleSimulationTest(sim: TestObject): Map[String, Option[Long]] = {
     val testMetrics = Map[String, Option[Long]]()
-    implicit val system: ActorSystem = ActorSystem("LookaheadIntegration")
+    //implicit val system: ActorSystem = ActorSystem("LookaheadIntegration")
     implicit val executionContext: ExecutionContext = ExecutionContext.global
     implicit val timeout = Timeout(2.seconds)
     val coordinator = system.actorOf(Coordinator.props(LookaheadScheduler))
-    val shutdownActor = Subscriber.actor(new ShutdownHandler())
+    //val shutdownActor = Subscriber.actor(new ShutdownHandler())
     val smh = new SimMetricsHandler
 
     Await.result(smh.subAndForgetTo(coordinator), 1.second)
-    Await.result(shutdownActor ? Subscriber.SubAndForgetTo(coordinator), 3.seconds)
+    //Await.result(shutdownActor ? Subscriber.SubAndForgetTo(coordinator), 3.seconds)
 
     coordinator ! Coordinator.AddResources(sim.resources)
     
@@ -277,7 +277,7 @@ case object DummySim3 extends TestObject {
 
 case object FlowDummySim extends TestObject {
     // Define tasks 
-    val task1 = FlowTask(TaskGenerator("task1", "sim", ConstantGenerator(2L), ConstantGenerator(0L)).withResources(Seq("r3")).withPriority(Task.High))
+    val task1 = FlowTask(TaskGenerator("task1", "sim", ConstantGenerator(2L), ConstantGenerator(0L)).withResources(Seq("r3")).withPriority(Task.High)) //todo dots not needed
     val task2 = FlowTask(TaskGenerator("task2", "sim", ConstantGenerator(2L), ConstantGenerator(0L)).withResources(Seq("r1")).withPriority(Task.High))
     val task3 = FlowTask(TaskGenerator("task3", "sim", ConstantGenerator(4L), ConstantGenerator(0L)).withResources(Seq("r2")).withPriority(Task.High))
     val task4 = FlowTask(TaskGenerator("task4", "sim", ConstantGenerator(4L), ConstantGenerator(0L)).withResources(Seq("r2")).withPriority(Task.Low))

@@ -136,14 +136,14 @@ object FlowSimulationActor {
 
 trait FlowsLookahead extends FlowSimulationActor with Lookahead {
   override def run(): Future[Any] = {
-    parseFlow(flow, None)
+    parseFlow(flow, None) //todo consider lookahead paramater
     super.run()
   }
 
   type IDFunction = Map[UUID,Long]=>Long
-  private def parseFlow(flow: Flow, extraFunction: Option[IDFunction] ): IDFunction = {
+  protected def parseFlow(flow: Flow, extraFunction: Option[IDFunction] ): IDFunction = {
     flow match {
-      case f: NoTask => (m:Map[UUID,Long])=> 0L
+      case f: NoTask => (m:Map[UUID,Long])=> 0L //todo Long.MinValue
       case FlowTask(g) => {
         if (extraFunction.isDefined) lookahead = lookahead + (extraFunction.get, g)
         (m:Map[UUID,Long])=> m.getOrElse(g.id, -1)

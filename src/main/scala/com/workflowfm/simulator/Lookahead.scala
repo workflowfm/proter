@@ -8,8 +8,8 @@ import java.{util => ju}
 //todo documentation
 trait LookaheadStructure{
     def -(id: UUID): this.type
-    def +(function: Map[UUID,Long]=>Long, generators: List[TaskGenerator]): this.type
-    def uncomplete(id: UUID): this.type
+    def +(function: Map[UUID,Long]=>Long, generators: List[TaskGenerator]): this.type //todo option long
+    def uncomplete(id: UUID): this.type //todo remove and make LookaheadObject wrapper
     def complete(id: UUID, time: Long): this.type
     def getTaskData(scheduled: Seq[(UUID,Long)]): Seq[(TaskGenerator,Long)]
     
@@ -37,11 +37,13 @@ trait LookaheadStructure{
 }
 
 case class LookaheadStructures(handlers: Queue[LookaheadStructure]) extends LookaheadStructure {
-  override def -(id: UUID): this.type = LookaheadStructures(handlers map (_.-(id))).asInstanceOf[this.type]
+  override def -(id: UUID): this.type = LookaheadStructures(handlers map (_.-(id))).asInstanceOf[this.type] //todo maybe dont need this.type type??
   override def +(function: Map[UUID,Long]=>Long, generators: List[TaskGenerator]): this.type = LookaheadStructures(handlers map (_.+(function, generators))).asInstanceOf[this.type]
   override def uncomplete(id: UUID): this.type = LookaheadStructures(handlers map (_.uncomplete(id))).asInstanceOf[this.type]
   override def complete(id: UUID, time: Long): this.type = LookaheadStructures(handlers map (_.complete(id,time))).asInstanceOf[this.type]
   override def getTaskData(scheduled: Seq[(UUID, Long)]): Seq[(TaskGenerator, Long)] = handlers flatMap (_.getTaskData(scheduled))
+  //todo override and
+  override def and(that: LookaheadStructure): LookaheadStructure = { copy(handlers=handlers :+ that) }
 }
 
 object LookaheadStructures {
@@ -52,8 +54,8 @@ object LookaheadStructures {
 
 case class LookaheadObj(
         actor: ActorRef,
-        val lookaheadSet: Set[(Map[UUID, Long] => Long, List[(TaskGenerator)])] = Set(),
-        val completed: Set[(UUID, Long)] = Set()
+        lookaheadSet: Set[(Map[UUID, Long] => Long, List[(TaskGenerator)])] = Set(),
+        completed: Set[(UUID, Long)] = Set()
     ) extends LookaheadStructure {
 
     override def -(id: UUID): this.type = {      

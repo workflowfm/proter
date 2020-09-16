@@ -412,10 +412,4 @@ trait Lookahead extends Simulation {
     coordinator ! Coordinator.SetSchedulerLookaheadObject(lookahead) //todo optimise 
     super.complete(task,time)
   }
-  
-  //def createLookahead(data) = {
-    //
-    //
-    //send to scheduler or override run
-  //}
 }
