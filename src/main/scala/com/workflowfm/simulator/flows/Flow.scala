@@ -136,25 +136,58 @@ object FlowSimulationActor {
 
 trait FlowsLookahead extends FlowSimulationActor with Lookahead {
   override def run(): Future[Any] = {
-    parseFlow(flow)
+    parseFlow(flow, None)
     super.run()
   }
 
-  private def parseFlow(flow: Flow, extraConditions: Set[UUID] = Set()): Set[UUID] = {
+  type IDFunction = Map[UUID,Long]=>Long
+  private def parseFlow(flow: Flow, extraFunction: Option[IDFunction] ): IDFunction = {
     flow match {
-      case f: NoTask => Set()
-      case FlowTask(g) => Set(g.id)
-      case f: Then => {
-        val l = parseFlow(f.left,extraConditions)
-        f.right match { case FlowTask(g) => lookahead = lookahead + (l++extraConditions,g); case _ => Unit}
-        f.left  match { case t:FlowTask => parseFlow(f.right,extraConditions+t.id); case _ => parseFlow(f.right,extraConditions)}
+      case f: NoTask => (m:Map[UUID,Long])=> 0L
+      case FlowTask(g) => {
+        if (extraFunction.isDefined) lookahead = lookahead + (extraFunction.get, g)
+        (m:Map[UUID,Long])=> m.getOrElse(g.id, -1)
       }
-      case f: And => parseFlow(f.left,extraConditions) ++ parseFlow(f.right,extraConditions)
-      case f @ All(elem @ _*) => elem.foldLeft(Set.empty[UUID]){ (a,b) => a ++ parseFlow(b,extraConditions) }
+      case f: Then => {
+        val l = parseFlow(f.left, extraFunction)
+        parseFlow(f.right, Some(l))
+      }
+      case f: And => {
+        val functions = Seq(parseFlow(f.left,extraFunction),parseFlow(f.right,extraFunction))
+        (m) => { 
+          val results = functions map (_(m))
+          if (results.contains(-1)) -1 else results.max
+        }
+      }
+      case f @ All(elem @ _*) => {
+        val functions = elem map (parseFlow(_,extraFunction))
+        (m) => { 
+          val results = functions map (_(m))
+          if (results.contains(-1)) -1 else results.max
+        }
+      }
       case f: Or => {
-        parseFlow(f.left,extraConditions) ++ parseFlow(f.right,extraConditions)
+        val functions = Seq(parseFlow(f.left,extraFunction),parseFlow(f.right,extraFunction))
+        (m) => { 
+          val results = functions map (_(m))
+          if (results.contains(-1)) -1 else results.min
+        }
       }
     }
-    Set()
   }
+}
+
+class FlowLookaheadActor(
+  name: String,
+  coordinator: ActorRef,
+  flow: Flow
+)(implicit executionContext: ExecutionContext)
+  extends FlowSimulationActor(name,coordinator,flow) with FlowsLookahead
+
+
+object FlowLookaheadActor {
+  def props(name: String, coordinator: ActorRef, flow: Flow)(
+      implicit executionContext: ExecutionContext
+  ): Props =
+    Props(new FlowLookaheadActor(name, coordinator, flow))
 }
