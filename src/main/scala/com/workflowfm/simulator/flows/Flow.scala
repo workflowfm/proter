@@ -136,17 +136,17 @@ object FlowSimulationActor {
 
 trait FlowsLookahead extends FlowSimulationActor with Lookahead {
   override def run(): Future[Any] = {
-    parseFlow(flow, None) //todo consider lookahead paramater
+    parseFlow(flow, None) //todo consider lookahead paramater to avoid using lookahead var in parseFlow
     super.run()
   }
 
-  type IDFunction = Map[UUID,Long]=>Long
+  type IDFunction = Map[UUID,Long]=>Option[Long]
   protected def parseFlow(flow: Flow, extraFunction: Option[IDFunction] ): IDFunction = {
     flow match {
-      case f: NoTask => (m:Map[UUID,Long])=> 0L //todo Long.MinValue
+      case f: NoTask => (m:Map[UUID,Long])=> Some(Long.MinValue)
       case FlowTask(g) => {
         if (extraFunction.isDefined) lookahead = lookahead + (extraFunction.get, g)
-        (m:Map[UUID,Long])=> m.getOrElse(g.id, -1)
+        (m:Map[UUID,Long])=> m.get(g.id)
       }
       case f: Then => {
         val l = parseFlow(f.left, extraFunction)
@@ -156,21 +156,21 @@ trait FlowsLookahead extends FlowSimulationActor with Lookahead {
         val functions = Seq(parseFlow(f.left,extraFunction),parseFlow(f.right,extraFunction))
         (m) => { 
           val results = functions map (_(m))
-          if (results.contains(-1)) -1 else results.max
+          if (results.contains(None)) None else results.max
         }
       }
       case f @ All(elem @ _*) => {
         val functions = elem map (parseFlow(_,extraFunction))
         (m) => { 
           val results = functions map (_(m))
-          if (results.contains(-1)) -1 else results.max
+          if (results.contains(None)) None else results.max
         }
       }
       case f: Or => {
         val functions = Seq(parseFlow(f.left,extraFunction),parseFlow(f.right,extraFunction))
         (m) => { 
           val results = functions map (_(m))
-          if (results.contains(-1)) -1 else results.min
+          if (results.contains(None)) None else results.min //todo: this is wrong, fix pls
         }
       }
     }
