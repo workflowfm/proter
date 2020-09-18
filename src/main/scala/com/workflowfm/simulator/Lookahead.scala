@@ -7,10 +7,10 @@ import java.{util => ju}
 
 //todo documentation
 trait LookaheadStructure{
-    def -(id: UUID): this.type
-    def +(function: Map[UUID,Long]=>Option[Long], generators: List[TaskGenerator]): this.type
-    def uncomplete(id: UUID): this.type //todo remove and make LookaheadObject wrapper
-    def complete(id: UUID, time: Long): this.type
+    def -(id: UUID): LookaheadStructure
+    def +(function: Map[UUID,Long]=>Option[Long], generators: List[TaskGenerator]): LookaheadStructure
+    def uncomplete(id: UUID): LookaheadStructure //todo remove and make LookaheadObject wrapper
+    def complete(id: UUID, time: Long): LookaheadStructure
     def getTaskData(scheduled: Seq[(UUID,Long)]): Seq[(TaskGenerator,Long)]
     
     def +(function: Map[UUID,Long]=>Option[Long], generator: TaskGenerator): LookaheadStructure = this.+(function, List(generator))
@@ -34,10 +34,10 @@ trait LookaheadStructure{
 }
 
 case class LookaheadStructures(handlers: Queue[LookaheadStructure]) extends LookaheadStructure {
-  override def -(id: UUID): this.type = LookaheadStructures(handlers map (_.-(id))).asInstanceOf[this.type] //todo maybe dont need this.type type??
-  override def +(function: Map[UUID,Long]=>Option[Long], generators: List[TaskGenerator]): this.type = LookaheadStructures(handlers map (_.+(function, generators))).asInstanceOf[this.type]
-  override def uncomplete(id: UUID): this.type = LookaheadStructures(handlers map (_.uncomplete(id))).asInstanceOf[this.type]
-  override def complete(id: UUID, time: Long): this.type = LookaheadStructures(handlers map (_.complete(id,time))).asInstanceOf[this.type]
+  override def -(id: UUID): LookaheadStructure = LookaheadStructures(handlers map (_.-(id)))
+  override def +(function: Map[UUID,Long]=>Option[Long], generators: List[TaskGenerator]): LookaheadStructure = LookaheadStructures(handlers map (_.+(function, generators)))
+  override def uncomplete(id: UUID): LookaheadStructure = LookaheadStructures(handlers map (_.uncomplete(id)))
+  override def complete(id: UUID, time: Long): LookaheadStructure = LookaheadStructures(handlers map (_.complete(id,time)))
   override def getTaskData(scheduled: Seq[(UUID, Long)]): Seq[(TaskGenerator, Long)] = handlers flatMap (_.getTaskData(scheduled))
   override def and(that: LookaheadStructure): LookaheadStructure = copy( handlers = handlers :+ that )
 }
@@ -48,28 +48,28 @@ object LookaheadStructures {
   )
 }
 
-case class LookaheadObj(
+case class LookaheadSet(
         actor: ActorRef,
         lookaheadSet: Set[(Map[UUID, Long] => Option[Long], List[(TaskGenerator)])] = Set(),
         completed: Set[(UUID, Long)] = Set()
     ) extends LookaheadStructure {
 
-    override def -(id: UUID): this.type = {      
-        LookaheadObj(actor,
+    override def -(id: UUID): LookaheadStructure = {      
+        LookaheadSet(actor,
         lookaheadSet.filter { 
             //remove all entries that spawn this task
             entry => entry._2 forall ( data => data.id != id) 
         }.filter {
             //remove all entries that are spawned by this task (among others)
             entry => ! entry._1( completed.foldLeft(Map.empty[UUID,Long]){(a,b)=>a + ((b._1,b._2))} ).isDefined
-        }, completed).asInstanceOf[this.type]
+        }, completed)
     }
-    override def +(function: Map[UUID,Long]=>Option[Long], generators: List[TaskGenerator]): this.type = {
-        copy(lookaheadSet=lookaheadSet+((function,generators))).asInstanceOf[this.type]
+    override def +(function: Map[UUID,Long]=>Option[Long], generators: List[TaskGenerator]): LookaheadStructure = {
+        copy(lookaheadSet=lookaheadSet+((function,generators)))
     }
 
-    override def uncomplete(id: UUID): this.type = LookaheadObj(actor, lookaheadSet, completed filter {x=> x._1 != id}).asInstanceOf[this.type]
-    override def complete(id: UUID, time: Long): this.type = LookaheadObj(actor, lookaheadSet, completed + ((id, time))).asInstanceOf[this.type]
+    override def uncomplete(id: UUID): LookaheadStructure = LookaheadSet(actor, lookaheadSet, completed filter {x=> x._1 != id})
+    override def complete(id: UUID, time: Long): LookaheadStructure = LookaheadSet(actor, lookaheadSet, completed + ((id, time)))
 
     override def getTaskData(scheduled: Seq[(UUID, Long)]): Seq[(TaskGenerator,Long)] = {
         val y = lookaheadSet flatMap { x: (Map[UUID, Long] => Option[Long], Seq[TaskGenerator]) => 
@@ -87,9 +87,9 @@ case class LookaheadObj(
 }
 
 case object EmptyStructure extends LookaheadStructure {
-  override def -(id: UUID): this.type = EmptyStructure
-  override def +(function: Map[UUID,Long]=>Option[Long], generators: List[TaskGenerator]): this.type = EmptyStructure
-  override def uncomplete(id: UUID): this.type = EmptyStructure
-  override def complete(id: UUID, time: Long): this.type = EmptyStructure
+  override def -(id: UUID): LookaheadStructure = EmptyStructure
+  override def +(function: Map[UUID,Long]=>Option[Long], generators: List[TaskGenerator]): LookaheadStructure = EmptyStructure
+  override def uncomplete(id: UUID): LookaheadStructure = EmptyStructure
+  override def complete(id: UUID, time: Long): LookaheadStructure = EmptyStructure
   override def getTaskData(scheduled: Seq[(UUID, Long)]): Seq[(TaskGenerator, Long)] = Seq()
 }
