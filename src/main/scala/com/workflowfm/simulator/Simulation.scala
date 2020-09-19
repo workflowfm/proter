@@ -239,7 +239,6 @@ object Simulation {
   /**
     * Tells the [[Simulation]] to request that [[Coordinator]] waits.
     *
-    * @see [[Simulation.requestWait(a* requestWait(ActorRef)]]
     * @group process
     */
   case object Wait
@@ -300,7 +299,7 @@ class SingleTaskSimulation(
 object SingleTaskSimulation {
 
   /**
-    * Creates props of a [[TaskSimulatorActor]].
+    * Creates props of a [[SingleTaskSimulation]] actor.
     *
     * @param name The simulation name.
     * @param coordinator The [[Coordinator]].

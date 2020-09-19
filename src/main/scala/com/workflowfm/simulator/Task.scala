@@ -20,7 +20,7 @@ import java.util.UUID
   *           A workflow may spawn multiple tasks with the same name, so this is necessary.
   * @param name A descriptive name.
   * @param simulation A unique name of the simulation this task belongs to.
-  * @param actor A reference to the [[SimulationActor]] that spawned this task.
+  * @param actor A reference to the [[Simulation]] that spawned this task.
   * @param created The timestamp when this task was created.
   * @param resources The names of the [[TaskResource]]s required by this task.
   * @param duration The actual duration of the task.
@@ -195,7 +195,7 @@ case class TaskGenerator(
     *
     * @param id The unique ID to give to the task.
     * @param currentTime The current time.
-    * @param actor A reference to the corresponding [[SimulationActor]] for the task.
+    * @param actor A reference to the corresponding [[Simulation]] for the task.
     * @param resources The names of the [[TaskResource]]s that will be used by the task.
     * @return The generated [[Task]].
     */

@@ -129,9 +129,9 @@ class SimulationResultHandler(name: String, callback: String => Unit = { _ => Un
 }
 
 /**
-  * A [[PoolEventHandler]] that shuts down the [[akka.actor.ActorSystem]] when all [[Coordinator]]s are done.
+  * A [[PoolEventHandler]] that shuts down the [[akka.actor.ActorSystem ActorSystem]] when all [[Coordinator]]s are done.
   *
-  * @param system The [[akka.actor.ActorSystem]] to shut down.
+  * @param system The [[akka.actor.ActorSystem ActorSystem]] to shut down.
   */
 class ShutdownHandler(implicit system: ActorSystem) extends PoolEventHandler {
 
