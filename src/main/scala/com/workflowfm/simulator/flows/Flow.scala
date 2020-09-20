@@ -4,6 +4,7 @@ import com.workflowfm.simulator._
 import scala.concurrent.{ ExecutionContext, Future, Promise }
 import akka.actor.{ Actor, ActorRef, Props }
 import java.util.UUID
+import akka.protobufv3.internal.Empty
 
 sealed trait Flow {
   val id: UUID = java.util.UUID.randomUUID
@@ -136,42 +137,44 @@ object FlowSimulationActor {
 
 trait FlowsLookahead extends FlowSimulationActor with Lookahead {
   override def run(): Future[Any] = {
-    parseFlow(flow, None) //todo consider lookahead paramater to avoid using lookahead var in parseFlow
+    lookahead = parseFlow(flow, None, lookahead)._2 //todo consider lookahead paramater to avoid using lookahead var in parseFlow
     super.run()
   }
 
   type IDFunction = Map[UUID,Long]=>Option[Long]
-  protected def parseFlow(flow: Flow, extraFunction: Option[IDFunction] ): IDFunction = {
+  protected def parseFlow(flow: Flow, extraFunction: Option[IDFunction], lookaheadStructure: LookaheadStructure ): (IDFunction, LookaheadStructure) = {
     flow match {
-      case f: NoTask => (m:Map[UUID,Long])=> Some(Long.MinValue)
+      case f: NoTask => ((m:Map[UUID,Long])=> (Some(Long.MinValue)), EmptyStructure)
       case FlowTask(g) => {
-        if (extraFunction.isDefined) lookahead = lookahead + (extraFunction.get, g)
-        (m:Map[UUID,Long])=> m.get(g.id)
+        var s = lookaheadStructure
+        if (extraFunction.isDefined) s = s + (extraFunction.get, g)
+        ((m:Map[UUID,Long])=> (m.get(g.id)), s)
       }
       case f: Then => {
-        val l = parseFlow(f.left, extraFunction)
-        parseFlow(f.right, Some(l))
+        val l = parseFlow(f.left, extraFunction, lookaheadStructure)
+        parseFlow(f.right, Some(l._1), l._2)
       }
       case f: And => {
-        val functions = Seq(parseFlow(f.left,extraFunction),parseFlow(f.right,extraFunction))
-        (m) => { 
-          val results = functions map (_(m))
+        val functions = Seq(parseFlow(f.left,extraFunction, lookaheadStructure),parseFlow(f.right,extraFunction, lookaheadStructure))
+        ( (m) => { 
+          val results = functions map (_._1(m))
           if (results.contains(None)) None else results.max
-        }
+        }, functions.map(_._2).fold(EmptyStructure){(a,b)=>a and b})
       }
       case f @ All(elem @ _*) => {
-        val functions = elem map (parseFlow(_,extraFunction))
-        (m) => { 
-          val results = functions map (_(m))
+        val functions = elem map (parseFlow(_,extraFunction,lookaheadStructure))
+        ( (m) => { 
+          val results = functions map (_._1(m))
           if (results.contains(None)) None else results.max
-        }
+        },
+        functions.map(_._2).fold(EmptyStructure){(a,b)=>a and b})
       }
       case f: Or => {
-        val functions = Seq(parseFlow(f.left,extraFunction),parseFlow(f.right,extraFunction))
-        (m) => { 
-          val results = functions map (_(m))
+        val functions = Seq(parseFlow(f.left,extraFunction, lookaheadStructure),parseFlow(f.right,extraFunction, lookaheadStructure))
+        ((m) => { 
+          val results = functions.map(_._1(m))
           if (results.contains(None)) None else results.min //todo: this is wrong, fix pls
-        }
+        }, functions.map(_._2).fold(EmptyStructure){(a,b)=>a and b})
       }
     }
   }

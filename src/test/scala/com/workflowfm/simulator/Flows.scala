@@ -5,7 +5,7 @@ import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
 import akka.testkit._
 
-import akka.actor.{ActorRef, ActorSystem}
+import akka.actor.{ActorRef, ActorSystem, Props}
 import scala.concurrent._
 import java.util.UUID
 
@@ -17,8 +17,50 @@ import java.{util => ju}
 @RunWith(classOf[JUnitRunner])
 class Flows extends FlowsTester {
     "Lookahead parseFlow" must {
-        "execute a single flow" in {
-            1 should be (1)
+        "Do nothing if given no tasks" in {
+            val f = parseFlow(NoTask())
+            f._2 should be (EmptyStructure)
+        }
+        "Do nothing if given a single task" in {
+            val t1 = FlowTask(TaskGenerator("t","sim",ConstantGenerator(2),ConstantGenerator(2)))
+            //val t1id = t1.generator.id
+            val f = parseFlow(t1)
+            f._2 should be (EmptyStructure)
+        }
+        "Do nothing if given an AND of two tasks" in {
+            val t1 = FlowTask(TaskGenerator("t1","sim",ConstantGenerator(2),ConstantGenerator(2)))
+            val t2 = FlowTask(TaskGenerator("t2","sim",ConstantGenerator(2),ConstantGenerator(2)))
+            val f = parseFlow(t1 + t2)
+            f._2 should be (EmptyStructure)
+        }
+        "Do nothing if given an OR of two tasks" in {
+            val t1 = FlowTask(TaskGenerator("t1","sim",ConstantGenerator(2),ConstantGenerator(2)))
+            val t2 = FlowTask(TaskGenerator("t2","sim",ConstantGenerator(2),ConstantGenerator(2)))
+            val f = parseFlow(t1 | t2)
+            f._2 should be (EmptyStructure)
+        }
+        "Register a task for lookahead if given a Then of two tasks" in {
+            val t1 = FlowTask(TaskGenerator("t1","sim",ConstantGenerator(2),ConstantGenerator(2)))
+            val t2 = FlowTask(TaskGenerator("t2","sim",ConstantGenerator(2),ConstantGenerator(2)))
+            val f = parseFlow(t1 > t2)
+            f._2 should not be (EmptyStructure)
+            f._2.getTaskData(Seq().to[collection.immutable.Seq]).size should be (0)
+            val data = f._2.getTaskData(Seq((t1.generator.id,2L)).to[collection.immutable.Seq])
+            data.size should be (1)
+            data.head._1.id should be (t2.generator.id)
+        }
+        "Consider the requirements of parent flow objects when registering a single task" in {
+            val t1 = FlowTask(TaskGenerator("t","sim",ConstantGenerator(2),ConstantGenerator(2)))
+            val t1id = t1.generator.id
+            val dummyID = java.util.UUID.randomUUID()
+            val function = (m:Map[UUID,Long]) => if (m.keySet.contains(dummyID)) Some(0L) else None
+            val f = parseFlow(t1, Some(function))
+            f._2 should not be (EmptyStructure)
+            f._2.getTaskData(Seq().to[collection.immutable.Seq]).size should be (0)
+            f._2.getTaskData(Seq((t1id,2L)).to[collection.immutable.Seq]).size should be (0)
+            val data = f._2.getTaskData(Seq((dummyID,2L)).to[collection.immutable.Seq])
+            data.size should be (1)
+            data.head._1.id should be (t1id)
         }
     }
 }
@@ -31,10 +73,12 @@ class FlowsTester
     with ImplicitSender {
     implicit val executionContext: ExecutionContext = ExecutionContext.global
 
-    val flowsLookaheadTest = new FlowsLookaheadTest(self)
+    val flowsLookaheadTest = FlowsLookaheadTest.props(self)
+    val test = TestActorRef(new FlowLookaheadActor("testFlow",self,NoTask()))
 
     type IDFunction = Map[UUID,Long]=>Option[Long]
-    def parseFlow(flow: Flow, extraFunction: Option[IDFunction] ): IDFunction = flowsLookaheadTest.parseFlow(flow,extraFunction)
+    def parseFlow(flow: Flow, extraFunction: Option[IDFunction] = None, structure: LookaheadStructure = EmptyStructure ): (IDFunction, LookaheadStructure) = 
+        TestActorRef(new FlowsLookaheadTest(self)).underlyingActor.parseFlow(flow, extraFunction, structure) 
 
     override def afterAll: Unit = {
         TestKit.shutdownActorSystem(system)
@@ -42,8 +86,12 @@ class FlowsTester
 }
 
 class FlowsLookaheadTest(actor: ActorRef)(implicit executionContext: ExecutionContext)extends FlowLookaheadActor("testFlow",actor,NoTask()) {
-    override def parseFlow(flow: Flow, extraFunction: Option[Map[ju.UUID,Long] => Option[Long]]): Map[ju.UUID,Long] => Option[Long] = {
-        super.parseFlow(flow, extraFunction)
+    override def parseFlow(flow: Flow, extraFunction: Option[Map[ju.UUID,Long] => Option[Long]], structure: LookaheadStructure): (Map[ju.UUID,Long] => Option[Long], LookaheadStructure) = {
+        super.parseFlow(flow, extraFunction, structure)
     }
+}
 
+object FlowsLookaheadTest {
+    def props(actor: ActorRef)(implicit executionContext: ExecutionContext): Props =
+        Props(new FlowsLookaheadTest(actor))
 }

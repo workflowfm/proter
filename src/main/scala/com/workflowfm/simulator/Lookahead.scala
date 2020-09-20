@@ -49,13 +49,13 @@ object LookaheadStructures {
 }
 
 case class LookaheadSet(
-        actor: ActorRef,
+        //actor: ActorRef,
         lookaheadSet: Set[(Map[UUID, Long] => Option[Long], List[(TaskGenerator)])] = Set(),
         completed: Set[(UUID, Long)] = Set()
     ) extends LookaheadStructure {
 
     override def -(id: UUID): LookaheadStructure = {      
-        LookaheadSet(actor,
+        LookaheadSet(//actor,
         lookaheadSet.filter { 
             //remove all entries that spawn this task
             entry => entry._2 forall ( data => data.id != id) 
@@ -68,8 +68,8 @@ case class LookaheadSet(
         copy(lookaheadSet=lookaheadSet+((function,generators)))
     }
 
-    override def uncomplete(id: UUID): LookaheadStructure = LookaheadSet(actor, lookaheadSet, completed filter {x=> x._1 != id})
-    override def complete(id: UUID, time: Long): LookaheadStructure = LookaheadSet(actor, lookaheadSet, completed + ((id, time)))
+    override def uncomplete(id: UUID): LookaheadStructure = LookaheadSet(lookaheadSet, completed filter {x=> x._1 != id})
+    override def complete(id: UUID, time: Long): LookaheadStructure = LookaheadSet(lookaheadSet, completed + ((id, time)))
 
     override def getTaskData(scheduled: Seq[(UUID, Long)]): Seq[(TaskGenerator,Long)] = {
         val y = lookaheadSet flatMap { x: (Map[UUID, Long] => Option[Long], Seq[TaskGenerator]) => 
@@ -88,7 +88,7 @@ case class LookaheadSet(
 
 case object EmptyStructure extends LookaheadStructure {
   override def -(id: UUID): LookaheadStructure = EmptyStructure
-  override def +(function: Map[UUID,Long]=>Option[Long], generators: List[TaskGenerator]): LookaheadStructure = EmptyStructure
+  override def +(function: Map[UUID,Long]=>Option[Long], generators: List[TaskGenerator]): LookaheadStructure = LookaheadSet() + (function,generators)
   override def uncomplete(id: UUID): LookaheadStructure = EmptyStructure
   override def complete(id: UUID, time: Long): LookaheadStructure = EmptyStructure
   override def getTaskData(scheduled: Seq[(UUID, Long)]): Seq[(TaskGenerator, Long)] = Seq()

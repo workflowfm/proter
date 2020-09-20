@@ -403,7 +403,7 @@ trait FutureTasks { self: AsyncSimulation =>
 }
 
 trait Lookahead extends Simulation {
-  var lookahead: LookaheadStructure = LookaheadSet(self)
+  var lookahead: LookaheadStructure = LookaheadSet()
 
   override def sendLookaheadStructure():Unit = {  coordinator ! Coordinator.SetSchedulerLookaheadObject(lookahead) }
 
