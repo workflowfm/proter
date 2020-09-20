@@ -17,20 +17,22 @@ import java.util.UUID
   * tasks to be added and informing the simulation processes when a task is completed.
   *
   * = Interface =
-  * The interface to set up a simulation has 4 key methods:
+  * The interface to set up a simulation has 6 key methods:
   *   1. `run`: Start the execution of the simulation logic.
   *   1. `task`: Produce new simulation tasks to be run.
+  *   1. `ack`: Tell the [[Coordinator]] we are done processing one or more finished tasks.
   *   1. `ready`: Tell the [[Coordinator]] we are ready and waiting for virtual time to progress.
-  *   1. `requestWait`: Tell the [[Coordinator]] to wait for us when reacting to another simulation.
+  *   1. `simWait`: Tell the [[Coordinator]] to wait for us when reacting to another simulation.
+  *   1. `complete`: Manage a task that just completed following the simulation logic.
   *
   * The interface can be accessed in 2 modes:
   *   1. ```Direct Interface:``` The simulation logic can be coded directly in a subclass, by
   *      implementing [[run]] and using [[task(t* task]],
-  *      [[requestWait()* requestWait()]] and [[ready]].
+  *      [[simWait]], [[ack]] and [[ready]].
   *   1. ```Actor Interface:``` The simulation logic can be distributed to other actors, typically
   *      [[SimulatedProcess]]es. These
   *      can interact with `Simulation` using the [[Simulation.AddTask]],
-  *      [[Simulation.RequestWait]] and [[Simulation.Ready]] messages.
+  *      [[Simulation.Wait]], [[Simulation.AckTasks]] and [[Simulation.Ready]] messages.
   *
   * = Interaction Flow =
   * The interaction flow with the [[Coordinator]] is expected as follows:
@@ -38,14 +40,16 @@ import java.util.UUID
   *      via a [[Coordinator.SimStarted]] response.
   *   1. The simulation logic starts executing via [[Simulation.run]] and produces some
   *      simulation ``tasks``.
-  *   1. When the simulation logic finishes producing tasks, it is ``ready``. Sending a
-  *      [[Coordinator.AddTasks]] message informs the [[Coordinator]] about any new
-  *      tasks and that the simulation is ready to proceed.
+  *   1. Newly produced tasks can be sent to the [[Coordinator]] via the [[Coordinator.AddTasks]] 
+  *      message.
+  *   1. When the simulation logic finishes producing tasks, it is ``ready``. It then sends a 
+  *      [[Coordinator.SimReady]] message to the [[Coordinator]].
   *   1. Eventually, one of the tasks completes and we receive a [[Simulation.TaskCompleted]]
   *      message. The simulation logic resumes execution.
   *   1. The [[Coordinator]] is now waiting for either new tasks ([[Coordinator.AddTasks]]) or
   *      the simulation to end ([[Coordinator.SimDone]]):
-  *      a. The simulation may generate new ``tasks`` and then become ``ready`` again as above.
+  *      a. The simulation may generate new ``tasks`` and either ``ack`` the finished tasks 
+  *         individually or become ``ready`` again as above.
   *      a. If the simulation logic completes, the [[Coordinator.SimDone]] message is sent
   *         automatically.
   *   1. The simulation may also react to things happening to other simulations. It can send a
@@ -74,17 +78,29 @@ abstract class Simulation(
     */
   def run(): Future[Any]
 
+  /**
+    * Manages a completed [[Task]].
+    * 
+    * The simulation logic must react to this by either registering more tasks or finishing.
+    *
+    * If new tasks are produced, the completed [[Task]] must be ``acknowledged`` to the 
+    * [[Coordinator]] via [[ack]]. Alternatively, if we do not want to ``ack`` all completed
+    * tasks, we can just call [[ready]].
+    * 
+    * In other words, after a [[Task]] completes, the [[Coordinator]] will expect either a
+    * `AckTasks` (via [[ack]]) or `SimDone` (via the [[run]] `Future` completing) before
+    * it continues.
+    *
+    * @group api
+    * @param task The completed [[Task]].
+    * @param time The timestamp of completion and current time.
+    */
   def complete(task: Task, time: Long): Unit
 
   /**
     * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation.
     *
-    * The returned `Future` will complete when the [[Task]] simulation is completed. The simulation
-    * logic must react to this by either registering more tasks and becoming ``ready`` or finishing.
-    *
-    * In other words, after the `Future` completes, the [[Coordinator]] will expect either a
-    * `AddTasks` (via [[ready]]) or `SimDone` (via the [[run]] `Future` completing) before
-    * it continues.
+    * The returned `Future` will complete when the [[Task]] simulation is completed.
     *
     * @group api
     *
@@ -102,22 +118,11 @@ abstract class Simulation(
     * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation
     * with a pre-determined ID.
     *
-    * The returned `Future` will complete when the [[Task]] simulation is completed. The simulation
-    * logic must react to this by either registering more tasks and becoming ``ready`` or finishing.
-    *
-    * In other words, after the `Future` completes, the [[Coordinator]] will expect either a
-    * `AddTasks` (via [[ready]]) or `SimDone` (via the [[run]] `Future` completing) before
-    * it continues.
-    *
     * @group api
     *
     * @param id The pre-determined task ID.
     * @param t The [[TaskGenerator]] to send.
-    * @param caller Some reference to an actor that generated the task in order to notify them when
-    *               the task is completed, or `None` if no actor needs to be notified.
     * @param resources The names of the [[TaskResource]]s that need to be used for the [[Task]].
-    * @return A `Future` that completes when the generated [[Task]] has completed,
-    *         containing the [[Task]] and its completion time.
     */
   protected def task(id: UUID, t: TaskGenerator, resources: Seq[String]): Unit = {
     coordinator ! Coordinator.AddTask(id, t, resources)
@@ -139,18 +144,23 @@ abstract class Simulation(
   }
 
   /**
-    * Notifies the [[Coordinator]] that the simulation has finished calculating
-    * and is ready for virtual time to proceed.
+    * Notifies the [[Coordinator]] that the simulation has finished processing
+    * one or more completed [[Task]]s.
     *
-    * Also sends the new tasks for simulation to the [[Coordinator]] and clears
-    * the queue.
-    * @todo update
+    * Identifies the tasks via their UUID.
+    * 
     * @group api
     */
   def ack(tasks: Seq[UUID]): Unit = {
     coordinator ! Coordinator.AckTasks(tasks)
   }
 
+  /**
+    * Notifies the [[Coordinator]] that the simulation has finished calculating
+    * and is ready for virtual time to proceed.
+    *
+    * @group api
+    */
   def ready(): Unit = {
     coordinator ! Coordinator.SimReady
   }
@@ -160,7 +170,7 @@ abstract class Simulation(
     *
     * The simulation needs to either register more tasks and become ``ready`` or finish.
     *
-    * In other words, the [[Coordinator]] will expect either a `AddTasks` (via [[ready]])
+    * In other words, the [[Coordinator]] will expect either a `SimReady` (via [[ready]])
     * or `SimDone` (via the [[run]] `Future` completing) before it continues.
     *
     * @note We assume the [[Coordinator]] is already waiting for another simulation when the
@@ -213,7 +223,7 @@ object Simulation {
     */
   case object Ready
   /**
-    * Produces a new [[TaskGenerator]] for simulation.
+    * Produces a new [[TaskGenerator]] with a specified ID for simulation.
     *
     * @see [[Simulation.task(i* task(id, t, resources)]]
     * @group process
@@ -224,6 +234,16 @@ object Simulation {
     */
   case class AddTaskWithId(id: UUID, t: TaskGenerator, resources: Seq[String])
 
+  /**
+    * Produces a new [[TaskGenerator]] for simulation.
+    *
+    * @see [[Simulation.task(t* task(t, resources)]]
+    * @group process
+    *
+    * @param id The [[Task]] ID to be used.
+    * @param t The [[TaskGenerator]] to generate the [[Task]].
+    * @param resources The names of the [[TaskResource]]s the [[Task]] will require.
+    */
   case class AddTask(t: TaskGenerator, resources: Seq[String])
 
   /**
@@ -249,7 +269,14 @@ object Simulation {
     */
   case object AckWait
 
-// TODO document
+  /**
+    * Acknowledges a sequence of completed [[Task]] IDs has been processed.
+    *
+    * @see [[Simulation.ack]]
+    * @group process
+    *
+    * @param task The acknowledged [[Task]] UUIDs.
+    */
   case class AckTasks(tasks: Seq[UUID])
 }
 
