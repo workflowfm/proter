@@ -46,8 +46,8 @@ import java.util.UUID
   *      [[Coordinator.SimReady]] message to the [[Coordinator]].
   *   1. Eventually, one of the tasks completes and we receive a [[Simulation.TaskCompleted]]
   *      message. The simulation logic resumes execution.
-  *   1. The [[Coordinator]] is now waiting for either new tasks ([[Coordinator.AddTasks]]) or
-  *      the simulation to end ([[Coordinator.SimDone]]):
+  *   1. The [[Coordinator]] is now waiting for either an acknowledgement of the completed task
+         ([[Coordinator.AckTasks]]) or the simulation to end ([[Coordinator.SimDone]]):
   *      a. The simulation may generate new ``tasks`` and either ``ack`` the finished tasks 
   *         individually or become ``ready`` again as above.
   *      a. If the simulation logic completes, the [[Coordinator.SimDone]] message is sent
@@ -65,7 +65,7 @@ import java.util.UUID
   * @param executionContext
   */
 abstract class Simulation(
-    name: String,
+   name: String,
     coordinator: ActorRef
 )(implicit executionContext: ExecutionContext)
     extends Actor {
@@ -360,17 +360,34 @@ object SingleTaskSimulation {
     )
 }
 
+/**
+  * Asynchronous Simulation implementation with callback functions.
+  *
+  * Each task needs to be accompanied by a callback function that implements the
+  * simulation logic to be followed when the task completes.
+  * 
+  * @param name The name of the simulation.
+  * @param coordinator A reference to the [[Coordinator]] actor running the simulation.
+  * @param executionContext
+  */
 abstract class AsyncSimulation(
     name: String,
     coordinator: ActorRef
 )(implicit executionContext: ExecutionContext)
     extends Simulation(name, coordinator)(executionContext) {
 
+  /**
+    * The type of the callback function.
+    * 
+    * Its input consists of the generated [[Task]] and the timestamp when it was completed.
+    * 
+    * @group api
+    */
   type Callback = (Task, Long) => Unit
 
   /**
-    * A map of [[Task]] IDs that have been sent to the [[Coordinator]] and the `Promise`s that
-    * need to be fulfilled when the tasks complete.
+    * A map of [[Task]] IDs that have been sent to the [[Coordinator]] and the callback functions
+    * that need to be called when the tasks complete.
     *
     * @group internal
     */
@@ -379,19 +396,20 @@ abstract class AsyncSimulation(
   /**
     * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation.
     *
-    * The returned `Future` will complete when the [[Task]] simulation is completed. The simulation
-    * logic must react to this by either registering more tasks and becoming ``ready`` or finishing.
+    * The provided callback function will be called when the corresponding [[Task]] is completed.
+    * When it finishes executing, it must notify the [[Coordinator]] either by acknowledging the 
+    * completed task using [[ack]] or by completing the simulation (i.e. completing the `Future` 
+    * returned by [[run]]).
     *
-    * In other words, after the `Future` completes, the [[Coordinator]] will expect either a
-    * `AddTasks` (via [[ready]]) or `SimDone` (via the [[run]] `Future` completing) before
-    * it continues.
+    * The [[ready]] method can also be called if there is no need to acknowledge completed tasks
+    * individually. This is unlikely in the current scenario where each task has its own callback,
+    * but it's still worth mentioning.
     *
     * @group api
     *
     * @param t The [[TaskGenerator]] to send.
+    * @param callback The [[Callback]] function to be called when the corresponding [[Task]] completes.
     * @param resources The names of the [[TaskResource]]s that need to be used for the [[Task]].
-    * @return A `Future` that completes when the generated [[Task]] has completed,
-    *         containing the [[Task]] and its completion time.
     */
   def task(t: TaskGenerator, callback: Callback, resources: String*): Unit = {
     val id = java.util.UUID.randomUUID
@@ -402,22 +420,21 @@ abstract class AsyncSimulation(
     * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation
     * with a pre-determined ID.
     *
-    * The returned `Future` will complete when the [[Task]] simulation is completed. The simulation
-    * logic must react to this by either registering more tasks and becoming ``ready`` or finishing.
+    * The provided callback function will be called when the corresponding [[Task]] is completed.
+    * When it finishes executing, it must notify the [[Coordinator]] either by acknowledging the 
+    * completed task using [[ack]] or by completing the simulation (i.e. completing the `Future` 
+    * returned by [[run]]).
     *
-    * In other words, after the `Future` completes, the [[Coordinator]] will expect either a
-    * `AddTasks` (via [[ready]]) or `SimDone` (via the [[run]] `Future` completing) before
-    * it continues.
+    * The [[ready]] method can also be called if there is no need to acknowledge completed tasks
+    * individually. This is unlikely in the current scenario where each task has its own callback,
+    * but it's still worth mentioning.
     *
     * @group api
     *
     * @param id The pre-determined task ID.
     * @param t The [[TaskGenerator]] to send.
-    * @param caller Some reference to an actor that generated the task in order to notify them when
-    *               the task is completed, or `None` if no actor needs to be notified.
+    * @param callback The [[Callback]] function to be called when the corresponding [[Task]] completes.
     * @param resources The names of the [[TaskResource]]s that need to be used for the [[Task]].
-    * @return A `Future` that completes when the generated [[Task]] has completed,
-    *         containing the [[Task]] and its completion time.
     */
   protected def task(
       id: UUID,
@@ -432,7 +449,7 @@ abstract class AsyncSimulation(
   /**
     * Manages a [[Task]] whose simulation has completed.
     *
-    * Fulfils the corresponding `Promise` in the `tasks` map and then removes the entry.
+    * Calls the corresponding [[Callback]] in the `tasks` map and then removes the entry.
     *
     * @group internal
     *
@@ -444,6 +461,19 @@ abstract class AsyncSimulation(
     tasks -= task.id
   }
 
+/**
+  * A [[Callback]] function that notifies another `Actor` about a [[Task]] completion.
+  * 
+  * This allows the simulation logic of a callback to be implemented in another actor.
+  * The other actor can use the [[Simulation.AddTask]], [[Simulation.AddTaskWithId]],
+  * [[Simulation.AckTasks]], and [[Simulation.Ready]] messages to make progress instead 
+  * of calling the respective methods.
+  *
+  * @group api
+  * 
+  * @param actor
+  * @return
+  */
   def actorCallback(actor: ActorRef): Callback = (task, time) => {
     actor ! (task, time)
   }
@@ -468,13 +498,40 @@ abstract class AsyncSimulation(
   }
 }
 
+/**
+  * Extends [[AsyncSimulation]] with callbacks that fulfil a `Promise`/`Future`.
+  * 
+  * This can be helpful for simulation implementations that use `Future`s to
+  * capture their asynchronous logic.
+  */
 trait FutureTasks { self: AsyncSimulation =>
 
+/**
+  * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation with
+  * a `Future` instead of a [[Callback]].
+  *
+  * @group api
+  * 
+  * @param t The [[TaskGenerator]] to send.
+  * @param resources The names of the [[TaskResource]]s that need to be used for the [[Task]].
+  * @return A `Future` that completes when the [[Task]] is completed.
+  */
   def futureTask(t: TaskGenerator, resources: String*): Future[(Task, Long)] = {
     val id = java.util.UUID.randomUUID
     futureTask(id, t, resources)
   }
 
+/**
+  * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation
+  * with a pre-determined ID and a `Future` instead of a [[Callback]].
+  *
+  * @group api
+  *
+  * @param id The pre-determined task ID.
+  * @param t The [[TaskGenerator]] to send.
+  * @param resources The names of the [[TaskResource]]s that need to be used for the [[Task]].
+  * @return A `Future` that completes when the [[Task]] is completed.
+  */
   def futureTask(id: UUID, t: TaskGenerator, resources: Seq[String]): Future[(Task, Long)] = {
     val p = Promise[(Task, Long)]()
     def call: Callback = (task, time) => p.success(task, time)
