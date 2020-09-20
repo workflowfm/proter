@@ -183,7 +183,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
 
     // test DefaultScheduler
     def s(tasks: Task*): Seq[Long] =
-      DefaultScheduler.getNextTasks(SortedSet[Task]() ++ tasks, 0L, m) map (_.id
+      new DefaultScheduler(tasks: _*).getNextTasks(0L, m) map (_.id
             .getMostSignificantBits())
 
   }

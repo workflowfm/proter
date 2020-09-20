@@ -32,7 +32,7 @@ class CoordinatorTests
   "The Coordinator" must {
 
     "interact correctly with a simulation with no tasks" in {
-      val coordinator = system.actorOf(Coordinator.props(DefaultScheduler))
+      val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler()))
 
       coordinator ! Coordinator.AddSim(0L, self)
       coordinator ! Coordinator.Start
@@ -43,7 +43,7 @@ class CoordinatorTests
     }
 
     "interact correctly with a simulation with just a ping" in {
-      val coordinator = system.actorOf(Coordinator.props(DefaultScheduler))
+      val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler()))
 
       coordinator ! Coordinator.AddSim(0L, self)
       coordinator ! Coordinator.Start
@@ -55,7 +55,7 @@ class CoordinatorTests
     }
 
     "interact correctly with a simulation with one task" in {
-      val coordinator = system.actorOf(Coordinator.props(DefaultScheduler))
+      val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler()))
 
       coordinator ! Coordinator.AddSim(0L, self)
       coordinator ! Coordinator.Start
@@ -77,7 +77,7 @@ class CoordinatorTests
     }
 
     "interact correctly with a simulation with two tasks in sequence" in {
-      val coordinator = system.actorOf(Coordinator.props(DefaultScheduler))
+      val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler()))
 
       coordinator ! Coordinator.AddSim(0L, self)
       coordinator ! Coordinator.Start
@@ -113,7 +113,7 @@ class CoordinatorTests
     }
 
     "interact correctly with a simulation with two tasks in parallel, then one more" in {
-      val coordinator = system.actorOf(Coordinator.props(DefaultScheduler))
+      val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler()))
 
       coordinator ! Coordinator.AddSim(0L, self)
       coordinator ! Coordinator.Start
@@ -167,7 +167,7 @@ class CoordinatorTests
     }
 
     "interact correctly with two simulations in parallel" in {
-      val coordinator = system.actorOf(Coordinator.props(DefaultScheduler))
+      val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler()))
 
       // probe represents a 2nd simulation starting at 1
       val probe = TestProbe()
@@ -215,7 +215,7 @@ class CoordinatorTests
     }
 
     "interact correctly with a simulation reacting to another" in {
-      val coordinator = system.actorOf(Coordinator.props(DefaultScheduler))
+      val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler()))
 
       // probe represents a 2nd simulation starting at 1
       val probe = TestProbe()
@@ -297,7 +297,7 @@ class CoordinatorTests
    * //expectNoMessage(200.millis) "execute a simple task" in { val resA = new TaskResource("A",1)
    * val resB = new TaskResource("B",1)
    *
-   * val coordinator = system.actorOf(Coordinator.props(DefaultScheduler)) val s1 =
+   * val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler())) val s1 =
    * system.actorOf(TaskSimulatorActor.props( "S", coordinator, Seq("A","B"), new
    * ConstantGenerator(2), new ConstantGenerator(2), -1, Task.Highest ))
    *
@@ -309,7 +309,7 @@ class CoordinatorTests
    * "execute two independent tasks in parallel" in { val resA = new TaskResource("A",1) val resB =
    * new TaskResource("B",1)
    *
-   * val coordinator = system.actorOf(Coordinator.props(DefaultScheduler)) val s1 =
+   * val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler())) val s1 =
    * system.actorOf(TaskSimulatorActor.props( "S1", coordinator, Seq("A"), new ConstantGenerator(2),
    * new ConstantGenerator(2), -1, Task.Highest )) val s2 = system.actorOf(TaskSimulatorActor.props(
    * "S2", coordinator, Seq("B"), new ConstantGenerator(2), new ConstantGenerator(2), -1,
@@ -322,7 +322,7 @@ class CoordinatorTests
    *
    * "queue two tasks with the same resource" in { val resA = new TaskResource("A",1)
    *
-   * val coordinator = system.actorOf(Coordinator.props(DefaultScheduler)) val s1 =
+   * val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler())) val s1 =
    * system.actorOf(TaskSimulatorActor.props( "S1", coordinator, Seq("A"), new ConstantGenerator(2),
    * new ConstantGenerator(2), -1, Task.Highest )) val s2 = system.actorOf(TaskSimulatorActor.props(
    * "S2", coordinator, Seq("A"), new ConstantGenerator(2), new ConstantGenerator(2), -1,
@@ -336,7 +336,7 @@ class CoordinatorTests
    * "measure delays and idling appropriately" in { val resA = new TaskResource("A",1) val resB =
    * new TaskResource("B",1)
    *
-   * val coordinator = system.actorOf(Coordinator.props(DefaultScheduler))
+   * val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler()))
    *
    * implicit val timeout = Timeout(2.seconds) val mObserver =
    * system.actorOf(SimMetricsActor.props(new SimMetricsPrinter())) Await.result(mObserver ?
@@ -360,7 +360,7 @@ class CoordinatorTests
    * "measure intermediate delays and idling appropriately" in { val resA = new TaskResource("A",1)
    * val resB = new TaskResource("B",1)
    *
-   * val coordinator = system.actorOf(Coordinator.props(DefaultScheduler)) implicit val timeout =
+   * val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler())) implicit val timeout =
    * Timeout(2.seconds) val mObserver = system.actorOf(SimMetricsActor.props(new
    * SimMetricsPrinter())) Await.result(mObserver ? Observer.SubscribeTo(coordinator), 3.seconds)
    *
@@ -383,7 +383,7 @@ class CoordinatorTests
    * metricS3T should not be empty metricS3T map { x => x.delay should be (2L) } }
    *
    * "run a task with no resources" in { val coordinator =
-   * system.actorOf(Coordinator.props(DefaultScheduler)) val s1 =
+   * system.actorOf(Coordinator.props(new DefaultScheduler())) val s1 =
    * system.actorOf(TaskSimulatorActor.props( "S1", coordinator, Seq(), new ConstantGenerator(2),
    * new ConstantGenerator(2), -1, Task.Highest ))
    *
@@ -395,7 +395,7 @@ class CoordinatorTests
    * done.metrics.simulationMetrics.size should be (1) done.metrics.taskMetrics.size should be (1) }
    *
    * "run multiple tasks with no resources" in { val coordinator =
-   * system.actorOf(Coordinator.props(DefaultScheduler)) val s1 =
+   * system.actorOf(Coordinator.props(new DefaultScheduler())) val s1 =
    * system.actorOf(TaskSimulatorActor.props( "S1", coordinator, Seq(), new ConstantGenerator(2),
    * new ConstantGenerator(2), -1, Task.Highest )) val s2 = system.actorOf(TaskSimulatorActor.props(
    * "S2", coordinator, Seq(), new ConstantGenerator(2), new ConstantGenerator(2), -1, Task.Highest
@@ -410,7 +410,7 @@ class CoordinatorTests
    * done.metrics.simulationMetrics.size should be (2) done.metrics.taskMetrics.size should be (2) }
    *
    * "publish the right number of events from 1 simulation" in { val coordinator =
-   * system.actorOf(Coordinator.props(DefaultScheduler)) //coordinator ! Publisher.SubHandler(new
+   * system.actorOf(Coordinator.props(new DefaultScheduler())) //coordinator ! Publisher.SubHandler(new
    * PrintEventHandler(), None)
    *
    * //Thread.sleep(1000) val f1 = MockObserver.observer(new CounterHandler())(system,coordinator)

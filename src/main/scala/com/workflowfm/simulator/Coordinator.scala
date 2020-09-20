@@ -85,12 +85,6 @@ class Coordinator(
   val simulations: HashSet[String] = HashSet[String]()
 
   /**
-    * A sorted queue of tasks that need to be run.
-    * @group tasks
-    */
-  val tasks: SortedSet[Task] = SortedSet()
-
-  /**
     * [[scala.collection.mutable.PriorityQueue PriorityQueue]] of discrete [[CEvent]]s to be processed,
     * ordered by (future) timestamp.
     * @group toplevel
@@ -170,10 +164,10 @@ class Coordinator(
         eventsToHandle foreach handleCEvent
       }
 
-    } else if (tasks.isEmpty && simulations.isEmpty) {
+    } else if (scheduler.noMoreTasks() && simulations.isEmpty) {
       publish(EDone(self, time))
 
-    } else if (waiting.isEmpty && !tasks.isEmpty) { // this may happen if handleCEvent fails
+    } else if (waiting.isEmpty && !scheduler.noMoreTasks()) { // this may happen if handleCEvent fails
       allocateTasks()
       tick()
     } //else {
@@ -189,8 +183,8 @@ class Coordinator(
     */
   protected def allocateTasks() = {
     // Assign the next tasks
-    scheduler.getNextTasks(tasks, time, resourceMap).foreach { task =>
-      tasks -= task
+    scheduler.getNextTasks(time, resourceMap).foreach { task =>
+      scheduler.removeTask(task)
       startTask(task)
     }
   }
@@ -357,7 +351,7 @@ class Coordinator(
     publish(ETaskAdd(self, time, t))
 
     if (resources.length > 0)
-      tasks += t
+      scheduler.addTask(t)
     else
       // if the task does not require resources, start it now
       startTask(t)
