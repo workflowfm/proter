@@ -508,7 +508,7 @@ trait FutureTasks { self: AsyncSimulation =>
 
 /**
   * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation with
-  * a `Future` instead of a [[Callback]].
+  * a `Future` instead of a [[AsyncSimulation.Callback Callback]].
   *
   * @group api
   * 
@@ -523,7 +523,7 @@ trait FutureTasks { self: AsyncSimulation =>
 
 /**
   * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation
-  * with a pre-determined ID and a `Future` instead of a [[Callback]].
+  * with a pre-determined ID and a `Future` instead of a [[AsyncSimulation.Callback Callback]].
   *
   * @group api
   *
