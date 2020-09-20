@@ -1,7 +1,6 @@
 package com.workflowfm.simulator.flows
 
 import com.workflowfm.simulator._
-import scala.concurrent.{ ExecutionContext, Future, Promise }
 import akka.actor.{ Actor, ActorRef, Props }
 import java.util.UUID
 
@@ -35,19 +34,14 @@ class FlowSimulationActor(
     name: String,
     coordinator: ActorRef,
     flow: Flow
-)(implicit executionContext: ExecutionContext)
-    extends AsyncSimulation(name, coordinator)(executionContext) {
+) extends AsyncSimulation(name, coordinator) {
 
   /**
     * Initiates the execution of the simulation.
-    *
-    * @return A `Future` that completes with a custom output when the simulation is completed.
     */
-  override def run(): Future[Any] = {
-    val promise = Promise[Any]()
-    runFlow(flow, ((_, _) => promise.success(Unit)))
+  override def run(): Unit = {
+    runFlow(flow, ((_, _) => done(Unit)))
     ready()
-    promise.future
   }
 
   /**
@@ -125,11 +119,8 @@ object FlowSimulationActor {
     * @param name The simulation name.
     * @param coordinator The [[Coordinator]].
     * @param flow The [[Flow]] to be executed
-    * @param executionContext
     * @return The Props of a new flow simulation actor
     */
-  def props(name: String, coordinator: ActorRef, flow: Flow)(
-      implicit executionContext: ExecutionContext
-  ): Props =
+  def props(name: String, coordinator: ActorRef, flow: Flow): Props =
     Props(new FlowSimulationActor(name, coordinator, flow))
 }
