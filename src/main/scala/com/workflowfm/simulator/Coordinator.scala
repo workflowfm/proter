@@ -66,17 +66,20 @@ class Coordinator(
   val resourceMap: Map[String, TaskResource] = Map[String, TaskResource]()
 
   /**
-    * Set of [[Simulation]] references that we need to wait for before we can progress time.
-    * @todo Update for task-ack.
+    * Map of [[Task]] UUIDs we expect to be acknowledged by each [[Simulation]] actor before we can progress time.
+    * 
+    * Each [[Simulation]] actor is given a chance to react individually to each associated [[Task]] that was completed.
+    * 
+    * An empty list as a value means we still need to wait for some action by the actor, without it being asssociated to a
+    * particular [[Task]].
+    * 
     * @group simulations
     */
   val waiting: Map[ActorRef, List[UUID]] = Map[ActorRef, List[UUID]]()
 
-  /** Set of simulation names that are running, i.e. they have already started but not finished. */
   /**
     * Set of simulation names that are running.
     * i.e. they have already started but not finished.
-    * @todo TODO update for task-acking
     * @group simulations
     */
   val simulations: HashSet[String] = HashSet[String]()
@@ -88,7 +91,7 @@ class Coordinator(
   val tasks: SortedSet[Task] = SortedSet()
 
   /**
-    * [[scala.collection.mutable.PriorityQueue]] of discrete [[CEvent]]s to be processed,
+    * [[scala.collection.mutable.PriorityQueue PriorityQueue]] of discrete [[CEvent]]s to be processed,
     * ordered by (future) timestamp.
     * @group toplevel
     */
@@ -112,7 +115,7 @@ class Coordinator(
 
   /**
     * Extract all [[CEvent]]s in the queue that need to be processed in a given timestamp.
-    * Sequentially builds a [[scala.collection.immutable.Seq]].
+    * Sequentially builds a [[scala.collection.immutable.Seq Seq]].
     * At the same time it dequeues the events from the event queue.
     * @group toplevel
     * @param t The given timestamp to look out for. We assume it is less than or equal to
@@ -138,7 +141,7 @@ class Coordinator(
     *
     * We then handle the events with [[handleCEvent]].
     * If there are no events, no tasks to run, and all simulations have finished, the whole
-    * simulation is done, so we publish [[com.workflowfm.simulator.events.EDone]].
+    * simulation is done, so we publish [[com.workflowfm.simulator.events.EDone EDone]].
     * If there are no events and no simulations to wait for, but there are still tasks to run, we
     * attempt to allocate and run them. This may happen if something breaks when handling a previous
     * event.
@@ -292,7 +295,7 @@ class Coordinator(
   /**
     * Stops a simulation when it is done.
     * Removes the simulation from the list of running simulations.
-    * Publishes a [[com.workflowfm.simulator.events.ESimEnd]].
+    * Publishes a [[com.workflowfm.simulator.events.ESimEnd ESimEnd]].
     * Calls [[ready]] to handle the fact that we no longer need to wait for this simulation.
     *
     * @group simulations
@@ -332,7 +335,7 @@ class Coordinator(
     * multipled by the [[Task.duration]]. Adds this to the [[Task.cost]].
     * This is done at runtime instead of at creation time to support variable resources.
     *
-    * - Publishes a [[com.workflowfm.simulator.events.ETaskAdd]].
+    * - Publishes a [[com.workflowfm.simulator.events.ETaskAdd ETaskAdd]].
     *
     * - If the task does not require any resources, it is started immediately using [[startTask]].
     * Otherwise, we add it to the queue of [[Task]]s.
@@ -364,11 +367,12 @@ class Coordinator(
   }
 
   /**
-    * @todo Document this
+    * Acknowledges that a [[Simulation]] actor has finished reacting to some associated [[Task]]s.
     *
+    * Throws a warning if we were not waiting on that actor at all.
     * @group tasks
-    * @param actor
-    * @param ack
+    * @param actor The [[Simulation]] actor.
+    * @param ack The sequence of [[Task]] UUIDs being acknowledged.
     */
   protected def ackTasks(actor: ActorRef, ack: Seq[UUID]) {
     log.debug(s"[COORD:$time] Ack [${actor.path.name}]: $ack")
@@ -383,9 +387,13 @@ class Coordinator(
   }
 
   /**
-    * @todo Document this
-    *
-    * @param actor
+    * Acknowledges that a [[Simulation]] actor has finished processing everything.
+    * 
+    * Removes the actor from the waiting list completely, without the need to
+    * acknowledge individual [[Task]]s.
+    * 
+    * @group simulations
+    * @param actor The [[Simulation]] actor that is done.
     */
   protected def ackAll(actor: ActorRef) {
     log.debug(s"[COORD:$time] Ack ALL [${actor.path.name}]")
@@ -398,11 +406,11 @@ class Coordinator(
     * A [[Task]] is started when scheduled, meaning all the [[TaskResource]]s it needs are available
     * and it is the highest priority [[Task]] in the queue for those [[TaskResource]]s.
     *
-    * - Publishes a [[com.workflowfm.simulator.events.ETaskAdd]].
+    * - Publishes a [[com.workflowfm.simulator.events.ETaskAdd ETaskAdd]].
     *
     * - Calls [[TaskResource.startTask]] for each involved [[TaskResource]] to attach this [[Task]]
-    * to them. Publishes a [[com.workflowfm.simulator.events.ETaskAttach]] for each successful attachment.
-    * Otherwise publishes an appropriate [[com.workflowfm.simulator.events.EError]]. The latter would
+    * to them. Publishes a [[com.workflowfm.simulator.events.ETaskAttach ETaskAttach]] for each successful attachment.
+    * Otherwise publishes an appropriate [[com.workflowfm.simulator.events.EError EError]]. The latter would
     * only happen if the [[Scheduler]] tried to schedule a [[Task]] to a busy [[TaskResource]].
     *
     * - Creates a [[FinishingTask]] event for this [[Task]] based on its duration, and adds it to
@@ -453,7 +461,7 @@ class Coordinator(
   /**
     * Detaches the task attached to the given [[TaskResource]].
     * A wrapper of [[TaskResource.finishTask]] that
-    * publishes a [[com.workflowfm.simulator.events.ETaskDetach]].
+    * publishes a [[com.workflowfm.simulator.events.ETaskDetach ETaskDetach]].
     *
     * @group resources
     * @param r The [[TaskResource]] to free up.
@@ -470,7 +478,7 @@ class Coordinator(
     * - Adds the corresponding [[Simulation]] reference to the waiting list as we
     * expect it to react to the task finishing.
     *
-    * - Publishes a [[com.workflowfm.simulator.events.ETaskDone]].
+    * - Publishes a [[com.workflowfm.simulator.events.ETaskDone ETaskDone]].
     *
     * - Notifies the [[Simulation]] that its [[Task]] has finished.
     *
@@ -497,7 +505,7 @@ class Coordinator(
     * may be able to start immediately. We then progress time with [[tick]].
     *
     * @group simulations
-    * @param actor The [[akka.actor.ActorRef]] of the [[Simulation]] that is ready.
+    * @param actor The [[akka.actor.ActorRef ActorRef]] of the [[Simulation]] that is ready.
     */
   protected def ready(actor: ActorRef): Unit = {
     // Is there at least one task to wait for?
@@ -516,7 +524,7 @@ class Coordinator(
   }
 
   /**
-    * Starts the entire simulation.
+    * Starts the entire simulation scenario.
     * @group toplevel
     */
   def start() = {
@@ -525,12 +533,12 @@ class Coordinator(
   }
 
   /**
-    * Checks if a given [[com.workflowfm.simulator.events.Event]] in the output stream is the final one.
-    * Causes the stream to shutdown after [[com.workflowfm.simulator.events.EDone]] is published.
+    * Checks if a given [[com.workflowfm.simulator.events.Event Event]] in the output stream is the final one.
+    * Causes the stream to shutdown after [[com.workflowfm.simulator.events.EDone EDone]] is published.
     *
     * @group toplevel
-    * @param e The [[com.workflowfm.simulator.events.Event]] to check.
-    * @return true if it is a [[com.workflowfm.simulator.events.EDone]], otherwise false.
+    * @param e The [[com.workflowfm.simulator.events.Event Event]] to check.
+    * @return true if it is a [[com.workflowfm.simulator.events.EDone EDone]], otherwise false.
     */
   override def isFinalEvent(e: Event) = e match {
     case EDone(_, _) => true
@@ -669,10 +677,16 @@ object Coordinator {
     */
   case class AddTasks(l: Seq[TaskGenerator])
 
-//  * @todo TODO update for task-acking
+  /**
+    * Message from a [[Simulation]] to acknowledge having processed finished tasks.
+    * @group simulations
+    */
   case class AckTasks(ack: Seq[UUID])
 
-//  * @todo TODO update for task-acking
+  /**
+    * Message from a [[Simulation]] to acknowledge having finished all processing.
+    * @group simulations
+    */
   case object SimReady
 
   /**

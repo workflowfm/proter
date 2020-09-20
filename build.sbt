@@ -1,4 +1,4 @@
-ThisBuild / version := "0.3-SNAPSHOT"
+ThisBuild / version := "0.3"
 ThisBuild / autoAPIMappings := true
 
 // Fixes some sbt import problems.
@@ -12,7 +12,7 @@ scalacOptions in (Compile, doc) += "-diagrams-debug"
 
 lazy val commonSettings = Seq(
   organization := "com.workflowfm",
-  scalaVersion := "2.12.10"
+  scalaVersion := "2.12.12"
 )
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.0-SNAP10" % Test
