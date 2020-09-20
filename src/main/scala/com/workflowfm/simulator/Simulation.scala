@@ -150,7 +150,7 @@ abstract class Simulation(
     * Notifies the [[Coordinator]] that the simulation has failed or has been aborted.
     *
     * @group api
-    * @param exception The throwable that caused the failure.
+    * @param exception The `Throwable` that caused the failure.
     */
   protected def fail(exception: Throwable): Unit = { 
     coordinator ! Coordinator.SimDone(name, Failure(exception))
@@ -209,7 +209,12 @@ abstract class Simulation(
     */
   def simulationReceive: Receive = {
     case Simulation.Start => start()
+    case Simulation.Ready => ready()
     case Simulation.TaskCompleted(task, time) => complete(task, time)
+    case Simulation.AckTasks(tasks) => ack(tasks)
+    case Simulation.Wait => coordinator.forward(Coordinator.WaitFor(self))
+    case Simulation.Done(result) => done(result)
+    case Simulation.Fail(exception) => fail(exception)
   }
 
   def receive = simulationReceive
@@ -291,6 +296,26 @@ object Simulation {
     * @param task The acknowledged [[Task]] UUIDs.
     */
   case class AckTasks(tasks: Seq[UUID])
+
+  /**
+    * Tells the [[Simulation]] to complete successfully.
+    *
+    * @see [[Simulation.done]]
+    * @group process
+    *
+    * @param result The successful simulation result.
+    */
+  case class Done(result: Any)
+
+  /**
+    * Tells the [[Simulation]] to fail.
+    *
+    * @see [[Simulation.fail]]
+    * @group process
+    *
+    * @param exception The `Throwable` causing the failure.
+    */
+  case class Fail(exception: Throwable)
 }
 
 /**
@@ -489,14 +514,9 @@ abstract class AsyncSimulation(
     *
     * @return The [[Receive]] behaviour for the simulation interface.
     */
-  override def simulationReceive: Receive = {
-    case Simulation.Start => start()
-    case Simulation.Ready => ready()
-    case Simulation.AckTasks(tasks) => ack(tasks)
-    case Simulation.TaskCompleted(task, time) => complete(task, time)
+  override def simulationReceive: Receive = super.simulationReceive orElse {
     case Simulation.AddTaskWithId(id, t, r) => task(id, t, actorCallback(sender), r)
     case Simulation.AddTask(t, r) => task(t, actorCallback(sender), r: _*)
-    case Simulation.Wait => coordinator.forward(Coordinator.WaitFor(self))
   }
 }
 
