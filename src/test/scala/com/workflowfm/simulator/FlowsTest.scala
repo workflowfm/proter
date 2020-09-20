@@ -18,7 +18,7 @@ import com.workflowfm.simulator._
 import scala.collection.mutable.Map
 
 @RunWith(classOf[JUnitRunner])
-class FlowsTest extends FlowsTester {
+class FlowsTest extends FlowsIntegrationTester {
   "Flows" must {
     "execute a single flow" in {
       val r1 = new TaskResource("r1", 0)
@@ -459,7 +459,7 @@ class FlowsTest extends FlowsTester {
   }
 }
 
-class FlowsTester
+class FlowsIntegrationTester
     extends TestKit(ActorSystem("FlowsTest"))
     with WordSpecLike
     with Matchers
