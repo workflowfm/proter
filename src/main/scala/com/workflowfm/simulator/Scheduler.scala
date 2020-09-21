@@ -465,7 +465,7 @@ object LookaheadScheduler extends Scheduler {
     if (tasks.isEmpty) result
     else {
       val t = tasks.head
-      val start = Schedule.mergeSchedules(t.resources.flatMap(schedules.get(_))) ? (Math.max(currentTime,t.created), t)
+      val start = Schedule.mergeSchedules(t.resources.flatMap(schedules.get(_))) ? (Math.max(currentTime,t.minStartTime), t)
       val scheduledThisIter2 = scheduledThisIter :+ ((t.id, start+t.estimatedDuration))
       val lookaheadSetThisIter2 = lookaheadSetThisIter-t.id
       val futureTasks = tasksAfterThis(t.actor, t.id, scheduledThisIter2, lookaheadSetThisIter2)
@@ -485,6 +485,6 @@ object LookaheadScheduler extends Scheduler {
       lookaheadStructureThisIter: LookaheadStructure
     ): Seq[Task] = {
       val taskData = lookaheadStructureThisIter.getTaskData((scheduled).to[collection.immutable.Seq])
-      (taskData map (x=> x._1.create(x._2, actor))).toSeq
+      (taskData map (x=> x._1.withMinStartTime(x._2).create(x._1.createTime, actor))).toSeq
     }
 }

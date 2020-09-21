@@ -156,15 +156,15 @@ class SimulationTester
             val id1 = java.util.UUID.randomUUID
             val id2 = java.util.UUID.randomUUID
             val id3 = java.util.UUID.randomUUID
-            val task1 = futureTask(TaskGenerator("task1",id1,"sim",ConstantGenerator(2L),ConstantGenerator(0L),Seq("r1")))
+            val task1 = futureTask(TaskGenerator("task1",id1,"sim",ConstantGenerator(2L),ConstantGenerator(0L),0L,Seq("r1")))
             ready()
             val task2 = task1 flatMap { _=> 
-                val t = futureTask(TaskGenerator("task2",id2,"sim",ConstantGenerator(2L),ConstantGenerator(0L),Seq("r1")))
+                val t = futureTask(TaskGenerator("task2",id2,"sim",ConstantGenerator(2L),ConstantGenerator(0L),0L,Seq("r1")))
                 ack(Seq(id1))
                 t
             }
             val task3 = task2 flatMap { _=> 
-                val t = futureTask(TaskGenerator("task3",id3,"sim",ConstantGenerator(2L),ConstantGenerator(0L),Seq("r1")))
+                val t = futureTask(TaskGenerator("task3",id3,"sim",ConstantGenerator(2L),ConstantGenerator(0L),0L,Seq("r1")))
                 ack(Seq(id2))
                 t
             }

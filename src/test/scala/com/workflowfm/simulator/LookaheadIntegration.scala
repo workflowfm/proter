@@ -130,10 +130,10 @@ extends AsyncSimulation(name,coordinator) with Lookahead {
         val id2 = java.util.UUID.randomUUID
         val id3 = java.util.UUID.randomUUID
         val id4 = java.util.UUID.randomUUID
-        val generator1 = TaskGenerator("task1",id1,"sim",ConstantGenerator(2L),ConstantGenerator(0L),Seq("r3"),(-1),Task.High)
-        val generator2 = TaskGenerator("task2",id2,"sim",ConstantGenerator(2L),ConstantGenerator(0L),Seq("r1"),(-1),Task.High)
-        val generator3 = TaskGenerator("task3",id3,"sim",ConstantGenerator(4L),ConstantGenerator(0L),Seq("r2"),(-1),Task.High)
-        val generator4 = TaskGenerator("task4",id4,"sim",ConstantGenerator(4L),ConstantGenerator(0L),Seq("r2"),(-1),Task.Low)
+        val generator1 = TaskGenerator("task1",id1,"sim",ConstantGenerator(2L),ConstantGenerator(0L),0L,Seq("r3"),(-1),Task.High)
+        val generator2 = TaskGenerator("task2",id2,"sim",ConstantGenerator(2L),ConstantGenerator(0L),0L,Seq("r1"),(-1),Task.High)
+        val generator3 = TaskGenerator("task3",id3,"sim",ConstantGenerator(4L),ConstantGenerator(0L),0L,Seq("r2"),(-1),Task.High)
+        val generator4 = TaskGenerator("task4",id4,"sim",ConstantGenerator(4L),ConstantGenerator(0L),0L,Seq("r2"),(-1),Task.Low)
 
         
         lookahead = lookahead + (id1,generator2) + (id1,generator4) + (id2,generator3)
@@ -169,11 +169,11 @@ extends AsyncSimulation(name,coordinator) with Lookahead {
         val id3 = java.util.UUID.randomUUID
         val id4 = java.util.UUID.randomUUID
         val id5 = java.util.UUID.randomUUID
-        val generator1 = TaskGenerator("task1",id1,"sim",ConstantGenerator(2L),ConstantGenerator(0L),Seq("r2"),(-1),Task.High)
-        val generator2 = TaskGenerator("task2",id2,"sim",ConstantGenerator(4L),ConstantGenerator(0L),Seq("r1"),(-1),Task.High)
-        val generator3 = TaskGenerator("task3",id3,"sim",ConstantGenerator(3L),ConstantGenerator(0L),Seq("r2"),(-1),Task.High)
-        val generator4 = TaskGenerator("task4",id4,"sim",ConstantGenerator(2L),ConstantGenerator(0L),Seq("r3"),(-1),Task.Low)
-        val generator5 = TaskGenerator("task5",id5,"sim",ConstantGenerator(3L),ConstantGenerator(0L),Seq("r2"),(-1),Task.Low)
+        val generator1 = TaskGenerator("task1",id1,"sim",ConstantGenerator(2L),ConstantGenerator(0L),0L,Seq("r2"),(-1),Task.High)
+        val generator2 = TaskGenerator("task2",id2,"sim",ConstantGenerator(4L),ConstantGenerator(0L),0L,Seq("r1"),(-1),Task.High)
+        val generator3 = TaskGenerator("task3",id3,"sim",ConstantGenerator(3L),ConstantGenerator(0L),0L,Seq("r2"),(-1),Task.High)
+        val generator4 = TaskGenerator("task4",id4,"sim",ConstantGenerator(2L),ConstantGenerator(0L),0L,Seq("r3"),(-1),Task.Low)
+        val generator5 = TaskGenerator("task5",id5,"sim",ConstantGenerator(3L),ConstantGenerator(0L),0L,Seq("r2"),(-1),Task.Low)
         
         lookahead = lookahead + (id1,generator2) + (id1,generator4) + (id2,generator3) + (id4,generator5)
 
@@ -210,12 +210,12 @@ extends AsyncSimulation(name,coordinator) with Lookahead {
         val id4 = java.util.UUID.randomUUID
         val id5 = java.util.UUID.randomUUID
         val id6 = java.util.UUID.randomUUID
-        val generator1 = TaskGenerator("task1",id1,"sim",ConstantGenerator(2L),ConstantGenerator(0L),Seq("r2"),(-1),Task.High)
-        val generator2 = TaskGenerator("task2",id2,"sim",ConstantGenerator(4L),ConstantGenerator(0L),Seq("r1"),(-1),Task.High)
-        val generator3 = TaskGenerator("task3",id3,"sim",ConstantGenerator(3L),ConstantGenerator(0L),Seq("r2"),(-1),Task.High)
-        val generator4 = TaskGenerator("task4",id4,"sim",ConstantGenerator(2L),ConstantGenerator(0L),Seq("r3"),(-1),Task.High)
-        val generator5 = TaskGenerator("task5",id5,"sim",ConstantGenerator(4L),ConstantGenerator(0L),Seq("r3"),(-1),Task.High)
-        val generator6 = TaskGenerator("task6",id6,"sim",ConstantGenerator(10L),ConstantGenerator(0L),Seq("r3"),(-1),Task.Low)
+        val generator1 = TaskGenerator("task1",id1,"sim",ConstantGenerator(2L),ConstantGenerator(0L),0L,Seq("r2"),(-1),Task.High)
+        val generator2 = TaskGenerator("task2",id2,"sim",ConstantGenerator(4L),ConstantGenerator(0L),0L,Seq("r1"),(-1),Task.High)
+        val generator3 = TaskGenerator("task3",id3,"sim",ConstantGenerator(3L),ConstantGenerator(0L),0L,Seq("r2"),(-1),Task.High)
+        val generator4 = TaskGenerator("task4",id4,"sim",ConstantGenerator(2L),ConstantGenerator(0L),0L,Seq("r3"),(-1),Task.High)
+        val generator5 = TaskGenerator("task5",id5,"sim",ConstantGenerator(4L),ConstantGenerator(0L),0L,Seq("r3"),(-1),Task.High)
+        val generator6 = TaskGenerator("task6",id6,"sim",ConstantGenerator(10L),ConstantGenerator(0L),0L,Seq("r3"),(-1),Task.Low)
         
         lookahead = lookahead + (id1,generator2) + (id1,generator3) + (id1,generator4) + (id1,generator6)
 

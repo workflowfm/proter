@@ -36,6 +36,7 @@ class Task(
     val simulation: String,
     val actor: ActorRef,
     val created: Long, //todo minStartTime
+    val minStartTime: Long,
     val resources: Seq[String],
     val duration: Long,
     val estimatedDuration: Long,
@@ -185,6 +186,7 @@ case class TaskGenerator(
     simulation: String,
     duration: ValueGenerator[Long],
     cost: ValueGenerator[Long],
+    minStartTime: Long = 0L,
     resources: Seq[String] = Seq(),
     interrupt: Int = (-1),
     priority: Task.Priority = Task.Medium,
@@ -210,6 +212,7 @@ case class TaskGenerator(
       simulation,
       actor,
       creation,
+      minStartTime,
       resources,
       duration.get,
       duration.estimate,
@@ -277,6 +280,13 @@ case class TaskGenerator(
     * @return An updated [[TaskGenerator]].
     */
   def withCreationTime(t: Long) = copy(createTime = t)
+    /**
+    * Update the custom minimum starting time to use.
+    *
+    * @param t The new minimum starting time.
+    * @return An updated [[TaskGenerator]].
+    */
+  def withMinStartTime(t: Long) = copy(minStartTime = t)
 }
 
 case object TaskGenerator {

@@ -106,6 +106,7 @@ class TaskTester
       "Test",
       actor,
       created,
+      0L, //todo add tests for minStartTime
       resources,
       duration,
       duration,

@@ -78,7 +78,7 @@ case class LookaheadSet(
                 val l = function( (scheduled ++ completed).foldLeft(Map.empty[UUID,Long]){(a,b)=>a + ((b._1,b._2))} )
                 l match {
                     case None => Seq()
-                    case Some(v) => (data map ((_,v))).toSeq
+                    case Some(v) => (data map((_,v))).toSeq
                 }
             }
         }
