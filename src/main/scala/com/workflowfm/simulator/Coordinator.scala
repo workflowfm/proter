@@ -55,17 +55,17 @@ class Coordinator(
   val simulations: HashSet[String] = HashSet[String]()
 
   /**
-    * [[scala.collection.mutable.PriorityQueue PriorityQueue]] of discrete [[DiscreteEvent]]s to be processed,
+    * [[scala.collection.mutable.PriorityQueue PriorityQueue]] of [[DiscreteEvent]]s to be processed,
     * ordered by (future) timestamp.
     * @group toplevel
     */
-  val events = new PriorityQueue[DiscreteEvent]()
+  val events: PriorityQueue[DiscreteEvent] = new PriorityQueue[DiscreteEvent]()(Ordering[DiscreteEvent].reverse) 
 
   /**
     * The current virtual time.
     * @group toplevel
     */
-  var time = startingTime
+  var time: Long = startingTime
 
   /**
     * Add a new [[TaskResource]] the our map of available resources.
