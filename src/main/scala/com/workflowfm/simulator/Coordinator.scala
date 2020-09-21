@@ -12,6 +12,7 @@ import scala.concurrent.{ Await, ExecutionContext, Promise }
 import scala.util.{ Failure, Success, Try }
 import java.util.UUID
 import uk.ac.ed.inf.ppapapan.subakka.HashSetPublisher
+import scala.annotation.tailrec
 
 /**
   * Provides coordination for discrete event simulation of multiple asynchronous simulations.
@@ -60,6 +61,17 @@ class Coordinator(
     * @group toplevel
     */
   val events: PriorityQueue[DiscreteEvent] = new PriorityQueue[DiscreteEvent]()(Ordering[DiscreteEvent].reverse) 
+
+  /**
+    * [[scala.collection.mutable.HashSet HashSet]] of [[Task]] IDs that have been aborted.
+    * 
+    * This allows us to skip [[FinishingTask]] events for aborted tasks. We cannot remove those 
+    * events from the middle of the priority queue, so this is a computationally cheap way
+    * to handle this.
+    * 
+    * @group tasks
+    */
+  val abortedTasks: HashSet[UUID] = HashSet()
 
   /**
     * The current virtual time.
@@ -112,7 +124,8 @@ class Coordinator(
     *
     * @group toplevel
     */
-  protected def tick(): Unit = {
+  @tailrec
+  final protected def tick(): Unit = {
     // Are events pending?
     if (!events.isEmpty) {
       // Grab the first event
@@ -132,6 +145,9 @@ class Coordinator(
         eventsToHandle foreach releaseResources
         // Handle the event
         eventsToHandle foreach handleDiscreteEvent
+
+        // If we are not waiting for anything, continue
+        if (waiting.isEmpty) tick()
       }
 
     } else if (scheduler.noMoreTasks() && simulations.isEmpty) {
@@ -170,7 +186,7 @@ class Coordinator(
     */
   protected def releaseResources(event: DiscreteEvent) = {
     event match {
-      case FinishingTask(t, task) if (t == time) =>
+      case FinishingTask(t, task) if (t == time && !abortedTasks.contains(task.id)) =>
         // Unbind the resources
         task.taskResources(resourceMap).foreach(detach)
       case _ => Unit
@@ -190,7 +206,9 @@ class Coordinator(
     log.debug(s"[COORD:$time] Event!")
     event match {
       // A task is finished
-      case FinishingTask(t, task) if (t == time) => stopTask(task)
+      case FinishingTask(t, task) if (t == time) => 
+        if (abortedTasks.contains(task.id)) abortedTasks -= task.id
+        else stopTask(task)
 
       // A simulation (workflow) is starting now
       case StartingSim(t, sim) if (t == time) => startSimulation(sim)
@@ -465,6 +483,7 @@ class Coordinator(
     * - Adds the corresponding actor o the waiting list as we
     *   expect it to react to the task aborting.
     * - Detaches all associated [[TaskResource]]s.
+    * - Adds the task ID to the [[abortedTasks]] set.
     * - Publishes a [[com.workflowfm.simulator.events.ETaskAbort ETaskAbort]].
     *
     * @group tasks
@@ -484,6 +503,7 @@ class Coordinator(
         case Some(task) => publish(ETaskDetach(self, time, task, name))
       }
     }
+    abortedTasks += id
     publish(ETaskAbort(self, time, id))
   }
 
@@ -556,6 +576,7 @@ class Coordinator(
 
     case Coordinator.AckTasks(ack) => ackTasks(sender, ack)
     case Coordinator.SimReady => ackAll(sender)
+    case Coordinator.AbortTasks(ids) => ids foreach { id => abortTask(id, sender())}
 
     case Coordinator.WaitFor(actor) => waitFor(actor, sender())
     case Coordinator.SimStarted(name) => simulationStarted(name)
