@@ -59,7 +59,8 @@ import java.util.concurrent.TimeUnit
   *      send new tasks or to complete, as if a task just completed. This needs to happen while
   *      the [[Coordinator]] is still waiting for the other simulation(s) we are reacting to.
   *
-  * @groupname api Simulation Interface
+  * @groupname act Taking Action
+  * @groupname react Handling Events
   * @groupname internal Internal Management
   *
   * @param name The name of the simulation being managed.
@@ -73,7 +74,7 @@ abstract class Simulation(
   /**
     * Initiates the execution of the simulation.
     *
-    * @group api
+    * @group act
     */
   def run(): Unit
 
@@ -90,7 +91,7 @@ abstract class Simulation(
     * `AckTasks` (via [[ack]]) or `SimDone` (via [[done]] or [[fail]]) before
     * it continues.
     *
-    * @group api
+    * @group react
     * @param task The completed [[Task]].
     * @param time The timestamp of completion and current time.
     */
@@ -99,7 +100,7 @@ abstract class Simulation(
   /**
     * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation.
     *
-    * @group api
+    * @group act
     *
     * @param t The [[TaskGenerator]] to send.
     * @param resources The names of the [[TaskResource]]s that need to be used for the [[Task]].
@@ -113,7 +114,7 @@ abstract class Simulation(
     * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation
     * with a pre-determined ID.
     *
-    * @group api
+    * @group act
     *
     * @param id The pre-determined task ID.
     * @param t The [[TaskGenerator]] to send.
@@ -139,7 +140,7 @@ abstract class Simulation(
   /**
     * Notifies the [[Coordinator]] that the simulation completed successfully.
     *
-    * @group api
+    * @group act
     * @param results The successful result of the simulation.
     */
   protected def done(result: Any): Unit = { 
@@ -149,7 +150,7 @@ abstract class Simulation(
   /**
     * Notifies the [[Coordinator]] that the simulation has failed or has been aborted.
     *
-    * @group api
+    * @group act
     * @param exception The `Throwable` that caused the failure.
     */
   protected def fail(exception: Throwable): Unit = { 
@@ -162,7 +163,7 @@ abstract class Simulation(
     *
     * Identifies the tasks via their UUID.
     * 
-    * @group api
+    * @group act
     */
   def ack(tasks: Seq[UUID]): Unit = {
     coordinator ! Coordinator.AckTasks(tasks)
@@ -172,7 +173,7 @@ abstract class Simulation(
     * Notifies the [[Coordinator]] that the simulation has finished calculating
     * and is ready for virtual time to proceed.
     *
-    * @group api
+    * @group act
     */
   def ready(): Unit = {
     coordinator ! Coordinator.SimReady
@@ -190,7 +191,7 @@ abstract class Simulation(
     *       request is made. Otherwise virtual time may progress unexpectedly and cause
     *       unpredictable behaviour depending on the timing of the [[Coordinator]] messages.
     *
-    * @group api
+    * @group act
     *
     * @return A `Future` of the acknowledgement message [[Simulation.AckWait]]
     */
@@ -203,7 +204,7 @@ abstract class Simulation(
     *
     * This allows subclasses to extend [[receive]] with additional behaviour.
     *
-    * @group api
+    * @group internal
     *
     * @return The [[Receive]] behaviour for the simulation interface.
     */
@@ -344,7 +345,6 @@ class SingleTaskSimulation(
     *
     * Creates and adds the corresponding [[TaskGenerator]], then calls [[ready]] immediately.
     *
-    * @return
     */
   override def run() = {
     val generator = TaskGenerator(name + "Task", name, duration, cost, interrupt, priority)
@@ -410,7 +410,7 @@ abstract class AsyncSimulation(
     * 
     * Its input consists of the generated [[Task]] and the timestamp when it was completed.
     * 
-    * @group api
+    * @group react
     */
   type Callback = (Task, Long) => Unit
 
@@ -433,7 +433,7 @@ abstract class AsyncSimulation(
     * individually. This is unlikely in the current scenario where each task has its own callback,
     * but it's still worth mentioning.
     *
-    * @group api
+    * @group act
     *
     * @param t The [[TaskGenerator]] to send.
     * @param callback The [[Callback]] function to be called when the corresponding [[Task]] completes.
@@ -456,7 +456,7 @@ abstract class AsyncSimulation(
     * individually. This is unlikely in the current scenario where each task has its own callback,
     * but it's still worth mentioning.
     *
-    * @group api
+    * @group act
     *
     * @param id The pre-determined task ID.
     * @param t The [[TaskGenerator]] to send.
@@ -478,7 +478,7 @@ abstract class AsyncSimulation(
     *
     * Calls the corresponding [[Callback]] in the `tasks` map and then removes the entry.
     *
-    * @group internal
+    * @group react
     *
     * @param task The [[Task]] that completed.
     * @param time The timestamp of its completion.
@@ -496,7 +496,7 @@ abstract class AsyncSimulation(
   * [[Simulation.AckTasks]], and [[Simulation.Ready]] messages to make progress instead 
   * of calling the respective methods.
   *
-  * @group api
+  * @group react
   * 
   * @param actor
   * @return
@@ -510,7 +510,7 @@ abstract class AsyncSimulation(
     *
     * This allows subclasses to extend [[receive]] with additional behaviour.
     *
-    * @group api
+    * @group internal
     *
     * @return The [[Receive]] behaviour for the simulation interface.
     */
@@ -532,7 +532,7 @@ trait FutureTasks { self: AsyncSimulation =>
   * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation with
   * a `Future` instead of a [[AsyncSimulation.Callback Callback]].
   *
-  * @group api
+  * @group act
   * 
   * @param t The [[TaskGenerator]] to send.
   * @param resources The names of the [[TaskResource]]s that need to be used for the [[Task]].
@@ -547,7 +547,7 @@ trait FutureTasks { self: AsyncSimulation =>
   * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation
   * with a pre-determined ID and a `Future` instead of a [[AsyncSimulation.Callback Callback]].
   *
-  * @group api
+  * @group act
   *
   * @param id The pre-determined task ID.
   * @param t The [[TaskGenerator]] to send.
