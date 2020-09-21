@@ -468,11 +468,10 @@ class Coordinator(
 
   /**
     * Handles a [[Task]] that has just finished.
+    * 
     * - Adds the corresponding [[Simulation]] reference to the waiting list as we
-    * expect it to react to the task finishing.
-    *
+    *   expect it to react to the task finishing.
     * - Publishes a [[com.workflowfm.simulator.events.ETaskDone ETaskDone]].
-    *
     * - Notifies the [[Simulation]] that its [[Task]] has finished.
     *
     * Note that resources are detached before this in [[tick]] using [[releaseResources]].
@@ -489,6 +488,35 @@ class Coordinator(
     publish(ETaskDone(self, time, task))
     task.actor ! Simulation.TaskCompleted(task, time)
   }
+
+  /**
+    * Aborts a [[Task]].
+    * 
+    * - Adds the corresponding actor o the waiting list as we
+    *   expect it to react to the task aborting.
+    * - Detaches all associated [[TaskResource]]s.
+    * - Publishes a [[com.workflowfm.simulator.events.ETaskAbort ETaskAbort]].
+    *
+    * @group tasks
+    * @param id The `UUID` of the [[Task]] that needs to be aborted.
+    * @param source The actor that caused the abort.
+    */
+  protected def abortTask(id: UUID, source: ActorRef) {
+    // Need to wait for the source if we are not already.
+    waiting.get(source) match {
+      case None => waiting += source -> List()
+      case Some(_) => Unit
+    }
+    log.debug(s"[COORD:$time] Waiting post-abort: ${source.path.name}")
+    resourceMap.foreach { case (name, resource) => 
+      resource.abortTask(id) match {
+        case None => Unit
+        case Some(task) => publish(ETaskDetach(self, time, task, name))
+      }
+    }
+    publish(ETaskAbort(self, time, id))
+  }
+
 
   /**
     * Reacts to the fact that we no longer need to wait for a simulation.

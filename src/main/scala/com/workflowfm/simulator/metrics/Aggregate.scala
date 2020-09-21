@@ -239,6 +239,7 @@ class SimMetricsHandler extends ResultHandler[SimMetricsAggregator] {
     case ETaskAttach(src, t, task, r) => metrics.resource(r)(_.task(t, task))
     case ETaskDetach(src, t, task, r) => Unit
     case ETaskDone(src, t, task) => Unit
+    case ETaskAbort(src, t, id) => Unit // TODO update task metrics!
 
     case EError(src, t, error) => Unit
   }
