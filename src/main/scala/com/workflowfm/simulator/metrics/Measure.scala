@@ -15,17 +15,28 @@ import java.util.UUID
   * @param resources the list of names of the [[TaskResource]]s this [[Task]] used
   */
 case class TaskMetrics(
-    id: UUID,
-    task: String,
-    simulation: String,
-    created: Long,
-    started: Option[Long],
-    duration: Long,
-    cost: Long,
-    resources: Seq[String]
+  id: UUID,
+  task: String,
+  simulation: String,
+  created: Long,
+  started: Option[Long],
+  duration: Long,
+  cost: Long,
+  resources: Seq[String],
+  aborted: Boolean
 ) {
   /** Sets the starting time for the [[Task]]. */
-  def start(st: Long) = copy(started = Some(st))
+  def start(st: Long): TaskMetrics = copy(started = Some(st))
+
+  /**
+    * Marks the [[Task]] as aborted.
+    * 
+    * Updates its duration to reflect the aborted time.
+    *
+    * @param t The time of abortion.
+    * @return The updated [[TaskMetrics]].
+    */
+  def abort(t: Long): TaskMetrics = copy( aborted = true, duration = started.map(t - _).getOrElse(duration) )
 
   /** Calculates the task delay as the difference of the creation and starting times. */
   def delay = started match {
@@ -51,7 +62,8 @@ object TaskMetrics {
     None,
     task.duration,
     task.cost,
-    task.resources
+    task.resources,
+    false
   )
 }
 
