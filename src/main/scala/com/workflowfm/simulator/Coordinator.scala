@@ -669,6 +669,13 @@ object Coordinator {
   case class AddTasks(l: Seq[(UUID, TaskGenerator, Seq[String])])
 
   /**
+    * Message from a [[Simulation]] to abort some tasks.
+    *
+    * @param l The [[Task]] IDs to abort.
+    */
+  case class AbortTasks(l: Seq[UUID])
+
+  /**
     * Message from a [[Simulation]] to acknowledge having processed finished tasks.
     * @group simulations
     */

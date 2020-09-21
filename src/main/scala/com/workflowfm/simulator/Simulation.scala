@@ -84,8 +84,8 @@ abstract class Simulation(
     * The simulation logic must react to this by either registering more tasks or finishing.
     *
     * If new tasks are produced, the completed [[Task]] must be ``acknowledged`` to the 
-    * [[Coordinator]] via [[ack]]. Alternatively, if we do not want to ``ack`` all completed
-    * tasks, we can just call [[ready]].
+    * [[Coordinator]] via [[ack]]. Alternatively, if we do not want to ``ack`` completed tasks
+    * individually, we can just call [[ready]].
     * 
     * In other words, after a [[Task]] completes, the [[Coordinator]] will expect either a
     * `AckTasks` (via [[ack]]) or `SimDone` (via [[done]] or [[fail]]) before
@@ -122,6 +122,17 @@ abstract class Simulation(
     */
   protected def task(id: UUID, t: TaskGenerator, resources: Seq[String]): Unit = {
     coordinator ! Coordinator.AddTask(id, t, resources)
+  }
+
+  /**
+    * Notifies the [[Coordinator]] that some [[Task]]s should be aborted.
+    *
+    * @group act
+    * 
+    * @param id The `UUID` of the [[Task]]s.
+    */
+  protected def abort(ids: UUID*) = {
+    coordinator ! Coordinator.AbortTasks(ids)
   }
 
   /**
@@ -213,6 +224,7 @@ abstract class Simulation(
     case Simulation.Ready => ready()
     case Simulation.TaskCompleted(task, time) => complete(task, time)
     case Simulation.AckTasks(tasks) => ack(tasks)
+    case Simulation.AbortTasks(ids) => abort(ids: _*)
     case Simulation.Wait => coordinator.forward(Coordinator.WaitFor(self))
     case Simulation.Done(result) => done(result)
     case Simulation.Fail(exception) => fail(exception)
@@ -266,10 +278,20 @@ object Simulation {
   case class AddTask(t: TaskGenerator, resources: Seq[String])
 
   /**
+    * Aborts a list of [[Task]]s.
+    * 
+    * @see [[Simulation.abort]]
+    * @group process
+    *
+    * @param ids The [[Task]] IDs to abort.
+    */
+  case class AbortTasks(ids: Seq[UUID])
+
+  /**
     * Informs a [[Task]] has completed
     *
     * @see [[Simulation.complete]]
-    * @group process
+    * @group coordinator
     *
     * @param task The completed [[Task]].
     * @param time The (virtual) time of completion.
