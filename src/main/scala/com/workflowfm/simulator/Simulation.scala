@@ -3,7 +3,7 @@ package com.workflowfm.simulator
 import akka.pattern.{ ask, pipe }
 import akka.actor.{ Actor, ActorRef, Props }
 import akka.util.Timeout
-import scala.util.{ Success, Failure }
+import scala.util.{ Try, Success, Failure }
 import scala.concurrent.duration.Duration
 import scala.collection.mutable.{ Map, Queue }
 import scala.concurrent.{ Future, Promise }
@@ -98,6 +98,15 @@ abstract class Simulation(
   def complete(task: Task, time: Long): Unit
 
   /**
+    * Stops/aborts the simulation.
+    * 
+    * All the necessary steps for a gentle shutdown should be taken here.
+    * 
+    * @group react
+    */
+  def stop(): Unit
+
+  /**
     * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation.
     *
     * @group act
@@ -107,7 +116,7 @@ abstract class Simulation(
     */
   def task(t: TaskGenerator, resources: String*): Unit = {
     val id = java.util.UUID.randomUUID
-    task(id, t, resources)
+    task(id, t, resources)                   
   }
 
   /**
@@ -228,6 +237,7 @@ abstract class Simulation(
     case Simulation.Wait => coordinator.forward(Coordinator.WaitFor(self))
     case Simulation.Done(result) => done(result)
     case Simulation.Fail(exception) => fail(exception)
+    case Simulation.Stop => stop()
   }
 
   def receive = simulationReceive
@@ -339,6 +349,30 @@ object Simulation {
     * @param exception The `Throwable` causing the failure.
     */
   case class Fail(exception: Throwable)
+
+  /**
+    * Tells the [[Simulation]] to stop.
+    * 
+    * @see [[Simulation.stop]]
+    * @group coordinator
+    */
+  case object Stop
+
+  /**
+    * Exception used when aborting a [[Task]].
+    *
+    * @param cause An optional underlying cause.
+    */
+  final case class TaskAbortedException(private val cause: Throwable = None.orNull)
+      extends Exception("Task has been aborted", cause)
+
+  /**
+    * Exception used when the simulation is stopping.
+    *
+    * @param cause An optional underlying cause.
+    */
+  final case class SimulationStoppingException(private val cause: Throwable = None.orNull)
+      extends Exception("Simiulation is stopping", cause)
 }
 
 /**
@@ -369,12 +403,14 @@ class SingleTaskSimulation(
     *
     */
   override def run() = {
-    val generator = TaskGenerator(name + "Task", name, duration, cost, interrupt, priority)
+    val generator = TaskGenerator(s"${name}Task", name, duration, cost, interrupt, priority)
     task(generator, resources: _*)
     ready()
   }
 
   override def complete(task: Task, time: Long) = done((task, time))
+
+  override def stop(): Unit = Unit
 }
 
 object SingleTaskSimulation {
@@ -431,10 +467,22 @@ abstract class AsyncSimulation(
     * The type of the callback function.
     * 
     * Its input consists of the generated [[Task]] and the timestamp when it was completed.
+    * A `Failure` input corresponds to an exception happening or an aborted task.
     * 
     * @group react
     */
-  type Callback = (Task, Long) => Unit
+  type Callback = Try[(Task, Long)] => Unit
+
+  /**
+    * Creates a simple success callback from a function.
+    * 
+    * Does nothing on failure.
+    *
+    * @param f The function to call on success.
+    * @return The created [[Callback]].
+    */
+  def callback(f: (Task, Long) => Unit): Callback = 
+    t => t.foreach { arg => f(arg._1, arg._2) }
 
   /**
     * A map of [[Task]] IDs that have been sent to the [[Coordinator]] and the callback functions
@@ -496,7 +544,7 @@ abstract class AsyncSimulation(
   }
 
   /**
-    * Manages a [[Task]] whose simulation has completed.
+    * @inheritdoc
     *
     * Calls the corresponding [[Callback]] in the `tasks` map and then removes the entry.
     *
@@ -506,8 +554,31 @@ abstract class AsyncSimulation(
     * @param time The timestamp of its completion.
     */
   override def complete(task: Task, time: Long) = {
-    tasks.get(task.id).map(_(task, time))
+    tasks.get(task.id).map(_(Success(task, time)))
     tasks -= task.id
+  }
+
+  /**
+    * @inheritdoc
+    *
+    * Calls respective [[Callback]]s with `Failure`.
+    * 
+    * @group act
+    * 
+    * @param id The `UUID` of the [[Task]]s.
+    */
+  override protected def abort(ids: UUID*): Unit = {
+    super.abort(ids: _*)
+    ids map { id => tasks.get(id).map(_(Failure(Simulation.TaskAbortedException()))) }
+  }
+
+  /**
+    * @inheritdoc
+    * 
+    * Triggers all callbacks with a `Failure`.
+    */
+  override def stop(): Unit = {
+    tasks.foreach { case (_, c) => c(Failure(Simulation.SimulationStoppingException())) }
   }
 
 /**
@@ -523,8 +594,8 @@ abstract class AsyncSimulation(
   * @param actor
   * @return
   */
-  def actorCallback(actor: ActorRef): Callback = (task, time) => {
-    actor ! (task, time)
+  def actorCallback(actor: ActorRef): Callback = t => {
+    actor ! t
   }
 
   /**
@@ -578,7 +649,7 @@ trait FutureTasks { self: AsyncSimulation =>
   */
   def futureTask(id: UUID, t: TaskGenerator, resources: Seq[String]): Future[(Task, Long)] = {
     val p = Promise[(Task, Long)]()
-    def call: Callback = (task, time) => p.success(task, time)
+    def call: Callback = t => p.complete(t)
     task(id, t, call, resources)
     p.future
   }
