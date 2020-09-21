@@ -288,6 +288,47 @@ class CoordinatorTests
       coordinator ! Coordinator.SimDone("Test1", Success(Unit))
     }
 
+    "interact correctly with a simulation aborting a task" in {
+      val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler()))
+
+      coordinator ! Coordinator.AddSim(0L, self)
+      coordinator ! Coordinator.Start
+      expectMsg(Simulation.Start)
+      coordinator ! Coordinator.SimStarted("Test")
+
+      // T1 0..3 - to be aborted at 2
+      val id1 = UUID.randomUUID()
+      val tg1 = TaskGenerator("T1", "Test", ConstantGenerator(3L), ConstantGenerator(5L))
+      val expected1 = new Task(id1, "T1", "Test", self, 0L, Seq(), 3L, 3L, 5L, -1, Task.Medium)
+
+      // T2 0..2
+      val id2 = UUID.randomUUID()
+      val tg2 = TaskGenerator("T2", "Test", ConstantGenerator(2L), ConstantGenerator(6L))
+      val expected2 = new Task(id2, "T2", "Test", self, 0L, Seq(), 2L, 2L, 6L, -1, Task.Medium)
+
+      // T3 0..5
+      val id3 = UUID.randomUUID()
+      val tg3 = TaskGenerator("T3", "Test", ConstantGenerator(5L), ConstantGenerator(6L))
+      val expected3 = new Task(id3, "T3", "Test", self, 0L, Seq(), 5L, 5L, 6L, -1, Task.Medium)
+
+      // Add all
+      coordinator ! Coordinator.AddTasks(Seq((id1, tg1, Seq()), (id2, tg2, Seq()), (id3, tg3, Seq())))
+      coordinator ! Coordinator.SimReady
+
+      // T2 completes
+      expectMsgType[Simulation.TaskCompleted]
+
+      // Abort T1
+      coordinator ! Coordinator.AbortTasks(Seq(id1))
+      coordinator ! Coordinator.SimReady
+
+      // T3 completes
+      val Simulation.TaskCompleted(task3, time3) = expectMsgType[Simulation.TaskCompleted]
+      task3.compare(expected3) should be(0)
+      time3 should be(5L)
+
+      coordinator ! Coordinator.SimDone("Test", Success(Unit))
+    }
   }
 
   /* "The Coordinator" must {
