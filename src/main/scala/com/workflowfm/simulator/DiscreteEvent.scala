@@ -1,0 +1,58 @@
+package com.workflowfm.simulator
+
+import akka.actor.ActorRef
+
+/**
+  * Discrete Events that need to be handled.
+  * @group toplevel
+  */
+sealed trait DiscreteEvent extends Ordered[DiscreteEvent] {
+  /** The timestamp of the event */
+  def time: Long
+
+  val classOrder: Short
+
+  /** Events need to be ordered based on their timestamp. */
+  def compare(that: DiscreteEvent): Int = {
+    lazy val tOrder = this.time.compare(that.time)
+    lazy val cOrder = this.classOrder.compare(that.classOrder)
+    lazy val vOrder = sameClassCompare(that)
+
+    if (tOrder != 0) tOrder
+    else if (cOrder != 0) cOrder
+    else if (vOrder != 0) vOrder
+    else this.hashCode().compare(that.hashCode())
+  }
+
+  def sameClassCompare(that: DiscreteEvent): Int
+}
+
+/**
+  * Event fired when a [[Task]] has finished.
+  * @group tasks
+  * @param time The timestamp of the event
+  * @param task The [[Task]] that was finished.
+  */
+case class FinishingTask(override val time: Long, task: Task) extends DiscreteEvent {
+  override val classOrder: Short = 0
+
+  override def sameClassCompare(that: DiscreteEvent): Int = that match {
+    case FinishingTask(_, t) => task.compare(t)
+    case _ => 0
+  }
+}
+
+/**
+  * Event fired when a simulation needs to start.
+  * @group simulations
+  * @param time The timestamp of the event
+  * @param simulation The actor reference to the [[Simulation]] that needs to start.
+  */
+case class StartingSim(override val time: Long, simulation: ActorRef) extends DiscreteEvent {
+  override val classOrder: Short = 1
+
+  override def sameClassCompare(that: DiscreteEvent): Int = that match {
+    case StartingSim(_, s) => simulation.compareTo(s)
+    case _ => 0
+  }
+}

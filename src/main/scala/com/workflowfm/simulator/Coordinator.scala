@@ -30,36 +30,6 @@ class Coordinator(
 ) extends HashSetPublisher[Event] {
 
   /**
-    * Discrete Events that need to be handled.
-    * @group toplevel
-    */
-  sealed trait CEvent extends Ordered[CEvent] {
-    /** The timestamp of the event */
-    def time: Long
-
-    /** Events need to be ordered based on their timestamp. */
-    def compare(that: CEvent) = {
-      that.time.compare(time)
-    }
-  }
-
-  /**
-    * Event fired when a [[Task]] has finished.
-    * @group tasks
-    * @param time The timestamp of the event
-    * @param task The [[Task]] that was finished.
-    */
-  case class FinishingTask(override val time: Long, task: Task) extends CEvent
-
-  /**
-    * Event fired when a simulation needs to start.
-    * @group simulations
-    * @param time The timestamp of the event
-    * @param simulation The actor reference to the [[Simulation]] that needs to start.
-    */
-  case class StartingSim(override val time: Long, simulation: ActorRef) extends CEvent
-
-  /**
     * Map of the available [[TaskResource]]s
     * @group resources
     */
@@ -85,11 +55,11 @@ class Coordinator(
   val simulations: HashSet[String] = HashSet[String]()
 
   /**
-    * [[scala.collection.mutable.PriorityQueue PriorityQueue]] of discrete [[CEvent]]s to be processed,
+    * [[scala.collection.mutable.PriorityQueue PriorityQueue]] of discrete [[DiscreteEvent]]s to be processed,
     * ordered by (future) timestamp.
     * @group toplevel
     */
-  val events = new PriorityQueue[CEvent]()
+  val events = new PriorityQueue[DiscreteEvent]()
 
   /**
     * The current virtual time.
@@ -108,15 +78,15 @@ class Coordinator(
   }
 
   /**
-    * Extract all [[CEvent]]s in the queue that need to be processed in a given timestamp.
+    * Extract all [[DiscreteEvent]]s in the queue that need to be processed in a given timestamp.
     * Sequentially builds a [[scala.collection.immutable.Seq Seq]].
     * At the same time it dequeues the events from the event queue.
     * @group toplevel
     * @param t The given timestamp to look out for. We assume it is less than or equal to
-    *          the timestamp of the first [[CEvent]] in the queue.
+    *          the timestamp of the first [[DiscreteEvent]] in the queue.
     */
-  protected def dequeueEvents(t: Long): Seq[CEvent] = {
-    val elems = scala.collection.immutable.Seq.newBuilder[CEvent]
+  protected def dequeueEvents(t: Long): Seq[DiscreteEvent] = {
+    val elems = scala.collection.immutable.Seq.newBuilder[DiscreteEvent]
     while (events.headOption.exists(_.time == t)) {
       elems += events.dequeue
     }
@@ -124,7 +94,7 @@ class Coordinator(
   }
 
   /**
-    * Progress virtual time by processing the next [[CEvent]] in the queue.
+    * Progress virtual time by processing the next [[DiscreteEvent]] in the queue.
     * This is called when we are done waiting for any simulations to respond.
     * We take the first event from the queue and then use [[dequeueEvents]] to get
     * all events with the same timestamp.
@@ -133,7 +103,7 @@ class Coordinator(
     * It is useful to do this before notifying task completion to ensure all simulations can know the
     * correct state of the resources if they need to.
     *
-    * We then handle the events with [[handleCEvent]].
+    * We then handle the events with [[handleDiscreteEvent]].
     * If there are no events, no tasks to run, and all simulations have finished, the whole
     * simulation is done, so we publish [[com.workflowfm.simulator.events.EDone EDone]].
     * If there are no events and no simulations to wait for, but there are still tasks to run, we
@@ -161,13 +131,13 @@ class Coordinator(
         // Release all resources from finished tasks before you notify anyone
         eventsToHandle foreach releaseResources
         // Handle the event
-        eventsToHandle foreach handleCEvent
+        eventsToHandle foreach handleDiscreteEvent
       }
 
     } else if (scheduler.noMoreTasks() && simulations.isEmpty) {
       publish(EDone(self, time))
 
-    } else if (waiting.isEmpty && !scheduler.noMoreTasks()) { // this may happen if handleCEvent fails
+    } else if (waiting.isEmpty && !scheduler.noMoreTasks()) { // this may happen if handleDiscreteEvent fails
       allocateTasks()
       tick()
     } //else {
@@ -193,12 +163,12 @@ class Coordinator(
     * Releases any resources that are not longer used based on the given event.
     * If the provided event is a [[FinishingTask]] event, i.e. a [[Task]] just finished,
     * this means the resources used by that [[Task]] can now be released.
-    * Other [[CEvent]]s are just ignored.
+    * Other [[DiscreteEvent]]s are just ignored.
     *
     * @group resources
-    * @param event The [[CEvent]] that potentially released resources.
+    * @param event The [[DiscreteEvent]] that potentially released resources.
     */
-  protected def releaseResources(event: CEvent) = {
+  protected def releaseResources(event: DiscreteEvent) = {
     event match {
       case FinishingTask(t, task) if (t == time) =>
         // Unbind the resources
@@ -208,15 +178,15 @@ class Coordinator(
   }
 
   /**
-    * Processes a [[CEvent]].
+    * Processes a [[DiscreteEvent]].
     *
     * - [[FinishingTask]] means a task finished and we need to stop it with [[stopTask]].
     * - [[StartingSim]] means a simulation needs to start and we do this with [[startSimulation]].
     *
     * @group toplevel
-    * @param event The [[CEvent]] to process.
+    * @param event The [[DiscreteEvent]] to process.
     */
-  protected def handleCEvent(event: CEvent) = {
+  protected def handleDiscreteEvent(event: DiscreteEvent) = {
     log.debug(s"[COORD:$time] Event!")
     event match {
       // A task is finished
