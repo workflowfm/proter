@@ -74,6 +74,23 @@ class TaskResource(val name: String, val costPerTick: Int) {
   }
 
   /**
+    * Aborts the current [[Task]] if it belongs to the given simulation.
+    *
+    * Does not actually do anything to the task itself. It merely detaches it and becomes idle.
+    * @param simulation The name of the simulation whose tasks to abort.
+    * @return The [[Task]] if it was aborted successfully or [[scala.None None]] in any other case.
+    */
+  def abortSimulation(simulation: String): Option[Task] = {
+    currentTask match {
+      case Some((startTime, task)) if task.simulation == simulation => {
+        currentTask = None
+        Some(task)
+      }
+      case _ => None
+    }
+  }
+
+  /**
     * Attach a [[Task]] to this resource.
     * If the resource is already attached to another [[Task]], the attached task
     * is returned. Otherwise, we return [[scala.None]].

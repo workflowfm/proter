@@ -51,6 +51,13 @@ trait Scheduler {
   def removeTask(task: Task): Unit
 
   /**
+    * Removes all [[Task]]s belonging to an (presumably aborted) simulation.
+    *
+    * @param simulation The name of the simulation that was aborted.
+    */
+  def removeSimulation(simulation: String): Unit
+
+  /**
     * Checks if all [[Task]]s have been scheduled.
     *
     * @return true if there are no [[Task]]s remaining.
@@ -74,6 +81,12 @@ trait SortedSetScheduler extends Scheduler {
     * @inheritdoc
     */
   override def removeTask(task: Task): Unit = tasks -= task
+
+  /**
+    * @inheritdoc
+    */
+  override def removeSimulation(simulation: String): Unit = 
+    tasks --= tasks.filter(_.simulation == simulation)
 
   /**
     * @inheritdoc
