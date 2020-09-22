@@ -284,8 +284,7 @@ class SingleTaskSimulation(
     */
   override def run() = if (promise.isCompleted) promise.future
   else {
-    val id = UUID.randomUUID() //todo maybe move id generation to taskgenerator if user does not care about id?
-    val generator = TaskGenerator(name + "Task", id, name, duration, cost, resources, interrupt, priority)
+    val generator = TaskGenerator(name + "Task", name, duration, cost).withResources(resources).withInterrupt(interrupt).withPriority(priority)
     task(generator)
     ready()
     promise.future

@@ -35,7 +35,8 @@ class Task(
     val name: String,
     val simulation: String,
     val actor: ActorRef,
-    val created: Long,
+    val created: Long, //todo minStartTime
+    val minStartTime: Long,
     val resources: Seq[String],
     val duration: Long,
     val estimatedDuration: Long,
@@ -185,22 +186,12 @@ case class TaskGenerator(
     simulation: String,
     duration: ValueGenerator[Long],
     cost: ValueGenerator[Long],
+    minStartTime: Long = 0L,
     resources: Seq[String] = Seq(),
     interrupt: Int = (-1),
     priority: Task.Priority = Task.Medium,
     createTime: Long = (-1)
 ) {
-  //todo clean this up
-  def this(name: String, simulation: String, duration: ValueGenerator[Long], cost: ValueGenerator[Long]) = 
-    this(name, UUID.randomUUID(), simulation, duration, cost)
-  def this(name: String, simulation: String, duration: ValueGenerator[Long], cost: ValueGenerator[Long], resources: Seq[String]) =
-    this(name, UUID.randomUUID(), simulation, duration, cost, resources)
-  def this(name: String, simulation: String, duration: ValueGenerator[Long], cost: ValueGenerator[Long], resources: Seq[String], interrupt: Int) =
-    this(name, UUID.randomUUID(), simulation, duration, cost, resources, interrupt)
-  def this(name: String, simulation: String, duration: ValueGenerator[Long], cost: ValueGenerator[Long], resources: Seq[String], interrupt: Int, priority: Task.Priority) =
-    this(name, UUID.randomUUID(), simulation, duration, cost, resources, interrupt, priority)
-  def this(name: String, simulation: String, duration: ValueGenerator[Long], cost: ValueGenerator[Long], resources: Seq[String], interrupt: Int, priority: Task.Priority, createTime: Long) =
-    this(name, UUID.randomUUID(), simulation, duration, cost, resources, interrupt, priority, createTime)
 
   /**
     * Generate a [[Task]].
@@ -221,6 +212,7 @@ case class TaskGenerator(
       simulation,
       actor,
       creation,
+      minStartTime,
       resources,
       duration.get,
       duration.estimate,
@@ -231,12 +223,20 @@ case class TaskGenerator(
   }
   
   /**
-    * Updae the ID to use
+    * Update the ID to use.
     *
     * @param i The new ID.
     * @return An updated [[TaskGenerator]].
     */
   def withID(i: UUID) = copy(id = i)
+
+  /**
+    * Update the resources to use.
+    *
+    * @param r The new resources.
+    * @return An updated [[TaskGenerator]].
+    */
+  def withResources(r: Seq[String]) = copy(resources = r)
 
   /**
     * Update the priority to use.
@@ -280,6 +280,13 @@ case class TaskGenerator(
     * @return An updated [[TaskGenerator]].
     */
   def withCreationTime(t: Long) = copy(createTime = t)
+    /**
+    * Update the custom minimum starting time to use.
+    *
+    * @param t The new minimum starting time.
+    * @return An updated [[TaskGenerator]].
+    */
+  def withMinStartTime(t: Long) = copy(minStartTime = t)
 }
 
 case object TaskGenerator {

@@ -64,7 +64,7 @@ class CoordinatorTests
 
       val id = UUID.randomUUID()
       val tg = TaskGenerator("T", id, "Test", ConstantGenerator(2L), ConstantGenerator(5L))
-      val expected = new Task(id, "T", "Test", self, 0L, Seq(), 2L, 2L, 5L, -1, Task.Medium)
+      val expected = new Task(id, "T", "Test", self, 0L, 0L, Seq(), 2L, 2L, 5L, -1, Task.Medium)
       coordinator ! Coordinator.AddTasks(Seq((tg)))
       coordinator ! Coordinator.SimReady
 
@@ -87,7 +87,7 @@ class CoordinatorTests
       // Add task T1 0..2
       val id1 = UUID.randomUUID()
       val tg1 = TaskGenerator("T1", id1, "Test", ConstantGenerator(2L), ConstantGenerator(5L))
-      val expected1 = new Task(id1, "T1", "Test", self, 0L, Seq(), 2L, 2L, 5L, -1, Task.Medium)
+      val expected1 = new Task(id1, "T1", "Test", self, 0L, 0L, Seq(), 2L, 2L, 5L, -1, Task.Medium)
       coordinator ! Coordinator.AddTasks(Seq((tg1)))
       coordinator ! Coordinator.SimReady
 
@@ -99,7 +99,7 @@ class CoordinatorTests
       // Add T2 2..5
       val id2 = UUID.randomUUID()
       val tg2 = TaskGenerator("T2", id2, "Test", ConstantGenerator(3L), ConstantGenerator(6L))
-      val expected2 = new Task(id2, "T2", "Test", self, 2L, Seq(), 3L, 3L, 6L, -1, Task.Medium)
+      val expected2 = new Task(id2, "T2", "Test", self, 2L, 0L, Seq(), 3L, 3L, 6L, -1, Task.Medium)
       coordinator ! Coordinator.AddTasks(Seq((tg2)))
       coordinator ! Coordinator.AckTasks(Seq(id1))
 
@@ -123,12 +123,12 @@ class CoordinatorTests
       // T1 0..2
       val id1 = UUID.randomUUID()
       val tg1 = TaskGenerator("T1", id1, "Test", ConstantGenerator(2L), ConstantGenerator(5L))
-      val expected1 = new Task(id1, "T1", "Test", self, 0L, Seq(), 2L, 2L, 5L, -1, Task.Medium)
+      val expected1 = new Task(id1, "T1", "Test", self, 0L, 0L, Seq(), 2L, 2L, 5L, -1, Task.Medium)
 
       // T2 0..2
       val id2 = UUID.randomUUID()
       val tg2 = TaskGenerator("T2", id2, "Test", ConstantGenerator(2L), ConstantGenerator(6L))
-      val expected2 = new Task(id2, "T2", "Test", self, 0L, Seq(), 2L, 2L, 6L, -1, Task.Medium)
+      val expected2 = new Task(id2, "T2", "Test", self, 0L, 0L, Seq(), 2L, 2L, 6L, -1, Task.Medium)
 
       // Add both
       coordinator ! Coordinator.AddTasks(Seq(tg1, tg2))
@@ -144,7 +144,7 @@ class CoordinatorTests
       // T3 2..5
       val id3 = UUID.randomUUID()
       val tg3 = TaskGenerator("T3", id3, "Test", ConstantGenerator(3L), ConstantGenerator(6L))
-      val expected3 = new Task(id3, "T3", "Test", self, 2L, Seq(), 3L, 3L, 6L, -1, Task.Medium)
+      val expected3 = new Task(id3, "T3", "Test", self, 2L, 0L, Seq(), 3L, 3L, 6L, -1, Task.Medium)
       coordinator ! Coordinator.AddTasks(Seq((tg3)))
 
       // Ack T1 first
@@ -183,7 +183,7 @@ class CoordinatorTests
       // T1a 0..2
       val id1a = UUID.randomUUID()
       val tg1a = TaskGenerator("T1a", id1a, "Test1", ConstantGenerator(2L), ConstantGenerator(5L))
-      val expected1a = new Task(id1a, "T1a", "Test1", self, 0L, Seq(), 2L, 2L, 5L, -1, Task.Medium)
+      val expected1a = new Task(id1a, "T1a", "Test1", self, 0L, 0L, Seq(), 2L, 2L, 5L, -1, Task.Medium)
       coordinator ! Coordinator.AddTasks(Seq((tg1a)))
       coordinator ! Coordinator.SimReady
 
@@ -194,7 +194,7 @@ class CoordinatorTests
       // T2a 1..2
       val id2a = UUID.randomUUID()
       val tg2a = TaskGenerator("T2a", id2a, "Test2", ConstantGenerator(1L), ConstantGenerator(5L))
-      val expected2a = new Task(id2a, "T2a", "Test2", self, 1L, Seq(), 1L, 1L, 5L, -1, Task.Medium)
+      val expected2a = new Task(id2a, "T2a", "Test2", self, 1L, 0L, Seq(), 1L, 1L, 5L, -1, Task.Medium)
       probe.send(coordinator, Coordinator.AddTasks(Seq((tg2a))))
       probe.send(coordinator, Coordinator.SimReady)
 
@@ -232,7 +232,7 @@ class CoordinatorTests
       val id1a = UUID.randomUUID()
       val tg1a = TaskGenerator("T1a", id1a, "Test1", ConstantGenerator(10L), ConstantGenerator(5L))
       val expected1a =
-        new Task(id1a, "T1a", "Test1", self, 0L, Seq(), 10L, 10L, 5L, -1, Task.Medium)
+        new Task(id1a, "T1a", "Test1", self, 0L, 0L, Seq(), 10L, 10L, 5L, -1, Task.Medium)
       coordinator ! Coordinator.AddTasks(Seq((tg1a)))
       coordinator ! Coordinator.SimReady
 
@@ -243,7 +243,7 @@ class CoordinatorTests
       // T2a 1..2
       val id2a = UUID.randomUUID()
       val tg2a = TaskGenerator("T2a", id2a, "Test2", ConstantGenerator(1L), ConstantGenerator(5L))
-      val expected2a = new Task(id2a, "T2a", "Test2", self, 1L, Seq(), 1L, 1L, 5L, -1, Task.Medium)
+      val expected2a = new Task(id2a, "T2a", "Test2", self, 1L, 0L, Seq(), 1L, 1L, 5L, -1, Task.Medium)
       probe.send(coordinator, Coordinator.AddTasks(Seq((tg2a))))
       probe.send(coordinator, Coordinator.SimReady)
 
@@ -268,7 +268,7 @@ class CoordinatorTests
       // T1b 2..3
       val id1b = UUID.randomUUID()
       val tg1b = TaskGenerator("T1b", id1b, "Test1", ConstantGenerator(1L), ConstantGenerator(5L))
-      val expected1b = new Task(id1b, "T1b", "Test1", self, 2L, Seq(), 1L, 1L, 5L, -1, Task.Medium)
+      val expected1b = new Task(id1b, "T1b", "Test1", self, 2L, 0L, Seq(), 1L, 1L, 5L, -1, Task.Medium)
       coordinator ! Coordinator.AddTasks(Seq((tg1b)))
       coordinator ! Coordinator.SimReady
 
@@ -287,7 +287,6 @@ class CoordinatorTests
 
       coordinator ! Coordinator.SimDone("Test1", Success(Unit))
     }
-
   }
 
   /* "The Coordinator" must {

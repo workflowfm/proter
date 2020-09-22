@@ -4,6 +4,7 @@ import com.workflowfm.simulator._
 import scala.concurrent.{ ExecutionContext, Future, Promise }
 import akka.actor.{ Actor, ActorRef, Props }
 import java.util.UUID
+import akka.protobufv3.internal.Empty
 
 sealed trait Flow {
   val id: UUID = java.util.UUID.randomUUID
@@ -13,7 +14,7 @@ sealed trait Flow {
 }
 
 case class NoTask() extends Flow
-case class FlowTask(generator: TaskGenerator, resources: Seq[String]) extends Flow
+case class FlowTask(generator: TaskGenerator) extends Flow {override val id = generator.id}
 case class Then(left: Flow, right: Flow) extends Flow
 case class And(left: Flow, right: Flow) extends Flow
 case class All(elements: Flow*) extends Flow
@@ -34,7 +35,7 @@ case class Or(left: Flow, right: Flow) extends Flow
 class FlowSimulationActor(
     name: String,
     coordinator: ActorRef,
-    flow: Flow
+    protected val flow: Flow
 )(implicit executionContext: ExecutionContext)
     extends AsyncSimulation(name, coordinator)(executionContext) {
 
@@ -60,7 +61,7 @@ class FlowSimulationActor(
   protected def runFlow(flow: Flow, callback: Callback): Unit = {
     flow match {
       case f: FlowTask =>
-        task(f.id, f.generator, ((t, l) => { callback(t, l); ack(Seq(f.id)) }), f.resources)
+        task(f.generator, ((t, l) => { callback(t, l); ack(Seq(f.id)) }))
       case f: Flow => { tasks += flow.id -> callback; execute(f) }
     }
   }
@@ -88,7 +89,7 @@ class FlowSimulationActor(
     flow match {
       case f: NoTask => complete(f.id)
 
-      case FlowTask(generator: TaskGenerator, resources: Seq[String]) => {}
+      case FlowTask(generator: TaskGenerator) => {}
       //this is here for the sake of case completeness, should not be called
 
       case f: Then => {
@@ -99,7 +100,7 @@ class FlowSimulationActor(
 
       case f: And => {
         val leftCallback: Callback = (_, _) => (if (!tasks.contains(f.right.id)) complete(f.id))
-        val rightCallback: Callback = (_, _) => (if (!tasks.contains(f.left.id)) complete(f.id))
+        val rightCallback: Callback = (_, _) => (if (!tasks.contains(f.left.id)) complete(f.id)) 
         runFlow(f.left, leftCallback)
         runFlow(f.right, rightCallback)
       }
