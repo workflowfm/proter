@@ -205,6 +205,7 @@ class Coordinator(
     *
     *  - [[FinishingTask]] means a task finished and we need to stop it with [[stopTask]].
     *  - [[StartingSim]] means a simulation needs to start and we do this with [[startSimulation]].
+    *  - [[TimeLimit]] means we need to abort all simulations with [[abortAllSimulations]] and clear the queue.
     *
     * @group toplevel
     * @param event The [[DiscreteEvent]] to process.
@@ -219,6 +220,12 @@ class Coordinator(
 
       // A simulation (workflow) is starting now
       case StartingSim(t, sim) if (t == time) => startSimulation(sim)
+
+      case TimeLimit(t) if (t == time) => {
+        abortAllSimulations()
+        events.clear()
+        publish(EDone(self, time))
+      }
 
       case _ => publish(EError(self, time, s"Failed to handle event: $event"))
     }
@@ -326,6 +333,8 @@ class Coordinator(
     *  - Asks the simulation actor to stop.
     *  - Does '''not''' progress time.
     *
+    * The bookkeeping assumes the rest of the simulation(s) can still proceed.
+    * 
     * @group simulations
     * @param name The name of the completed simulation.
     * @param actor The [[akka.actor.ActorRef]] of the corresponding [[Simulation]].

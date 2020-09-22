@@ -4,7 +4,6 @@ import akka.actor.ActorRef
 
 /**
   * Discrete Events that need to be handled.
-  * @group toplevel
   */
 sealed trait DiscreteEvent extends Ordered[DiscreteEvent] {
   /** The timestamp of the event */
@@ -29,12 +28,12 @@ sealed trait DiscreteEvent extends Ordered[DiscreteEvent] {
 
 /**
   * Event fired when a [[Task]] has finished.
-  * @group tasks
+  * 
   * @param time The timestamp of the event
   * @param task The [[Task]] that was finished.
   */
 case class FinishingTask(override val time: Long, task: Task) extends DiscreteEvent {
-  override val classOrder: Short = 0
+  override val classOrder: Short = 5
 
   override def sameClassCompare(that: DiscreteEvent): Int = that match {
     case FinishingTask(_, t) => task.compare(t)
@@ -44,15 +43,26 @@ case class FinishingTask(override val time: Long, task: Task) extends DiscreteEv
 
 /**
   * Event fired when a simulation needs to start.
-  * @group simulations
+  * 
   * @param time The timestamp of the event
   * @param simulation The actor reference to the [[Simulation]] that needs to start.
   */
 case class StartingSim(override val time: Long, simulation: ActorRef) extends DiscreteEvent {
-  override val classOrder: Short = 1
+  override val classOrder: Short = 10
 
   override def sameClassCompare(that: DiscreteEvent): Int = that match {
     case StartingSim(_, s) => simulation.compareTo(s)
     case _ => 0
   }
+}
+
+/**
+  * Event fired when a global time limit has been reached.
+  * 
+  * @param time The timestamp of the event
+  */
+case class TimeLimit(override val time: Long) extends DiscreteEvent {
+  override val classOrder: Short = 1
+
+  override def sameClassCompare(that: DiscreteEvent): Int = 0
 }
