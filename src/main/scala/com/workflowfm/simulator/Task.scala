@@ -22,6 +22,7 @@ import java.util.UUID
   * @param simulation A unique name of the simulation this task belongs to.
   * @param actor A reference to the [[Simulation]] that spawned this task.
   * @param created The timestamp when this task was created.
+  * @param minStartTime The earliest possible starting time of this task.
   * @param resources The names of the [[TaskResource]]s required by this task.
   * @param duration The actual duration of the task.
   * @param estimatedDuration The estimated duration of the task.
@@ -173,11 +174,12 @@ object Task {
   * of the [[ValueGenerator]]s.
   *
   * @param name The name of the task.
-  * @param id The unique id of this task.
+  * @param id The unique id of the task.
   * @param simulation The name of the simulation this task belongs to.
   * @param duration The generator of the duration.
   * @param cost The generator of the cost.
-  * @param minStartTime The minimum starting time of this task.
+  * @param minStartTime The earliest possible starting time of the task.
+  * @param resources The resources of this task
   * @param interrupt The [[Task.interrupt]] property of the task.
   * @param priority The explicit priority of the task.
   * @param createTime A custom creation time. Negative values corresponds to the current time.
@@ -199,10 +201,8 @@ case class TaskGenerator(
     * Generate a [[Task]].
     * As a case class, it can be easily manipulated dynamically to alter its values.
     *
-    * @param id The unique ID to give to the task.
     * @param currentTime The current time.
     * @param actor A reference to the corresponding [[Simulation]] for the task.
-    * @param resources The names of the [[TaskResource]]s that will be used by the task.
     * @return The generated [[Task]].
     */
   def create(currentTime: Long, actor: ActorRef) = {
@@ -305,7 +305,7 @@ case class TaskGenerator(
   * @param duration The generator of the duration.
   * @param cost The generator of the cost.
   */
-case object TaskGenerator {
+object TaskGenerator {
   def apply(
     name: String,
     simulation: String,

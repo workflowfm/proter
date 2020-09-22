@@ -40,7 +40,6 @@ trait SimulatedProcess {
     *       when the [[Task]] completes. This blocks other interactions the actor of the
     *       [[SimulatedProcess]] can perform from now until the [[Task]] completes.
     *
-    * @param id The pre-determined ID for the [[Task]].
     * @param gen The [[TaskGenerator]] that will generate the [[Task]].
     * @param result A function returning a custom output.
     * @param executionContext
