@@ -54,7 +54,7 @@ class Coordinator(
     * i.e. they have already started but not finished.
     * @group simulations
     */
-  val simulations: HashSet[String] = HashSet[String]()
+  val simulations: Map[String, ActorRef] = Map[String, ActorRef]()
 
   /**
     * [[scala.collection.mutable.PriorityQueue PriorityQueue]] of [[DiscreteEvent]]s to be processed,
@@ -278,9 +278,9 @@ class Coordinator(
     * @group simulations
     * @param name The name of the simulation.
     */
-  protected def simulationStarted(name: String): Unit = {
+  protected def simulationStarted(name: String, actor: ActorRef): Unit = {
     publish(ESimStart(self, time, name))
-    simulations += name
+    simulations += name -> actor
   }
 
   /**
@@ -593,7 +593,7 @@ class Coordinator(
     case Coordinator.AbortTasks(ids) => ids foreach { id => abortTask(id, sender())}
 
     case Coordinator.WaitFor(actor) => waitFor(actor, sender())
-    case Coordinator.SimStarted(name) => simulationStarted(name)
+    case Coordinator.SimStarted(name, actor) => simulationStarted(name, actor)
     case Coordinator.SimDone(name, result) =>
       result match {
         case Success(res) => {
@@ -683,7 +683,7 @@ object Coordinator {
     * Message from a [[Simulation]] that the simulation has started.
     * @group simulations
     */
-  case class SimStarted(name: String)
+  case class SimStarted(name: String, actor: ActorRef)
   /**
     * Message from a [[Simulation]] that it has finished, with its output.
     * @group simulations

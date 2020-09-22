@@ -37,7 +37,7 @@ class CoordinatorTests
       coordinator ! Coordinator.AddSim(0L, self)
       coordinator ! Coordinator.Start
       expectMsg(Simulation.Start)
-      coordinator ! Coordinator.SimStarted("Test")
+      coordinator ! Coordinator.SimStarted("Test", self)
       coordinator ! Coordinator.SimDone("Test", Success(Unit))
       expectNoMsg()
     }
@@ -48,7 +48,7 @@ class CoordinatorTests
       coordinator ! Coordinator.AddSim(0L, self)
       coordinator ! Coordinator.Start
       expectMsg(Simulation.Start)
-      coordinator ! Coordinator.SimStarted("Test")
+      coordinator ! Coordinator.SimStarted("Test", self)
       coordinator ! Coordinator.Ping
       expectMsgType[Coordinator.Time].time should be(0L)
       coordinator ! Coordinator.SimDone("Test", Success(Unit))
@@ -60,7 +60,7 @@ class CoordinatorTests
       coordinator ! Coordinator.AddSim(0L, self)
       coordinator ! Coordinator.Start
       expectMsg(Simulation.Start)
-      coordinator ! Coordinator.SimStarted("Test")
+      coordinator ! Coordinator.SimStarted("Test", self)
 
       val id = UUID.randomUUID()
       val tg = TaskGenerator("T", "Test", ConstantGenerator(2L), ConstantGenerator(5L))
@@ -82,7 +82,7 @@ class CoordinatorTests
       coordinator ! Coordinator.AddSim(0L, self)
       coordinator ! Coordinator.Start
       expectMsg(Simulation.Start)
-      coordinator ! Coordinator.SimStarted("Test")
+      coordinator ! Coordinator.SimStarted("Test", self)
 
       // Add task T1 0..2
       val id1 = UUID.randomUUID()
@@ -118,7 +118,7 @@ class CoordinatorTests
       coordinator ! Coordinator.AddSim(0L, self)
       coordinator ! Coordinator.Start
       expectMsg(Simulation.Start)
-      coordinator ! Coordinator.SimStarted("Test")
+      coordinator ! Coordinator.SimStarted("Test", self)
 
       // T1 0..2
       val id1 = UUID.randomUUID()
@@ -178,7 +178,7 @@ class CoordinatorTests
 
       // Test1 starts
       expectMsg(Simulation.Start)
-      coordinator ! Coordinator.SimStarted("Test1")
+      coordinator ! Coordinator.SimStarted("Test1", self)
 
       // T1a 0..2
       val id1a = UUID.randomUUID()
@@ -189,7 +189,7 @@ class CoordinatorTests
 
       // Test2 starts
       probe.expectMsg(Simulation.Start)
-      probe.reply(Coordinator.SimStarted("Test2"))
+      probe.reply(Coordinator.SimStarted("Test2", self))
 
       // T2a 1..2
       val id2a = UUID.randomUUID()
@@ -226,7 +226,7 @@ class CoordinatorTests
 
       // Test1 starts
       expectMsg(Simulation.Start)
-      coordinator ! Coordinator.SimStarted("Test1")
+      coordinator ! Coordinator.SimStarted("Test1", self)
 
       // T1a 0..10
       val id1a = UUID.randomUUID()
@@ -238,7 +238,7 @@ class CoordinatorTests
 
       // Test2 starts
       probe.expectMsg(Simulation.Start)
-      probe.reply(Coordinator.SimStarted("Test2"))
+      probe.reply(Coordinator.SimStarted("Test2", self))
 
       // T2a 1..2
       val id2a = UUID.randomUUID()
@@ -294,7 +294,7 @@ class CoordinatorTests
       coordinator ! Coordinator.AddSim(0L, self)
       coordinator ! Coordinator.Start
       expectMsg(Simulation.Start)
-      coordinator ! Coordinator.SimStarted("Test")
+      coordinator ! Coordinator.SimStarted("Test", self)
 
       // T1 0..3 - to be aborted at 2
       val id1 = UUID.randomUUID()
@@ -336,7 +336,7 @@ class CoordinatorTests
       coordinator ! Coordinator.AddSim(0L, self)
       coordinator ! Coordinator.Start
       expectMsg(Simulation.Start)
-      coordinator ! Coordinator.SimStarted("Test")
+      coordinator ! Coordinator.SimStarted("Test", self)
 
       val res = new TaskResource("R", 0)
       coordinator ! Coordinator.AddResource(res)

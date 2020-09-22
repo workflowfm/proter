@@ -153,7 +153,7 @@ abstract class Simulation(
     * @group internal
     */
   protected def start(): Unit = {
-    coordinator ! Coordinator.SimStarted(name)
+    coordinator ! Coordinator.SimStarted(name, self)
     run()
   }
 
