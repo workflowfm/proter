@@ -468,17 +468,18 @@ object Schedule {
 
 
 //todo Document everything
-object LookaheadScheduler extends Scheduler {
+class LookaheadScheduler(initialTasks: Task*) extends SortedSetScheduler {
   import scala.collection.immutable.Queue
   import scala.concurrent.{Await, Future, ExecutionContext}
+
+  tasks ++= initialTasks
 
   protected val lookaheadObjects: collection.mutable.Map[ActorRef,LookaheadStructure] = collection.mutable.Map()
 
   override def setLookaheadObject(actor: ActorRef, obj: LookaheadStructure) = lookaheadObjects += actor -> obj 
   override def removeLookaheadObject(actor: ActorRef): Unit = lookaheadObjects -= actor 
 
-  def getNextTasks(
-      tasks: SortedSet[Task],
+  override def getNextTasks(
       currentTime: Long,
       resourceMap: Map[String, TaskResource]
   ): Seq[Task] = {
