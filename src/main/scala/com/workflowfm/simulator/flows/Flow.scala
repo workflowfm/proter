@@ -208,7 +208,7 @@ trait FlowsLookahead extends FlowSimulationActor with Lookahead {
     * @param flow The flow to be parsed
     * @param extraFunction an optional function which describes the current preconditions for lookahead (if any). @see [[LookaheadStructure.+]]
     * @param lookaheadStructure The [[LookaheadStructure]] built so far.
-    * @return 
+    * @return A function that describes the precondition of this node, and the current lookahead structure.
     */
   protected def parseFlow(flow: Flow, extraFunction: Option[IDFunction], lookaheadStructure: LookaheadStructure ): (IDFunction, LookaheadStructure) = {
     flow match {
