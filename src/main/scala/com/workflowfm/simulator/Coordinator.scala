@@ -50,6 +50,7 @@ class Coordinator(
 
   /**
     * Set of simulation names that are running.
+    * 
     * i.e. they have already started but not finished.
     * @group simulations
     */
@@ -91,8 +92,10 @@ class Coordinator(
 
   /**
     * Extract all [[DiscreteEvent]]s in the queue that need to be processed in a given timestamp.
+    * 
     * Sequentially builds a [[scala.collection.immutable.Seq Seq]].
     * At the same time it dequeues the events from the event queue.
+    * 
     * @group toplevel
     * @param t The given timestamp to look out for. We assume it is less than or equal to
     *          the timestamp of the first [[DiscreteEvent]] in the queue.
@@ -107,20 +110,20 @@ class Coordinator(
 
   /**
     * Progress virtual time by processing the next [[DiscreteEvent]] in the queue.
+    * 
     * This is called when we are done waiting for any simulations to respond.
     * We take the first event from the queue and then use [[dequeueEvents]] to get
     * all events with the same timestamp.
     *
-    * First, [[releaseResources]] releases all resources that are no longer in use.
-    * It is useful to do this before notifying task completion to ensure all simulations can know the
-    * correct state of the resources if they need to.
-    *
-    * We then handle the events with [[handleDiscreteEvent]].
-    * If there are no events, no tasks to run, and all simulations have finished, the whole
-    * simulation is done, so we publish [[com.workflowfm.simulator.events.EDone EDone]].
-    * If there are no events and no simulations to wait for, but there are still tasks to run, we
-    * attempt to allocate and run them. This may happen if something breaks when handling a previous
-    * event.
+    *  - First, [[releaseResources]] releases all resources that are no longer in use.
+    *   It is useful to do this before notifying task completion to ensure all simulations can know the
+    *   correct state of the resources if they need to.
+    *  - We then handle the events with [[handleDiscreteEvent]].
+    *  - If there are no events, no tasks to run, and all simulations have finished, the whole
+    *   simulation is done, so we publish [[com.workflowfm.simulator.events.EDone EDone]].
+    *  - If there are no events and no simulations to wait for, but there are still tasks to run, we
+    *   attempt to allocate and run them. This may happen if something breaks when handling a previous
+    *   event.
     *
     * @group toplevel
     */
@@ -163,8 +166,10 @@ class Coordinator(
 
   /**
     * Allocates the tasks due to start next to their resources.
+    * 
     * Asks the [[Scheduler]] to determine what tasks need to start next.
     * Removes each of them from the queue and runs them using [[startTask]].
+    * 
     * @group resources
     */
   protected def allocateTasks() = {
@@ -177,8 +182,10 @@ class Coordinator(
 
   /**
     * Releases any resources that are not longer used based on the given event.
+    * 
     * If the provided event is a [[FinishingTask]] event, i.e. a [[Task]] just finished,
     * this means the resources used by that [[Task]] can now be released.
+    * 
     * Other [[DiscreteEvent]]s are just ignored.
     *
     * @group resources
@@ -196,8 +203,8 @@ class Coordinator(
   /**
     * Processes a [[DiscreteEvent]].
     *
-    * - [[FinishingTask]] means a task finished and we need to stop it with [[stopTask]].
-    * - [[StartingSim]] means a simulation needs to start and we do this with [[startSimulation]].
+    *  - [[FinishingTask]] means a task finished and we need to stop it with [[stopTask]].
+    *  - [[StartingSim]] means a simulation needs to start and we do this with [[startSimulation]].
     *
     * @group toplevel
     * @param event The [[DiscreteEvent]] to process.
@@ -232,6 +239,7 @@ class Coordinator(
 
   /**
     * Adds multiple simulations at the same time.
+    * 
     * This is equivalent to mapping [[addSimulation]] over the given sequence, but more efficient.
     *
     * @group simulations
@@ -252,6 +260,7 @@ class Coordinator(
 
   /**
     * Start a simulation via the reference to its [[Simulation]].
+    * 
     * Once the simulation starts, we exect to hear from it in case it wants to add some [[Task]]s.
     * We therefore add it to the waiting queue.
     *
@@ -276,9 +285,10 @@ class Coordinator(
 
   /**
     * Stops a simulation when it is done.
-    * Removes the simulation from the list of running simulations.
-    * Publishes a [[com.workflowfm.simulator.events.ESimEnd ESimEnd]].
-    * Calls [[ready]] to handle the fact that we no longer need to wait for this simulation.
+    * 
+    *  - Removes the simulation from the list of running simulations.
+    *  - Publishes a [[com.workflowfm.simulator.events.ESimEnd ESimEnd]].
+    *  - Calls [[ready]] to handle the fact that we no longer need to wait for this simulation.
     *
     * @group simulations
     * @param name The name of the completed simulation.
@@ -295,8 +305,9 @@ class Coordinator(
 
   /**
     * Adds new [[Task]]s for a simulation.
-    * Calls [[addTask]] for each [[Task]] to be generated.
-    * Calls [[ready]] to handle the fact that we no longer need to wait for this simulation.
+    * 
+    *  - Calls [[addTask]] for each [[Task]] to be generated.
+    *  - Calls [[ready]] to handle the fact that we no longer need to wait for this simulation.
     *
     * @group tasks
     * @param actor The [[akka.actor.ActorRef]] of the [[Simulation]] that needs to generate the tasks.
@@ -310,15 +321,15 @@ class Coordinator(
   /**
     * Adds a single new [[Task]].
     *
-    * - Uses [[TaskGenerator.create]] to create the [[Task]], which will now have a fixed duration and cost.
+    *  - Uses [[TaskGenerator.create]] to create the [[Task]], which will now have a fixed duration and cost.
     *
-    * - Calculates the cost of the involved resources by adding the [[TaskResource.costPerTick]]
+    *  - Calculates the cost of the involved resources by adding the [[TaskResource.costPerTick]]
     * multipled by the [[Task.duration]]. Adds this to the [[Task.cost]].
     * This is done at runtime instead of at creation time to support variable resources.
     *
-    * - Publishes a [[com.workflowfm.simulator.events.ETaskAdd ETaskAdd]].
+    *  - Publishes a [[com.workflowfm.simulator.events.ETaskAdd ETaskAdd]].
     *
-    * - If the task does not require any resources, it is started immediately using [[startTask]].
+    *  - If the task does not require any resources, it is started immediately using [[startTask]].
     * Otherwise, we add it to the queue of [[Task]]s.
     *
     * @group tasks
@@ -384,17 +395,16 @@ class Coordinator(
 
   /**
     * Start a [[Task]] at the current timestamp.
+    * 
     * A [[Task]] is started when scheduled, meaning all the [[TaskResource]]s it needs are available
     * and it is the highest priority [[Task]] in the queue for those [[TaskResource]]s.
     *
-    * - Publishes a [[com.workflowfm.simulator.events.ETaskAdd ETaskAdd]].
-    *
-    * - Calls [[TaskResource.startTask]] for each involved [[TaskResource]] to attach this [[Task]]
+    *  - Publishes a [[com.workflowfm.simulator.events.ETaskAdd ETaskAdd]].
+    *  - Calls [[TaskResource.startTask]] for each involved [[TaskResource]] to attach this [[Task]]
     * to them. Publishes a [[com.workflowfm.simulator.events.ETaskAttach ETaskAttach]] for each successful attachment.
     * Otherwise publishes an appropriate [[com.workflowfm.simulator.events.EError EError]]. The latter would
     * only happen if the [[Scheduler]] tried to schedule a [[Task]] to a busy [[TaskResource]].
-    *
-    * - Creates a [[FinishingTask]] event for this [[Task]] based on its duration, and adds it to
+    *  - Creates a [[FinishingTask]] event for this [[Task]] based on its duration, and adds it to
     * the even queue.
     *
     * @group tasks
@@ -424,6 +434,7 @@ class Coordinator(
 
   /**
     * Adds a simulation to the waiting list.
+    * 
     * We will wait for that simulation to send tasks or finish before we progress time.
     * This is used when a simulation wants to react externally to events from another simulation.
     *
@@ -441,6 +452,7 @@ class Coordinator(
 
   /**
     * Detaches the task attached to the given [[TaskResource]].
+    * 
     * A wrapper of [[TaskResource.finishTask]] that
     * publishes a [[com.workflowfm.simulator.events.ETaskDetach ETaskDetach]].
     *
@@ -457,10 +469,10 @@ class Coordinator(
   /**
     * Handles a [[Task]] that has just finished.
     * 
-    * - Adds the corresponding [[Simulation]] reference to the waiting list as we
+    *  - Adds the corresponding [[Simulation]] reference to the waiting list as we
     *   expect it to react to the task finishing.
-    * - Publishes a [[com.workflowfm.simulator.events.ETaskDone ETaskDone]].
-    * - Notifies the [[Simulation]] that its [[Task]] has finished.
+    *  - Publishes a [[com.workflowfm.simulator.events.ETaskDone ETaskDone]].
+    *  - Notifies the [[Simulation]] that its [[Task]] has finished.
     *
     * Note that resources are detached before this in [[tick]] using [[releaseResources]].
     *
@@ -480,11 +492,11 @@ class Coordinator(
   /**
     * Aborts a [[Task]].
     * 
-    * - Adds the corresponding actor o the waiting list as we
+    *  - Adds the corresponding actor o the waiting list as we
     *   expect it to react to the task aborting.
-    * - Detaches all associated [[TaskResource]]s.
-    * - Adds the task ID to the [[abortedTasks]] set.
-    * - Publishes a [[com.workflowfm.simulator.events.ETaskAbort ETaskAbort]].
+    *  - Detaches all associated [[TaskResource]]s.
+    *  - Adds the task ID to the [[abortedTasks]] set.
+    *  - Publishes a [[com.workflowfm.simulator.events.ETaskAbort ETaskAbort]].
     *
     * @group tasks
     * @param id The `UUID` of the [[Task]] that needs to be aborted.
@@ -510,6 +522,7 @@ class Coordinator(
 
   /**
     * Reacts to the fact that we no longer need to wait for a simulation.
+    * 
     * This can happen when the simulation has finished or has added its new tasks.
     * We remove it from the waiting queue and then check if the waiting queue is empty.
     * If it is, we can progress time. First, we allocate new tasks, because some of them
@@ -545,6 +558,7 @@ class Coordinator(
 
   /**
     * Checks if a given [[com.workflowfm.simulator.events.Event Event]] in the output stream is the final one.
+    * 
     * Causes the stream to shutdown after [[com.workflowfm.simulator.events.EDone EDone]] is published.
     *
     * @group toplevel
@@ -605,6 +619,7 @@ class Coordinator(
 
 /**
   * Companion object for [[Coordinator]].
+  * 
   * Includes some of the actor messages that can be received and sent.
   *
   * @groupname simulations Interaction with a Simulation
