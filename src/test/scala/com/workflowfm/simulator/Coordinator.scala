@@ -288,7 +288,7 @@ class CoordinatorTests
       coordinator ! Coordinator.SimDone("Test1", Success(Unit))
     }
 
-    "interact correctly with a simulation aborting a task" in {
+    "interact correctly with a simulation aborting a task without" in {
       val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler()))
 
       coordinator ! Coordinator.AddSim(0L, self)
@@ -329,142 +329,50 @@ class CoordinatorTests
 
       coordinator ! Coordinator.SimDone("Test", Success(Unit))
     }
-  }
 
-  /* "The Coordinator" must {
-   *
-   * val handler = SimMetricsOutputs(new SimMetricsPrinter())
-   *
-   * //expectNoMessage(200.millis) "execute a simple task" in { val resA = new TaskResource("A",1)
-   * val resB = new TaskResource("B",1)
-   *
-   * val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler())) val s1 =
-   * system.actorOf(TaskSimulatorActor.props( "S", coordinator, Seq("A","B"), new
-   * ConstantGenerator(2), new ConstantGenerator(2), -1, Task.Highest ))
-   *
-   * coordinator ! Coordinator.AddResources(Seq(resA,resB)) coordinator ! Coordinator.AddSim(0L,s1)
-   * coordinator ! Coordinator.Start
-   *
-   * val done = expectMsgType[Coordinator.Done](20.seconds) done.time should be (2L) }
-   *
-   * "execute two independent tasks in parallel" in { val resA = new TaskResource("A",1) val resB =
-   * new TaskResource("B",1)
-   *
-   * val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler())) val s1 =
-   * system.actorOf(TaskSimulatorActor.props( "S1", coordinator, Seq("A"), new ConstantGenerator(2),
-   * new ConstantGenerator(2), -1, Task.Highest )) val s2 = system.actorOf(TaskSimulatorActor.props(
-   * "S2", coordinator, Seq("B"), new ConstantGenerator(2), new ConstantGenerator(2), -1,
-   * Task.Highest ))
-   *
-   * coordinator ! Coordinator.AddResources(Seq(resA,resB)) coordinator ! Coordinator.AddSim(0L,s1)
-   * coordinator ! Coordinator.AddSim(0L,s2) coordinator ! Coordinator.Start
-   *
-   * val done = expectMsgType[Coordinator.Done](20.seconds) done.time should be (2L) }
-   *
-   * "queue two tasks with the same resource" in { val resA = new TaskResource("A",1)
-   *
-   * val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler())) val s1 =
-   * system.actorOf(TaskSimulatorActor.props( "S1", coordinator, Seq("A"), new ConstantGenerator(2),
-   * new ConstantGenerator(2), -1, Task.Highest )) val s2 = system.actorOf(TaskSimulatorActor.props(
-   * "S2", coordinator, Seq("A"), new ConstantGenerator(2), new ConstantGenerator(2), -1,
-   * Task.Highest ))
-   *
-   * coordinator ! Coordinator.AddResources(Seq(resA)) coordinator ! Coordinator.AddSim(0L,s1)
-   * coordinator ! Coordinator.AddSim(0L,s2) coordinator ! Coordinator.Start
-   *
-   * val done = expectMsgType[Coordinator.Done](20.seconds) done.time should be (4L) }
-   *
-   * "measure delays and idling appropriately" in { val resA = new TaskResource("A",1) val resB =
-   * new TaskResource("B",1)
-   *
-   * val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler()))
-   *
-   * implicit val timeout = Timeout(2.seconds) val mObserver =
-   * system.actorOf(SimMetricsActor.props(new SimMetricsPrinter())) Await.result(mObserver ?
-   * Observer.SubscribeTo(coordinator), 3.seconds)
-   *
-   * val s1 = system.actorOf(TaskSimulatorActor.props( "SI1", coordinator, Seq("A"), new
-   * ConstantGenerator(2), new ConstantGenerator(2), -1, Task.Highest )) val s2 =
-   * system.actorOf(TaskSimulatorActor.props( "SI2", coordinator, Seq("A","B"), new
-   * ConstantGenerator(2), new ConstantGenerator(2), -1, Task.Medium ))
-   *
-   * coordinator ! Coordinator.AddResources(Seq(resA,resB)) coordinator ! Coordinator.AddSim(0L,s1)
-   * coordinator ! Coordinator.AddSim(0L,s2) coordinator ! Coordinator.Start
-   *
-   * val done = expectMsgType[Coordinator.Done](20.seconds) //new
-   * SimMetricsPrinter().apply(done.time, done.metrics) done.time should be (4L) val metricB =
-   * done.metrics.resourceMetrics.find { x => x.name.equals("B") } metricB should not be empty
-   * metricB map { x => x.idleTime should be (2L) } val metricS2T = done.metrics.taskMetrics.find {
-   * x => x.fullName.equals("SI2Task (SI2)") } metricS2T should not be empty metricS2T map { x =>
-   * x.delay should be (2L) } }
-   *
-   * "measure intermediate delays and idling appropriately" in { val resA = new TaskResource("A",1)
-   * val resB = new TaskResource("B",1)
-   *
-   * val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler())) implicit val timeout =
-   * Timeout(2.seconds) val mObserver = system.actorOf(SimMetricsActor.props(new
-   * SimMetricsPrinter())) Await.result(mObserver ? Observer.SubscribeTo(coordinator), 3.seconds)
-   *
-   * val s1 = system.actorOf(TaskSimulatorActor.props( "Si1", coordinator, Seq("A"), new
-   * ConstantGenerator(2), new ConstantGenerator(2), -1, Task.Highest )) val s2 =
-   * system.actorOf(TaskSimulatorActor.props( "Si2", coordinator, Seq("B"), new
-   * ConstantGenerator(3), new ConstantGenerator(2), -1, Task.Highest )) val s3 =
-   * system.actorOf(TaskSimulatorActor.props( "Si3", coordinator, Seq("A","B"), new
-   * ConstantGenerator(2), new ConstantGenerator(2), -1, Task.Medium ))
-   *
-   * coordinator ! Coordinator.AddResources(Seq(resA,resB)) coordinator ! Coordinator.AddSim(0L,s1)
-   * coordinator ! Coordinator.AddSim(0L,s2) coordinator ! Coordinator.AddSim(1L,s3) coordinator !
-   * Coordinator.Start
-   *
-   * val done = expectMsgType[Coordinator.Done](20.seconds)
-   *
-   * done.time should be (5L) val metricA = done.metrics.resourceMetrics.find { x =>
-   * x.name.equals("A") } metricA should not be empty metricA map { x => x.idleTime should be (1L) }
-   * val metricS3T = done.metrics.taskMetrics.find { x => x.fullName.equals("Si3Task (Si3)") }
-   * metricS3T should not be empty metricS3T map { x => x.delay should be (2L) } }
-   *
-   * "run a task with no resources" in { val coordinator =
-   * system.actorOf(Coordinator.props(new DefaultScheduler())) val s1 =
-   * system.actorOf(TaskSimulatorActor.props( "S1", coordinator, Seq(), new ConstantGenerator(2),
-   * new ConstantGenerator(2), -1, Task.Highest ))
-   *
-   * coordinator ! Coordinator.AddSim(0L,s1) coordinator ! Coordinator.Start
-   *
-   * val done = expectMsgType[Coordinator.Done](20.seconds)
-   *
-   * done.time should be (2L) done.metrics.resourceMetrics.isEmpty should be (true)
-   * done.metrics.simulationMetrics.size should be (1) done.metrics.taskMetrics.size should be (1) }
-   *
-   * "run multiple tasks with no resources" in { val coordinator =
-   * system.actorOf(Coordinator.props(new DefaultScheduler())) val s1 =
-   * system.actorOf(TaskSimulatorActor.props( "S1", coordinator, Seq(), new ConstantGenerator(2),
-   * new ConstantGenerator(2), -1, Task.Highest )) val s2 = system.actorOf(TaskSimulatorActor.props(
-   * "S2", coordinator, Seq(), new ConstantGenerator(2), new ConstantGenerator(2), -1, Task.Highest
-   * ))
-   *
-   * coordinator ! Coordinator.AddSim(0L,s1) coordinator ! Coordinator.AddSim(0L,s2) coordinator !
-   * Coordinator.Start
-   *
-   * val done = expectMsgType[Coordinator.Done](20.seconds)
-   *
-   * done.time should be (2L) done.metrics.resourceMetrics.isEmpty should be (true)
-   * done.metrics.simulationMetrics.size should be (2) done.metrics.taskMetrics.size should be (2) }
-   *
-   * "publish the right number of events from 1 simulation" in { val coordinator =
-   * system.actorOf(Coordinator.props(new DefaultScheduler())) //coordinator ! Publisher.SubHandler(new
-   * PrintEventHandler(), None)
-   *
-   * //Thread.sleep(1000) val f1 = MockObserver.observer(new CounterHandler())(system,coordinator)
-   * // val f2 = MockObserver.build(new CounterHandler())(system,coordinator) // val f3 =
-   * MockObserver.build(new CounterHandler())(system,coordinator) // val f4 = MockObserver.build(new
-   * CounterHandler())(system,coordinator)
-   *
-   * println("Here we go!") val s1 = system.actorOf(TaskSimulatorActor.props( "S1", coordinator,
-   * Seq(), new ConstantGenerator(2), new ConstantGenerator(2), -1, Task.Highest ))
-   *
-   * coordinator ! Coordinator.AddSim(0L,s1) coordinator ! Coordinator.Start
-   *
-   * // Start, AddSim, StartSim, AddTask, StartTask, EndTask, EndSim, Done Await.result(f1,
-   * 1.seconds) should be (8) // Await.result(f2, 1.seconds) should be (8) // Await.result(f3,
-   * 1.seconds) should be (8) // Await.result(f4, 1.seconds) should be (8) } } */
+    "interact correctly with a simulation aborting a task with resources" in {
+      val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler()))
+
+      coordinator ! Coordinator.AddSim(0L, self)
+      coordinator ! Coordinator.Start
+      expectMsg(Simulation.Start)
+      coordinator ! Coordinator.SimStarted("Test")
+
+      val res = new TaskResource("R", 0)
+      coordinator ! Coordinator.AddResource(res)
+
+      // T1 0..3 - to be aborted at 2
+      val id1 = UUID.randomUUID()
+      val tg1 = TaskGenerator("T1", "Test", ConstantGenerator(3L), ConstantGenerator(5L))
+      val expected1 = new Task(id1, "T1", "Test", self, 0L, Seq(res.name), 3L, 3L, 5L, -1, Task.Medium)
+
+      // T2 0..2
+      val id2 = UUID.randomUUID()
+      val tg2 = TaskGenerator("T2", "Test", ConstantGenerator(2L), ConstantGenerator(6L))
+      val expected2 = new Task(id2, "T2", "Test", self, 0L, Seq(), 2L, 2L, 6L, -1, Task.Medium)
+
+      // T3 0..5
+      val id3 = UUID.randomUUID()
+      val tg3 = TaskGenerator("T3", "Test", ConstantGenerator(5L), ConstantGenerator(6L))
+      val expected3 = new Task(id3, "T3", "Test", self, 0L, Seq(res.name), 5L, 5L, 6L, -1, Task.Medium)
+
+      // Add all
+      coordinator ! Coordinator.AddTasks(Seq((id1, tg1, Seq(res.name)), (id2, tg2, Seq()), (id3, tg3, Seq(res.name))))
+      coordinator ! Coordinator.SimReady
+
+      // T2 completes
+      expectMsgType[Simulation.TaskCompleted]
+
+      // Abort T1
+      coordinator ! Coordinator.AbortTasks(Seq(id1))
+      coordinator ! Coordinator.SimReady
+
+      // T3 completes
+      val Simulation.TaskCompleted(task3, time3) = expectMsgType[Simulation.TaskCompleted]
+      task3.compare(expected3) should be(0)
+      time3 should be(5L)
+
+      coordinator ! Coordinator.SimDone("Test", Success(Unit))
+    }
+  }
 }
