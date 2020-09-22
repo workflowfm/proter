@@ -102,7 +102,7 @@ class LookaheadTester
     implicit val system: ActorSystem = ActorSystem("LookaheadIntegration") //not needed
     implicit val executionContext: ExecutionContext = ExecutionContext.global
     implicit val timeout = Timeout(2.seconds)
-    val coordinator = system.actorOf(Coordinator.props(LookaheadScheduler))
+    val coordinator = system.actorOf(Coordinator.props(new LookaheadScheduler()))
     val shutdownActor = Subscriber.actor(new ShutdownHandler()) //not needed
     val smh = new SimMetricsHandler
 

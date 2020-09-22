@@ -384,7 +384,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
 
     // test LookaheadScheduler
     def l(tasks: Task*): Seq[Long] =
-      LookaheadScheduler.getNextTasks(SortedSet[Task]() ++ tasks, 0L, m) map (_.id
+      new LookaheadScheduler(tasks: _*).getNextTasks(0L, m) map (_.id
             .getMostSignificantBits())
   } 
 }
