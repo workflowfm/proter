@@ -304,6 +304,64 @@ class Coordinator(
   }
 
   /**
+    * Stops/aborts a named simulation before it is done.
+    * 
+    * Looks up the simulation actor and then calls 
+    * [[abortSimulation(name:String,actor:akka\.actor\.ActorRef)* abortSimulation]]. 
+    * 
+    * @group simulations
+    * @param name The name of the simulation to abort.
+    */
+  protected def abortSimulation(name: String): Unit = {
+    simulations.get(name).map { actor => abortSimulation(name, actor) }
+  }
+
+  /**
+    * Stops/aborts a simulation before it is done.
+    * 
+    *  - Removes the simulation from the list of running simulations and from the waiting list.
+    *  - Detaches all tasks of the simulation from the resources and adds them to the abort list.
+    *  - Removes all queued tasks of the simulation from the scheduler.
+    *  - Publishes a [[com.workflowfm.simulator.events.ESimEnd ESimEnd]].
+    *  - Asks the simulation actor to stop.
+    *  - Does '''not''' progress time.
+    *
+    * @group simulations
+    * @param name The name of the completed simulation.
+    * @param actor The [[akka.actor.ActorRef]] of the corresponding [[Simulation]].
+    */
+  protected def abortSimulation(name: String, actor: ActorRef): Unit = {
+    simulations -= name
+    waiting -= actor
+
+    val tasksToAbort = HashSet[UUID]()
+
+    // Detach and abort tasks of this simulation
+    resourceMap.foreach { case (name, resource) =>
+      resource.abortSimulation(name) match {
+        case None => Unit
+        case Some(task) => {
+          publish(ETaskDetach(self, time, task, resource.name))
+          tasksToAbort += task.id
+        }
+      }
+    }
+    tasksToAbort.map { id => publish(ETaskAbort(self, time, id)) }
+    abortedTasks ++= tasksToAbort
+
+    // Remove queued tasks of this simulation from the scheduler.
+    scheduler.removeSimulation(name)
+
+    publish(ESimEnd(self, time, name, "[Simulation Aborted]"))
+    log.debug(s"[COORD:$time] Aborted: [${actor.path.name}]")
+    actor ! Simulation.Stop
+  }
+
+  protected def abortAllSimulations(): Unit = {
+    simulations.map(s => abortSimulation(s._1, s._2))
+  }
+
+  /**
     * Adds new [[Task]]s for a simulation.
     * 
     *  - Calls [[addTask]] for each [[Task]] to be generated.
@@ -512,7 +570,7 @@ class Coordinator(
     resourceMap.foreach { case (name, resource) => 
       resource.abortTask(id) match {
         case None => Unit
-        case Some(task) => publish(ETaskDetach(self, time, task, name))
+        case Some(task) => publish(ETaskDetach(self, time, task, resource.name))
       }
     }
     abortedTasks += id
