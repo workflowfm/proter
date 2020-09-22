@@ -1,7 +1,8 @@
 package com.workflowfm.simulator
 
 import scala.annotation.tailrec
-import scala.collection.{ Map, SortedSet }
+import scala.collection.Map
+import scala.collection.mutable.SortedSet
 
 /**
   * A scheduler selects the next [[Task]]s to be started by the [[Coordinator]] at a given time.
@@ -19,7 +20,6 @@ trait Scheduler {
     * @return The sequence of [[Task]]s to start now.
     */
   def getNextTasks(
-      tasks: SortedSet[Task],
       currentTime: Long,
       resourceMap: Map[String, TaskResource]
   ): Seq[Task]
@@ -36,15 +36,63 @@ trait Scheduler {
     case Some(s) => s.isIdle
   }
 
+  /**
+    * Adds a [[Task]] to be scheduled.
+    *
+    * @param task The [[Task]] to add.
+    */
+  def addTask(task: Task): Unit
+
+  /**
+    * Removes a [[Task]] that no longer needs scheduling.
+    *
+    * @param task The [[Task]] to remove.
+    */
+  def removeTask(task: Task): Unit
+
+  /**
+    * Checks if all [[Task]]s have been scheduled.
+    *
+    * @return true if there are no [[Task]]s remaining.
+    */
+  def noMoreTasks(): Boolean
+
+}
+
+trait SortedSetScheduler extends Scheduler {
+  /**
+    * A sorted queue of tasks that need to be run.
+    */
+  val tasks: SortedSet[Task] = SortedSet()
+
+  /**
+    * @inheritdoc
+    */
+  override def addTask(task: Task): Unit = tasks += task
+
+  /**
+    * @inheritdoc
+    */
+  override def removeTask(task: Task): Unit = tasks -= task
+
+  /**
+    * @inheritdoc
+    */
+  override def noMoreTasks(): Boolean = tasks.isEmpty
+
 }
 
 /**
   * A [[Scheduler]] to be used as the default.
   *
   * Relies on the use of [[Schedule]]s for each [[TaskResource]].
+  *
+  * @param initialTasks Initial [[Task]]s in the queue, if any.
   */
-object DefaultScheduler extends Scheduler {
+class DefaultScheduler(initialTasks: Task*) extends SortedSetScheduler {
   import scala.collection.immutable.Queue
+
+  tasks ++= initialTasks
 
   /**
     * @inheritdoc
@@ -58,7 +106,6 @@ object DefaultScheduler extends Scheduler {
     * @return The sequence of [[Task]]s to start now.
     */
   override def getNextTasks(
-      tasks: SortedSet[Task],
       currentTime: Long,
       resourceMap: Map[String, TaskResource]
   ): Seq[Task] =
@@ -85,7 +132,7 @@ object DefaultScheduler extends Scheduler {
     * @return The sequence of [[Task]]s to start now.
     */
   @tailrec
-  def findNextTasks(
+  private def findNextTasks(
       currentTime: Long,
       resourceMap: Map[String, TaskResource],
       schedules: Map[String, Schedule],

@@ -85,12 +85,6 @@ class Coordinator(
   val simulations: HashSet[String] = HashSet[String]()
 
   /**
-    * A sorted queue of tasks that need to be run.
-    * @group tasks
-    */
-  val tasks: SortedSet[Task] = SortedSet()
-
-  /**
     * [[scala.collection.mutable.PriorityQueue PriorityQueue]] of discrete [[CEvent]]s to be processed,
     * ordered by (future) timestamp.
     * @group toplevel
@@ -170,10 +164,10 @@ class Coordinator(
         eventsToHandle foreach handleCEvent
       }
 
-    } else if (tasks.isEmpty && simulations.isEmpty) {
+    } else if (scheduler.noMoreTasks() && simulations.isEmpty) {
       publish(EDone(self, time))
 
-    } else if (waiting.isEmpty && !tasks.isEmpty) { // this may happen if handleCEvent fails
+    } else if (waiting.isEmpty && !scheduler.noMoreTasks()) { // this may happen if handleCEvent fails
       allocateTasks()
       tick()
     } //else {
@@ -189,8 +183,8 @@ class Coordinator(
     */
   protected def allocateTasks() = {
     // Assign the next tasks
-    scheduler.getNextTasks(tasks, time, resourceMap).foreach { task =>
-      tasks -= task
+    scheduler.getNextTasks(time, resourceMap).foreach { task =>
+      scheduler.removeTask(task)
       startTask(task)
     }
   }
@@ -340,9 +334,7 @@ class Coordinator(
     * Otherwise, we add it to the queue of [[Task]]s.
     *
     * @group tasks
-    * @param id A unique ID for the [[Task]].
     * @param gen The [[TaskGenerator]] that will generate the [[Task]].
-    * @param resources The list of [[TaskResource]] names that need to be used by the [[Task]].
     */
   protected def addTask(gen: TaskGenerator) {
     // Create the task
@@ -357,7 +349,7 @@ class Coordinator(
     publish(ETaskAdd(self, time, t))
 
     if (gen.resources.length > 0)
-      tasks += t
+      scheduler.addTask(t)
     else
       // if the task does not require resources, start it now
       startTask(t)

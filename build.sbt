@@ -1,4 +1,3 @@
-ThisBuild / version := "0.3"
 ThisBuild / autoAPIMappings := true
 
 // Fixes some sbt import problems.
