@@ -503,7 +503,7 @@ trait Lookahead extends Simulation {
     */
   abstract override def complete(task: Task, time: Long) = {
     lookahead = ( lookahead.complete(task.id,time) ) - task.id
-    coordinator ! Coordinator.SetSchedulerLookaheadObject(lookahead) //todo optimise 
+    coordinator ! Coordinator.SetSchedulerLookaheadObject(lookahead)
     super.complete(task,time)
   }
 }

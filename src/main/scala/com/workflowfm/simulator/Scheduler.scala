@@ -531,13 +531,18 @@ class LookaheadScheduler(initialTasks: Task*) extends SortedSetScheduler {
 
   /**
     * Finds the [[Task]]s that can be started now.
+    * 
+    * The algorithm is recursive, and works by starting with the original lookahead structure and slowly reducing it
+    * as the algorithm progresses. Every time a task is scheduled, the subsequent tasks are discovered via the 
+    * lookahead structure and are added to the task list, while the structure itself removes these tasks such that
+    * a single task cannot be returned more than once.
     *
     * [[Task]]s are assumed to be sorted by priority.
     *
     * Taking each [[Task]] from high to low priority, the algorithm does the following:
     *   1. It merges the current [[Schedule]]s of all the [[TaskResource]]s involved in the [[Task]].
     *   1. It finds the earliest possible starting time of the [[Task]] in the merged [[Schedule]], using the task's minimum starting time.
-    *   1. It finds the tasks that will start after the [[Task]] using the lookahead structure and updates the structure.
+    *   1. It finds the tasks that will start after the [[Task]] using the lookahead structure, and updates the structure.
     *   1. Takes the interval defined by the starting time and the estimated duration of the [[Task]]
     * and adds it to the [[Schedule]]s of all the involved [[TaskResource]]s.
     *   1. If the starting time is equal to the current time, and all involved [[TaskResource]]s are

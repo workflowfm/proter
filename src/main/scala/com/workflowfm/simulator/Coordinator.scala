@@ -687,8 +687,12 @@ object Coordinator {
     */
   case class WaitFor(actor: ActorRef)
 
-  //todo document
-  case class SetSchedulerLookaheadObject(o: LookaheadStructure)
+  /**
+    * Message from a [[Simulation]] to send a [[LookaheadStructure]] to the [[Scheduler]]
+    *
+    * @param l The structure to be sent
+    */
+  case class SetSchedulerLookaheadObject(l: LookaheadStructure)
 
   /**
     * Creates properties for a [[Coordinator]] actor.
