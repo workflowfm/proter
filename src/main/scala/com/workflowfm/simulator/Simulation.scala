@@ -17,20 +17,22 @@ import java.util.UUID
   * tasks to be added and informing the simulation processes when a task is completed.
   *
   * = Interface =
-  * The interface to set up a simulation has 4 key methods:
+  * The interface to set up a simulation has 6 key methods:
   *   1. `run`: Start the execution of the simulation logic.
   *   1. `task`: Produce new simulation tasks to be run.
+  *   1. `ack`: Tell the [[Coordinator]] we are done processing one or more finished tasks.
   *   1. `ready`: Tell the [[Coordinator]] we are ready and waiting for virtual time to progress.
-  *   1. `requestWait`: Tell the [[Coordinator]] to wait for us when reacting to another simulation.
+  *   1. `simWait`: Tell the [[Coordinator]] to wait for us when reacting to another simulation.
+  *   1. `complete`: Manage a task that just completed following the simulation logic.
   *
   * The interface can be accessed in 2 modes:
   *   1. ```Direct Interface:``` The simulation logic can be coded directly in a subclass, by
   *      implementing [[run]] and using [[task(t* task]],
-  *      [[requestWait()* requestWait()]] and [[ready]].
+  *      [[simWait]], [[ack]] and [[ready]].
   *   1. ```Actor Interface:``` The simulation logic can be distributed to other actors, typically
   *      [[SimulatedProcess]]es. These
   *      can interact with `Simulation` using the [[Simulation.AddTask]],
-  *      [[Simulation.RequestWait]] and [[Simulation.Ready]] messages.
+  *      [[Simulation.Wait]], [[Simulation.AckTasks]] and [[Simulation.Ready]] messages.
   *
   * = Interaction Flow =
   * The interaction flow with the [[Coordinator]] is expected as follows:
@@ -38,14 +40,16 @@ import java.util.UUID
   *      via a [[Coordinator.SimStarted]] response.
   *   1. The simulation logic starts executing via [[Simulation.run]] and produces some
   *      simulation ``tasks``.
-  *   1. When the simulation logic finishes producing tasks, it is ``ready``. Sending a
-  *      [[Coordinator.AddTasks]] message informs the [[Coordinator]] about any new
-  *      tasks and that the simulation is ready to proceed.
+  *   1. Newly produced tasks can be sent to the [[Coordinator]] via the [[Coordinator.AddTasks]] 
+  *      message.
+  *   1. When the simulation logic finishes producing tasks, it is ``ready``. It then sends a 
+  *      [[Coordinator.SimReady]] message to the [[Coordinator]].
   *   1. Eventually, one of the tasks completes and we receive a [[Simulation.TaskCompleted]]
   *      message. The simulation logic resumes execution.
-  *   1. The [[Coordinator]] is now waiting for either new tasks ([[Coordinator.AddTasks]]) or
-  *      the simulation to end ([[Coordinator.SimDone]]):
-  *      a. The simulation may generate new ``tasks`` and then become ``ready`` again as above.
+  *   1. The [[Coordinator]] is now waiting for either an acknowledgement of the completed task
+         ([[Coordinator.AckTasks]]) or the simulation to end ([[Coordinator.SimDone]]):
+  *      a. The simulation may generate new ``tasks`` and either ``ack`` the finished tasks 
+  *         individually or become ``ready`` again as above.
   *      a. If the simulation logic completes, the [[Coordinator.SimDone]] message is sent
   *         automatically.
   *   1. The simulation may also react to things happening to other simulations. It can send a
@@ -61,11 +65,11 @@ import java.util.UUID
   * @param executionContext
   */
 abstract class Simulation(
-    name: String,
+   name: String,
     coordinator: ActorRef
 )(implicit executionContext: ExecutionContext)
     extends Actor {
-
+    
   /**
     * Initiates the execution of the simulation.
     *
@@ -74,28 +78,34 @@ abstract class Simulation(
     */
   def run(): Future[Any]
 
+  /**
+    * Manages a completed [[Task]].
+    * 
+    * The simulation logic must react to this by either registering more tasks or finishing.
+    *
+    * If new tasks are produced, the completed [[Task]] must be ``acknowledged`` to the 
+    * [[Coordinator]] via [[ack]]. Alternatively, if we do not want to ``ack`` all completed
+    * tasks, we can just call [[ready]].
+    * 
+    * In other words, after a [[Task]] completes, the [[Coordinator]] will expect either a
+    * `AckTasks` (via [[ack]]) or `SimDone` (via the [[run]] `Future` completing) before
+    * it continues.
+    *
+    * @group api
+    * @param task The completed [[Task]].
+    * @param time The timestamp of completion and current time.
+    */
   def complete(task: Task, time: Long): Unit
 
   /**
     * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation
     * with a pre-determined ID.
     *
-    * The returned `Future` will complete when the [[Task]] simulation is completed. The simulation
-    * logic must react to this by either registering more tasks and becoming ``ready`` or finishing.
-    *
-    * In other words, after the `Future` completes, the [[Coordinator]] will expect either a
-    * `AddTasks` (via [[ready]]) or `SimDone` (via the [[run]] `Future` completing) before
-    * it continues.
-    *
     * @group api
     *
     * @param id The pre-determined task ID.
     * @param t The [[TaskGenerator]] to send.
-    * @param caller Some reference to an actor that generated the task in order to notify them when
-    *               the task is completed, or `None` if no actor needs to be notified.
     * @param resources The names of the [[TaskResource]]s that need to be used for the [[Task]].
-    * @return A `Future` that completes when the generated [[Task]] has completed,
-    *         containing the [[Task]] and its completion time.
     */
   protected def task(t: TaskGenerator): Unit = {
     coordinator ! Coordinator.AddTask(t)
@@ -117,18 +127,23 @@ abstract class Simulation(
   }
 
   /**
-    * Notifies the [[Coordinator]] that the simulation has finished calculating
-    * and is ready for virtual time to proceed.
+    * Notifies the [[Coordinator]] that the simulation has finished processing
+    * one or more completed [[Task]]s.
     *
-    * Also sends the new tasks for simulation to the [[Coordinator]] and clears
-    * the queue.
-    * @todo update
+    * Identifies the tasks via their UUID.
+    * 
     * @group api
     */
   def ack(tasks: Seq[UUID]): Unit = {
     coordinator ! Coordinator.AckTasks(tasks)
   }
 
+  /**
+    * Notifies the [[Coordinator]] that the simulation has finished calculating
+    * and is ready for virtual time to proceed.
+    *
+    * @group api
+    */
   def ready(): Unit = {
     coordinator ! Coordinator.SimReady
   }
@@ -138,7 +153,7 @@ abstract class Simulation(
     *
     * The simulation needs to either register more tasks and become ``ready`` or finish.
     *
-    * In other words, the [[Coordinator]] will expect either a `AddTasks` (via [[ready]])
+    * In other words, the [[Coordinator]] will expect either a `SimReady` (via [[ready]])
     * or `SimDone` (via the [[run]] `Future` completing) before it continues.
     *
     * @note We assume the [[Coordinator]] is already waiting for another simulation when the
@@ -191,6 +206,14 @@ object Simulation {
     */
   case object Ready
 
+  /**
+    * Produces a new [[TaskGenerator]] for simulation.
+    *
+    * @see [[Simulation.task(t* task(t, resources)]]
+    * @group process
+    *
+    * @param t The [[TaskGenerator]] to generate the [[Task]].
+    */
   case class AddTask(t: TaskGenerator)
 
   /**
@@ -206,7 +229,6 @@ object Simulation {
   /**
     * Tells the [[Simulation]] to request that [[Coordinator]] waits.
     *
-    * @see [[Simulation.requestWait(a* requestWait(ActorRef)]]
     * @group process
     */
   case object Wait
@@ -217,7 +239,14 @@ object Simulation {
     */
   case object AckWait
 
-// TODO document
+  /**
+    * Acknowledges a sequence of completed [[Task]] IDs has been processed.
+    *
+    * @see [[Simulation.ack]]
+    * @group process
+    *
+    * @param task The acknowledged [[Task]] UUIDs.
+    */
   case class AckTasks(tasks: Seq[UUID])
 }
 
@@ -268,7 +297,7 @@ class SingleTaskSimulation(
 object SingleTaskSimulation {
 
   /**
-    * Creates props of a [[TaskSimulatorActor]].
+    * Creates props of a [[SingleTaskSimulation]] actor.
     *
     * @param name The simulation name.
     * @param coordinator The [[Coordinator]].
@@ -302,42 +331,58 @@ object SingleTaskSimulation {
     )
 }
 
+/**
+  * Asynchronous Simulation implementation with callback functions.
+  *
+  * Each task needs to be accompanied by a callback function that implements the
+  * simulation logic to be followed when the task completes.
+  * 
+  * @param name The name of the simulation.
+  * @param coordinator A reference to the [[Coordinator]] actor running the simulation.
+  * @param executionContext
+  */
 abstract class AsyncSimulation(
     name: String,
     coordinator: ActorRef
 )(implicit executionContext: ExecutionContext)
     extends Simulation(name, coordinator)(executionContext) {
 
+  /**
+    * The type of the callback function.
+    * 
+    * Its input consists of the generated [[Task]] and the timestamp when it was completed.
+    * 
+    * @group api
+    */
   type Callback = (Task, Long) => Unit
 
   /**
-    * A map of [[Task]] IDs that have been sent to the [[Coordinator]] and the `Promise`s that
-    * need to be fulfilled when the tasks complete.
+    * A map of [[Task]] IDs that have been sent to the [[Coordinator]] and the callback functions
+    * that need to be called when the tasks complete.
     *
     * @group internal
     */
-  private val tasks: Map[UUID, Callback] = Map()
+  protected val tasks: Map[UUID, Callback] = Map()
 
   /**
     * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation
     * with a pre-determined ID.
     *
-    * The returned `Future` will complete when the [[Task]] simulation is completed. The simulation
-    * logic must react to this by either registering more tasks and becoming ``ready`` or finishing.
+    * The provided callback function will be called when the corresponding [[Task]] is completed.
+    * When it finishes executing, it must notify the [[Coordinator]] either by acknowledging the 
+    * completed task using [[ack]] or by completing the simulation (i.e. completing the `Future` 
+    * returned by [[run]]).
     *
-    * In other words, after the `Future` completes, the [[Coordinator]] will expect either a
-    * `AddTasks` (via [[ready]]) or `SimDone` (via the [[run]] `Future` completing) before
-    * it continues.
+    * The [[ready]] method can also be called if there is no need to acknowledge completed tasks
+    * individually. This is unlikely in the current scenario where each task has its own callback,
+    * but it's still worth mentioning.
     *
     * @group api
     *
     * @param id The pre-determined task ID.
     * @param t The [[TaskGenerator]] to send.
-    * @param caller Some reference to an actor that generated the task in order to notify them when
-    *               the task is completed, or `None` if no actor needs to be notified.
+    * @param callback The [[Callback]] function to be called when the corresponding [[Task]] completes.
     * @param resources The names of the [[TaskResource]]s that need to be used for the [[Task]].
-    * @return A `Future` that completes when the generated [[Task]] has completed,
-    *         containing the [[Task]] and its completion time.
     */
   protected def task(
       t: TaskGenerator,
@@ -350,7 +395,7 @@ abstract class AsyncSimulation(
   /**
     * Manages a [[Task]] whose simulation has completed.
     *
-    * Fulfils the corresponding `Promise` in the `tasks` map and then removes the entry.
+    * Calls the corresponding [[Callback]] in the `tasks` map and then removes the entry.
     *
     * @group internal
     *
@@ -362,6 +407,19 @@ abstract class AsyncSimulation(
     tasks -= task.id
   }
 
+/**
+  * A [[Callback]] function that notifies another `Actor` about a [[Task]] completion.
+  * 
+  * This allows the simulation logic of a callback to be implemented in another actor.
+  * The other actor can use the [[Simulation.AddTask]], [[Simulation.AddTaskWithId]],
+  * [[Simulation.AckTasks]], and [[Simulation.Ready]] messages to make progress instead 
+  * of calling the respective methods.
+  *
+  * @group api
+  * 
+  * @param actor
+  * @return
+  */
   def actorCallback(actor: ActorRef): Callback = (task, time) => {
     actor ! (task, time)
   }
@@ -385,8 +443,24 @@ abstract class AsyncSimulation(
   }
 }
 
+/**
+  * Extends [[AsyncSimulation]] with callbacks that fulfil a `Promise`/`Future`.
+  * 
+  * This can be helpful for simulation implementations that use `Future`s to
+  * capture their asynchronous logic.
+  */
 trait FutureTasks { self: AsyncSimulation =>
 
+
+/**
+  * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation
+  * with a pre-determined ID and a `Future` instead of a [[AsyncSimulation.Callback Callback]].
+  *
+  * @group api
+  *
+  * @param t The [[TaskGenerator]] to send.
+  * @return A `Future` that completes when the [[Task]] is completed.
+  */
   def futureTask(t: TaskGenerator): Future[(Task, Long)] = {
     val p = Promise[(Task, Long)]()
     def call: Callback = (task, time) => p.success(task, time)
