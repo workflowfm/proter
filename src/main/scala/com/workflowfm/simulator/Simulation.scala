@@ -70,7 +70,7 @@ abstract class Simulation(
    protected val coordinator: ActorRef
 )(implicit executionContext: ExecutionContext)
     extends Actor {
-
+    
   /**
     * Initiates the execution of the simulation.
     *
@@ -212,6 +212,14 @@ object Simulation {
     */
   case object Ready
 
+  /**
+    * Produces a new [[TaskGenerator]] for simulation.
+    *
+    * @see [[Simulation.task(t* task(t, resources)]]
+    * @group process
+    *
+    * @param t The [[TaskGenerator]] to generate the [[Task]].
+    */
   case class AddTask(t: TaskGenerator)
 
   /**
@@ -450,12 +458,13 @@ abstract class AsyncSimulation(
   */
 trait FutureTasks { self: AsyncSimulation =>
 
+
 /**
-  * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation with
-  * a `Future` instead of a [[AsyncSimulation.Callback Callback]].
+  * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation
+  * with a pre-determined ID and a `Future` instead of a [[AsyncSimulation.Callback Callback]].
   *
   * @group api
-  * 
+  *
   * @param t The [[TaskGenerator]] to send.
   * @return A `Future` that completes when the [[Task]] is completed.
   */

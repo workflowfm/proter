@@ -368,7 +368,7 @@ class FlowsTest extends FlowsIntegrationTester {
       implicit val system: ActorSystem = ActorSystem("FlowsMain")
       implicit val executionContext: ExecutionContext = ExecutionContext.global
       implicit val timeout = Timeout(2.seconds)
-      val coordinator = system.actorOf(Coordinator.props(DefaultScheduler))
+      val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler()))
       val shutdownActor = Subscriber.actor(new ShutdownHandler())
       Await.result(shutdownActor ? Subscriber.SubAndForgetTo(coordinator), 3.seconds)
       val smh = new SimMetricsHandler
@@ -415,7 +415,7 @@ class FlowsTest extends FlowsIntegrationTester {
       implicit val system: ActorSystem = ActorSystem("FlowsMain")
       implicit val executionContext: ExecutionContext = ExecutionContext.global
       implicit val timeout = Timeout(2.seconds)
-      val coordinator = system.actorOf(Coordinator.props(DefaultScheduler))
+      val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler()))
       val shutdownActor = Subscriber.actor(new ShutdownHandler())
       Await.result(shutdownActor ? Subscriber.SubAndForgetTo(coordinator), 3.seconds)
       val smh = new SimMetricsHandler
@@ -474,7 +474,7 @@ class FlowsIntegrationTester
     implicit val system: ActorSystem = ActorSystem("FlowsMain")
     implicit val executionContext: ExecutionContext = ExecutionContext.global
     implicit val timeout = Timeout(2.seconds)
-    val coordinator = system.actorOf(Coordinator.props(DefaultScheduler))
+    val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler()))
     val shutdownActor = Subscriber.actor(new ShutdownHandler())
     val smh = new SimMetricsHandler
 
