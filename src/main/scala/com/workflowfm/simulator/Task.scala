@@ -35,7 +35,7 @@ class Task(
     val name: String,
     val simulation: String,
     val actor: ActorRef,
-    val created: Long, //todo minStartTime
+    val created: Long,
     val minStartTime: Long,
     val resources: Seq[String],
     val duration: Long,
@@ -173,9 +173,11 @@ object Task {
   * of the [[ValueGenerator]]s.
   *
   * @param name The name of the task.
+  * @param id The unique id of this task.
   * @param simulation The name of the simulation this task belongs to.
   * @param duration The generator of the duration.
   * @param cost The generator of the cost.
+  * @param minStartTime The minimum starting time of this task.
   * @param interrupt The [[Task.interrupt]] property of the task.
   * @param priority The explicit priority of the task.
   * @param createTime A custom creation time. Negative values corresponds to the current time.
@@ -289,6 +291,20 @@ case class TaskGenerator(
   def withMinStartTime(t: Long) = copy(minStartTime = t)
 }
 
+/**
+  * A generator/factory of a [[Task]].
+  * Uses [[ValueGenerator]]s for the duration and cost. These may be based on random variables.
+  * The actual values are sampled at task creation time.
+  *
+  * Although typically only 1 task is generated, in principle it can generate multiple
+  * tasks with the same properties. However, each task generated will have different samples
+  * of the [[ValueGenerator]]s.
+  *
+  * @param name The name of the task.
+  * @param simulation The name of the simulation this task belongs to.
+  * @param duration The generator of the duration.
+  * @param cost The generator of the cost.
+  */
 case object TaskGenerator {
   def apply(
     name: String,

@@ -467,11 +467,31 @@ trait FutureTasks { self: AsyncSimulation =>
   }
 }
 
+/**
+  * A trait that adds Lookahead capabilities to a simulation.
+  * 
+  * Works in conjunction with [[LookaheadScheduler]].
+  * 
+  * Provides a lookahead structure that can be built up by the simulation and then sent to the scheduler
+  * for use in making schedules which look into the future to consider upcoming tasks in scheduling.
+  */
 trait Lookahead extends Simulation {
   var lookahead: LookaheadStructure = LookaheadSet()
 
+  /**
+    * Sends the lookahead structure to the scheduler
+    */
   override def sendLookaheadStructure():Unit = {  coordinator ! Coordinator.SetSchedulerLookaheadObject(lookahead) }
 
+  /**
+    * Manages a [[Task]] whose simulation has completed.
+    *
+    * Removes the task from the lookahead structure and sends this updated structure to the
+    * scheduler before calling the `complete` method implementation of the parent class.
+    *
+    * @param task The [[Task]] that completed.
+    * @param time The timestamp of its completion.
+    */
   abstract override def complete(task: Task, time: Long) = {
     lookahead = ( lookahead.complete(task.id,time) ) - task.id
     coordinator ! Coordinator.SetSchedulerLookaheadObject(lookahead) //todo optimise 
