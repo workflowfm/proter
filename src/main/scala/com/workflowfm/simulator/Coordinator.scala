@@ -154,8 +154,7 @@ class Coordinator(
       }
 
     } else if (scheduler.noMoreTasks() && simulations.isEmpty) {
-      publish(EDone(self, time))
-
+      stop()
     } else if (waiting.isEmpty && !scheduler.noMoreTasks()) { // this may happen if handleDiscreteEvent fails
       allocateTasks()
       tick()
@@ -224,7 +223,7 @@ class Coordinator(
       case TimeLimit(t) if (t == time) => {
         abortAllSimulations()
         events.clear()
-        publish(EDone(self, time))
+        stop()
       }
 
       case _ => publish(EError(self, time, s"Failed to handle event: $event"))
@@ -621,6 +620,15 @@ class Coordinator(
   def start() = {
     publish(EStart(self))
     tick()
+  }
+
+  /**
+    * Stops the entire simulation and shuts down the actor.
+    * @group toplevel
+    */
+  def stop() = {
+    publish(EDone(self, time))
+    context.stop(self)
   }
 
   /**
