@@ -22,6 +22,7 @@ import java.util.UUID
   * @param simulation A unique name of the simulation this task belongs to.
   * @param actor A reference to the [[Simulation]] that spawned this task.
   * @param created The timestamp when this task was created.
+  * @param minStartTime The earliest possible starting time of this task.
   * @param resources The names of the [[TaskResource]]s required by this task.
   * @param duration The actual duration of the task.
   * @param estimatedDuration The estimated duration of the task.
@@ -36,6 +37,7 @@ class Task(
     val simulation: String,
     val actor: ActorRef,
     val created: Long,
+    val minStartTime: Long,
     val resources: Seq[String],
     val duration: Long,
     val estimatedDuration: Long,
@@ -172,18 +174,24 @@ object Task {
   * of the [[ValueGenerator]]s.
   *
   * @param name The name of the task.
+  * @param id The unique id of the task.
   * @param simulation The name of the simulation this task belongs to.
   * @param duration The generator of the duration.
   * @param cost The generator of the cost.
+  * @param minStartTime The earliest possible starting time of the task.
+  * @param resources The resources of this task
   * @param interrupt The [[Task.interrupt]] property of the task.
   * @param priority The explicit priority of the task.
   * @param createTime A custom creation time. Negative values corresponds to the current time.
   */
 case class TaskGenerator(
     name: String,
+    id: UUID,
     simulation: String,
     duration: ValueGenerator[Long],
     cost: ValueGenerator[Long],
+    minStartTime: Long = 0L,
+    resources: Seq[String] = Seq(),
     interrupt: Int = (-1),
     priority: Task.Priority = Task.Medium,
     createTime: Long = (-1)
@@ -193,13 +201,11 @@ case class TaskGenerator(
     * Generate a [[Task]].
     * As a case class, it can be easily manipulated dynamically to alter its values.
     *
-    * @param id The unique ID to give to the task.
     * @param currentTime The current time.
     * @param actor A reference to the corresponding [[Simulation]] for the task.
-    * @param resources The names of the [[TaskResource]]s that will be used by the task.
     * @return The generated [[Task]].
     */
-  def create(id: UUID, currentTime: Long, actor: ActorRef, resources: String*) = {
+  def create(currentTime: Long, actor: ActorRef) = {
     val creation = if (createTime >= 0) createTime else currentTime
 
     new Task(
@@ -208,6 +214,7 @@ case class TaskGenerator(
       simulation,
       actor,
       creation,
+      minStartTime,
       resources,
       duration.get,
       duration.estimate,
@@ -216,6 +223,22 @@ case class TaskGenerator(
       priority
     )
   }
+  
+  /**
+    * Update the ID to use.
+    *
+    * @param i The new ID.
+    * @return An updated [[TaskGenerator]].
+    */
+  def withID(i: UUID) = copy(id = i)
+
+  /**
+    * Update the resources to use.
+    *
+    * @param r The new resources.
+    * @return An updated [[TaskGenerator]].
+    */
+  def withResources(r: Seq[String]) = copy(resources = r)
 
   /**
     * Update the priority to use.
@@ -259,4 +282,35 @@ case class TaskGenerator(
     * @return An updated [[TaskGenerator]].
     */
   def withCreationTime(t: Long) = copy(createTime = t)
+    /**
+    * Update the custom minimum starting time to use.
+    *
+    * @param t The new minimum starting time.
+    * @return An updated [[TaskGenerator]].
+    */
+  def withMinStartTime(t: Long) = copy(minStartTime = t)
+}
+
+/**
+  * A generator/factory of a [[Task]].
+  * Uses [[ValueGenerator]]s for the duration and cost. These may be based on random variables.
+  * The actual values are sampled at task creation time.
+  *
+  * Although typically only 1 task is generated, in principle it can generate multiple
+  * tasks with the same properties. However, each task generated will have different samples
+  * of the [[ValueGenerator]]s.
+  *
+  * @param name The name of the task.
+  * @param simulation The name of the simulation this task belongs to.
+  * @param duration The generator of the duration.
+  * @param cost The generator of the cost.
+  */
+object TaskGenerator {
+  def apply(
+    name: String,
+    simulation: String,
+    duration: ValueGenerator[Long],
+    cost: ValueGenerator[Long]
+  ):TaskGenerator =
+  TaskGenerator(name, UUID.randomUUID(), simulation, duration, cost)
 }
