@@ -70,6 +70,9 @@ trait LookaheadStructure{
     
     /**
       * TODO
+      * 
+      * @see [[LookaheadStrucutre.+]]
+      * // e.g. [[abortSimulation(name:String,actor:akka\.actor\.ActorRef)* abortSimulation]]. 
       *
       * @param function
       * @param generator
@@ -98,6 +101,9 @@ trait LookaheadStructure{
       */
     def and(that: LookaheadStructure): LookaheadStructure = {
         LookaheadStructures(this,that)
+        //case s then add self to queue
+        //case empty do nothing
+        // else normal
     }
 }
 
@@ -131,6 +137,9 @@ case class LookaheadStructures(handlers: Queue[LookaheadStructure]) extends Look
       * @inheritdoc
       */
     override def and(that: LookaheadStructure): LookaheadStructure = copy( handlers = handlers :+ that )
+    // that match emptystructure
+    // lookaheadstrucutres with s then merge
+    // otherwise normal
 }
 
 object LookaheadStructures {

@@ -502,7 +502,7 @@ trait Lookahead extends Simulation {
     * @param time The timestamp of its completion.
     */
   abstract override def complete(task: Task, time: Long) = {
-    lookahead = ( lookahead.complete(task.id,time) ) - task.id
+    lookahead = ( lookahead.complete(task.id,time) ) - task.id //todo update
     coordinator ! Coordinator.SetSchedulerLookaheadObject(lookahead)
     super.complete(task,time)
   }

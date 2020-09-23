@@ -92,7 +92,7 @@ class UniformGenerator(min: Long, max: Long) extends ValueGenerator[Long] {
     *
     * @return The random value.
     */
-  def get = new util.Random().nextInt((max-min).toInt) + min
+  def get = new util.Random().nextInt((max-min).toInt) + min //todo dont use toInt because long might be cut off. Use nextDouble() and convert
 
   /**
     * Provides an estimate of the values that can be generated.

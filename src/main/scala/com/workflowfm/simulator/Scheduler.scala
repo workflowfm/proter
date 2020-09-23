@@ -598,6 +598,8 @@ class LookaheadScheduler(initialTasks: Task*) extends SortedSetScheduler {
       scheduled: Seq[(java.util.UUID,Long)], 
       lookaheadStructureThisIter: LookaheadStructure
     ): Seq[Task] = {
+      //completed here
+      //call with entire set
       val taskData = lookaheadStructureThisIter.getTaskData((scheduled).to[collection.immutable.Seq])
       (taskData map (x=> x._1.withMinStartTime(x._2).create(x._1.createTime, actor))).toSeq
     }

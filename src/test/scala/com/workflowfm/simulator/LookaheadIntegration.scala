@@ -17,8 +17,18 @@ import akka.util.Timeout
 import com.workflowfm.simulator._
 import scala.collection.mutable.Map
 import scala.reflect._
+import com.workflowfm.simulator.events.PromiseHandler
 
-class LookaheadIntegrationTests extends LookaheadTester {
+class LookaheadIntegrationTests extends TestKit(ActorSystem("LookaheadTest"))
+    with LookaheadTester
+    with WordSpecLike
+    with Matchers
+    with BeforeAndAfterAll {
+
+  override def afterAll: Unit = {
+    TestKit.shutdownActorSystem(system)
+  }
+
     "Lookahead systems" should {
 
         "execute a basic scenario without blocking high priority tasks [ 1 > ( (2>3) + 4 ) ]" in {
@@ -87,34 +97,28 @@ class LookaheadIntegrationTests extends LookaheadTester {
 
 }
 
-class LookaheadTester
-    extends TestKit(ActorSystem("LookaheadTest"))
-    with WordSpecLike
-    with Matchers
-    with BeforeAndAfterAll {
-
-  override def afterAll: Unit = {
-    TestKit.shutdownActorSystem(system)
-  }
+trait LookaheadTester { 
+    self:TestKit => 
 
   def singleSimulationTest(sim: TestObject): Map[String, Option[Long]] = {
     val testMetrics = Map[String, Option[Long]]()
-    implicit val system: ActorSystem = ActorSystem("LookaheadIntegration") //not needed
+    //implicit val system: ActorSystem = ActorSystem("LookaheadIntegration") //not needed
     implicit val executionContext: ExecutionContext = ExecutionContext.global
     implicit val timeout = Timeout(2.seconds)
     val coordinator = system.actorOf(Coordinator.props(new LookaheadScheduler()))
-    val shutdownActor = Subscriber.actor(new ShutdownHandler()) //not needed
-    val smh = new SimMetricsHandler
+    //val shutdownActor = Subscriber.actor(new ShutdownHandler()) //not needed
+    //val smh = new SimMetricsHandler
+    val smh = new PromiseHandler(new SimMetricsHandler)
 
     Await.result(smh.subAndForgetTo(coordinator), 1.second)
-    Await.result(shutdownActor ? Subscriber.SubAndForgetTo(coordinator), 3.seconds) //not needed
+    //Await.result(shutdownActor ? Subscriber.SubAndForgetTo(coordinator), 3.seconds) //not needed
 
     coordinator ! Coordinator.AddResources(sim.resources)
     
     coordinator ! Coordinator.AddSim(0L, system.actorOf(sim.props("sim",coordinator), "sim") )
     coordinator ! Coordinator.Start
-    Await.result(system.whenTerminated, 3.seconds)
-    smh.metrics.taskMap map { x => testMetrics += (x._2.fullName -> x._2.finished) }
+    val metrics = Await.result(smh.future, 3.seconds)
+    metrics.taskMap map { x => testMetrics += (x._2.fullName -> x._2.finished) }
     testMetrics
   }
 }
