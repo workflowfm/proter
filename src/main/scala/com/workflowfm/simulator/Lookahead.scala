@@ -46,21 +46,6 @@ trait LookaheadStructure{
       */
     def +(function: Map[UUID,Long]=>Option[Long], generators: List[TaskGenerator]): LookaheadStructure
     /**
-      * Removes an ID from the list of completed IDs
-      *
-      * @param id the ID to be removed
-      * @return A LookaheadStructure with this ID removed from the list of completed IDs
-      */
-    def uncomplete(id: UUID): LookaheadStructure //todo remove and make LookaheadObject wrapper
-    /**
-      * Adds an Task described by an (ID,time) pair to the list of completed IDs
-      *
-      * @param id The ID to be added
-      * @param time The time at which the task completed
-      * @return A LookaheadStructure with this (ID,time) pair added to the list of completed tasks
-      */
-    def complete(id: UUID, time: Long): LookaheadStructure
-    /**
       * Retrieves all tasks that can start given the list of scheduled/completed tasks
       *
       * @param scheduled The list of tasks that have been scheduled/completed, described with an (ID,time) tuple
@@ -125,14 +110,6 @@ case class LookaheadStructures(handlers: Queue[LookaheadStructure]) extends Look
     /**
       * @inheritdoc
       */
-    override def uncomplete(id: UUID): LookaheadStructure = LookaheadStructures(handlers map (_.uncomplete(id)))
-    /**
-      * @inheritdoc
-      */
-    override def complete(id: UUID, time: Long): LookaheadStructure = LookaheadStructures(handlers map (_.complete(id,time)))
-    /**
-      * @inheritdoc
-      */
     override def getTaskData(scheduled: Seq[(UUID, Long)]): Seq[(TaskGenerator, Long)] = handlers flatMap (_.getTaskData(scheduled))
     /**
       * @inheritdoc
@@ -163,7 +140,6 @@ object LookaheadStructures {
   */
 case class LookaheadSet(
         lookaheadSet: Set[(Map[UUID, Long] => Option[Long], List[(TaskGenerator)])] = Set(),
-        completed: Set[(UUID, Long)] = Set()
     ) extends LookaheadStructure {
     /**
       * @inheritdoc
@@ -173,10 +149,11 @@ case class LookaheadSet(
         lookaheadSet.filter { 
             //remove all entries that spawn this task
             entry => entry._2 forall ( data => data.id != id) 
-        }.filter {
+        }/*.filter {
             //remove all entries that are spawned by this task (among others)
             entry => ! entry._1( completed.foldLeft(Map.empty[UUID,Long]){(a,b)=>a + ((b._1,b._2))} ).isDefined
-        }, completed)
+        }*/ //TODO fix :(
+        )
     }
     /**
       * @inheritdoc
@@ -187,19 +164,11 @@ case class LookaheadSet(
     /**
       * @inheritdoc
       */
-    override def uncomplete(id: UUID): LookaheadStructure = LookaheadSet(lookaheadSet, completed filter {x=> x._1 != id})
-    /**
-      * @inheritdoc
-      */
-    override def complete(id: UUID, time: Long): LookaheadStructure = LookaheadSet(lookaheadSet, completed + ((id, time)))
-    /**
-      * @inheritdoc
-      */
     override def getTaskData(scheduled: Seq[(UUID, Long)]): Seq[(TaskGenerator,Long)] = {
         val y = lookaheadSet flatMap { x: (Map[UUID, Long] => Option[Long], Seq[TaskGenerator]) => 
             x match {
                 case(function, data) => 
-                val l = function( (scheduled ++ completed).foldLeft(Map.empty[UUID,Long]){(a,b)=>a + ((b._1,b._2))} )
+                val l = function( (scheduled).foldLeft(Map.empty[UUID,Long]){(a,b)=>a + ((b._1,b._2))} )
                 l match {
                     case None => Seq()
                     case Some(v) => (data map((_,v))).toSeq
@@ -222,14 +191,6 @@ case object EmptyStructure extends LookaheadStructure {
       * @inheritdoc
       */
     override def +(function: Map[UUID,Long]=>Option[Long], generators: List[TaskGenerator]): LookaheadStructure = LookaheadSet() + (function,generators)
-    /**
-      * @inheritdoc
-      */
-    override def uncomplete(id: UUID): LookaheadStructure = EmptyStructure
-    /**
-      * @inheritdoc
-      */
-    override def complete(id: UUID, time: Long): LookaheadStructure = EmptyStructure
     /**
       * @inheritdoc
       */

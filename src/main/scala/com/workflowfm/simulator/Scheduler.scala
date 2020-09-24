@@ -52,6 +52,14 @@ trait Scheduler {
     */
   def removeLookaheadObject(actor: ActorRef): Unit = {Unit}
   /**
+    * Adds an Task described by an (ID,time) pair to the list of completed IDs
+    *
+    * @param id The ID to be added
+    * @param time The time at which the task completed
+    * @return A LookaheadStructure with this (ID,time) pair added to the list of completed tasks
+    */
+  def complete(task: Task, time: Long): Unit = Unit
+  /**
     * Adds a [[Task]] to be scheduled.
     *
     * @param task The [[Task]] to add.
@@ -492,6 +500,7 @@ class LookaheadScheduler(initialTasks: Task*) extends SortedSetScheduler {
   tasks ++= initialTasks
 
   protected val lookaheadObjects: collection.mutable.Map[ActorRef,LookaheadStructure] = collection.mutable.Map()
+  protected val completed: collection.mutable.Set[(java.util.UUID, Long)] = collection.mutable.Set()
 
   /**
     * Adds / updates the lookahead structure corresponding to a particular actor.
@@ -506,6 +515,12 @@ class LookaheadScheduler(initialTasks: Task*) extends SortedSetScheduler {
     * @param actor The actor corresponding to the lookahead structure that should be removed.
     */
   override def removeLookaheadObject(actor: ActorRef): Unit = lookaheadObjects -= actor 
+
+  /**
+    * @inheritdoc
+    *
+    */
+  override def complete(task: Task, time: Long): Unit = completed += ((task.id,time))
 
   /**
     * @inheritdoc
@@ -525,13 +540,17 @@ class LookaheadScheduler(initialTasks: Task*) extends SortedSetScheduler {
       resourceMap: Map[String, TaskResource]
   ): Seq[Task] = {
     implicit val executionContext = ExecutionContext.global
-    val lookaheadSetThisIter = lookaheadObjects.values.fold(EmptyStructure){(a,b)=>a and b}
+    //combine lookahead structures
+    var lookaheadSetThisIter = lookaheadObjects.values.fold(EmptyStructure){(a,b)=>a and b}
+    //remove entries that automatically return something
+    tasksAfterThis(ActorRef.noSender,completed.toSeq,lookaheadSetThisIter) foreach { x=> lookaheadSetThisIter = lookaheadSetThisIter - x.id }
+    //TODO this is not optimal- should remove for each structure individually, not just here.
+    //get future tasks from currently running tasks
     var futureTasksFoundSoFar = Seq[(java.util.UUID,Long)]()
     val inProgressFutureTasks = resourceMap.flatMap{ case (_,x) => if (!x.currentTask.isDefined) Seq() else {
         futureTasksFoundSoFar = futureTasksFoundSoFar :+ ((x.currentTask.get._2.id,x.nextAvailableTimestamp(currentTime)))
         tasksAfterThis(
           x.currentTask.get._2.actor,
-          x.currentTask.get._2.id,
           futureTasksFoundSoFar,
           lookaheadSetThisIter
         )
@@ -584,7 +603,7 @@ class LookaheadScheduler(initialTasks: Task*) extends SortedSetScheduler {
       val start = Schedule.mergeSchedules(t.resources.flatMap(schedules.get(_))) ? (Math.max(currentTime,t.minStartTime), t) //todo maybe currenttime + 1??
       val scheduledThisIter2 = scheduledThisIter :+ ((t.id, start+t.estimatedDuration))
       val lookaheadSetThisIter2 = lookaheadSetThisIter-t.id
-      val futureTasks = tasksAfterThis(t.actor, t.id, scheduledThisIter2, lookaheadSetThisIter2)
+      val futureTasks = tasksAfterThis(t.actor, scheduledThisIter2, lookaheadSetThisIter2)
       val schedules2 = (schedules /: t.resources) {
         case (s, r) => s + (r -> (s.getOrElse(r, Schedule()) +> (start, t)))
       }
@@ -605,13 +624,10 @@ class LookaheadScheduler(initialTasks: Task*) extends SortedSetScheduler {
       */
     private def tasksAfterThis(
       actor: ActorRef, 
-      id: java.util.UUID, 
       scheduled: Seq[(java.util.UUID,Long)], 
       lookaheadStructureThisIter: LookaheadStructure
     ): Seq[Task] = {
-      //completed here
-      //call with entire set TODO
-      val taskData = lookaheadStructureThisIter.getTaskData((scheduled).to[collection.immutable.Seq])
+      val taskData = lookaheadStructureThisIter.getTaskData((scheduled++completed).to[collection.immutable.Seq])
       (taskData map (x=> x._1.withMinStartTime(x._2).create(x._1.createTime, actor))).toSeq
     }
 }
