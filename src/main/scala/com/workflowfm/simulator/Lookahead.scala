@@ -100,10 +100,11 @@ trait LookaheadStructure{
       * @return The merged LookaheadStructure
       */
     def and(that: LookaheadStructure): LookaheadStructure = {
-        LookaheadStructures(this,that)
-        //case s then add self to queue
-        //case empty do nothing
-        // else normal
+      that match {
+        case EmptyStructure => this
+        case LookaheadStructures(handlers) => that and this
+        case _ => LookaheadStructures(this,that)
+      }
     }
 }
 
@@ -136,10 +137,13 @@ case class LookaheadStructures(handlers: Queue[LookaheadStructure]) extends Look
     /**
       * @inheritdoc
       */
-    override def and(that: LookaheadStructure): LookaheadStructure = copy( handlers = handlers :+ that )
-    // that match emptystructure
-    // lookaheadstrucutres with s then merge
-    // otherwise normal
+    override def and(that: LookaheadStructure): LookaheadStructure = {
+      that match {
+        case EmptyStructure => this
+        case LookaheadStructures(h) => copy(handlers = handlers ++ h)
+        case _ => copy(handlers = handlers :+ that)
+      }
+    }
 }
 
 object LookaheadStructures {
@@ -230,4 +234,4 @@ case object EmptyStructure extends LookaheadStructure {
       * @inheritdoc
       */
     override def getTaskData(scheduled: Seq[(UUID, Long)]): Seq[(TaskGenerator, Long)] = Seq()
-    }
+  }

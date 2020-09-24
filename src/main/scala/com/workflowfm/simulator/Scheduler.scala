@@ -37,8 +37,19 @@ trait Scheduler {
     case Some(s) => s.isIdle
   }
 
-  //todo Document this
+  /**
+    * Sets the lookahead structure for the specified actor.
+    *
+    * @param actor The actor that created this lookahead structure.
+    * @param obj The lookahead structure.
+    */
   def setLookaheadObject(actor: ActorRef, obj: LookaheadStructure): Unit = {Unit}
+
+  /**
+    * Removes the lookahead structure associated with the given actor.
+    *
+    * @param actor The actor corresponding to the lookahead structure.
+    */
   def removeLookaheadObject(actor: ActorRef): Unit = {Unit}
   /**
     * Adds a [[Task]] to be scheduled.
@@ -599,7 +610,7 @@ class LookaheadScheduler(initialTasks: Task*) extends SortedSetScheduler {
       lookaheadStructureThisIter: LookaheadStructure
     ): Seq[Task] = {
       //completed here
-      //call with entire set
+      //call with entire set TODO
       val taskData = lookaheadStructureThisIter.getTaskData((scheduled).to[collection.immutable.Seq])
       (taskData map (x=> x._1.withMinStartTime(x._2).create(x._1.createTime, actor))).toSeq
     }
