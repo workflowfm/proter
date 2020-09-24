@@ -13,7 +13,7 @@ sealed trait Flow {
 }
 
 case class NoTask() extends Flow
-case class FlowTask(generator: TaskGenerator, resources: Seq[String]) extends Flow
+case class FlowTask(generator: TaskGenerator) extends Flow {override val id = generator.id}
 case class Then(left: Flow, right: Flow) extends Flow
 case class And(left: Flow, right: Flow) extends Flow
 case class All(elements: Flow*) extends Flow
@@ -34,7 +34,7 @@ case class Or(left: Flow, right: Flow) extends Flow
 class FlowSimulationActor(
     name: String,
     coordinator: ActorRef,
-    flow: Flow
+    protected val flow: Flow
 ) extends AsyncSimulation(name, coordinator) {
 
   /**
@@ -55,7 +55,7 @@ class FlowSimulationActor(
   protected def runFlow(flow: Flow, flowCallback: Callback): Unit = {
     flow match {
       case f: FlowTask =>
-        task(f.id, f.generator, callback((t, l) => { flowCallback(Success(t, l)); ack(Seq(f.id)) }), f.resources)
+        task(f.generator, callback((t, l) => { flowCallback(Success(t, l)); ack(Seq(f.id)) }))
       case f: Flow => { tasks += flow.id -> flowCallback; execute(f) }
     }
   }
@@ -83,7 +83,7 @@ class FlowSimulationActor(
     flow match {
       case f: NoTask => complete(f.id)
 
-      case FlowTask(generator: TaskGenerator, resources: Seq[String]) => {}
+      case FlowTask(generator: TaskGenerator) => {}
       //this is here for the sake of case completeness, should not be called
 
       case f: Then => {

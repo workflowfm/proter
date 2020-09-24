@@ -114,23 +114,8 @@ abstract class Simulation(
     * @param t The [[TaskGenerator]] to send.
     * @param resources The names of the [[TaskResource]]s that need to be used for the [[Task]].
     */
-  def task(t: TaskGenerator, resources: String*): Unit = {
-    val id = java.util.UUID.randomUUID
-    task(id, t, resources)                   
-  }
-
-  /**
-    * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation
-    * with a pre-determined ID.
-    *
-    * @group act
-    *
-    * @param id The pre-determined task ID.
-    * @param t The [[TaskGenerator]] to send.
-    * @param resources The names of the [[TaskResource]]s that need to be used for the [[Task]].
-    */
-  protected def task(id: UUID, t: TaskGenerator, resources: Seq[String]): Unit = {
-    coordinator ! Coordinator.AddTask(id, t, resources)
+  def task(t: TaskGenerator): Unit = {
+    coordinator ! Coordinator.AddTask(t)
   }
 
   /**
@@ -263,17 +248,6 @@ object Simulation {
     * @group process
     */
   case object Ready
-  /**
-    * Produces a new [[TaskGenerator]] with a specified ID for simulation.
-    *
-    * @see [[Simulation.task(i* task(id, t, resources)]]
-    * @group process
-    *
-    * @param id The [[Task]] ID to be used.
-    * @param t The [[TaskGenerator]] to generate the [[Task]].
-    * @param resources The names of the [[TaskResource]]s the [[Task]] will require.
-    */
-  case class AddTaskWithId(id: UUID, t: TaskGenerator, resources: Seq[String])
 
   /**
     * Produces a new [[TaskGenerator]] for simulation.
@@ -281,11 +255,9 @@ object Simulation {
     * @see [[Simulation.task(t* task(t, resources)]]
     * @group process
     *
-    * @param id The [[Task]] ID to be used.
     * @param t The [[TaskGenerator]] to generate the [[Task]].
-    * @param resources The names of the [[TaskResource]]s the [[Task]] will require.
     */
-  case class AddTask(t: TaskGenerator, resources: Seq[String])
+  case class AddTask(t: TaskGenerator)
 
   /**
     * Aborts a list of [[Task]]s.
@@ -403,8 +375,8 @@ class SingleTaskSimulation(
     *
     */
   override def run() = {
-    val generator = TaskGenerator(s"${name}Task", name, duration, cost, interrupt, priority)
-    task(generator, resources: _*)
+    val generator = TaskGenerator(s"${name}Task", name, duration, cost).withResources(resources).withInterrupt(interrupt).withPriority(priority)
+    task(generator)
     ready()
   }
 
@@ -493,28 +465,6 @@ abstract class AsyncSimulation(
   protected val tasks: Map[UUID, Callback] = Map()
 
   /**
-    * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation.
-    *
-    * The provided callback function will be called when the corresponding [[Task]] is completed.
-    * When it finishes executing, it must notify the [[Coordinator]] either by acknowledging the 
-    * completed task using [[ack]] or by completing the simulation using [[done]] or [[fail]].
-    *
-    * The [[ready]] method can also be called if there is no need to acknowledge completed tasks
-    * individually. This is unlikely in the current scenario where each task has its own callback,
-    * but it's still worth mentioning.
-    *
-    * @group act
-    *
-    * @param t The [[TaskGenerator]] to send.
-    * @param callback The [[Callback]] function to be called when the corresponding [[Task]] completes.
-    * @param resources The names of the [[TaskResource]]s that need to be used for the [[Task]].
-    */
-  def task(t: TaskGenerator, callback: Callback, resources: String*): Unit = {
-    val id = java.util.UUID.randomUUID
-    task(id, t, callback, resources)
-  }
-
-  /**
     * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation
     * with a pre-determined ID.
     *
@@ -528,19 +478,15 @@ abstract class AsyncSimulation(
     *
     * @group act
     *
-    * @param id The pre-determined task ID.
     * @param t The [[TaskGenerator]] to send.
     * @param callback The [[Callback]] function to be called when the corresponding [[Task]] completes.
-    * @param resources The names of the [[TaskResource]]s that need to be used for the [[Task]].
     */
-  protected def task(
-      id: UUID,
+  def task(
       t: TaskGenerator,
-      callback: Callback,
-      resources: Seq[String]
+      callback: Callback
   ): Unit = {
-    tasks += id -> callback
-    super.task(id, t, resources)
+    tasks += t.id -> callback //todo id might be protected?
+    super.task(t)
   }
 
   /**
@@ -608,8 +554,7 @@ abstract class AsyncSimulation(
     * @return The [[Receive]] behaviour for the simulation interface.
     */
   override def simulationReceive: Receive = super.simulationReceive orElse {
-    case Simulation.AddTaskWithId(id, t, r) => task(id, t, actorCallback(sender), r)
-    case Simulation.AddTask(t, r) => task(t, actorCallback(sender), r: _*)
+    case Simulation.AddTask(t) => task(t, actorCallback(sender))
   }
 }
 
@@ -622,35 +567,18 @@ abstract class AsyncSimulation(
 trait FutureTasks { self: AsyncSimulation =>
 
 /**
-  * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation with
-  * a `Future` instead of a [[AsyncSimulation.Callback Callback]].
-  *
-  * @group act
-  * 
-  * @param t The [[TaskGenerator]] to send.
-  * @param resources The names of the [[TaskResource]]s that need to be used for the [[Task]].
-  * @return A `Future` that completes when the [[Task]] is completed.
-  */
-  def futureTask(t: TaskGenerator, resources: String*): Future[(Task, Long)] = {
-    val id = java.util.UUID.randomUUID
-    futureTask(id, t, resources)
-  }
-
-/**
   * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation
   * with a pre-determined ID and a `Future` instead of a [[AsyncSimulation.Callback Callback]].
   *
   * @group act
   *
-  * @param id The pre-determined task ID.
   * @param t The [[TaskGenerator]] to send.
-  * @param resources The names of the [[TaskResource]]s that need to be used for the [[Task]].
   * @return A `Future` that completes when the [[Task]] is completed.
   */
-  def futureTask(id: UUID, t: TaskGenerator, resources: Seq[String]): Future[(Task, Long)] = {
+  def futureTask(t: TaskGenerator): Future[(Task, Long)] = {
     val p = Promise[(Task, Long)]()
     def call: Callback = t => p.complete(t)
-    task(id, t, call, resources)
+    task(t, call)
     p.future
   }
 }
