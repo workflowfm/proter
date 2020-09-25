@@ -241,7 +241,7 @@ trait FlowsLookahead extends FlowSimulationActor with Lookahead {
         val functions = Seq(parseFlow(f.left,extraFunction, lookaheadStructure),parseFlow(f.right,extraFunction, lookaheadStructure))
         ((m) => { 
           val results = functions.map(_._1(m))
-          if (results.contains(None)) None else results.min //todo: this is wrong, fix pls
+          ( results filter (_.isDefined) headOption ).flatten
         }, functions.map(_._2).fold(EmptyStructure){(a,b)=>a and b})
       }
     }
