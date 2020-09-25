@@ -34,14 +34,14 @@ trait LookaheadStructure{
       * and it should return `None` if the prerequisites of this entry are met, and
       * `Some(value)` if the prerequisites are met, where `value` should be the starting time
       * of the tasks contained in this entry. This allows us to express a complex relationship
-      * whereby the starting time of the tasks in this lookahead entry can be an intricate function
-      * of the finishing times of the prerequisites.
+      * whereby the starting time of the tasks in this lookahead entry can be an intricate
+      * function of the finishing times of the prerequisites.
       *
       * @param function The function that describes the prerequisites of this entry. Should return
-      * `None` if the prerequisites are not met, and `Some(value)` if the prerequistes are met, where the
-      * value is the starting time of the tasks in this entry.
-      * @param generators A list of [[TaskGenerator]]s that describes the tasks that should start if the
-      * prerequistes are met.
+      * `None` if the prerequisites are not met, and `Some(value)` if the prerequistes are met, where
+      * the value is the starting time of the tasks in this entry.
+      * @param generators A list of [[TaskGenerator]]s that describes the tasks that should start if
+      * the prerequistes are met.
       * @return A LookaheadStructure with the specified entry added to it.
       */
     def +(function: Map[UUID,Long]=>Option[Long], generators: List[TaskGenerator]): LookaheadStructure
@@ -54,16 +54,31 @@ trait LookaheadStructure{
     def getTaskData(scheduled: Seq[(UUID,Long)]): Seq[(TaskGenerator,Long)]
     
     /**
-      * TODO
+      * Provides a nicer interface for adding elements to the lookeahead structure.
+      * 
+      * Allows adding a single generator instead of a list of generators.
       * 
       * @see [[LookaheadStrucutre.+]]
-      * // e.g. [[abortSimulation(name:String,actor:akka\.actor\.ActorRef)* abortSimulation]]. 
-      *
-      * @param function
-      * @param generator
+      * 
+      * @param function The function describing the conditions of starting the correspoinding task.
+      * @param generator The task that will start when the conditions are met.
       * @return
       */
+      //todo e.g. // e.g. [[abortSimulation(name:String,actor:akka\.actor\.ActorRef)* abortSimulation]]. 
     def +(function: Map[UUID,Long]=>Option[Long], generator: TaskGenerator): LookaheadStructure = this.+(function, List(generator))
+
+    /**
+      * Provides a nicer interface for adding elements to the lookeahead structure.
+      * 
+      * Allows adding a simple one-to-one relationship, where the generator task starts right after
+      * the sourceID task finishes.
+      * 
+      * @see [[LookaheadStrucutre.+]]
+      * 
+      * @param sourceID The id of the task that will finish.
+      * @param generator The generator fo the task that will start when the prior task finishes.
+      * @return
+      */
     def +(sourceID: UUID, generator: TaskGenerator): LookaheadStructure = {
         val function: Map[UUID,Long]=>Option[Long] = { s=>
             s.get(sourceID)
