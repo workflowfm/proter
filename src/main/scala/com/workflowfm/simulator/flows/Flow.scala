@@ -158,7 +158,7 @@ trait FlowsLookahead extends FlowSimulationActor with Lookahead {
     * Parses a flow in order to build a [[LookaheadStructure]]
     * 
     * This is a recursive function which uses the fact that [[Flow]]s are tree-like structures.
-    * Each iterarion it calls parseFlow on each of its children and then combines the results in 
+    * Each iteration it calls parseFlow on each of its children and then combines the results in 
     * a meaningful way. The goal is to build up a [[LookaheadStructure]] by combining the structures
     * of each branch. There is also this `IDFunction` which is passed up and down the tree as the
     * algorithm progresses, which is used to describe the function that will be used to add entries
@@ -167,30 +167,30 @@ trait FlowsLookahead extends FlowSimulationActor with Lookahead {
     * 
     * @see [[LookaheadStructure.+]] for details on the IDfunction itself.
     * 
-    * As it works through the flow tree, the algorithim does the following:
+    * As it works through the flow tree, the algorithm does the following:
     *   1. If the current node is a task (i.e. a leaf node), it should be registered by adding itself
-    *      to the current running lookahead structure. To do this it uses the IDfunction that it recieved.
+    *      to the current running lookahead structure. To do this it uses the IDFunction that it received.
     *      If no ID function was provided, this means that there are no prior requirements to starting this task
     *      and so it is not registered.
     *   1. If the current node is a Then, first the left branch is parsed, and then the right branch is parsed.
-    *      The preconditions (i.e. the IDfunction) of the left branch is the same as the preconditions of this node,
+    *      The preconditions (i.e. the IDFunction) of the left branch is the same as the preconditions of this node,
     *      however the preconditions of the right branch are that which is returned by the left branch (as opposed to
-    *      the preconditons of this `Then` node). This is because, by our definiton, the right branch happens _after_
-    *      the left branch, and hence the preconditons of the right branch is that the left branch is completed.
+    *      the preconditions of this `Then` node). This is because, by our definition, the right branch happens _after_
+    *      the left branch, and hence the preconditions of the right branch is that the left branch is completed.
     *   1. If the current node is an And, All, or Or node, it parses all its child nodes normally, since the child
-    *      branches are independant.
+    *      branches are independent.
     * 
-    * Then, depending on the node type, it returns a function and a lookahead structure. The lookeahd structure contains
-    * the current lookahead entries, and may be combined with other structures later on. The function will be used
-    * by other nodes to register new lookeahead entries, where it will describe the preconditons of that entry; As such,
+    * Then, depending on the node type, it returns a function and a lookahead structure. The lookahead structure contains
+    * the current lookahead entries, and may be combined with other structures later on. The IDFunction will be used
+    * by other nodes to register new lookahead entries, where it will describe the preconditions of that entry; As such,
     * the function should express if _this_ node is "done", as this is necessary in determining if some task in the future
     * may start.
     *   1. If our current node is a task (leaf node), then we create a new function; The function will return
-    *      None if this task is not in the map which it recieves as input, and Some(value) otherwise. The result of this
-    *      is that when the function will recieve a list of completed tasks, if this task is on the list then the function will
-    *      indicate that the prerequites are met, and hence (when combined with other functions from other nodes) this function
+    *      None if this task is not in the map which it receives as input, and Some(value) otherwise. The result of this
+    *      is that when the function will receive a list of completed tasks, if this task is on the list then the function will
+    *      indicate that the prerequires are met, and hence (when combined with other functions from other nodes) this function
     *      can be used to describe the prerequisites of future tasks.
-    *   1. If our current node is a Then, we only need to return the IDfunction of the right branch, since the left branch
+    *   1. If our current node is a Then, we only need to return the IDFunction of the right branch, since the left branch
     *      was already considered when parsing the right branch. For example, if you had a flow [A THEN B THEN C], we want to
     *      express that A is a prerequisite of B, and B is a prerequisite of C. It is unnecessary to say that A is a prerequisite
     *      of C since it is already a prerequisite of B.
@@ -199,7 +199,7 @@ trait FlowsLookahead extends FlowSimulationActor with Lookahead {
     *      None. Otherwise, the maximum value of the child functions is returned, since tasks that come after an And or an All
     *      may only begin once all of the previous tasks have finished.
     *   1. If our current node is an Or, the child node functions are also combined in a similar way to Ands and Alls, but this
-    *      time we return the minum value of the child functions, since any task that comes after an Or may begin as soon as
+    *      time we return the minimum value of the child functions, since any task that comes after an Or may begin as soon as
     *      any of the branches in an Or are completed.
     * 
     * It might be easier to picture this algorithim when given some examples. Please refer to the wiki for examples and more
