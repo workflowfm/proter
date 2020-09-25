@@ -57,7 +57,7 @@ object ExampleCode {
         coordinator ! Coordinator.AddResources(resources)
 
         // Define tasks 
-    val task1 = FlowTask(TaskGenerator("task1", "sim", ConstantGenerator(2L), ConstantGenerator(0L)) withResources(Seq("r2")) withPriority(Task.High))
+    val task1 = FlowTask(TaskGenerator("task1", "sim", new UniformGenerator(2L,10L), ConstantGenerator(0L)) withResources(Seq("r2")) withPriority(Task.High))
     val task2 = FlowTask(TaskGenerator("task2", "sim", ConstantGenerator(4L), ConstantGenerator(0L)) withResources(Seq("r1")) withPriority(Task.High))
     val task3 = FlowTask(TaskGenerator("task3", "sim", ConstantGenerator(3L), ConstantGenerator(0L)) withResources(Seq("r2")) withPriority(Task.High))
     val task4 = FlowTask(TaskGenerator("task4", "sim", ConstantGenerator(2L), ConstantGenerator(0L)) withResources(Seq("r3")) withPriority(Task.High))

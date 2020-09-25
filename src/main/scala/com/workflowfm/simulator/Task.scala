@@ -51,6 +51,8 @@ class Task(
     */
   var cost: Long = initialCost
 
+  var futureTask: Boolean = false
+
   /**
     * Adds more costs to the task.
     * [[Coordinator.addTask]] uses this to add the cost of the resources used.
@@ -58,6 +60,9 @@ class Task(
     * @param extra The cost to add.
     */
   def addCost(extra: Long) = cost += extra
+  //todo Document
+  def markAsFutureTask = futureTask = true
+  def isFutureTask:Boolean = futureTask
 
   /**
     * Finds the soonest this task can start.

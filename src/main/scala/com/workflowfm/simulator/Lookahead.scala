@@ -14,10 +14,7 @@ trait LookaheadStructure{
     /**
       * Removes a task with the corresponding ID from the structure
       * 
-      * Once removed, the task with this ID will never be returned, but also
-      * all entries where this task is a prerequisite are also removed. This 
-      * prevents the structure from returning tasks that have already completed
-      * as well as returning tasks that are no longer "in the future".
+      * Once removed, the task with this ID will no longer be returned.
       *
       * @param id The id of the task
       * @return A LookaheadStructure with the specified task removed.
@@ -164,10 +161,7 @@ case class LookaheadSet(
         lookaheadSet.filter { 
             //remove all entries that spawn this task
             entry => entry._2 forall ( data => data.id != id) 
-        }/*.filter {
-            //remove all entries that are spawned by this task (among others)
-            entry => ! entry._1( completed.foldLeft(Map.empty[UUID,Long]){(a,b)=>a + ((b._1,b._2))} ).isDefined
-        }*/ //TODO fix :(
+        }
         )
     }
     /**

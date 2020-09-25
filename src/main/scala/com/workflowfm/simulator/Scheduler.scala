@@ -608,7 +608,7 @@ class LookaheadScheduler(initialTasks: Task*) extends SortedSetScheduler {
         case (s, r) => s + (r -> (s.getOrElse(r, Schedule()) +> (start, t)))
       }
       val result2 =
-        if (start == currentTime && t.taskResources(resourceMap).forall(_.isIdle)) result :+ t
+        if (start == currentTime && !t.isFutureTask && t.taskResources(resourceMap).forall(_.isIdle)) result :+ t
         else result
       findNextTasks(currentTime, resourceMap, schedules2, tasks.tail ++ futureTasks, scheduledThisIter2, lookaheadSetThisIter2, result2)
     }
@@ -628,6 +628,8 @@ class LookaheadScheduler(initialTasks: Task*) extends SortedSetScheduler {
       lookaheadStructureThisIter: LookaheadStructure
     ): Seq[Task] = {
       val taskData = lookaheadStructureThisIter.getTaskData((scheduled++completed).to[collection.immutable.Seq])
-      (taskData map (x=> x._1.withMinStartTime(x._2).create(x._1.createTime, actor))).toSeq
+      val tasks = (taskData map (x=> x._1.withMinStartTime(x._2).create(x._1.createTime, actor))).toSeq
+      tasks foreach(_.markAsFutureTask)
+      tasks
     }
 }
