@@ -62,6 +62,24 @@ class Flows extends FlowsTester {
             data.size should be (1)
             data.head._1.id should be (t1id)
         }
+        "Correctly encode an AND function from an AND of two tasks" in {
+            val t1 = FlowTask(TaskGenerator("t1","sim",ConstantGenerator(2),ConstantGenerator(2)))
+            val t2 = FlowTask(TaskGenerator("t2","sim",ConstantGenerator(2),ConstantGenerator(2)))
+            val f = parseFlow(t1 + t2)
+            f._1(Map()) should be (None)
+            f._1(Map((t1.id,2L))) should be (None)
+            f._1(Map((t2.id,3L))) should be (None)
+            f._1(Map((t1.id,2L),(t2.id,3L))) should be (Some(3L)) 
+        }
+        "Correctly encode an OR function from an OR of two tasks" in {
+            val t1 = FlowTask(TaskGenerator("t1","sim",ConstantGenerator(2),ConstantGenerator(2)))
+            val t2 = FlowTask(TaskGenerator("t2","sim",ConstantGenerator(2),ConstantGenerator(2)))
+            val f = parseFlow(t1 | t2)
+            f._1(Map()) should be (None)
+            f._1(Map((t1.id,2L))) should be (Some(2L))
+            f._1(Map((t2.id,3L))) should be (Some(3L))
+            f._1(Map((t1.id,2L),(t2.id,3L))) should be (Some(2L)) 
+        }
     }
 }
 
