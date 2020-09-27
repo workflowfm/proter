@@ -174,199 +174,70 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       ) should be(List(1L))
     }
   }
-/*
+
   "The LookaheadScheduler" must {
-    LookaheadScheduler.setLookaheadObject(mock, new LookaheadObj(mock) with dummyLookahead)
-    "notify of a new itteration of lookahead" in {
-      val m = new TestResourceMap("A")   
-      val answer = Future( m.l(t(1L, Seq("A"), actor=probe.ref)) )
-
-      probe.expectMsg(TestCalls.LookaheadNextIter)
-      //probe.reply(Unit)
+    "select a single task without  alookahead structure" in {
+      val m = new TestResourceMap("A")
+      m.l(t(1L, Seq("A"))) should be(Seq(1L))
     }
-
-    "ask for future tasks after a task is sheduled" in {
-      val m = new TestResourceMap("A")   
-      val answer = Future( m.l(t(1L, Seq("A"), actor=probe.ref)) )
-
-      probe.expectMsg(TestCalls.LookaheadNextIter)
-      probe.reply(Unit)
-      val TestCalls.TasksAfterThis(id,time,official) = probe.expectMsgType[TestCalls.TasksAfterThis]
-      id.getMostSignificantBits should be (1L)
-      time should be (1L)
-      official should be (true)
-      //probe.reply(Seq())
-    }
-
-    "ask for future tasks of a task that is already running" in {
-      val m = new TestResourceMap("A") + ("A",1L)  
-      val answer = Future( m.l(t(1L, Seq("A"))))
-
-      val TestCalls.TasksAfterThis(id,time,official) = probe.expectMsgType[TestCalls.TasksAfterThis]
-      official should be (false)
-      time should be (1L)
-      id.getMostSignificantBits should be (0L)
-
-      probe.reply(Seq()) // reply with no future tasks
-      probe.expectMsg(TestCalls.LookaheadNextIter) // the scheduler continues
-      //probe.reply(Unit)
-
-    }
-
-    "select a single task" in {
-      val m = new TestResourceMap("A")   
-      val answer = Future( m.l(t(1L, Seq("A"), actor=probe.ref)) )
-
-      probe.expectMsg(TestCalls.LookaheadNextIter)
-      probe.reply(Unit)
-      probe.expectMsgType[TestCalls.TasksAfterThis]
-      probe.reply(Seq())
-      
-      val r = Await.result(answer, 5.seconds)
-      r should be(Seq(1L))
-    }
-
-    "select multiple tasks" in {
+    "select multiple tasks without a lookahead structure" in {
       val m = new TestResourceMap("A", "B")
-      val answer = Future( m.l(
-        t(1L, Seq("A"), actor=probe.ref),
-        t(2L, Seq("B"), actor=probe.ref)
-      ) )
+      m.l(
+        t(1L, Seq("A")),
+        t(2L, Seq("B"))
+      ) should be(Seq(1L, 2L))
+    }
+    "not select a blocked task without a lookahead structure" in {
+      val m = new TestResourceMap("A", "B") + ("B", 1L)
+      m.l(t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("A"), Task.VeryLow, 0L, 2L)) should be(Nil)
+    }
+    "select a single task with a lookahead structure" in {
+      val m = new TestResourceMap("A")
+      m.lookahead = EmptyStructure + (id(1L),TaskGenerator("t2","sim",ConstantGenerator(2L),ConstantGenerator(2L)))
+      m.l(t(1L, Seq("A"))) should be(Seq(1L))
+    }
+    "not select a task which would offset a higher priority future task" in {
+      val m = new TestResourceMap("A", "B")
+      m.lookahead = EmptyStructure + (id(1L),TaskGenerator("t2","sim",ConstantGenerator(5L),ConstantGenerator(5L)).withPriority(Task.High).withResources(Seq("B")))
+      m.l(
+        t(1L, Seq("A"),Task.High),
+        t(2L, Seq("B"),duration=5L)
+      ) should be(Seq(1L))
+    }
+    "select a task which offsets a lower priority future task" in {
+      val m = new TestResourceMap("A", "B")
+      m.lookahead = EmptyStructure + (id(1L),TaskGenerator("t2","sim",ConstantGenerator(5L),ConstantGenerator(5L)).withPriority(Task.Low).withResources(Seq("B")))
+      m.l(
+        t(1L, Seq("A"),Task.High),
+        t(2L, Seq("B"),duration=5L)
+      ) should be(Seq(1L,2L))
+    }
+    "consider a distant future task" in {
+      val m = new TestResourceMap("A", "B")
+      m.lookahead = EmptyStructure + (id(1L),TaskGenerator("t2",id(2L),"sim",ConstantGenerator(2L),ConstantGenerator(2L)).withPriority(Task.High).withResources(Seq("A")))
+      m.lookahead = m.lookahead + (id(2L),TaskGenerator("t3","sim",ConstantGenerator(5L),ConstantGenerator(5L)).withPriority(Task.High).withResources(Seq("B")))
+      m.l(
+        t(1L, Seq("A"),Task.High),
+        t(3L, Seq("B"),duration=5L)
+      ) should be(Seq(1L))
+    }
+    "consider currently-running tasks" in {
+      val m = new TestResourceMap("A")
+      m.lookahead = EmptyStructure + (id(1L),TaskGenerator("t2","sim",ConstantGenerator(5L),ConstantGenerator(5L)).withPriority(Task.Low).withResources(Seq("B")))
+      m.m.get("A").map { _.startTask(t(1L, Seq("A"), Task.High, 0L, 5L, actor=mock), 0L) }
+      m.l(t(1L, Seq("A"))) should be (Seq())
+    }
 
-      probe.expectMsg(TestCalls.LookaheadNextIter)
-      probe.reply(Unit)
-      probe.expectMsgType[TestCalls.TasksAfterThis]
-      probe.reply(Seq())
-      probe.expectMsgType[TestCalls.TasksAfterThis]
-      probe.reply(Seq())
-      
-      val r = Await.result(answer,5.seconds)
-      r should be(Seq(1L, 2L))
+
   }
 
-    "not select a blocked task" in {
-      val m = new TestResourceMap("A", "B") + ("B", 1L)
-      val answer = Future(m.l(t(1L, Seq("A", "B"), Task.Highest, actor=probe.ref), t(2L, Seq("A"), Task.VeryLow, 0L, 2L, actor=probe.ref)))
-
-      probe.expectMsgType[TestCalls.TasksAfterThis] //unofficial
-      probe.reply(Seq())
-      probe.expectMsg(TestCalls.LookaheadNextIter)
-      probe.reply(Unit)
-      probe.expectMsgType[TestCalls.TasksAfterThis] //official
-      probe.reply(Seq())
-      probe.expectMsgType[TestCalls.TasksAfterThis]
-      probe.reply(Seq())
-      
-      Await.result(answer,5.seconds) should be(Nil)
-    }
-
-    "select a lower priority task if it will finish on time" in {
-      val m = new TestResourceMap("A", "B") + ("B", 1L)
-      val answer = Future(m.l(t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("A"), Task.VeryLow)))
-
-      probe.expectMsgType[TestCalls.TasksAfterThis] //unofficial
-      probe.reply(Seq())
-      probe.expectMsg(TestCalls.LookaheadNextIter)
-      probe.reply(Unit)
-      probe.expectMsgType[TestCalls.TasksAfterThis] //official
-      probe.reply(Seq())
-      probe.expectMsgType[TestCalls.TasksAfterThis]
-      probe.reply(Seq())
-      
-      Await.result(answer, 5.seconds) should be(List(2L))
-    }
-
-    "not block higher priority tasks" in {
-      val m = new TestResourceMap("A", "B") + ("B", 1L)
-      val answer = Future(m.l(t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("A"), Task.VeryLow, 0L, 100L))) 
-
-      probe.expectMsgType[TestCalls.TasksAfterThis] //unofficial
-      probe.reply(Seq())
-      probe.expectMsg(TestCalls.LookaheadNextIter)
-      probe.reply(Unit)
-      probe.expectMsgType[TestCalls.TasksAfterThis] //official
-      probe.reply(Seq())
-      probe.expectMsgType[TestCalls.TasksAfterThis]
-      probe.reply(Seq())
-      
-      Await.result(answer, 5.seconds) should be(Nil)
-    }
-
-    "not block a higher priority task that will start in the future" in {
-      val m = new TestResourceMap("A") + ("A", 1L)
-      val answer = Future(m.l(t(1L, Seq("A"), Task.Low))) 
-
-      probe.expectMsgType[TestCalls.TasksAfterThis] //unofficial
-      probe.reply(Seq(t(2L, Seq("A"), Task.High, 1L))) // reply with a future task
-      probe.expectMsg(TestCalls.LookaheadNextIter)
-      probe.reply(Unit)
-      probe.expectMsgType[TestCalls.TasksAfterThis] //official
-      probe.reply(Seq())
-      probe.expectMsgType[TestCalls.TasksAfterThis]
-      probe.reply(Seq())
-      
-      Await.result(answer, 5.seconds) should be(Nil)
-    }
-
-    "start if a task in the future has lower priority" in {
-      val m = new TestResourceMap("A","B") + ("A", 1L)
-      val answer = Future(m.l(t(1L, Seq("B"), Task.High))) 
-
-      probe.expectMsgType[TestCalls.TasksAfterThis] //unofficial
-      probe.reply(Seq(t(2L, Seq("A","B"), Task.Low, 1L))) // reply with a future task
-      probe.expectMsg(TestCalls.LookaheadNextIter)
-      probe.reply(Unit)
-      probe.expectMsgType[TestCalls.TasksAfterThis] //official
-      probe.reply(Seq())
-      probe.expectMsgType[TestCalls.TasksAfterThis]
-      probe.reply(Seq())
-      
-      Await.result(answer, 5.seconds) should be(List(1L))
-    }
-
-    "start a task despite subsequent tasks being blocked" in {
-      val m = new TestResourceMap("A","B")
-      val answer = Future(m.l(t(1L, Seq("A"), Task.Low),t(2L, Seq("B"), Task.High)))
-
-      probe.expectMsg(TestCalls.LookaheadNextIter)
-      probe.reply(Unit)
-      probe.expectMsgType[TestCalls.TasksAfterThis] //asks about task 2 first because of priority
-      probe.reply(Seq(t(3L, Seq("A","B"), Task.High, 1L))) // reply with a task that uses A and B
-      probe.expectMsgType[TestCalls.TasksAfterThis] // asks about the above task (task 3)
-      probe.reply(Seq()) //reply with nothing
-      probe.expectMsgType[TestCalls.TasksAfterThis] //now asks about low priority task
-      probe.reply(Seq(t(4L, Seq("A"), Task.Low, 1L))) // reply with task that uses A - will be blocked because of the high-priority task above
-      probe.expectMsgType[TestCalls.TasksAfterThis] // asks about the above (task 4)
-      probe.reply(Seq()) //reply with nothing
-      
-      Await.result(answer, 5.seconds) should be(List(2L,1L))
-    }
-
-    "ask multiple simulations about their respective tasks" in {
-      val probe2: TestProbe = TestProbe.apply("TaskTestsProbe")(system);
-      LookaheadScheduler.setLookaheadObject(probe2.ref, new LookaheadObj(probe2.ref) with dummyLookahead)
-      val m = new TestResourceMap("A", "B")
-      val answer = Future( m.l(t(1L, Seq("A"), Task.Low, actor=probe.ref), t(2L, Seq("B"), Task.High, actor=probe2.ref)))
-
-      //This test is a bit tricky because probes are synchronous, so the order in which I write the expectMsg is important
-      probe.expectMsg(TestCalls.LookaheadNextIter) //tells probe1 first because of the order they were passed
-      probe.reply(Unit)
-      probe2.expectMsg(TestCalls.LookaheadNextIter) // all the probes are notified before it starts waiting for replies 
-      probe2.reply(Unit)
-
-      probe2.expectMsgType[TestCalls.TasksAfterThis] // asks probe2 first because its task was high priority
-      probe2.reply(Seq()) // waits for a reply before it moves on
-
-      probe.expectMsgType[TestCalls.TasksAfterThis]
-      probe.reply(Seq())
-      
-      Await.result(answer,5.seconds) should be(Seq(2L, 1L)) //response is ordered by priority
-    }
-  } */
+  def id(l: Long) = new java.util.UUID(l,l)
 
   class TestResourceMap(names: String*) {
     // create a resource map
     val m: Map[String, TaskResource] = Map[String, TaskResource]() ++ (names map { n => (n, r(n)) })
+    
+    var lookahead: LookaheadStructure = EmptyStructure
 
     // create a resource
     def r(name: String) = new TaskResource(name, 0)
@@ -383,9 +254,12 @@ class SchedulerTests extends TaskTester with ScheduleTester {
             .getMostSignificantBits())
 
     // test LookaheadScheduler
-    def l(tasks: Task*): Seq[Long] =
-      new LookaheadScheduler(tasks: _*).getNextTasks(0L, m) map (_.id
+    def l(tasks: Task*): Seq[Long] = {
+      val ls = new LookaheadScheduler(tasks: _*)
+      ls.setLookaheadObject(self,lookahead)
+      ls.getNextTasks(0L, m) map (_.id
             .getMostSignificantBits())
+    }
   } 
 }
 
