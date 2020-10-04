@@ -57,12 +57,12 @@ object ExampleCode {
         coordinator ! Coordinator.AddResources(resources)
 
         // Define tasks 
-    val task1 = FlowTask(TaskGenerator("task1", "sim", new UniformGenerator(2L,10L), ConstantGenerator(0L)) withResources(Seq("r2")) withPriority(Task.High))
-    val task2 = FlowTask(TaskGenerator("task2", "sim", ConstantGenerator(4L), ConstantGenerator(0L)) withResources(Seq("r1")) withPriority(Task.High))
-    val task3 = FlowTask(TaskGenerator("task3", "sim", ConstantGenerator(3L), ConstantGenerator(0L)) withResources(Seq("r2")) withPriority(Task.High))
-    val task4 = FlowTask(TaskGenerator("task4", "sim", ConstantGenerator(2L), ConstantGenerator(0L)) withResources(Seq("r3")) withPriority(Task.High))
-    val task5 = FlowTask(TaskGenerator("task5", "sim", ConstantGenerator(4L), ConstantGenerator(0L)) withResources(Seq("r3")) withPriority(Task.High))
-    val task6 = FlowTask(TaskGenerator("task6", "sim", ConstantGenerator(10L), ConstantGenerator(0L)) withResources(Seq("r3")) withPriority(Task.Low))
+    val task1 = FlowTask(TaskGenerator("task1", "sim", ConstantGenerator(3L), ConstantGenerator(0L)) withResources(Seq("r1")) withPriority(Task.High))
+    val task2 = FlowTask(TaskGenerator("task2", "sim", ConstantGenerator(4L), ConstantGenerator(0L)) withResources(Seq("r2")) withPriority(Task.High))
+    val task3 = FlowTask(TaskGenerator("task3", "sim", ConstantGenerator(5L), ConstantGenerator(0L)) withResources(Seq("r3")) withPriority(Task.Low))
+    val task4 = FlowTask(TaskGenerator("taskD", "sim", ConstantGenerator(3L), ConstantGenerator(0L)) withResources(Seq("r1")) withPriority(Task.Low))
+    val task5 = FlowTask(TaskGenerator("taskB", "sim", ConstantGenerator(4L), ConstantGenerator(0L)) withResources(Seq("r5")) withPriority(Task.High))
+    val task6 = FlowTask(TaskGenerator("task6", "sim", ConstantGenerator(15L), ConstantGenerator(0L)) withResources(Seq("r6")) withPriority(Task.Low))
     val flow = task1 > ( ( (task2+task3+task4) > task5) + task6)
 
         coordinator ! Coordinator.AddSim(0L,system.actorOf(FlowLookaheadActor.props("sim",coordinator,flow),"sim"))

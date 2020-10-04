@@ -51,7 +51,6 @@ class Task(
     */
   var cost: Long = initialCost
 
-  var futureTask: Boolean = false
 
   /**
     * Adds more costs to the task.
@@ -60,9 +59,6 @@ class Task(
     * @param extra The cost to add.
     */
   def addCost(extra: Long) = cost += extra
-  //todo Document
-  def markAsFutureTask = futureTask = true
-  def isFutureTask:Boolean = futureTask
 
   /**
     * Finds the soonest this task can start.

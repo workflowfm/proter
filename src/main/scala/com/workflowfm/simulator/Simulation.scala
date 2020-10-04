@@ -501,8 +501,12 @@ trait Lookahead extends Simulation {
     * @param task The [[Task]] that completed.
     * @param time The timestamp of its completion.
     */
+  var completed: collection.mutable.Set[(java.util.UUID, Long)] = collection.mutable.Set()
+
   abstract override def complete(task: Task, time: Long) = {
+    completed += ((task.id,time))
     lookahead = lookahead - task.id
+    lookahead.getTaskData(completed.to[scala.collection.immutable.Seq]) foreach { x=> lookahead = lookahead - x._1.id }
     coordinator ! Coordinator.SetSchedulerLookaheadObject(lookahead)
     super.complete(task,time)
   }

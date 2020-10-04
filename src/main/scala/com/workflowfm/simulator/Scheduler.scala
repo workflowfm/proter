@@ -542,9 +542,6 @@ class LookaheadScheduler(initialTasks: Task*) extends SortedSetScheduler {
     implicit val executionContext = ExecutionContext.global
     //combine lookahead structures
     var lookaheadSetThisIter = lookaheadObjects.values.fold(EmptyStructure){(a,b)=>a and b}
-    //remove entries that automatically return something
-    tasksAfterThis(ActorRef.noSender,completed.toSeq,lookaheadSetThisIter) foreach { x=> lookaheadSetThisIter = lookaheadSetThisIter - x.id }
-    //TODO this is not optimal- should remove for each structure individually, not just here.
     //get future tasks from currently running tasks
     var futureTasksFoundSoFar = Seq[(java.util.UUID,Long)]()
     val inProgressFutureTasks = resourceMap.flatMap{ case (_,x) => if (!x.currentTask.isDefined) Seq() else {
@@ -556,7 +553,8 @@ class LookaheadScheduler(initialTasks: Task*) extends SortedSetScheduler {
         )
       }
     }
-    findNextTasks(currentTime, resourceMap, resourceMap.mapValues(Schedule(_)), tasks++inProgressFutureTasks, Seq(), lookaheadSetThisIter, Queue())
+    val t = findNextTasks(currentTime, resourceMap, resourceMap.mapValues(Schedule(_)), tasks++inProgressFutureTasks, Seq(), lookaheadSetThisIter, Queue())
+    t.intersect(tasks.toSeq)
   }
 
   /**
@@ -600,7 +598,7 @@ class LookaheadScheduler(initialTasks: Task*) extends SortedSetScheduler {
     if (tasks.isEmpty) result
     else {
       val t = tasks.head
-      val start = Schedule.mergeSchedules(t.resources.flatMap(schedules.get(_))) ? (Math.max(currentTime,t.minStartTime), t) //todo maybe currenttime + 1??
+      val start = Schedule.mergeSchedules(t.resources.flatMap(schedules.get(_))) ? (Math.max(currentTime,t.minStartTime), t)
       val scheduledThisIter2 = scheduledThisIter :+ ((t.id, start+t.estimatedDuration))
       val lookaheadSetThisIter2 = lookaheadSetThisIter-t.id
       val futureTasks = tasksAfterThis(t.actor, scheduledThisIter2, lookaheadSetThisIter2)
@@ -608,7 +606,7 @@ class LookaheadScheduler(initialTasks: Task*) extends SortedSetScheduler {
         case (s, r) => s + (r -> (s.getOrElse(r, Schedule()) +> (start, t)))
       }
       val result2 =
-        if (start == currentTime && !t.isFutureTask && t.taskResources(resourceMap).forall(_.isIdle)) result :+ t
+        if (start == currentTime && t.taskResources(resourceMap).forall(_.isIdle)) result :+ t
         else result
       findNextTasks(currentTime, resourceMap, schedules2, tasks.tail ++ futureTasks, scheduledThisIter2, lookaheadSetThisIter2, result2)
     }
@@ -628,8 +626,7 @@ class LookaheadScheduler(initialTasks: Task*) extends SortedSetScheduler {
       lookaheadStructureThisIter: LookaheadStructure
     ): Seq[Task] = {
       val taskData = lookaheadStructureThisIter.getTaskData((scheduled++completed).to[collection.immutable.Seq])
-      val tasks = (taskData map (x=> x._1.withMinStartTime(x._2).create(x._1.createTime, actor))).toSeq
-      tasks foreach(_.markAsFutureTask)
-      tasks
+      (taskData map (x=> x._1.withMinStartTime(x._2).create(x._1.createTime, actor))).toSeq
+      //todo warning if time <= currentTime. coordinator could pass log. Logging adaptor?
     }
 }

@@ -61,8 +61,8 @@ object Example {
             val task2 = FlowTask(TaskGenerator("task2", "sim", ConstantGenerator(4L), ConstantGenerator(0L)) withResources(Seq("r1")))
             val flow = task1 > task2
 
-            coordinator ! Coordinator.AddSim(0L,system.actorOf(FlowLookaheadActor.props("sim",coordinator,flow),"sim"))
-            coordinator ! Coordinator.Start
+            coordinator ! Coordinator.AddSim(0L,system.actorOf(FlowLookaheadActor.props("sim",coordinator,flow)))
+           
         }
 
         {
@@ -70,8 +70,9 @@ object Example {
             val task2 = FlowTask(TaskGenerator("task2", "sim2", ConstantGenerator(4L), ConstantGenerator(0L)) withResources(Seq("r1")))
             val flow = task1 + task2
 
-            coordinator ! Coordinator.AddSim(0L,system.actorOf(FlowLookaheadActor.props("sim2",coordinator,flow),"sim2"))
-            coordinator ! Coordinator.Start
+            coordinator ! Coordinator.AddSim(0L,system.actorOf(FlowLookaheadActor.props("sim2",coordinator,flow)))
+            //todo A>B C+D example with renaming
+            
         }
 
         {
@@ -79,9 +80,10 @@ object Example {
             val task2 = FlowTask(TaskGenerator("task2", "sim3", ConstantGenerator(4L), ConstantGenerator(0L)) withResources(Seq("r1")))
             val flow = task1 | task2
 
-            coordinator ! Coordinator.AddSim(0L,system.actorOf(FlowLookaheadActor.props("sim3",coordinator,flow),"sim3"))
-            coordinator ! Coordinator.Start
+            coordinator ! Coordinator.AddSim(0L,system.actorOf(FlowLookaheadActor.props("sim3",coordinator,flow)))
+            
         }
 
+        coordinator ! Coordinator.Start
     }
 }
