@@ -17,73 +17,82 @@ object Example {
     val DEBUG = false
 
     def main(args: Array[String]): Unit = {
+	    implicit val context: ExecutionContext = ExecutionContext.global
+        implicit val system: ActorSystem = ActorSystem("ExampleTests")
 
-        implicit val system: ActorSystem = ActorSystem("ExampleCode")
-        implicit val executionContext: ExecutionContext = ExecutionContext.global
-        implicit val timeout = Timeout(2.seconds)
-
-        val coordinator = system.actorOf(Coordinator.props(new LookaheadScheduler()))
         val shutdownActor = Subscriber.actor(new ShutdownHandler())
 
-        val handler = SimMetricsOutputs(
-	        new SimMetricsPrinter(),
-            new SimCSVFileOutput("output" + File.separator,"example"),
-	        new SimD3Timeline("output" + File.separator,"example")
-        )
+        def r(name: String, cost: Int = 0): TaskResource = new TaskResource(name,cost)
+        def t(name: String, simulation: String, resources: Seq[String], duration: ValueGenerator[Long] = ConstantGenerator(3L), cost: ValueGenerator[Long] = ConstantGenerator(0L), priority: Task.Priority = Task.Medium): Flow = 
+            FlowTask(TaskGenerator(name,simulation,duration,cost).withResources(resources).withPriority(priority))
 
-        Await.result(new SimOutputHandler(handler).subAndForgetTo(coordinator,Some("MetricsHandler")), 3.seconds)
-        Await.result(shutdownActor ? Subscriber.SubAndForgetTo(coordinator), 3.seconds)
 
-        if (DEBUG) {
-            println(s"Cores: ${Runtime.getRuntime().availableProcessors()}")
-            val config = system.settings.config.getConfig("akka.actor.default-dispatcher")
-            println(s"Parallelism: ${config.getInt("fork-join-executor.parallelism-min")}-${config.getInt("fork-join-executor.parallelism-max")} x ${config.getDouble("fork-join-executor.parallelism-factor")}")
-            val printer = new com.workflowfm.simulator.events.PrintEventHandler
-            Await.result(printer.subAndForgetTo(coordinator), 3.seconds)
-        }
+        { 
+            val flow = t("t1","S01",Seq("r1")) + t("t2","S01",Seq("r2"))
+            val resources = Seq(
+                r("r1"),
+                r("r2"),
+                r("r3")
+            )
+            val simulator = new ExampleSimulation("output", "Test01", resources)
 
-        //=========================================================================================
-
-        // Define resources
-        val r1 = new TaskResource("r1",0)
-        val r2 = new TaskResource("r2",0)
-        val r3 = new TaskResource("r3",0)
-        val r4 = new TaskResource("r4",0)
-        val r5 = new TaskResource("r5",0)
-        val r6 = new TaskResource("r6",0)
-        val r7 = new TaskResource("r7",0)
-        val r8 = new TaskResource("r8",0)
-        val resources = List (r1,r2,r3,r4,r5,r6,r7,r8)
-        coordinator ! Coordinator.AddResources(resources)
-
-        {
-            val task1 = FlowTask(TaskGenerator("task1", "sim", ConstantGenerator(4L), ConstantGenerator(0L)) withResources(Seq("r2")))
-            val task2 = FlowTask(TaskGenerator("task2", "sim", ConstantGenerator(4L), ConstantGenerator(0L)) withResources(Seq("r1")))
-            val flow = task1 > task2
-
-            coordinator ! Coordinator.AddSim(0L,system.actorOf(FlowLookaheadActor.props("sim",coordinator,flow)))
-           
-        }
-
-        {
-            val task1 = FlowTask(TaskGenerator("task1", "sim2", ConstantGenerator(4L), ConstantGenerator(0L)) withResources(Seq("r2")))
-            val task2 = FlowTask(TaskGenerator("task2", "sim2", ConstantGenerator(4L), ConstantGenerator(0L)) withResources(Seq("r1")))
-            val flow = task1 + task2
-
-            coordinator ! Coordinator.AddSim(0L,system.actorOf(FlowLookaheadActor.props("sim2",coordinator,flow)))
-            //todo A>B C+D example with renaming
+            val sims = Seq (
+                (0L, system.actorOf(FlowSimulationActor.props("S01",simulator.coordinator,flow))),
+            )
             
+            simulator.load(shutdownActor,sims)
+            simulator.start()
         }
 
-        {
-            val task1 = FlowTask(TaskGenerator("task1", "sim3", ConstantGenerator(4L), ConstantGenerator(0L)) withResources(Seq("r2")))
-            val task2 = FlowTask(TaskGenerator("task2", "sim3", ConstantGenerator(4L), ConstantGenerator(0L)) withResources(Seq("r1")))
-            val flow = task1 | task2
+        { 
+            val flow = t("t1","S01",Seq("r1")) > t("t2","S01",Seq("r2"))
+            val resources = Seq(
+                r("r1"),
+                r("r2"),
+                r("r3")
+            )
+            val simulator = new ExampleSimulation("output", "Test02", resources)
 
-            coordinator ! Coordinator.AddSim(0L,system.actorOf(FlowLookaheadActor.props("sim3",coordinator,flow)))
+            val sims = Seq (
+                (0L, system.actorOf(FlowSimulationActor.props("S01",simulator.coordinator,flow))),
+            )
             
+            simulator.load(shutdownActor,sims)
+            simulator.start()
         }
 
-        coordinator ! Coordinator.Start
+        { 
+            val flow = ( t("t1","S01",Seq("r1"),priority = Task.High) > t("t2","S01",Seq("r2"),priority=Task.High) ) + t("t3","S01",Seq("r2"),duration = ConstantGenerator(5L))
+            val resources = Seq(
+                r("r1"),
+                r("r2"),
+                r("r3")
+            )
+            val simulator = new ExampleSimulation("output", "Test03", resources)
+
+            val sims = Seq (
+                (0L, system.actorOf(FlowSimulationActor.props("S01",simulator.coordinator,flow))),
+            )
+            
+            simulator.load(shutdownActor,sims)
+            simulator.start()
+        }
+
+        { 
+            val flow = ( t("t1","S01",Seq("r1"),priority = Task.High) > t("t2","S01",Seq("r2"),priority=Task.High) ) + t("t3","S01",Seq("r2"),duration = ConstantGenerator(5L))
+            val resources = Seq(
+                r("r1"),
+                r("r2"),
+                r("r3")
+            )
+            val simulator = new ExampleSimulation("output", "Test04", resources)
+
+            val sims = Seq (
+                (0L, system.actorOf(FlowLookaheadActor.props("S01",simulator.coordinator,flow))),
+            )
+            
+            simulator.load(shutdownActor,sims)
+            simulator.start()
+        }
     }
 }
