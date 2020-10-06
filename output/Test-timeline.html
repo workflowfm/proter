@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <link rel="stylesheet" href="d3-timeline/css/wfm-timeline.css">
+    <title>WorkflowFM - Results Timeline</title>
+    	<script src="http://d3js.org/d3.v3.min.js"></script>
+	<script type="text/javascript" src="d3-timeline/js/d3-timeline.js"></script>
+    <style>
+div {
+  font-family: sans-serif;
+  font-size: 11px;
+}
+</style>
+</head>
+<body>
+<div id="results"></div>
+<script type="text/javascript" src="d3-timeline/js/wfm-simulation-timeline.js"></script>
+<script type="text/javascript">
+  function go(name) {  
+    var div = d3.select("#results")//.data(workflowData)
+    div.append("h1").text(name);
+//    div.append("h2").text("Resources:");
+//    div.append("div").attr("id","resources" + name);
+//    div.append("h2").text("Simulations:");
+    div.append("div").attr("id","simulations" + name);
+//    displayOne("#resources" + name, resourceData, 2, 200, 30, d3.time.minutes, d3.time.format.utc("%H:%M"));
+//    displayOne("#simulations" + name, simulationData, 2, 200, 30, d3.time.minutes, d3.time.format.utc("%H:%M"));
+    displayOne("#simulations" + name, simulationData, 40, 100);
+  }
+</script>
+<script type="text/javascript" src="example01-simdata.js"></script>
+<script type="text/javascript">go("01");</script>
+<script type="text/javascript" src="Test02-simdata.js"></script>
+<script type="text/javascript">go("02");</script></script>
+<script type="text/javascript" src="Test03-simdata.js"></script>
+<script type="text/javascript">go("03");</script></script>
+<script type="text/javascript" src="Test04-simdata.js"></script>
+<script type="text/javascript">go("04");</script></script>
+<script type="text/javascript" src="Test05-simdata.js"></script>
+<script type="text/javascript">go("05");</script></script>
+<script type="text/javascript" src="Test06-simdata.js"></script>
+<script type="text/javascript">go("06");</script></script>
+<script type="text/javascript" src="Test07-simdata.js"></script>
+<script type="text/javascript">go("07");</script></script>
+<script type="text/javascript" src="Test08-simdata.js"></script>
+<script type="text/javascript">go("08");</script></script>
+<script type="text/javascript" src="Test09-simdata.js"></script>
+<script type="text/javascript">go("09");</script></script>
+<script type="text/javascript" src="Test10-simdata.js"></script>
+<script type="text/javascript">go("10");</script></script>
+<script type="text/javascript" src="Test11-simdata.js"></script>
+<script type="text/javascript">go("11");</script>
+<script type="text/javascript" src="Test12-simdata.js"></script>
+<script type="text/javascript">go("12");</script></script>
+<script type="text/javascript" src="Test13-simdata.js"></script>
+<script type="text/javascript">go("13");</script></script>
+<script type="text/javascript" src="Test14-simdata.js"></script>
+<script type="text/javascript">go("14");</script></script>
+<script type="text/javascript" src="Test15-simdata.js"></script>
+<script type="text/javascript">go("15");</script></script>
+<script type="text/javascript" src="Test16-simdata.js"></script>
+<script type="text/javascript">go("16");</script></script>
+<script type="text/javascript" src="Test17-simdata.js"></script>
+<script type="text/javascript">go("17");</script></script>
+<script type="text/javascript" src="Test18-simdata.js"></script>
+<script type="text/javascript">go("18");</script></script>
+<script type="text/javascript" src="Test19-simdata.js"></script>
+<script type="text/javascript">go("19");</script></script>
+<script type="text/javascript" src="Test20-simdata.js"></script>
+<script type="text/javascript">go("20");</script></script>
+<script type="text/javascript" src="Test21-simdata.js"></script>
+<script type="text/javascript">go("21");</script>
+<script type="text/javascript" src="Test22-simdata.js"></script>
+<script type="text/javascript">go("22");</script></script>
+<script type="text/javascript" src="Test23-simdata.js"></script>
+<script type="text/javascript">go("23");</script></script>
+<script type="text/javascript" src="Test24-simdata.js"></script>
+<script type="text/javascript">go("24");</script></script>
+<script type="text/javascript" src="Test25-simdata.js"></script>
+<script type="text/javascript">go("25");</script></script>
+<script type="text/javascript" src="Test26-simdata.js"></script>
+<script type="text/javascript">go("26");</script></script>
+<script type="text/javascript" src="Test27-simdata.js"></script>
+<script type="text/javascript">go("27");</script></script>
+<script type="text/javascript" src="Test28-simdata.js"></script>
+<script type="text/javascript">go("28");</script></script>
+<script type="text/javascript" src="Test29-simdata.js"></script>
+<script type="text/javascript">go("29");</script></script>
+<script type="text/javascript" src="Test30-simdata.js"></script>
+<script type="text/javascript">go("30");</script></script>
+<script type="text/javascript" src="Test31-simdata.js"></script>
+<script type="text/javascript">go("31");</script>
+<script type="text/javascript" src="Test32-simdata.js"></script>
+<script type="text/javascript">go("32");</script></script>
+<script type="text/javascript" src="Test33-simdata.js"></script>
+<script type="text/javascript">go("33");</script></script>
+<script type="text/javascript" src="Test34-simdata.js"></script>
+<script type="text/javascript">go("34");</script></script>
+<script type="text/javascript" src="Test35-simdata.js"></script>
+<script type="text/javascript">go("35");</script></script>
+<script type="text/javascript" src="Test36-simdata.js"></script>
+<script type="text/javascript">go("36");</script></script>
+<script type="text/javascript" src="Test37-simdata.js"></script>
+<script type="text/javascript">go("37");</script></script>
+<script type="text/javascript" src="Test38-simdata.js"></script>
+<script type="text/javascript">go("38");</script></script>
+<script type="text/javascript" src="Test39-simdata.js"></script>
+<script type="text/javascript">go("39");</script></script>
+<script type="text/javascript" src="Test40-simdata.js"></script>
+<script type="text/javascript">go("40");</script></script>
+<script type="text/javascript" src="Test41-simdata.js"></script>
+<script type="text/javascript">go("41");</script>
+<script type="text/javascript" src="Test42-simdata.js"></script>
+<script type="text/javascript">go("42");</script></script>
+<script type="text/javascript" src="Test43-simdata.js"></script>
+<script type="text/javascript">go("43");</script></script>
+<script type="text/javascript" src="Test44-simdata.js"></script>
+<script type="text/javascript">go("44");</script></script>
+<script type="text/javascript" src="Test45-simdata.js"></script>
+<script type="text/javascript">go("45");</script></script>
+<script type="text/javascript" src="Test46-simdata.js"></script>
+<script type="text/javascript">go("46");</script></script>
+<script type="text/javascript" src="Test47-simdata.js"></script>
+<script type="text/javascript">go("47");</script></script>
+<script type="text/javascript" src="Test48-simdata.js"></script>
+<script type="text/javascript">go("48");</script></script>
+<script type="text/javascript" src="Test49-simdata.js"></script>
+<script type="text/javascript">go("49");</script></script>
+<script type="text/javascript" src="Test50-simdata.js"></script>
+<script type="text/javascript">go("50");</script></script>
+</body>
+</html>
