@@ -24,10 +24,11 @@ div {
 //    div.append("h2").text("Resources:");
 //    div.append("div").attr("id","resources" + name);
 //    div.append("h2").text("Simulations:");
-    div.append("div").attr("id","simulations" + name);
+//  div.append("div").attr("id","simulations" + name);
+    div.append("div").attr("id","resources" + name);
 //    displayOne("#resources" + name, resourceData, 2, 200, 30, d3.time.minutes, d3.time.format.utc("%H:%M"));
 //    displayOne("#simulations" + name, simulationData, 2, 200, 30, d3.time.minutes, d3.time.format.utc("%H:%M"));
-    displayOne("#simulations" + name, simulationData, 40, 100);
+    displayOne("#resources" + name, resourceData, 40, 100,);
   }
 </script>
 <script type="text/javascript" src="Test01-simdata.js"></script>

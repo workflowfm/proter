@@ -1,6 +1,6 @@
 package com.workflowfm.simulator
 
-import scala.collection.immutable._
+import scala.collection.immutable.{Map, Queue}
 import java.util.UUID
 import akka.actor.ActorRef
 
@@ -48,7 +48,7 @@ trait LookaheadStructure{
       * @param scheduled The list of tasks that have been scheduled/completed, described with an (ID,time) tuple
       * @return The list of tasks that can start, described by (TaskGenerator,starting_time) tuples
       */
-    def getTaskData(scheduled: Seq[(UUID,Long)]): Seq[(TaskGenerator,Long)]
+    def getTaskData(scheduled: Iterable[(UUID,Long)]): Seq[(TaskGenerator,Long)]
     
     /**
       * Provides a nicer interface for adding elements to the lookeahead structure.
@@ -122,7 +122,7 @@ case class LookaheadStructures(handlers: Queue[LookaheadStructure]) extends Look
     /**
       * @inheritdoc
       */
-    override def getTaskData(scheduled: Seq[(UUID, Long)]): Seq[(TaskGenerator, Long)] = handlers flatMap (_.getTaskData(scheduled))
+    override def getTaskData(scheduled: Iterable[(UUID, Long)]): Seq[(TaskGenerator, Long)] = handlers flatMap (_.getTaskData(scheduled))
     /**
       * @inheritdoc
       */
@@ -173,7 +173,7 @@ case class LookaheadSet(
     /**
       * @inheritdoc
       */
-    override def getTaskData(scheduled: Seq[(UUID, Long)]): Seq[(TaskGenerator,Long)] = {
+    override def getTaskData(scheduled: Iterable[(UUID, Long)]): Seq[(TaskGenerator,Long)] = {
         val y = lookaheadSet flatMap { x: (Map[UUID, Long] => Option[Long], Seq[TaskGenerator]) => 
             x match {
                 case(function, data) => 
@@ -184,7 +184,7 @@ case class LookaheadSet(
                 }
             }
         }
-        y.to[collection.immutable.Seq]
+        y.toSeq
     }
 }
 
@@ -203,5 +203,5 @@ case object EmptyStructure extends LookaheadStructure {
     /**
       * @inheritdoc
       */
-    override def getTaskData(scheduled: Seq[(UUID, Long)]): Seq[(TaskGenerator, Long)] = Seq()
+    override def getTaskData(scheduled: Iterable[(UUID, Long)]): Seq[(TaskGenerator, Long)] = Seq()
   }

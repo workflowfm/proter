@@ -625,7 +625,7 @@ class LookaheadScheduler(initialTasks: Task*) extends SortedSetScheduler {
       scheduled: Seq[(java.util.UUID,Long)], 
       lookaheadStructureThisIter: LookaheadStructure
     ): Seq[Task] = {
-      val taskData = lookaheadStructureThisIter.getTaskData((scheduled++completed).to[collection.immutable.Seq])
+      val taskData = lookaheadStructureThisIter.getTaskData((scheduled++completed).to[collection.immutable.Seq]) //todo remove to[]
       (taskData map (x=> x._1.withMinStartTime(x._2).create(x._1.createTime, actor))).toSeq
       //todo warning if time <= currentTime. coordinator could pass log. Logging adaptor?
     }

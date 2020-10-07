@@ -1,5 +1,4 @@
 ThisBuild / autoAPIMappings := true
-ThisBuild / version          := "0.3.1-SNAPSHOT"
 
 // Fixes some sbt import problems.
 // https://github.com/sbt/sbt-native-packager/issues/1063
@@ -40,7 +39,8 @@ lazy val examples = (project in file("examples"))
   .settings(
     commonSettings,
     name := "examples",
-    libraryDependencies += "com.workflowfm" %% "wfm-simulator" % "0.3.1-SNAPSHOT",
     scalaSource in Compile := baseDirectory.value / "src",
     scalaSource in Test := baseDirectory.value / "test"
-  )
+  ).dependsOn(rootRef)
+
+lazy val rootRef = LocalProject("root")

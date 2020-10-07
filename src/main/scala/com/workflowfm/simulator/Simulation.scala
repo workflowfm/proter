@@ -506,7 +506,7 @@ trait Lookahead extends Simulation {
   abstract override def complete(task: Task, time: Long) = {
     completed += ((task.id,time))
     lookahead = lookahead - task.id
-    lookahead.getTaskData(completed.to[scala.collection.immutable.Seq]) foreach { x=> lookahead = lookahead - x._1.id }
+    lookahead.getTaskData(completed) foreach { x=> lookahead = lookahead - x._1.id }
     coordinator ! Coordinator.SetSchedulerLookaheadObject(lookahead)
     super.complete(task,time)
   }
