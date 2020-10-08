@@ -62,7 +62,7 @@ case class ConstantGenerator[T](value: T) extends ValueGenerator[T] {
   * @param min The minimum possible value.
   * @param max The maximum possible value.
   */
-class IntUniformGenerator(min: Int, max: Int) extends ValueGenerator[Int] {
+case class IntUniformGenerator(min: Int, max: Int) extends ValueGenerator[Int] {
   /**
     * Provides a random value uniformly sampled between [[min]] and [[max]].
     *
@@ -86,7 +86,7 @@ class IntUniformGenerator(min: Int, max: Int) extends ValueGenerator[Int] {
   * @param min The minimum possible value.
   * @param max The maximum possible value.
   */
-class UniformGenerator(min: Long, max: Long) extends ValueGenerator[Long] {
+case class UniformGenerator(min: Long, max: Long) extends ValueGenerator[Long] {
   /**
     * Provides a random value uniformly sampled between [[min]] and [[max]].
     *
@@ -100,20 +100,4 @@ class UniformGenerator(min: Long, max: Long) extends ValueGenerator[Long] {
     * @return The median as an estimate of the values that can be generated.
     */
   def estimate = (max + min) / 2
-}
-
-object UniformGenerator extends ValueGenerator[Int] { 
-  def apply(min: Long, max: Long) = {
-    
-  }
-  def get = 2
-  def estimate = 2
-}
-
-object IntUniformGenerator extends ValueGenerator[Int] {
-  def apply(min: Int, max: Int) = {
-    
-  }
-  def get = 2
-  def estimate = 2
 }

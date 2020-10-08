@@ -9,8 +9,6 @@ import akka.testkit.TestProbe
 import scala.concurrent.{Await, Future, ExecutionContext}
 import scala.concurrent.duration._
 import akka.util.Timeout
-import java.{util => ju}
-import scala.collection.mutable
 
 @RunWith(classOf[JUnitRunner])
 class SchedulerTests extends TaskTester with ScheduleTester {

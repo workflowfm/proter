@@ -37,7 +37,7 @@ class SimulationTests extends SimulationTester {
             sim ! Simulation.Start
             expectMsg( Coordinator.SimStarted("sim"))
             val Coordinator.AddTask(generator) = expectMsgType[ Coordinator.AddTask ]
-            expectMsg( Coordinator.SimReady )
+            expectMsg( Coordinator.SimReady(None) )
 
             val task = generator.create(0L,sim)
             sim ! Simulation.TaskCompleted(task,2L)
@@ -54,7 +54,7 @@ class SimulationTests extends SimulationTester {
 
             //task1
             val Coordinator.AddTask(generator1) = expectMsgType[ Coordinator.AddTask ]
-            expectMsg( Coordinator.SimReady )
+            expectMsg( Coordinator.SimReady(None) )
             val task1 = generator1.create(0L,sim)
             sim ! Simulation.TaskCompleted(task1,2L)
 
@@ -82,7 +82,7 @@ class SimulationTests extends SimulationTester {
         //     sim ! Simulation.Start
         //     expectMsg( Coordinator.SimStarted("sim"))
         //     val Coordinator.AddTask(id1, generator1, resources1) = expectMsgType[ Coordinator.AddTask ]
-        //     expectMsg( Coordinator.SimReady )
+        //     expectMsg( Coordinator.SimReady(None) )
         //     val response = Await.result((sim ? Simulation.LookaheadNextItter)(3.seconds),3.seconds)
         //     response should be (Unit)
         // }
@@ -94,7 +94,7 @@ class SimulationTests extends SimulationTester {
         //     expectMsg( Coordinator.SimStarted("sim"))
         //     //task1
         //     val Coordinator.AddTask(id1, generator1, resources1) = expectMsgType[ Coordinator.AddTask ]
-        //     expectMsg( Coordinator.SimReady )
+        //     expectMsg( Coordinator.SimReady(None) )
         //     val task1 = generator1.create(id1,0L,sim,resources1:_*)
 
         //     Await.result((sim ? Simulation.LookaheadNextItter)(3.seconds),3.seconds)

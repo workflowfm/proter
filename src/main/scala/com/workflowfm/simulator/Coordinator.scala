@@ -556,8 +556,14 @@ class Coordinator(
     case Coordinator.AddTasks(l) => addTasks(sender, l)
     case Coordinator.AddTask(generator) => addTask(generator)
 
-    case Coordinator.AckTasks(ack) => ackTasks(sender, ack)
-    case Coordinator.SimReady => ackAll(sender)
+    case Coordinator.AckTasks(ack, lookahead) => {
+      lookahead.map(scheduler.setLookaheadObject(sender(),_))
+      ackTasks(sender, ack)
+    }
+    case Coordinator.SimReady(lookahead) => {
+      lookahead.map(scheduler.setLookaheadObject(sender(),_))
+      ackAll(sender)
+    }
 
     case Coordinator.WaitFor(actor) => waitFor(actor, sender())
     case Coordinator.SimStarted(name) => simulationStarted(name)
@@ -574,7 +580,7 @@ class Coordinator(
     case Coordinator.Start => start()
     case Coordinator.Ping => sender() ! Coordinator.Time(time)
 
-    case Coordinator.SetSchedulerLookaheadObject(obj) => scheduler.setLookaheadObject(sender(),obj)
+    case Coordinator.UpdateLookahead(obj) => scheduler.setLookaheadObject(sender(),obj)
   }
 
   /**
@@ -672,15 +678,20 @@ object Coordinator {
 
   /**
     * Message from a [[Simulation]] to acknowledge having processed finished tasks.
+    * 
+    * 
+    * Optionally updates the lookahead structure for that simulation.
     * @group simulations
     */
-  case class AckTasks(ack: Seq[UUID])
+  case class AckTasks(ack: Seq[UUID], lookahead: Option[LookaheadStructure]=None)
 
   /**
     * Message from a [[Simulation]] to acknowledge having finished all processing.
+    * 
+    * Optionally updates the lookahead structure for that simulation.
     * @group simulations
     */
-  case object SimReady
+  case class SimReady(lookahead: Option[LookaheadStructure]=None)
 
   /**
     * Message from a [[Simulation]] to wait for it before proceeding.
@@ -693,7 +704,7 @@ object Coordinator {
     *
     * @param l The structure to be sent
     */
-  case class SetSchedulerLookaheadObject(l: LookaheadStructure)
+  case class UpdateLookahead(l: LookaheadStructure)
 
   /**
     * Creates properties for a [[Coordinator]] actor.

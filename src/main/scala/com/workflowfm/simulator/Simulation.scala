@@ -96,7 +96,7 @@ abstract class Simulation(
     * @param task The completed [[Task]].
     * @param time The timestamp of completion and current time.
     */
-  def complete(task: Task, time: Long): Unit
+  def complete(task: Task, time: Long): Unit = Unit
 
   /**
     * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation
@@ -136,9 +136,8 @@ abstract class Simulation(
     * 
     * @group api
     */
-  def ack(tasks: Seq[UUID]): Unit = {
-    sendLookaheadStructure()
-    coordinator ! Coordinator.AckTasks(tasks)
+  def ack(tasks: Seq[UUID], lookahead: Option[LookaheadStructure]=None): Unit = {
+    coordinator ! Coordinator.AckTasks(tasks, lookahead)
   }
 
   /**
@@ -147,9 +146,8 @@ abstract class Simulation(
     *
     * @group api
     */
-  def ready(): Unit = {
-    sendLookaheadStructure()
-    coordinator ! Coordinator.SimReady
+  def ready(lookahead: Option[LookaheadStructure]=None): Unit = {
+    coordinator ! Coordinator.SimReady(lookahead)
   }
 
   /**
@@ -171,8 +169,6 @@ abstract class Simulation(
   def simWait(): Future[Any] = {
     (coordinator ? Coordinator.WaitFor(self))(Timeout(1, TimeUnit.DAYS))
   }
-
-  def sendLookaheadStructure():Unit = { Unit }
 
   /**
     * Defines the actor receive behaviour for the simulation interface.
@@ -490,7 +486,7 @@ trait Lookahead extends Simulation {
   /**
     * Sends the lookahead structure to the scheduler
     */
-  override def sendLookaheadStructure():Unit = {  coordinator ! Coordinator.SetSchedulerLookaheadObject(lookahead) }
+  def sendLookahead():Unit = {  coordinator ! Coordinator.UpdateLookahead(lookahead) }
 
   /**
     * Manages a [[Task]] whose simulation has completed.
@@ -501,13 +497,13 @@ trait Lookahead extends Simulation {
     * @param task The [[Task]] that completed.
     * @param time The timestamp of its completion.
     */
-  var completed: collection.mutable.Set[(java.util.UUID, Long)] = collection.mutable.Set()
+  val completed: collection.mutable.Set[(java.util.UUID, Long)] = collection.mutable.Set()
 
-  abstract override def complete(task: Task, time: Long) = {
+  override def complete(task: Task, time: Long) = {
     completed += ((task.id,time))
     lookahead = lookahead - task.id
     lookahead.getTaskData(completed) foreach { x=> lookahead = lookahead - x._1.id }
-    coordinator ! Coordinator.SetSchedulerLookaheadObject(lookahead)
+    sendLookahead()
     super.complete(task,time)
   }
 }
