@@ -125,7 +125,7 @@ trait LookaheadTester {
 
 class DummySim(name: String, coordinator: ActorRef)
 (implicit executionContext: ExecutionContext) 
-extends AsyncSimulation(name,coordinator) with Lookahead {
+extends AsyncSimulation(name,coordinator) with LookingAhead {
     val promise = Promise[Any]()
     var tick = false
     
@@ -164,7 +164,7 @@ extends AsyncSimulation(name,coordinator) with Lookahead {
 
 class DummySim2(name: String, coordinator: ActorRef)
 (implicit executionContext: ExecutionContext) 
-extends AsyncSimulation(name,coordinator) with Lookahead {
+extends AsyncSimulation(name,coordinator) with LookingAhead {
     val promise = Promise[Any]()
     var tick = false
     override def run():Future[Any] = { 
@@ -203,7 +203,7 @@ extends AsyncSimulation(name,coordinator) with Lookahead {
 
 class DummySim3(name: String, coordinator: ActorRef)
 (implicit executionContext: ExecutionContext) 
-extends AsyncSimulation(name,coordinator) with Lookahead {
+extends AsyncSimulation(name,coordinator) with LookingAhead {
     val promise = Promise[Any]()
     var count = 0
     var tick = false

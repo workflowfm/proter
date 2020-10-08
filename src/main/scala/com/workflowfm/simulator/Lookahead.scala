@@ -5,21 +5,21 @@ import java.util.UUID
 import akka.actor.ActorRef
 
 /**
-  * A Lookahead Strucuture contains information about the order in which tasks run.
+  * A Lookahead contains information about the order in which tasks run.
   * 
-  * A structure is immutable. It built by the simulation and passed to the scheduler where it is used
+  * The structure is immutable. It is built by the simulation and passed to the scheduler where it is used
   * for scheduling by revealing information about future tasks so that look-ahead can be achieved.
   */
-trait LookaheadStructure{
+trait Lookahead {
     /**
       * Removes a task with the corresponding ID from the structure
       * 
       * Once removed, the task with this ID will no longer be returned.
       *
       * @param id The id of the task
-      * @return A LookaheadStructure with the specified task removed.
+      * @return A Lookahead with the specified task removed.
       */
-    def -(id: UUID): LookaheadStructure
+    def -(id: UUID): Lookahead
     /**
       * Adds an entry to the strucutre, comprised of a function that describes the 
       * prerequisites and resultant starting time of a set of tasks, and a list
@@ -39,9 +39,9 @@ trait LookaheadStructure{
       * the value is the starting time of the tasks in this entry.
       * @param generators A list of [[TaskGenerator]]s that describes the tasks that should start if
       * the prerequistes are met.
-      * @return A LookaheadStructure with the specified entry added to it.
+      * @return A Lookahead with the specified entry added to it.
       */
-    def +(function: Map[UUID,Long]=>Option[Long], generators: List[TaskGenerator]): LookaheadStructure
+    def +(function: Map[UUID,Long]=>Option[Long], generators: List[TaskGenerator]): Lookahead
     /**
       * Retrieves all tasks that can start given the list of scheduled/completed tasks
       *
@@ -55,14 +55,14 @@ trait LookaheadStructure{
       * 
       * Allows adding a single generator instead of a list of generators.
       * 
-      * @see [[LookaheadStrucutre.+]]
+      * @see [[Lookahead.+]]
       * 
       * @param function The function describing the conditions of starting the correspoinding task.
       * @param generator The task that will start when the conditions are met.
       * @return
       */
       //todo e.g. // e.g. [[abortSimulation(name:String,actor:akka\.actor\.ActorRef)* abortSimulation]]. 
-    def +(function: Map[UUID,Long]=>Option[Long], generator: TaskGenerator): LookaheadStructure = this.+(function, List(generator))
+    def +(function: Map[UUID,Long]=>Option[Long], generator: TaskGenerator): Lookahead = this.+(function, List(generator))
 
     /**
       * Provides a nicer interface for adding elements to the lookeahead structure.
@@ -70,19 +70,19 @@ trait LookaheadStructure{
       * Allows adding a simple one-to-one relationship, where the generator task starts right after
       * the sourceID task finishes.
       * 
-      * @see [[LookaheadStrucutre.+]]
+      * @see [[Lookahead.+]]
       * 
       * @param sourceID The id of the task that will finish.
       * @param generator The generator fo the task that will start when the prior task finishes.
       * @return
       */
-    def +(sourceID: UUID, generator: TaskGenerator): LookaheadStructure = {
+    def +(sourceID: UUID, generator: TaskGenerator): Lookahead = {
         val function: Map[UUID,Long]=>Option[Long] = { s=>
             s.get(sourceID)
         }
         this.+(function, generator)
     }
-    def +(source: Set[UUID], generator: TaskGenerator): LookaheadStructure = {
+    def +(source: Set[UUID], generator: TaskGenerator): Lookahead = {
         val function: Map[UUID,Long]=>Option[Long] = { s=>
             val times = source map (s.get(_))
             if (times.contains(None)) None
@@ -91,72 +91,72 @@ trait LookaheadStructure{
         this.+(function, generator)
     }
     /**
-      * Combines two LookaheadStructures
+      * Combines two Lookaheads
       *
-      * @param that The other LookaheadStructure to merge with this one.
-      * @return The merged LookaheadStructure
+      * @param that The other Lookahead to merge with this one.
+      * @return The merged Lookahead
       */
-    def and(that: LookaheadStructure): LookaheadStructure = {
+    def and(that: Lookahead): Lookahead = {
       that match {
-        case EmptyStructure => this
-        case LookaheadStructures(handlers) => that and this
-        case _ => LookaheadStructures(this,that)
+        case NoLookahead => this
+        case Lookaheads(lookaheads) => that and this
+        case _ => Lookaheads(this,that)
       }
     }
 }
 
 /**
-  * A Structure used for combining multiple [[LookaheadStructure]]s into one.
+  * A Structure used for combining multiple [[Lookahead]]s into one.
   *
-  * @param handlers A queue of the [[LookaheadStructure]]s which are included in this strucutre.
+  * @param lookaheads A queue of the [[Lookahead]]s which are included in this strucutre.
   */
-case class LookaheadStructures(handlers: Queue[LookaheadStructure]) extends LookaheadStructure {
+case class Lookaheads(lookaheads: Queue[Lookahead]) extends Lookahead {
     /**
       * @inheritdoc
       */
-    override def -(id: UUID): LookaheadStructure = LookaheadStructures(handlers map (_.-(id)))
+    override def -(id: UUID): Lookahead = Lookaheads(lookaheads map (_.-(id)))
     /**
       * @inheritdoc
       */
-    override def +(function: Map[UUID,Long]=>Option[Long], generators: List[TaskGenerator]): LookaheadStructure = LookaheadStructures(handlers map (_.+(function, generators)))
+    override def +(function: Map[UUID,Long]=>Option[Long], generators: List[TaskGenerator]): Lookahead = Lookaheads(lookaheads map (_.+(function, generators)))
     /**
       * @inheritdoc
       */
-    override def getTaskData(scheduled: Iterable[(UUID, Long)]): Seq[(TaskGenerator, Long)] = handlers flatMap (_.getTaskData(scheduled))
+    override def getTaskData(scheduled: Iterable[(UUID, Long)]): Seq[(TaskGenerator, Long)] = lookaheads flatMap (_.getTaskData(scheduled))
     /**
       * @inheritdoc
       */
-    override def and(that: LookaheadStructure): LookaheadStructure = {
+    override def and(that: Lookahead): Lookahead = {
       that match {
-        case EmptyStructure => this
-        case LookaheadStructures(h) => copy(handlers = handlers ++ h)
-        case _ => copy(handlers = handlers :+ that)
+        case NoLookahead => this
+        case Lookaheads(h) => copy(lookaheads = lookaheads ++ h)
+        case _ => copy(lookaheads = lookaheads :+ that)
       }
     }
 }
 
-object LookaheadStructures {
-    /** Shorthand constructor for a [[LookaheadStructures]] from a list of [[LookaheadStructure]]s. */
-    def apply(handlers: LookaheadStructure*): LookaheadStructures = LookaheadStructures(
-        Queue[LookaheadStructure]() ++ handlers
+object Lookaheads {
+    /** Shorthand constructor for a [[Lookaheads]] from a list of [[Lookahead]]s. */
+    def apply(lookaheads: Lookahead*): Lookaheads = Lookaheads(
+        Queue[Lookahead]() ++ lookaheads
     )
 }
 
 /**
-  * A [[LookaheadStructure]] that uses a set in the implementation
+  * A [[Lookahead]] that uses a set in the implementation
   * 
-  * @see [[LookaheadStructure]]
+  * @see [[Lookahead]]
   *
   * @param lookaheadSet The initial set used. Empty by default.
   * @param completed The initial completed tasks. Empty by default.
   */
 case class LookaheadSet(
         lookaheadSet: Set[(Map[UUID, Long] => Option[Long], List[(TaskGenerator)])] = Set(),
-    ) extends LookaheadStructure {
+    ) extends Lookahead {
     /**
       * @inheritdoc
       */
-    override def -(id: UUID): LookaheadStructure = {      
+    override def -(id: UUID): Lookahead = {      
         LookaheadSet(
         lookaheadSet.filter { 
             //remove all entries that spawn this task
@@ -167,7 +167,7 @@ case class LookaheadSet(
     /**
       * @inheritdoc
       */
-    override def +(function: Map[UUID,Long]=>Option[Long], generators: List[TaskGenerator]): LookaheadStructure = {
+    override def +(function: Map[UUID,Long]=>Option[Long], generators: List[TaskGenerator]): Lookahead = {
         copy(lookaheadSet=lookaheadSet+((function,generators)))
     }
     /**
@@ -189,17 +189,17 @@ case class LookaheadSet(
 }
 
 /**
-  * An empty [[LookaheadStructure]] that does nothing.
+  * An empty [[Lookahead]] that does nothing.
   */
-case object EmptyStructure extends LookaheadStructure {
+case object NoLookahead extends Lookahead {
     /**
       * @inheritdoc
       */
-    override def -(id: UUID): LookaheadStructure = EmptyStructure
+    override def -(id: UUID): Lookahead = NoLookahead
     /**
       * @inheritdoc
       */
-    override def +(function: Map[UUID,Long]=>Option[Long], generators: List[TaskGenerator]): LookaheadStructure = LookaheadSet() + (function,generators)
+    override def +(function: Map[UUID,Long]=>Option[Long], generators: List[TaskGenerator]): Lookahead = LookaheadSet() + (function,generators)
     /**
       * @inheritdoc
       */

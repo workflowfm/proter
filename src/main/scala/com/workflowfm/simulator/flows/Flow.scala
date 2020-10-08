@@ -141,7 +141,7 @@ object FlowSimulationActor {
   * Works by parsing the entire flow at the start of the simulation to build a
   * [[LookaheadStructure]] automatically.
   */
-trait FlowsLookahead extends FlowSimulationActor with Lookahead {
+trait FlowsLookahead extends FlowSimulationActor with LookingAhead {
   /**
     * Initiates the execution of the simulation.
     * Parses the flow before running it.
@@ -210,9 +210,9 @@ trait FlowsLookahead extends FlowSimulationActor with Lookahead {
     * @param lookaheadStructure The [[LookaheadStructure]] built so far.
     * @return A function that describes the precondition of this node, and the current lookahead structure.
     */
-  protected def parseFlow(flow: Flow, extraFunction: Option[IDFunction], lookaheadStructure: LookaheadStructure ): (IDFunction, LookaheadStructure) = {
+  protected def parseFlow(flow: Flow, extraFunction: Option[IDFunction], lookaheadStructure: Lookahead ): (IDFunction, Lookahead) = {
     flow match {
-      case f: NoTask => ((m:Map[UUID,Long])=> (Some(Long.MinValue)), EmptyStructure)
+      case f: NoTask => ((m:Map[UUID,Long])=> (Some(Long.MinValue)), NoLookahead)
       case FlowTask(g) => {
         var s = lookaheadStructure
         if (extraFunction.isDefined) s = s + (extraFunction.get, g)
@@ -227,7 +227,7 @@ trait FlowsLookahead extends FlowSimulationActor with Lookahead {
         ( (m) => { 
           val results = functions map (_._1(m))
           if (results.contains(None)) None else results.max
-        }, functions.map(_._2).fold(EmptyStructure){(a,b)=>a and b})
+        }, functions.map(_._2).fold(NoLookahead){(a,b)=>a and b})
       }
       case f @ All(elem @ _*) => {
         val functions = elem map (parseFlow(_,extraFunction,lookaheadStructure))
@@ -235,14 +235,14 @@ trait FlowsLookahead extends FlowSimulationActor with Lookahead {
           val results = functions map (_._1(m))
           if (results.contains(None)) None else results.max
         },
-        functions.map(_._2).fold(EmptyStructure){(a,b)=>a and b})
+        functions.map(_._2).fold(NoLookahead){(a,b)=>a and b})
       }
       case f: Or => {
         val functions = Seq(parseFlow(f.left,extraFunction, lookaheadStructure),parseFlow(f.right,extraFunction, lookaheadStructure))
         ((m) => { 
           val results = functions.map(_._1(m))
           ( results filter (_.isDefined) headOption ).flatten
-        }, functions.map(_._2).fold(EmptyStructure){(a,b)=>a and b})
+        }, functions.map(_._2).fold(NoLookahead){(a,b)=>a and b})
       }
     }
   }

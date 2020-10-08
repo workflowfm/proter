@@ -136,7 +136,7 @@ abstract class Simulation(
     * 
     * @group api
     */
-  def ack(tasks: Seq[UUID], lookahead: Option[LookaheadStructure]=None): Unit = {
+  def ack(tasks: Seq[UUID], lookahead: Option[Lookahead]=None): Unit = {
     coordinator ! Coordinator.AckTasks(tasks, lookahead)
   }
 
@@ -146,7 +146,7 @@ abstract class Simulation(
     *
     * @group api
     */
-  def ready(lookahead: Option[LookaheadStructure]=None): Unit = {
+  def ready(lookahead: Option[Lookahead]=None): Unit = {
     coordinator ! Coordinator.SimReady(lookahead)
   }
 
@@ -480,8 +480,8 @@ trait FutureTasks { self: AsyncSimulation =>
   * Provides a lookahead structure that can be built up by the simulation and then sent to the scheduler
   * for use in making schedules which look into the future to consider upcoming tasks in scheduling.
   */
-trait Lookahead extends Simulation {
-  var lookahead: LookaheadStructure = LookaheadSet()
+trait LookingAhead extends Simulation {
+  var lookahead: Lookahead = LookaheadSet()
 
   /**
     * Sends the lookahead structure to the scheduler

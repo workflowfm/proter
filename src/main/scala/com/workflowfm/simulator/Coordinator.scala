@@ -300,7 +300,7 @@ class Coordinator(
   protected def stopSimulation(name: String, result: String, actor: ActorRef) = {
     simulations -= name
     waiting -= actor
-    scheduler.removeLookaheadObject(actor)
+    scheduler.removeLookahead(actor)
     publish(ESimEnd(self, time, name, result))
     log.debug(s"[COORD:$time] Finished: [${actor.path.name}]")
     ready(actor)
@@ -557,11 +557,11 @@ class Coordinator(
     case Coordinator.AddTask(generator) => addTask(generator)
 
     case Coordinator.AckTasks(ack, lookahead) => {
-      lookahead.map(scheduler.setLookaheadObject(sender(),_))
+      lookahead.map(scheduler.setLookahead(sender(),_))
       ackTasks(sender, ack)
     }
     case Coordinator.SimReady(lookahead) => {
-      lookahead.map(scheduler.setLookaheadObject(sender(),_))
+      lookahead.map(scheduler.setLookahead(sender(),_))
       ackAll(sender)
     }
 
@@ -580,7 +580,7 @@ class Coordinator(
     case Coordinator.Start => start()
     case Coordinator.Ping => sender() ! Coordinator.Time(time)
 
-    case Coordinator.UpdateLookahead(obj) => scheduler.setLookaheadObject(sender(),obj)
+    case Coordinator.UpdateLookahead(obj) => scheduler.setLookahead(sender(),obj)
   }
 
   /**
@@ -683,7 +683,7 @@ object Coordinator {
     * Optionally updates the lookahead structure for that simulation.
     * @group simulations
     */
-  case class AckTasks(ack: Seq[UUID], lookahead: Option[LookaheadStructure]=None)
+  case class AckTasks(ack: Seq[UUID], lookahead: Option[Lookahead]=None)
 
   /**
     * Message from a [[Simulation]] to acknowledge having finished all processing.
@@ -691,7 +691,7 @@ object Coordinator {
     * Optionally updates the lookahead structure for that simulation.
     * @group simulations
     */
-  case class SimReady(lookahead: Option[LookaheadStructure]=None)
+  case class SimReady(lookahead: Option[Lookahead]=None)
 
   /**
     * Message from a [[Simulation]] to wait for it before proceeding.
@@ -704,7 +704,7 @@ object Coordinator {
     *
     * @param l The structure to be sent
     */
-  case class UpdateLookahead(l: LookaheadStructure)
+  case class UpdateLookahead(l: Lookahead)
 
   /**
     * Creates properties for a [[Coordinator]] actor.
