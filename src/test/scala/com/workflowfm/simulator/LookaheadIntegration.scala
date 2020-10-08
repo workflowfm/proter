@@ -140,7 +140,7 @@ extends AsyncSimulation(name,coordinator) with LookingAhead {
         val generator4 = TaskGenerator("task4",id4,name,ConstantGenerator(4L),ConstantGenerator(0L),0L,Seq("r2"),(-1),Task.Low)
 
         
-        lookahead = lookahead + (id1,generator2) + (id1,generator4) + (id2,generator3)
+        lookahead = lookahead +> (id1,generator2) +> (id1,generator4) +> (id2,generator3)
 
         //Equal to flow: task1 > ( (task2 > task3) + task4 )
         // i.e. the sequence task2>task3 happens in parallel to task4
@@ -179,7 +179,7 @@ extends AsyncSimulation(name,coordinator) with LookingAhead {
         val generator4 = TaskGenerator("task4",id4,name,ConstantGenerator(2L),ConstantGenerator(0L),0L,Seq("r3"),(-1),Task.Low)
         val generator5 = TaskGenerator("task5",id5,name,ConstantGenerator(3L),ConstantGenerator(0L),0L,Seq("r2"),(-1),Task.Low)
         
-        lookahead = lookahead + (id1,generator2) + (id1,generator4) + (id2,generator3) + (id4,generator5)
+        lookahead = lookahead +> (id1,generator2) +> (id1,generator4) +> (id2,generator3) +> (id4,generator5)
 
         val task1 = task(generator1, 
             {(_,_)=> task(generator2,
@@ -221,7 +221,7 @@ extends AsyncSimulation(name,coordinator) with LookingAhead {
         val generator5 = TaskGenerator("task5",id5,name,ConstantGenerator(4L),ConstantGenerator(0L),0L,Seq("r3"),(-1),Task.High)
         val generator6 = TaskGenerator("task6",id6,name,ConstantGenerator(10L),ConstantGenerator(0L),0L,Seq("r3"),(-1),Task.Low)
         
-        lookahead = lookahead + (id1,generator2) + (id1,generator3) + (id1,generator4) + (id1,generator6)
+        lookahead = lookahead +> (id1,generator2) +> (id1,generator3) +> (id1,generator4) +> (id1,generator6)
 
         def function(s: collection.immutable.Map[java.util.UUID,Long]): Option[Long] = {
             val prerequisites= Set(id2,id3,id4) map (s.get(_))

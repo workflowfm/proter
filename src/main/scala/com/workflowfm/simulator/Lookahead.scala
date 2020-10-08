@@ -20,6 +20,7 @@ trait Lookahead {
       * @return A Lookahead with the specified task removed.
       */
     def -(id: UUID): Lookahead
+
     /**
       * Adds an entry to the strucutre, comprised of a function that describes the 
       * prerequisites and resultant starting time of a set of tasks, and a list
@@ -41,7 +42,8 @@ trait Lookahead {
       * the prerequistes are met.
       * @return A Lookahead with the specified entry added to it.
       */
-    def +(function: Map[UUID,Long]=>Option[Long], generators: List[TaskGenerator]): Lookahead
+    def ++(function: Map[UUID,Long]=>Option[Long], generators: List[TaskGenerator]): Lookahead
+
     /**
       * Retrieves all tasks that can start given the list of scheduled/completed tasks
       *
@@ -55,14 +57,14 @@ trait Lookahead {
       * 
       * Allows adding a single generator instead of a list of generators.
       * 
-      * @see [[Lookahead.+]]
+      * @see [[Lookahead.++]]
       * 
       * @param function The function describing the conditions of starting the correspoinding task.
       * @param generator The task that will start when the conditions are met.
       * @return
       */
       //todo e.g. // e.g. [[abortSimulation(name:String,actor:akka\.actor\.ActorRef)* abortSimulation]]. 
-    def +(function: Map[UUID,Long]=>Option[Long], generator: TaskGenerator): Lookahead = this.+(function, List(generator))
+    def +(function: Map[UUID,Long]=>Option[Long], generator: TaskGenerator): Lookahead = this.++(function, List(generator))
 
     /**
       * Provides a nicer interface for adding elements to the lookeahead structure.
@@ -70,19 +72,19 @@ trait Lookahead {
       * Allows adding a simple one-to-one relationship, where the generator task starts right after
       * the sourceID task finishes.
       * 
-      * @see [[Lookahead.+]]
+      * @see [[Lookahead.++]]
       * 
       * @param sourceID The id of the task that will finish.
       * @param generator The generator fo the task that will start when the prior task finishes.
       * @return
       */
-    def +(sourceID: UUID, generator: TaskGenerator): Lookahead = {
+    def +>(sourceID: UUID, generator: TaskGenerator): Lookahead = {
         val function: Map[UUID,Long]=>Option[Long] = { s=>
             s.get(sourceID)
         }
         this.+(function, generator)
     }
-    def +(source: Set[UUID], generator: TaskGenerator): Lookahead = {
+    def +>>(source: Set[UUID], generator: TaskGenerator): Lookahead = {
         val function: Map[UUID,Long]=>Option[Long] = { s=>
             val times = source map (s.get(_))
             if (times.contains(None)) None
@@ -118,7 +120,7 @@ case class Lookaheads(lookaheads: Queue[Lookahead]) extends Lookahead {
     /**
       * @inheritdoc
       */
-    override def +(function: Map[UUID,Long]=>Option[Long], generators: List[TaskGenerator]): Lookahead = Lookaheads(lookaheads map (_.+(function, generators)))
+    override def ++(function: Map[UUID,Long]=>Option[Long], generators: List[TaskGenerator]): Lookahead = Lookaheads(lookaheads map (_.++(function, generators)))
     /**
       * @inheritdoc
       */
@@ -167,7 +169,7 @@ case class LookaheadSet(
     /**
       * @inheritdoc
       */
-    override def +(function: Map[UUID,Long]=>Option[Long], generators: List[TaskGenerator]): Lookahead = {
+    override def ++(function: Map[UUID,Long]=>Option[Long], generators: List[TaskGenerator]): Lookahead = {
         copy(lookaheadSet=lookaheadSet+((function,generators)))
     }
     /**
@@ -199,7 +201,7 @@ case object NoLookahead extends Lookahead {
     /**
       * @inheritdoc
       */
-    override def +(function: Map[UUID,Long]=>Option[Long], generators: List[TaskGenerator]): Lookahead = LookaheadSet() + (function,generators)
+    override def ++(function: Map[UUID,Long]=>Option[Long], generators: List[TaskGenerator]): Lookahead = LookaheadSet() ++ (function,generators)
     /**
       * @inheritdoc
       */

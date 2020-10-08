@@ -191,12 +191,12 @@ class SchedulerTests extends TaskTester with ScheduleTester {
     }
     "select a single task with a lookahead structure" in {
       val m = new TestResourceMap("A")
-      m.lookahead = NoLookahead + (id(1L),TaskGenerator("t2","sim",ConstantGenerator(2L),ConstantGenerator(2L)))
+      m.lookahead = NoLookahead +> (id(1L),TaskGenerator("t2","sim",ConstantGenerator(2L),ConstantGenerator(2L)))
       m.l(t(1L, Seq("A"))) should be(Seq(1L))
     }
     "not select a task which would offset a higher priority future task" in {
       val m = new TestResourceMap("A", "B")
-      m.lookahead = NoLookahead + (id(1L),TaskGenerator("t2","sim",ConstantGenerator(5L),ConstantGenerator(5L)).withPriority(Task.High).withResources(Seq("B")))
+      m.lookahead = NoLookahead +> (id(1L),TaskGenerator("t2","sim",ConstantGenerator(5L),ConstantGenerator(5L)).withPriority(Task.High).withResources(Seq("B")))
       m.l(
         t(1L, Seq("A"),Task.High),
         t(2L, Seq("B"),duration=5L)
@@ -204,7 +204,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
     }
     "select a task which offsets a lower priority future task" in {
       val m = new TestResourceMap("A", "B")
-      m.lookahead = NoLookahead + (id(1L),TaskGenerator("t2","sim",ConstantGenerator(5L),ConstantGenerator(5L)).withPriority(Task.Low).withResources(Seq("B")))
+      m.lookahead = NoLookahead +> (id(1L),TaskGenerator("t2","sim",ConstantGenerator(5L),ConstantGenerator(5L)).withPriority(Task.Low).withResources(Seq("B")))
       m.l(
         t(1L, Seq("A"),Task.High),
         t(2L, Seq("B"),duration=5L)
@@ -212,8 +212,8 @@ class SchedulerTests extends TaskTester with ScheduleTester {
     }
     "consider a distant future task" in {
       val m = new TestResourceMap("A", "B")
-      m.lookahead = NoLookahead + (id(1L),TaskGenerator("t2",id(2L),"sim",ConstantGenerator(2L),ConstantGenerator(2L)).withPriority(Task.High).withResources(Seq("A")))
-      m.lookahead = m.lookahead + (id(2L),TaskGenerator("t3","sim",ConstantGenerator(5L),ConstantGenerator(5L)).withPriority(Task.High).withResources(Seq("B")))
+      m.lookahead = NoLookahead +> (id(1L),TaskGenerator("t2",id(2L),"sim",ConstantGenerator(2L),ConstantGenerator(2L)).withPriority(Task.High).withResources(Seq("A")))
+      m.lookahead = m.lookahead +> (id(2L),TaskGenerator("t3","sim",ConstantGenerator(5L),ConstantGenerator(5L)).withPriority(Task.High).withResources(Seq("B")))
       m.l(
         t(1L, Seq("A"),Task.High),
         t(3L, Seq("B"),duration=5L)
@@ -221,7 +221,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
     }
     "consider currently-running tasks" in {
       val m = new TestResourceMap("A")
-      m.lookahead = NoLookahead + (id(1L),TaskGenerator("t2","sim",ConstantGenerator(5L),ConstantGenerator(5L)).withPriority(Task.Low).withResources(Seq("B")))
+      m.lookahead = NoLookahead +> (id(1L),TaskGenerator("t2","sim",ConstantGenerator(5L),ConstantGenerator(5L)).withPriority(Task.Low).withResources(Seq("B")))
       m.m.get("A").map { _.startTask(t(1L, Seq("A"), Task.High, 0L, 5L, actor=mock), 0L) }
       m.l(t(1L, Seq("A"))) should be (Seq())
     }
