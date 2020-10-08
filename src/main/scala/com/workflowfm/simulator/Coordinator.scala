@@ -622,6 +622,8 @@ class Coordinator(
 
   /**
     * Stops the entire simulation and shuts down the actor.
+    * 
+    * @note Dead letters may occur after this, but we are ok with that, at least for now.
     * @group toplevel
     */
   def stop() = {
