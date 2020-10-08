@@ -44,8 +44,8 @@ class Flows extends FlowsTester {
             val t2 = FlowTask(TaskGenerator("t2","sim",ConstantGenerator(2),ConstantGenerator(2)))
             val f = parseFlow(t1 > t2)
             f._2 should not be (EmptyStructure)
-            f._2.getTaskData(Seq().to[collection.immutable.Seq]).size should be (0)
-            val data = f._2.getTaskData(Seq((t1.generator.id,2L)).to[collection.immutable.Seq])
+            f._2.getTaskData(Seq()).size should be (0)
+            val data = f._2.getTaskData(Seq((t1.generator.id,2L)))
             data.size should be (1)
             data.head._1.id should be (t2.generator.id)
         }
@@ -56,9 +56,9 @@ class Flows extends FlowsTester {
             val function = (m:Map[UUID,Long]) => if (m.keySet.contains(dummyID)) Some(0L) else None
             val f = parseFlow(t1, Some(function))
             f._2 should not be (EmptyStructure)
-            f._2.getTaskData(Seq().to[collection.immutable.Seq]).size should be (0)
-            f._2.getTaskData(Seq((t1id,2L)).to[collection.immutable.Seq]).size should be (0)
-            val data = f._2.getTaskData(Seq((dummyID,2L)).to[collection.immutable.Seq])
+            f._2.getTaskData(Seq()).size should be (0)
+            f._2.getTaskData(Seq((t1id,2L))).size should be (0)
+            val data = f._2.getTaskData(Seq((dummyID,2L)))
             data.size should be (1)
             data.head._1.id should be (t1id)
         }

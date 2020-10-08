@@ -198,7 +198,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
     }
     "not select a task which would offset a higher priority future task" in {
       val m = new TestResourceMap("A", "B")
-      m.lookahead = EmptyStructure + (id(1L),TaskGenerator("t2","sim",ConstantGenerator(5L),ConstantGenerator(5L)).withPriority(Task.High).withResources(Seq("B"))) //todo taskGenerator shortcut
+      m.lookahead = EmptyStructure + (id(1L),TaskGenerator("t2","sim",ConstantGenerator(5L),ConstantGenerator(5L)).withPriority(Task.High).withResources(Seq("B")))
       m.l(
         t(1L, Seq("A"),Task.High),
         t(2L, Seq("B"),duration=5L)
