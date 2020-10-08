@@ -33,7 +33,6 @@ lazy val root = (project in file("."))
   .settings(
     commonSettings,
     name := "wfm-simulator"
-<<<<<<< HEAD
   )
 
 lazy val examples = (project in file("examples"))
@@ -45,6 +44,3 @@ lazy val examples = (project in file("examples"))
   ).dependsOn(rootRef)
 
 lazy val rootRef = LocalProject("root")
-=======
-  )
->>>>>>> lookahead/main
