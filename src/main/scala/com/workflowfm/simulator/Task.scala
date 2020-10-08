@@ -51,6 +51,7 @@ class Task(
     */
   var cost: Long = initialCost
 
+
   /**
     * Adds more costs to the task.
     * [[Coordinator.addTask]] uses this to add the cost of the resources used.

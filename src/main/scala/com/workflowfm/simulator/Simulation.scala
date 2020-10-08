@@ -8,6 +8,7 @@ import scala.concurrent.duration.Duration
 import scala.collection.mutable.{ Map, Queue }
 import scala.concurrent.{ ExecutionContext, Future, Promise }
 import java.util.UUID
+import scala.collection.mutable
 
 /**
   * An actor managing the interaction between a simulation and a [[Coordinator]].
@@ -66,7 +67,7 @@ import java.util.UUID
   */
 abstract class Simulation(
    name: String,
-    coordinator: ActorRef
+   protected val coordinator: ActorRef
 )(implicit executionContext: ExecutionContext)
     extends Actor {
     
@@ -95,7 +96,7 @@ abstract class Simulation(
     * @param task The completed [[Task]].
     * @param time The timestamp of completion and current time.
     */
-  def complete(task: Task, time: Long): Unit
+  def complete(task: Task, time: Long): Unit = Unit
 
   /**
     * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation
@@ -121,6 +122,7 @@ abstract class Simulation(
     */
   protected def start(): Unit = {
     coordinator ! Coordinator.SimStarted(name)
+    
     run().onComplete { x =>
       coordinator ! Coordinator.SimDone(name, x)
     }
@@ -134,8 +136,8 @@ abstract class Simulation(
     * 
     * @group api
     */
-  def ack(tasks: Seq[UUID]): Unit = {
-    coordinator ! Coordinator.AckTasks(tasks)
+  def ack(tasks: Seq[UUID], lookahead: Option[Lookahead]=None): Unit = {
+    coordinator ! Coordinator.AckTasks(tasks, lookahead)
   }
 
   /**
@@ -144,8 +146,8 @@ abstract class Simulation(
     *
     * @group api
     */
-  def ready(): Unit = {
-    coordinator ! Coordinator.SimReady
+  def ready(lookahead: Option[Lookahead]=None): Unit = {
+    coordinator ! Coordinator.SimReady(lookahead)
   }
 
   /**
@@ -226,6 +228,8 @@ object Simulation {
     * @param time The (virtual) time of completion.
     */
   case class TaskCompleted(task: Task, time: Long)
+
+  
   /**
     * Tells the [[Simulation]] to request that [[Coordinator]] waits.
     *
@@ -387,7 +391,7 @@ abstract class AsyncSimulation(
       t: TaskGenerator,
       callback: Callback
   ): Unit = {
-    tasks += t.id -> callback //todo id might be protected?
+    tasks += t.id -> callback
     super.task(t)
   }
 
@@ -410,7 +414,7 @@ abstract class AsyncSimulation(
   * A [[Callback]] function that notifies another `Actor` about a [[Task]] completion.
   * 
   * This allows the simulation logic of a callback to be implemented in another actor.
-  * The other actor can use the [[Simulation.AddTask]], [[Simulation.AddTaskWithId]],
+  * The other actor can use the [[Simulation.AddTask]],
   * [[Simulation.AckTasks]], and [[Simulation.Ready]] messages to make progress instead 
   * of calling the respective methods.
   *
@@ -465,5 +469,41 @@ trait FutureTasks { self: AsyncSimulation =>
     def call: Callback = (task, time) => p.success(task, time)
     task(t, call)
     p.future
+  }
+}
+
+/**
+  * A trait that adds Lookahead capabilities to a simulation.
+  * 
+  * Works in conjunction with [[LookaheadScheduler]].
+  * 
+  * Provides a lookahead structure that can be built up by the simulation and then sent to the scheduler
+  * for use in making schedules which look into the future to consider upcoming tasks in scheduling.
+  */
+trait LookingAhead extends Simulation {
+  var lookahead: Lookahead = LookaheadSet()
+
+  /**
+    * Sends the lookahead structure to the scheduler
+    */
+  def sendLookahead():Unit = {  coordinator ! Coordinator.UpdateLookahead(lookahead) }
+
+  /**
+    * Manages a [[Task]] whose simulation has completed.
+    *
+    * Removes the task from the lookahead structure and sends this updated structure to the
+    * scheduler before calling the `complete` method implementation of the parent class.
+    *
+    * @param task The [[Task]] that completed.
+    * @param time The timestamp of its completion.
+    */
+  val completed: collection.mutable.Set[(java.util.UUID, Long)] = collection.mutable.Set()
+
+  override def complete(task: Task, time: Long) = {
+    completed += ((task.id,time))
+    lookahead = lookahead - task.id
+    lookahead.getTaskData(completed) foreach { x=> lookahead = lookahead - x._1.id }
+    sendLookahead()
+    super.complete(task,time)
   }
 }

@@ -66,7 +66,7 @@ class CoordinatorTests
       val tg = TaskGenerator("T", id, "Test", ConstantGenerator(2L), ConstantGenerator(5L))
       val expected = new Task(id, "T", "Test", self, 0L, 0L, Seq(), 2L, 2L, 5L, -1, Task.Medium)
       coordinator ! Coordinator.AddTasks(Seq((tg)))
-      coordinator ! Coordinator.SimReady
+      coordinator ! Coordinator.SimReady(None)
 
       val Simulation.TaskCompleted(task, time) = expectMsgType[Simulation.TaskCompleted]
       time should be(2L)
@@ -89,7 +89,7 @@ class CoordinatorTests
       val tg1 = TaskGenerator("T1", id1, "Test", ConstantGenerator(2L), ConstantGenerator(5L))
       val expected1 = new Task(id1, "T1", "Test", self, 0L, 0L, Seq(), 2L, 2L, 5L, -1, Task.Medium)
       coordinator ! Coordinator.AddTasks(Seq((tg1)))
-      coordinator ! Coordinator.SimReady
+      coordinator ! Coordinator.SimReady(None)
 
       // T1 completes
       val Simulation.TaskCompleted(task1, time1) = expectMsgType[Simulation.TaskCompleted]
@@ -132,7 +132,7 @@ class CoordinatorTests
 
       // Add both
       coordinator ! Coordinator.AddTasks(Seq(tg1, tg2))
-      coordinator ! Coordinator.SimReady
+      coordinator ! Coordinator.SimReady(None)
 
       // T1 and T2 complete
       expectMsgType[Simulation.TaskCompleted]
@@ -185,7 +185,7 @@ class CoordinatorTests
       val tg1a = TaskGenerator("T1a", id1a, "Test1", ConstantGenerator(2L), ConstantGenerator(5L))
       val expected1a = new Task(id1a, "T1a", "Test1", self, 0L, 0L, Seq(), 2L, 2L, 5L, -1, Task.Medium)
       coordinator ! Coordinator.AddTasks(Seq((tg1a)))
-      coordinator ! Coordinator.SimReady
+      coordinator ! Coordinator.SimReady(None)
 
       // Test2 starts
       probe.expectMsg(Simulation.Start)
@@ -196,7 +196,7 @@ class CoordinatorTests
       val tg2a = TaskGenerator("T2a", id2a, "Test2", ConstantGenerator(1L), ConstantGenerator(5L))
       val expected2a = new Task(id2a, "T2a", "Test2", self, 1L, 0L, Seq(), 1L, 1L, 5L, -1, Task.Medium)
       probe.send(coordinator, Coordinator.AddTasks(Seq((tg2a))))
-      probe.send(coordinator, Coordinator.SimReady)
+      probe.send(coordinator, Coordinator.SimReady(None))
 
       // T1a completes
       val Simulation.TaskCompleted(task1a, time1a) =
@@ -234,7 +234,7 @@ class CoordinatorTests
       val expected1a =
         new Task(id1a, "T1a", "Test1", self, 0L, 0L, Seq(), 10L, 10L, 5L, -1, Task.Medium)
       coordinator ! Coordinator.AddTasks(Seq((tg1a)))
-      coordinator ! Coordinator.SimReady
+      coordinator ! Coordinator.SimReady(None)
 
       // Test2 starts
       probe.expectMsg(Simulation.Start)
@@ -245,7 +245,7 @@ class CoordinatorTests
       val tg2a = TaskGenerator("T2a", id2a, "Test2", ConstantGenerator(1L), ConstantGenerator(5L))
       val expected2a = new Task(id2a, "T2a", "Test2", self, 1L, 0L, Seq(), 1L, 1L, 5L, -1, Task.Medium)
       probe.send(coordinator, Coordinator.AddTasks(Seq((tg2a))))
-      probe.send(coordinator, Coordinator.SimReady)
+      probe.send(coordinator, Coordinator.SimReady(None))
 
       // T2a completes
       val Simulation.TaskCompleted(task2a, time2a) =
@@ -270,7 +270,7 @@ class CoordinatorTests
       val tg1b = TaskGenerator("T1b", id1b, "Test1", ConstantGenerator(1L), ConstantGenerator(5L))
       val expected1b = new Task(id1b, "T1b", "Test1", self, 2L, 0L, Seq(), 1L, 1L, 5L, -1, Task.Medium)
       coordinator ! Coordinator.AddTasks(Seq((tg1b)))
-      coordinator ! Coordinator.SimReady
+      coordinator ! Coordinator.SimReady(None)
 
       // T1b completes
       val Simulation.TaskCompleted(task1b, time1b) =

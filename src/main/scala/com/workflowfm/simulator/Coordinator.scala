@@ -300,6 +300,7 @@ class Coordinator(
   protected def stopSimulation(name: String, result: String, actor: ActorRef) = {
     simulations -= name
     waiting -= actor
+    scheduler.removeLookahead(actor)
     publish(ESimEnd(self, time, name, result))
     log.debug(s"[COORD:$time] Finished: [${actor.path.name}]")
     ready(actor)
@@ -484,6 +485,7 @@ class Coordinator(
       case Some(l) => waiting.update(task.actor, task.id :: l)
     }
     log.debug(s"[COORD:$time] Waiting post-task: ${task.actor.path.name}")
+    scheduler.complete(task,time)
     publish(ETaskDone(self, time, task))
     task.actor ! Simulation.TaskCompleted(task, time)
   }
@@ -554,8 +556,14 @@ class Coordinator(
     case Coordinator.AddTasks(l) => addTasks(sender, l)
     case Coordinator.AddTask(generator) => addTask(generator)
 
-    case Coordinator.AckTasks(ack) => ackTasks(sender, ack)
-    case Coordinator.SimReady => ackAll(sender)
+    case Coordinator.AckTasks(ack, lookahead) => {
+      lookahead.map(scheduler.setLookahead(sender(),_))
+      ackTasks(sender, ack)
+    }
+    case Coordinator.SimReady(lookahead) => {
+      lookahead.map(scheduler.setLookahead(sender(),_))
+      ackAll(sender)
+    }
 
     case Coordinator.WaitFor(actor) => waitFor(actor, sender())
     case Coordinator.SimStarted(name) => simulationStarted(name)
@@ -571,6 +579,8 @@ class Coordinator(
       }
     case Coordinator.Start => start()
     case Coordinator.Ping => sender() ! Coordinator.Time(time)
+
+    case Coordinator.UpdateLookahead(obj) => scheduler.setLookahead(sender(),obj)
   }
 
   /**
@@ -668,21 +678,33 @@ object Coordinator {
 
   /**
     * Message from a [[Simulation]] to acknowledge having processed finished tasks.
+    * 
+    * 
+    * Optionally updates the lookahead structure for that simulation.
     * @group simulations
     */
-  case class AckTasks(ack: Seq[UUID])
+  case class AckTasks(ack: Seq[UUID], lookahead: Option[Lookahead]=None)
 
   /**
     * Message from a [[Simulation]] to acknowledge having finished all processing.
+    * 
+    * Optionally updates the lookahead structure for that simulation.
     * @group simulations
     */
-  case object SimReady
+  case class SimReady(lookahead: Option[Lookahead]=None)
 
   /**
     * Message from a [[Simulation]] to wait for it before proceeding.
     * @group simulations
     */
   case class WaitFor(actor: ActorRef)
+
+  /**
+    * Message from a [[Simulation]] to send a [[Lookahead]] to the [[Scheduler]]
+    *
+    * @param l The structure to be sent
+    */
+  case class UpdateLookahead(l: Lookahead)
 
   /**
     * Creates properties for a [[Coordinator]] actor.
