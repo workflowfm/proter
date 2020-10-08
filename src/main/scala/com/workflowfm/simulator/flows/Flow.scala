@@ -139,7 +139,7 @@ object FlowSimulationActor {
   * A triat which provides Lookahead compatability to [[FlowSimulationActor]]s.
   * 
   * Works by parsing the entire flow at the start of the simulation to build a
-  * [[LookaheadStructure]] automatically.
+  * [[Lookahead]] automatically.
   */
 trait FlowsLookahead extends FlowSimulationActor with LookingAhead {
   /**
@@ -155,17 +155,17 @@ trait FlowsLookahead extends FlowSimulationActor with LookingAhead {
 
   type IDFunction = Map[UUID,Long]=>Option[Long]
   /**
-    * Parses a flow in order to build a [[LookaheadStructure]]
+    * Parses a flow in order to build a [[Lookahead]]
     * 
     * This is a recursive function which uses the fact that [[Flow]]s are tree-like structures.
     * Each iteration it calls parseFlow on each of its children and then combines the results in 
-    * a meaningful way. The goal is to build up a [[LookaheadStructure]] by combining the structures
+    * a meaningful way. The goal is to build up a [[Lookahead]] by combining the structures
     * of each branch. There is also this `IDFunction` which is passed up and down the tree as the
     * algorithm progresses, which is used to describe the function that will be used to add entries
     * to the lookahead structure; This function can grow/shrink over time as the algorithm progresses,
     * but it is always used to describe the most current prerequisites of any task that it might meet.
     * 
-    * @see [[LookaheadStructure.+]] for details on the IDfunction itself.
+    * @see [[Lookahead.+]] for details on the IDfunction itself.
     * 
     * As it works through the flow tree, the algorithm does the following:
     *   1. If the current node is a task (i.e. a leaf node), it should be registered by adding itself
@@ -206,8 +206,8 @@ trait FlowsLookahead extends FlowSimulationActor with LookingAhead {
     * detailed explanations.
     *
     * @param flow The flow to be parsed
-    * @param extraFunction an optional function which describes the current preconditions for lookahead (if any). @see [[LookaheadStructure.+]]
-    * @param lookaheadStructure The [[LookaheadStructure]] built so far.
+    * @param extraFunction an optional function which describes the current preconditions for lookahead (if any). @see [[Lookahead.+]]
+    * @param lookaheadStructure The [[Lookahead]] built so far.
     * @return A function that describes the precondition of this node, and the current lookahead structure.
     */
   protected def parseFlow(flow: Flow, extraFunction: Option[IDFunction], lookaheadStructure: Lookahead ): (IDFunction, Lookahead) = {

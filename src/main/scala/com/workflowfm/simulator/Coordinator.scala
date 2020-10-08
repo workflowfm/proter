@@ -700,7 +700,7 @@ object Coordinator {
   case class WaitFor(actor: ActorRef)
 
   /**
-    * Message from a [[Simulation]] to send a [[LookaheadStructure]] to the [[Scheduler]]
+    * Message from a [[Simulation]] to send a [[Lookahead]] to the [[Scheduler]]
     *
     * @param l The structure to be sent
     */

@@ -414,7 +414,7 @@ abstract class AsyncSimulation(
   * A [[Callback]] function that notifies another `Actor` about a [[Task]] completion.
   * 
   * This allows the simulation logic of a callback to be implemented in another actor.
-  * The other actor can use the [[Simulation.AddTask]], [[Simulation.AddTaskWithId]],
+  * The other actor can use the [[Simulation.AddTask]],
   * [[Simulation.AckTasks]], and [[Simulation.Ready]] messages to make progress instead 
   * of calling the respective methods.
   *
