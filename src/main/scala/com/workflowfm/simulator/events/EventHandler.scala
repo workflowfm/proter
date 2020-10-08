@@ -1,6 +1,7 @@
 package com.workflowfm.simulator.events
 
 import akka.actor.{ ActorRef, ActorSystem }
+import akka.event.{ Logging, LoggingAdapter }
 import java.text.SimpleDateFormat
 import scala.collection.mutable.HashSet
 import scala.concurrent.Promise
@@ -15,6 +16,9 @@ trait EventHandler extends Subscriber[Event]
   * An [[EventHandler]] for a pool of [[Coordinator]]s.
   */
 trait PoolEventHandler extends EventHandler {
+
+  def log: LoggingAdapter
+
   /**
     * The set of [[Coordinator]]s we have subscribed to.
     */
@@ -26,7 +30,7 @@ trait PoolEventHandler extends EventHandler {
     * @param a The reference to the [[Coordinator]] actor that initialized the stream.
     */
   override def onInit(a: ActorRef) = {
-    println(s"Pool handler adding coordinator: $a")
+    log.debug(s"Pool handler adding coordinator: $a")
     coordinators += a
   }
 
@@ -37,7 +41,7 @@ trait PoolEventHandler extends EventHandler {
     * @param s
     */
   override def onDone(a: ActorRef, s: ActorRef) = {
-    println(s"Pool handler done with coordinator: $a")
+    log.debug(s"Pool handler done with coordinator: $a")
     coordinators -= a
   }
 }
@@ -135,10 +139,12 @@ class SimulationResultHandler(name: String, callback: String => Unit = { _ => Un
   */
 class ShutdownHandler(implicit system: ActorSystem) extends PoolEventHandler {
 
+  override val log = Logging(system, this.getClass())
+
   override def onDone(a: ActorRef, s: ActorRef): Unit = {
     super.onDone(a, s)
     if (coordinators.isEmpty) {
-      println(
+      log.debug(
         "********************************************* SHUTTING DOWN!!! ***********************************************"
       )
       Thread.sleep(1000)
