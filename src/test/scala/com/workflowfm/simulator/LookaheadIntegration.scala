@@ -23,7 +23,8 @@ class LookaheadIntegrationTests extends TestKit(ActorSystem("LookaheadTest"))
     with LookaheadTester
     with WordSpecLike
     with Matchers
-    with BeforeAndAfterAll {
+    with BeforeAndAfterAll
+    with OptionValues {
 
   override def afterAll: Unit = {
     TestKit.shutdownActorSystem(system)
@@ -34,31 +35,31 @@ class LookaheadIntegrationTests extends TestKit(ActorSystem("LookaheadTest"))
         "execute a basic scenario without blocking high priority tasks [ 1 > ( (2>3) + 4 ) ]" in {
             val testMetrics = singleSimulationTest(DummySim)
             testMetrics.size should be (4)
-            testMetrics.get("task1 (sim1)").get.get should be (2)
-            testMetrics.get("task2 (sim1)").get.get should be (4)
-            testMetrics.get("task3 (sim1)").get.get should be (8)
-            testMetrics.get("task4 (sim1)").get.get should be (12)
+            testMetrics.get("task1 (sim1)").value.value should be (2)
+            testMetrics.get("task2 (sim1)").value.value should be (4)
+            testMetrics.get("task3 (sim1)").value.value should be (8)
+            testMetrics.get("task4 (sim1)").value.value should be (12)
         }
 
         "execute simulation where in-progress tasks must be considered [ 1 > ( (2>3) + (4>5) ) ]" in {
             val testMetrics = singleSimulationTest(DummySim2)
             testMetrics.size should be (5)
-            testMetrics.get("task1 (sim2)").get.get should be (2)
-            testMetrics.get("task2 (sim2)").get.get should be (6)
-            testMetrics.get("task3 (sim2)").get.get should be (9)
-            testMetrics.get("task4 (sim2)").get.get should be (4)
-            testMetrics.get("task5 (sim2)").get.get should be (12)
+            testMetrics.get("task1 (sim2)").value.value should be (2)
+            testMetrics.get("task2 (sim2)").value.value should be (6)
+            testMetrics.get("task3 (sim2)").value.value should be (9)
+            testMetrics.get("task4 (sim2)").value.value should be (4)
+            testMetrics.get("task5 (sim2)").value.value should be (12)
         }
 
         "execute simulation where a many-to-one future task relationship is involved [ 1 > ( ( (2+3+4)>5 ) + 6 ) ]" in {
             val testMetrics = singleSimulationTest(DummySim3)
             testMetrics.size should be (6)
-            testMetrics.get("task1 (sim3)").get.get should be (2)
-            testMetrics.get("task2 (sim3)").get.get should be (6)
-            testMetrics.get("task3 (sim3)").get.get should be (5)
-            testMetrics.get("task4 (sim3)").get.get should be (4)
-            testMetrics.get("task5 (sim3)").get.get should be (10)
-            testMetrics.get("task6 (sim3)").get.get should be (20)
+            testMetrics.get("task1 (sim3)").value.value should be (2)
+            testMetrics.get("task2 (sim3)").value.value should be (6)
+            testMetrics.get("task3 (sim3)").value.value should be (5)
+            testMetrics.get("task4 (sim3)").value.value should be (4)
+            testMetrics.get("task5 (sim3)").value.value should be (10)
+            testMetrics.get("task6 (sim3)").value.value should be (20)
         }
     }
 
@@ -67,31 +68,31 @@ class LookaheadIntegrationTests extends TestKit(ActorSystem("LookaheadTest"))
         "execute a basic scenario without blocking high priority tasks [ 1 > ( (2>3) + 4 ) ]" in {
             val testMetrics = singleSimulationTest(FlowDummySim)
             testMetrics.size should be (4)
-            testMetrics.get("task1 (sim4)").get.get should be (2)
-            testMetrics.get("task2 (sim4)").get.get should be (4)
-            testMetrics.get("task3 (sim4)").get.get should be (8)
-            testMetrics.get("task4 (sim4)").get.get should be (12)
+            testMetrics.get("task1 (sim4)").value.value should be (2)
+            testMetrics.get("task2 (sim4)").value.value should be (4)
+            testMetrics.get("task3 (sim4)").value.value should be (8)
+            testMetrics.get("task4 (sim4)").value.value should be (12)
         }
 
         "execute simulation where in-progress tasks must be considered [ 1 > ( (2>3) + (4>5) ) ]" in {
             val testMetrics = singleSimulationTest(FlowDummySim2)
             testMetrics.size should be (5)
-            testMetrics.get("task1 (sim5)").get.get should be (2)
-            testMetrics.get("task2 (sim5)").get.get should be (6)
-            testMetrics.get("task3 (sim5)").get.get should be (9)
-            testMetrics.get("task4 (sim5)").get.get should be (4)
-            testMetrics.get("task5 (sim5)").get.get should be (12)
+            testMetrics.get("task1 (sim5)").value.value should be (2)
+            testMetrics.get("task2 (sim5)").value.value should be (6)
+            testMetrics.get("task3 (sim5)").value.value should be (9)
+            testMetrics.get("task4 (sim5)").value.value should be (4)
+            testMetrics.get("task5 (sim5)").value.value should be (12)
         }
 
         "execute simulation where a many-to-one future task relationship is involved [ 1 > ( ( (2+3+4)>5 ) + 6 ) ]" in {
             val testMetrics = singleSimulationTest(FlowDummySim3)
             testMetrics.size should be (6)
-            testMetrics.get("task1 (sim6)").get.get should be (2)
-            testMetrics.get("task2 (sim6)").get.get should be (6)
-            testMetrics.get("task3 (sim6)").get.get should be (5)
-            testMetrics.get("task4 (sim6)").get.get should be (4)
-            testMetrics.get("task5 (sim6)").get.get should be (10)
-            testMetrics.get("task6 (sim6)").get.get should be (20)
+            testMetrics.get("task1 (sim6)").value.value should be (2)
+            testMetrics.get("task2 (sim6)").value.value should be (6)
+            testMetrics.get("task3 (sim6)").value.value should be (5)
+            testMetrics.get("task4 (sim6)").value.value should be (4)
+            testMetrics.get("task5 (sim6)").value.value should be (10)
+            testMetrics.get("task6 (sim6)").value.value should be (20)
         }
     }
 
@@ -100,11 +101,10 @@ class LookaheadIntegrationTests extends TestKit(ActorSystem("LookaheadTest"))
 trait LookaheadTester { 
     self:TestKit => 
 
+  implicit val executionContext: ExecutionContext = ExecutionContext.global
+  implicit val timeout = Timeout(2.seconds)
+
   def singleSimulationTest(sim: TestObject): Map[String, Option[Long]] = {
-    val testMetrics = Map[String, Option[Long]]()
-    //implicit val system: ActorSystem = ActorSystem("LookaheadIntegration") //not needed
-    implicit val executionContext: ExecutionContext = ExecutionContext.global
-    implicit val timeout = Timeout(2.seconds)
     val coordinator = system.actorOf(Coordinator.props(new LookaheadScheduler()))
     //val shutdownActor = Subscriber.actor(new ShutdownHandler()) //not needed
     //val smh = new SimMetricsHandler
@@ -118,8 +118,7 @@ trait LookaheadTester {
     coordinator ! Coordinator.AddSim(0L, system.actorOf(sim.props(sim.name,coordinator), sim.name) )
     coordinator ! Coordinator.Start
     val metrics = Await.result(smh.future, 3.seconds)
-    metrics.taskMap map { x => testMetrics += (x._2.fullName -> x._2.finished) }
-    testMetrics
+    metrics.taskMap map { x => x._2.fullName -> x._2.finished }
   }
 }
 
