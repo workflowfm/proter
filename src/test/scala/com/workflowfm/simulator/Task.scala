@@ -80,8 +80,8 @@ class TaskTester
     with Matchers
     with BeforeAndAfterAll
     with ImplicitSender {
-    implicit val executionContext = ExecutionContext.global
-    implicit val timeout: FiniteDuration = 10.seconds
+  implicit val executionContext = ExecutionContext.global
+  implicit val timeout: FiniteDuration = 10.seconds
 
   final val probe: TestProbe = TestProbe.apply("TaskTestsProbe")(system);
   final val mock: ActorRef = probe.ref;

@@ -43,14 +43,14 @@ trait Scheduler {
     * @param actor The actor that created this lookahead structure.
     * @param obj The lookahead structure.
     */
-  def setLookahead(actor: ActorRef, obj: Lookahead): Unit = {Unit}
+  def setLookahead(actor: ActorRef, obj: Lookahead): Unit = { Unit }
 
   /**
     * Removes the lookahead structure associated with the given actor.
     *
     * @param actor The actor corresponding to the lookahead structure.
     */
-  def removeLookahead(actor: ActorRef): Unit = {Unit}
+  def removeLookahead(actor: ActorRef): Unit = { Unit }
   /**
     * Adds an Task described by an (ID,time) pair to the list of completed IDs
     *
@@ -485,21 +485,21 @@ object Schedule {
   }
 }
 
-
 /**
   * A [[Scheduler]] to be used for look-ahead.
-  * 
+  *
   * Should be used in conjunction with simulations which use the lookahead trait.
   *
   * Relies on the use of [[Schedule]]s for each [[TaskResource]].
   */
 class LookaheadScheduler(initialTasks: Task*) extends SortedSetScheduler {
   import scala.collection.immutable.Queue
-  import scala.concurrent.{Await, Future, ExecutionContext}
+  import scala.concurrent.{ Await, ExecutionContext, Future }
 
   tasks ++= initialTasks
 
-  protected val lookaheadObjects: collection.mutable.Map[ActorRef,Lookahead] = collection.mutable.Map()
+  protected val lookaheadObjects: collection.mutable.Map[ActorRef, Lookahead] =
+    collection.mutable.Map()
   protected val completed: collection.mutable.Set[(java.util.UUID, Long)] = collection.mutable.Set()
 
   /**
@@ -508,26 +508,25 @@ class LookaheadScheduler(initialTasks: Task*) extends SortedSetScheduler {
     * @param actor The actor that owns the lookahead structure.
     * @param obj The lookahead structure to be added.
     */
-  override def setLookahead(actor: ActorRef, obj: Lookahead) = lookaheadObjects += actor -> obj 
+  override def setLookahead(actor: ActorRef, obj: Lookahead) = lookaheadObjects += actor -> obj
   /**
     * Removes the lookahead structure bcorresponding to an actor.
     *
     * @param actor The actor corresponding to the lookahead structure that should be removed.
     */
-  override def removeLookahead(actor: ActorRef): Unit = lookaheadObjects -= actor 
+  override def removeLookahead(actor: ActorRef): Unit = lookaheadObjects -= actor
+
+  /**
+    * @inheritdoc
+    */
+  override def complete(task: Task, time: Long): Unit = completed += ((task.id, time))
 
   /**
     * @inheritdoc
     *
-    */
-  override def complete(task: Task, time: Long): Unit = completed += ((task.id,time))
-
-  /**
-    * @inheritdoc
-    * 
     * Uses [[LookaheadScheduler.findNextTasks]].
     * @see [[LookaheadScheduler.findNextTasks]]
-    * 
+    *
     * Finds currently running tasks by using the resourceMap and also considers these
     * for scheduling.
     *
@@ -541,27 +540,43 @@ class LookaheadScheduler(initialTasks: Task*) extends SortedSetScheduler {
   ): Seq[Task] = {
     implicit val executionContext = ExecutionContext.global
     //combine lookahead structures
-    var lookaheadSetThisIter = lookaheadObjects.values.fold(NoLookahead){(a,b)=>a and b}
+    var lookaheadSetThisIter = lookaheadObjects.values.fold(NoLookahead) { (a, b) => a and b }
     //get future tasks from currently running tasks
-    var futureTasksFoundSoFar = Seq[(java.util.UUID,Long)]()
-    val inProgressFutureTasks = resourceMap.flatMap{ case (_,x) => if (!x.currentTask.isDefined) Seq() else {
-        futureTasksFoundSoFar = futureTasksFoundSoFar :+ ((x.currentTask.get._2.id,x.nextAvailableTimestamp(currentTime)))
-        tasksAfterThis(
-          x.currentTask.get._2.actor,
-          futureTasksFoundSoFar,
-          lookaheadSetThisIter
-        )
-      }
+    var futureTasksFoundSoFar = Seq[(java.util.UUID, Long)]()
+    val inProgressFutureTasks = resourceMap.flatMap {
+      case (_, x) =>
+        if (!x.currentTask.isDefined) Seq()
+        else {
+          futureTasksFoundSoFar = futureTasksFoundSoFar :+ (
+                  (
+                    x.currentTask.get._2.id,
+                    x.nextAvailableTimestamp(currentTime)
+                  )
+                )
+          tasksAfterThis(
+            x.currentTask.get._2.actor,
+            futureTasksFoundSoFar,
+            lookaheadSetThisIter
+          )
+        }
     }
-    val t = findNextTasks(currentTime, resourceMap, resourceMap.mapValues(Schedule(_)), tasks++inProgressFutureTasks, Seq(), lookaheadSetThisIter, Queue())
+    val t = findNextTasks(
+      currentTime,
+      resourceMap,
+      resourceMap.mapValues(Schedule(_)),
+      tasks ++ inProgressFutureTasks,
+      Seq(),
+      lookaheadSetThisIter,
+      Queue()
+    )
     t.intersect(tasks.toSeq)
   }
 
   /**
     * Finds the [[Task]]s that can be started now.
-    * 
+    *
     * The algorithm is recursive, and works by starting with the original lookahead structure and slowly reducing it
-    * as the algorithm progresses. Every time a task is scheduled, the subsequent tasks are discovered via the 
+    * as the algorithm progresses. Every time a task is scheduled, the subsequent tasks are discovered via the
     * lookahead structure and are added to the task list, while the structure itself removes these tasks such that
     * a single task cannot be returned more than once.
     *
@@ -591,16 +606,19 @@ class LookaheadScheduler(initialTasks: Task*) extends SortedSetScheduler {
       resourceMap: Map[String, TaskResource],
       schedules: Map[String, Schedule],
       tasks: SortedSet[Task],
-      scheduledThisIter: Seq[(java.util.UUID,Long)],
+      scheduledThisIter: Seq[(java.util.UUID, Long)],
       lookaheadSetThisIter: Lookahead,
       result: Queue[Task]
   ): Seq[Task] =
     if (tasks.isEmpty) result
     else {
       val t = tasks.head
-      val start = Schedule.mergeSchedules(t.resources.flatMap(schedules.get(_))) ? (Math.max(currentTime,t.minStartTime), t)
-      val scheduledThisIter2 = scheduledThisIter :+ ((t.id, start+t.estimatedDuration))
-      val lookaheadSetThisIter2 = lookaheadSetThisIter-t.id
+      val start = Schedule.mergeSchedules(t.resources.flatMap(schedules.get(_))) ? (Math.max(
+              currentTime,
+              t.minStartTime
+            ), t)
+      val scheduledThisIter2 = scheduledThisIter :+ ((t.id, start + t.estimatedDuration))
+      val lookaheadSetThisIter2 = lookaheadSetThisIter - t.id
       val futureTasks = tasksAfterThis(t.actor, scheduledThisIter2, lookaheadSetThisIter2)
       val schedules2 = (schedules /: t.resources) {
         case (s, r) => s + (r -> (s.getOrElse(r, Schedule()) +> (start, t)))
@@ -608,25 +626,33 @@ class LookaheadScheduler(initialTasks: Task*) extends SortedSetScheduler {
       val result2 =
         if (start == currentTime && t.taskResources(resourceMap).forall(_.isIdle)) result :+ t
         else result
-      findNextTasks(currentTime, resourceMap, schedules2, tasks.tail ++ futureTasks, scheduledThisIter2, lookaheadSetThisIter2, result2)
+      findNextTasks(
+        currentTime,
+        resourceMap,
+        schedules2,
+        tasks.tail ++ futureTasks,
+        scheduledThisIter2,
+        lookaheadSetThisIter2,
+        result2
+      )
     }
 
-    /**
-      * Finds the tasks that can start once the specified tasks have been scheduled.
-      *
-      * @param actor The actor associated with the task.
-      * @param id The id of the completed task.
-      * @param scheduled The set of already scheduled tasks and corresponding starting times.
-      * @param lookaheadStructureThisIter The lookahead structure to be queried about future tasks.
-      * @return The set of future tasks that can start.
-      */
-    private def tasksAfterThis(
-      actor: ActorRef, 
-      scheduled: Seq[(java.util.UUID,Long)], 
+  /**
+    * Finds the tasks that can start once the specified tasks have been scheduled.
+    *
+    * @param actor The actor associated with the task.
+    * @param id The id of the completed task.
+    * @param scheduled The set of already scheduled tasks and corresponding starting times.
+    * @param lookaheadStructureThisIter The lookahead structure to be queried about future tasks.
+    * @return The set of future tasks that can start.
+    */
+  private def tasksAfterThis(
+      actor: ActorRef,
+      scheduled: Seq[(java.util.UUID, Long)],
       lookaheadStructureThisIter: Lookahead
-    ): Seq[Task] = {
-      val taskData = lookaheadStructureThisIter.getTaskData((scheduled++completed))
-      (taskData map (x=> x._1.withMinStartTime(x._2).create(x._1.createTime, actor))).toSeq
-      //todo warning if time <= currentTime. coordinator could pass log. Logging adaptor?
-    }
+  ): Seq[Task] = {
+    val taskData = lookaheadStructureThisIter.getTaskData((scheduled ++ completed))
+    (taskData map (x => x._1.withMinStartTime(x._2).create(x._1.createTime, actor))).toSeq
+    //todo warning if time <= currentTime. coordinator could pass log. Logging adaptor?
+  }
 }

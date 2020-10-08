@@ -281,7 +281,8 @@ class SimD3Timeline(path: String, file: String, tick: Int = 1)
   def build(aggregator: SimMetricsAggregator, now: Long) = {
     var buf: StringBuilder = StringBuilder.newBuilder
     buf.append("var tasks = [\n")
-    for (p <- (collection.immutable.SortedSet[String]() ++ aggregator.taskSet) ) buf.append(s"""\t"$p",\n""")
+    for (p <- (collection.immutable.SortedSet[String]() ++ aggregator.taskSet))
+      buf.append(s"""\t"$p",\n""")
     buf.append("];\n\n")
     buf.append("var resourceData = [\n")
     for (m <- aggregator.resourceMetrics) buf.append(s"""${resourceEntry(m, aggregator)}\n""")

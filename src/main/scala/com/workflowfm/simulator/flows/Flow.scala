@@ -14,7 +14,7 @@ sealed trait Flow {
 }
 
 case class NoTask() extends Flow
-case class FlowTask(generator: TaskGenerator) extends Flow {override val id = generator.id}
+case class FlowTask(generator: TaskGenerator) extends Flow { override val id = generator.id }
 case class Then(left: Flow, right: Flow) extends Flow
 case class And(left: Flow, right: Flow) extends Flow
 case class All(elements: Flow*) extends Flow
@@ -100,7 +100,7 @@ class FlowSimulationActor(
 
       case f: And => {
         val leftCallback: Callback = (_, _) => (if (!tasks.contains(f.right.id)) complete(f.id))
-        val rightCallback: Callback = (_, _) => (if (!tasks.contains(f.left.id)) complete(f.id)) 
+        val rightCallback: Callback = (_, _) => (if (!tasks.contains(f.left.id)) complete(f.id))
         runFlow(f.left, leftCallback)
         runFlow(f.right, rightCallback)
       }
@@ -137,11 +137,12 @@ object FlowSimulationActor {
 
 /**
   * A triat which provides Lookahead compatability to [[FlowSimulationActor]]s.
-  * 
+  *
   * Works by parsing the entire flow at the start of the simulation to build a
   * [[Lookahead]] automatically.
   */
 trait FlowsLookahead extends FlowSimulationActor with LookingAhead {
+
   /**
     * Initiates the execution of the simulation.
     * Parses the flow before running it.
@@ -153,20 +154,21 @@ trait FlowsLookahead extends FlowSimulationActor with LookingAhead {
     super.run()
   }
 
-  type IDFunction = Map[UUID,Long]=>Option[Long]
+  type IDFunction = Map[UUID, Long] => Option[Long]
+
   /**
     * Parses a flow in order to build a [[Lookahead]]
-    * 
+    *
     * This is a recursive function which uses the fact that [[Flow]]s are tree-like structures.
-    * Each iteration it calls parseFlow on each of its children and then combines the results in 
+    * Each iteration it calls parseFlow on each of its children and then combines the results in
     * a meaningful way. The goal is to build up a [[Lookahead]] by combining the structures
     * of each branch. There is also this `IDFunction` which is passed up and down the tree as the
     * algorithm progresses, which is used to describe the function that will be used to add entries
     * to the lookahead structure; This function can grow/shrink over time as the algorithm progresses,
     * but it is always used to describe the most current prerequisites of any task that it might meet.
-    * 
+    *
     * @see [[Lookahead.+]] for details on the IDfunction itself.
-    * 
+    *
     * As it works through the flow tree, the algorithm does the following:
     *   1. If the current node is a task (i.e. a leaf node), it should be registered by adding itself
     *      to the current running lookahead structure. To do this it uses the IDFunction that it received.
@@ -179,7 +181,7 @@ trait FlowsLookahead extends FlowSimulationActor with LookingAhead {
     *      the left branch, and hence the preconditions of the right branch is that the left branch is completed.
     *   1. If the current node is an And, All, or Or node, it parses all its child nodes normally, since the child
     *      branches are independent.
-    * 
+    *
     * Then, depending on the node type, it returns a function and a lookahead structure. The lookahead structure contains
     * the current lookahead entries, and may be combined with other structures later on. The IDFunction will be used
     * by other nodes to register new lookahead entries, where it will describe the preconditions of that entry; As such,
@@ -201,7 +203,7 @@ trait FlowsLookahead extends FlowSimulationActor with LookingAhead {
     *   1. If our current node is an Or, the child node functions are also combined in a similar way to Ands and Alls, but this
     *      time we return the minimum value of the child functions, since any task that comes after an Or may begin as soon as
     *      any of the branches in an Or are completed.
-    * 
+    *
     * It might be easier to picture this algorithim when given some examples. Please refer to the wiki for examples and more
     * detailed explanations.
     *
@@ -210,39 +212,57 @@ trait FlowsLookahead extends FlowSimulationActor with LookingAhead {
     * @param lookaheadStructure The [[Lookahead]] built so far.
     * @return A function that describes the precondition of this node, and the current lookahead structure.
     */
-  protected def parseFlow(flow: Flow, extraFunction: Option[IDFunction], lookaheadStructure: Lookahead ): (IDFunction, Lookahead) = {
+  protected def parseFlow(
+      flow: Flow,
+      extraFunction: Option[IDFunction],
+      lookaheadStructure: Lookahead
+  ): (IDFunction, Lookahead) = {
     flow match {
-      case f: NoTask => ((m:Map[UUID,Long])=> (Some(Long.MinValue)), NoLookahead)
+      case f: NoTask => ((m: Map[UUID, Long]) => (Some(Long.MinValue)), NoLookahead)
       case FlowTask(g) => {
         var s = lookaheadStructure
         if (extraFunction.isDefined) s = s + (extraFunction.get, g)
-        ((m:Map[UUID,Long])=> (m.get(g.id)), s)
+        ((m: Map[UUID, Long]) => (m.get(g.id)), s)
       }
       case f: Then => {
         val l = parseFlow(f.left, extraFunction, lookaheadStructure)
         parseFlow(f.right, Some(l._1), l._2)
       }
       case f: And => {
-        val functions = Seq(parseFlow(f.left,extraFunction, lookaheadStructure),parseFlow(f.right,extraFunction, lookaheadStructure))
-        ( (m) => { 
-          val results = functions map (_._1(m))
-          if (results.contains(None)) None else results.max
-        }, functions.map(_._2).fold(NoLookahead){(a,b)=>a and b})
+        val functions = Seq(
+          parseFlow(f.left, extraFunction, lookaheadStructure),
+          parseFlow(f.right, extraFunction, lookaheadStructure)
+        )
+        (
+          (m) => {
+            val results = functions map (_._1(m))
+            if (results.contains(None)) None else results.max
+          },
+          functions.map(_._2).fold(NoLookahead) { (a, b) => a and b }
+        )
       }
       case f @ All(elem @ _*) => {
-        val functions = elem map (parseFlow(_,extraFunction,lookaheadStructure))
-        ( (m) => { 
-          val results = functions map (_._1(m))
-          if (results.contains(None)) None else results.max
-        },
-        functions.map(_._2).fold(NoLookahead){(a,b)=>a and b})
+        val functions = elem map (parseFlow(_, extraFunction, lookaheadStructure))
+        (
+          (m) => {
+            val results = functions map (_._1(m))
+            if (results.contains(None)) None else results.max
+          },
+          functions.map(_._2).fold(NoLookahead) { (a, b) => a and b }
+        )
       }
       case f: Or => {
-        val functions = Seq(parseFlow(f.left,extraFunction, lookaheadStructure),parseFlow(f.right,extraFunction, lookaheadStructure))
-        ((m) => { 
-          val results = functions.map(_._1(m))
-          ( results filter (_.isDefined) headOption ).flatten
-        }, functions.map(_._2).fold(NoLookahead){(a,b)=>a and b})
+        val functions = Seq(
+          parseFlow(f.left, extraFunction, lookaheadStructure),
+          parseFlow(f.right, extraFunction, lookaheadStructure)
+        )
+        (
+          (m) => {
+            val results = functions.map(_._1(m))
+            (results filter (_.isDefined) headOption).flatten
+          },
+          functions.map(_._2).fold(NoLookahead) { (a, b) => a and b }
+        )
       }
     }
   }
@@ -257,15 +277,16 @@ trait FlowsLookahead extends FlowSimulationActor with LookingAhead {
   * @param executionContext
   */
 class FlowLookaheadActor(
-  name: String,
-  coordinator: ActorRef,
-  flow: Flow
+    name: String,
+    coordinator: ActorRef,
+    flow: Flow
 )(implicit executionContext: ExecutionContext)
-  extends FlowSimulationActor(name,coordinator,flow) with FlowsLookahead
-
+    extends FlowSimulationActor(name, coordinator, flow)
+    with FlowsLookahead
 
 object FlowLookaheadActor {
-    /**
+
+  /**
     * Creates props of a [[FlowLookaheadActor]].
     *
     * @param name The simulation name.

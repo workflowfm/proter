@@ -183,7 +183,8 @@ class CoordinatorTests
       // T1a 0..2
       val id1a = UUID.randomUUID()
       val tg1a = TaskGenerator("T1a", id1a, "Test1", ConstantGenerator(2L), ConstantGenerator(5L))
-      val expected1a = new Task(id1a, "T1a", "Test1", self, 0L, 0L, Seq(), 2L, 2L, 5L, -1, Task.Medium)
+      val expected1a =
+        new Task(id1a, "T1a", "Test1", self, 0L, 0L, Seq(), 2L, 2L, 5L, -1, Task.Medium)
       coordinator ! Coordinator.AddTasks(Seq((tg1a)))
       coordinator ! Coordinator.SimReady(None)
 
@@ -194,7 +195,8 @@ class CoordinatorTests
       // T2a 1..2
       val id2a = UUID.randomUUID()
       val tg2a = TaskGenerator("T2a", id2a, "Test2", ConstantGenerator(1L), ConstantGenerator(5L))
-      val expected2a = new Task(id2a, "T2a", "Test2", self, 1L, 0L, Seq(), 1L, 1L, 5L, -1, Task.Medium)
+      val expected2a =
+        new Task(id2a, "T2a", "Test2", self, 1L, 0L, Seq(), 1L, 1L, 5L, -1, Task.Medium)
       probe.send(coordinator, Coordinator.AddTasks(Seq((tg2a))))
       probe.send(coordinator, Coordinator.SimReady(None))
 
@@ -243,7 +245,8 @@ class CoordinatorTests
       // T2a 1..2
       val id2a = UUID.randomUUID()
       val tg2a = TaskGenerator("T2a", id2a, "Test2", ConstantGenerator(1L), ConstantGenerator(5L))
-      val expected2a = new Task(id2a, "T2a", "Test2", self, 1L, 0L, Seq(), 1L, 1L, 5L, -1, Task.Medium)
+      val expected2a =
+        new Task(id2a, "T2a", "Test2", self, 1L, 0L, Seq(), 1L, 1L, 5L, -1, Task.Medium)
       probe.send(coordinator, Coordinator.AddTasks(Seq((tg2a))))
       probe.send(coordinator, Coordinator.SimReady(None))
 
@@ -268,7 +271,8 @@ class CoordinatorTests
       // T1b 2..3
       val id1b = UUID.randomUUID()
       val tg1b = TaskGenerator("T1b", id1b, "Test1", ConstantGenerator(1L), ConstantGenerator(5L))
-      val expected1b = new Task(id1b, "T1b", "Test1", self, 2L, 0L, Seq(), 1L, 1L, 5L, -1, Task.Medium)
+      val expected1b =
+        new Task(id1b, "T1b", "Test1", self, 2L, 0L, Seq(), 1L, 1L, 5L, -1, Task.Medium)
       coordinator ! Coordinator.AddTasks(Seq((tg1b)))
       coordinator ! Coordinator.SimReady(None)
 
@@ -359,7 +363,8 @@ class CoordinatorTests
    * "measure intermediate delays and idling appropriately" in { val resA = new TaskResource("A",1)
    * val resB = new TaskResource("B",1)
    *
-   * val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler())) implicit val timeout =
+   * val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler())) implicit val
+   * timeout =
    * Timeout(2.seconds) val mObserver = system.actorOf(SimMetricsActor.props(new
    * SimMetricsPrinter())) Await.result(mObserver ? Observer.SubscribeTo(coordinator), 3.seconds)
    *
@@ -409,8 +414,8 @@ class CoordinatorTests
    * done.metrics.simulationMetrics.size should be (2) done.metrics.taskMetrics.size should be (2) }
    *
    * "publish the right number of events from 1 simulation" in { val coordinator =
-   * system.actorOf(Coordinator.props(new DefaultScheduler())) //coordinator ! Publisher.SubHandler(new
-   * PrintEventHandler(), None)
+   * system.actorOf(Coordinator.props(new DefaultScheduler())) //coordinator !
+   * Publisher.SubHandler(new PrintEventHandler(), None)
    *
    * //Thread.sleep(1000) val f1 = MockObserver.observer(new CounterHandler())(system,coordinator)
    * // val f2 = MockObserver.build(new CounterHandler())(system,coordinator) // val f3 =

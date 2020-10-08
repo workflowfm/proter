@@ -48,7 +48,7 @@ trait SimulatedProcess {
     */
   def simulate[T](
       gen: TaskGenerator,
-      result: (Task, Long) => T,
+      result: (Task, Long) => T
   )(implicit executionContext: ExecutionContext): Future[T] = {
     (simulationActor ? Simulation.AddTask(gen))(Timeout(1, TimeUnit.DAYS))
       .mapTo[(Task, Long)]
