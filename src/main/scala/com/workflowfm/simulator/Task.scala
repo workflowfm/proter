@@ -223,7 +223,7 @@ case class TaskGenerator(
       priority
     )
   }
-  
+
   /**
     * Update the ID to use.
     *
@@ -282,7 +282,7 @@ case class TaskGenerator(
     * @return An updated [[TaskGenerator]].
     */
   def withCreationTime(t: Long) = copy(createTime = t)
-    /**
+  /**
     * Update the custom minimum starting time to use.
     *
     * @param t The new minimum starting time.
@@ -306,11 +306,12 @@ case class TaskGenerator(
   * @param cost The generator of the cost.
   */
 object TaskGenerator {
+
   def apply(
-    name: String,
-    simulation: String,
-    duration: ValueGenerator[Long],
-    cost: ValueGenerator[Long]
-  ):TaskGenerator =
-  TaskGenerator(name, UUID.randomUUID(), simulation, duration, cost)
+      name: String,
+      simulation: String,
+      duration: ValueGenerator[Long],
+      cost: ValueGenerator[Long]
+  ): TaskGenerator =
+    TaskGenerator(name, UUID.randomUUID(), simulation, duration, cost)
 }

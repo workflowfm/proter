@@ -56,13 +56,13 @@ case class ConstantGenerator[T](value: T) extends ValueGenerator[T] {
 }
 
 /**
-  * A uniform distribution generator.
+  * A uniform distribution generator. Uses Integers
   * Samples a random variable uniformly between [[min]] and [[max]].
   *
   * @param min The minimum possible value.
   * @param max The maximum possible value.
   */
-case class UniformGenerator(min: Int, max: Int) extends ValueGenerator[Int] {
+case class IntUniformGenerator(min: Int, max: Int) extends ValueGenerator[Int] {
   /**
     * Provides a random value uniformly sampled between [[min]] and [[max]].
     *
@@ -70,6 +70,29 @@ case class UniformGenerator(min: Int, max: Int) extends ValueGenerator[Int] {
     */
   def get = new util.Random().nextInt(max - min) + min
 
+  /**
+    * Provides an estimate of the values that can be generated.
+    * Uses the median of the uniform distribution.
+    *
+    * @return The median as an estimate of the values that can be generated.
+    */
+  def estimate = (max + min) / 2
+}
+
+/**
+  * A uniform distribution generator. Uses Longs
+  * Samples a random variable uniformly between [[min]] and [[max]].
+  *
+  * @param min The minimum possible value.
+  * @param max The maximum possible value.
+  */
+case class UniformGenerator(min: Long, max: Long) extends ValueGenerator[Long] {
+  /**
+    * Provides a random value uniformly sampled between [[min]] and [[max]].
+    *
+    * @return The random value.
+    */
+  def get = (new util.Random().nextDouble * (max - min) + min).toLong
   /**
     * Provides an estimate of the values that can be generated.
     * Uses the median of the uniform distribution.

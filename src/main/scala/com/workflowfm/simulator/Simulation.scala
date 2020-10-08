@@ -43,15 +43,15 @@ import java.util.concurrent.TimeUnit
   *      via a [[Coordinator.SimStarted]] response.
   *   1. The simulation logic starts executing via [[Simulation.run]] and produces some
   *      simulation ``tasks``.
-  *   1. Newly produced tasks can be sent to the [[Coordinator]] via the [[Coordinator.AddTasks]] 
+  *   1. Newly produced tasks can be sent to the [[Coordinator]] via the [[Coordinator.AddTasks]]
   *      message.
-  *   1. When the simulation logic finishes producing tasks, it is ``ready``. It then sends a 
+  *   1. When the simulation logic finishes producing tasks, it is ``ready``. It then sends a
   *      [[Coordinator.SimReady]] message to the [[Coordinator]].
   *   1. Eventually, one of the tasks completes and we receive a [[Simulation.TaskCompleted]]
   *      message. The simulation logic resumes execution.
   *   1. The [[Coordinator]] is now waiting for either an acknowledgement of the completed task
-  *      ([[Coordinator.AckTasks]]) or the simulation to end ([[Coordinator.SimDone]]):
-  *      a. The simulation may generate new ``tasks`` and either ``ack`` the finished tasks 
+  *         ([[Coordinator.AckTasks]]) or the simulation to end ([[Coordinator.SimDone]]):
+  *      a. The simulation may generate new ``tasks`` and either ``ack`` the finished tasks
   *         individually or become ``ready`` again as above.
   *      a. If the simulation logic completes, the [[Coordinator.SimDone]] message must be sent.
   *   1. The simulation may also react to things happening to other simulations. It can send a
@@ -67,8 +67,8 @@ import java.util.concurrent.TimeUnit
   * @param coordinator A reference to the [[Coordinator]] actor running the simulation.
   */
 abstract class Simulation(
-   name: String,
-    coordinator: ActorRef
+    name: String,
+    protected val coordinator: ActorRef
 ) extends Actor {
 
   /**
@@ -80,13 +80,13 @@ abstract class Simulation(
 
   /**
     * Manages a completed [[Task]].
-    * 
+    *
     * The simulation logic must react to this by either registering more tasks or finishing.
     *
-    * If new tasks are produced, the completed [[Task]] must be ``acknowledged`` to the 
-    * [[Coordinator]] via [[ack]]. Alternatively, if we do not want to ``ack`` completed tasks
-    * individually, we can just call [[ready]].
-    * 
+    * If new tasks are produced, the completed [[Task]] must be ``acknowledged`` to the
+    * [[Coordinator]] via [[ack]]. Alternatively, if we do not want to ``ack`` all completed
+    * tasks, we can just call [[ready]].
+    *
     * In other words, after a [[Task]] completes, the [[Coordinator]] will expect either a
     * `AckTasks` (via [[ack]]) or `SimDone` (via [[done]] or [[fail]]) before
     * it continues.
@@ -95,7 +95,7 @@ abstract class Simulation(
     * @param task The completed [[Task]].
     * @param time The timestamp of completion and current time.
     */
-  def complete(task: Task, time: Long): Unit
+  def complete(task: Task, time: Long): Unit = Unit
 
   /**
     * Stops/aborts the simulation.
@@ -170,8 +170,8 @@ abstract class Simulation(
     * 
     * @group act
     */
-  def ack(tasks: Seq[UUID]): Unit = {
-    coordinator ! Coordinator.AckTasks(tasks)
+  def ack(tasks: Seq[UUID], lookahead: Option[Lookahead] = None): Unit = {
+    coordinator ! Coordinator.AckTasks(tasks, lookahead)
   }
 
   /**
@@ -180,8 +180,8 @@ abstract class Simulation(
     *
     * @group act
     */
-  def ready(): Unit = {
-    coordinator ! Coordinator.SimReady
+  def ready(lookahead: Option[Lookahead] = None): Unit = {
+    coordinator ! Coordinator.SimReady(lookahead)
   }
 
   /**
@@ -279,6 +279,7 @@ object Simulation {
     * @param time The (virtual) time of completion.
     */
   case class TaskCompleted(task: Task, time: Long)
+
   /**
     * Tells the [[Simulation]] to request that [[Coordinator]] waits.
     *
@@ -375,7 +376,10 @@ class SingleTaskSimulation(
     *
     */
   override def run() = {
-    val generator = TaskGenerator(s"${name}Task", name, duration, cost).withResources(resources).withInterrupt(interrupt).withPriority(priority)
+    val generator = TaskGenerator(s"${name}Task", name, duration, cost)
+      .withResources(resources)
+      .withInterrupt(interrupt)
+      .withPriority(priority)
     task(generator)
     ready()
   }
@@ -426,7 +430,7 @@ object SingleTaskSimulation {
   *
   * Each task needs to be accompanied by a callback function that implements the
   * simulation logic to be followed when the task completes.
-  * 
+  *
   * @param name The name of the simulation.
   * @param coordinator A reference to the [[Coordinator]] actor running the simulation.
   */
@@ -437,7 +441,7 @@ abstract class AsyncSimulation(
 
   /**
     * The type of the callback function.
-    * 
+    *
     * Its input consists of the generated [[Task]] and the timestamp when it was completed.
     * A `Failure` input corresponds to an exception happening or an aborted task.
     * 
@@ -469,6 +473,7 @@ abstract class AsyncSimulation(
     * with a pre-determined ID.
     *
     * The provided callback function will be called when the corresponding [[Task]] is completed.
+    * 
     * When it finishes executing, it must notify the [[Coordinator]] either by acknowledging the 
     * completed task using [[ack]] or by completing the simulation using [[done]] or [[fail]].
     *
@@ -485,7 +490,7 @@ abstract class AsyncSimulation(
       t: TaskGenerator,
       callback: Callback
   ): Unit = {
-    tasks += t.id -> callback //todo id might be protected?
+    tasks += t.id -> callback
     super.task(t)
   }
 
@@ -560,25 +565,61 @@ abstract class AsyncSimulation(
 
 /**
   * Extends [[AsyncSimulation]] with callbacks that fulfil a `Promise`/`Future`.
-  * 
+  *
   * This can be helpful for simulation implementations that use `Future`s to
   * capture their asynchronous logic.
   */
 trait FutureTasks { self: AsyncSimulation =>
 
-/**
-  * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation
-  * with a pre-determined ID and a `Future` instead of a [[AsyncSimulation.Callback Callback]].
-  *
-  * @group act
-  *
-  * @param t The [[TaskGenerator]] to send.
-  * @return A `Future` that completes when the [[Task]] is completed.
-  */
+  /**
+    * Declare a new [[TaskGenerator]] that needs to be sent to the [[Coordinator]] for simulation
+    * with a pre-determined ID and a `Future` instead of a [[AsyncSimulation.Callback Callback]].
+    *
+    * @group act
+    *
+    * @param t The [[TaskGenerator]] to send.
+    * @return A `Future` that completes when the [[Task]] is completed.
+    */
   def futureTask(t: TaskGenerator): Future[(Task, Long)] = {
     val p = Promise[(Task, Long)]()
     def call: Callback = t => p.complete(t)
     task(t, call)
     p.future
+  }
+}
+
+/**
+  * A trait that adds Lookahead capabilities to a simulation.
+  *
+  * Works in conjunction with [[LookaheadScheduler]].
+  *
+  * Provides a lookahead structure that can be built up by the simulation and then sent to the scheduler
+  * for use in making schedules which look into the future to consider upcoming tasks in scheduling.
+  */
+trait LookingAhead extends Simulation {
+  var lookahead: Lookahead = LookaheadSet()
+
+  /**
+    * Sends the lookahead structure to the scheduler
+    */
+  def sendLookahead(): Unit = { coordinator ! Coordinator.UpdateLookahead(lookahead) }
+
+  /**
+    * Manages a [[Task]] whose simulation has completed.
+    *
+    * Removes the task from the lookahead structure and sends this updated structure to the
+    * scheduler before calling the `complete` method implementation of the parent class.
+    *
+    * @param task The [[Task]] that completed.
+    * @param time The timestamp of its completion.
+    */
+  val completed: collection.mutable.Set[(java.util.UUID, Long)] = collection.mutable.Set()
+
+  override def complete(task: Task, time: Long) = {
+    completed += ((task.id, time))
+    lookahead = lookahead - task.id
+    lookahead.getTaskData(completed) foreach { x => lookahead = lookahead - x._1.id }
+    sendLookahead()
+    super.complete(task, time)
   }
 }
