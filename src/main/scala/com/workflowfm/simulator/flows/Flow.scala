@@ -41,7 +41,7 @@ class FlowSimulationActor(
     * Initiates the execution of the simulation.
     */
   override def run(): Unit = {
-    runFlow(flow, callback((_, _) => done(Unit)) )
+    runFlow(flow, callback((_, _) => succeed(Unit)) )
     ready()
   }
 

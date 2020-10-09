@@ -18,7 +18,7 @@ import java.util.concurrent.TimeUnit
   * tasks to be added and informing the simulation processes when a task is completed.
   *
   * = Interface =
-  * The interface to set up a simulation has 8 key methods:
+  * The interface to set up a simulation has 9 key methods:
   *   1. `run`: Start the execution of the simulation logic.
   *   1. `task`: Produce new simulation tasks to be run.
   *   1. `ack`: Tell the [[Coordinator]] we are done processing one or more finished tasks.
@@ -26,12 +26,13 @@ import java.util.concurrent.TimeUnit
   *   1. `simWait`: Tell the [[Coordinator]] to wait for us when reacting to another simulation.
   *   1. `complete`: Manage a task that just completed following the simulation logic.
   *   1. `done`: Tell the [[Coordinator]] the simulation is completed.
+  *   1. `succeed`: Tell the [[Coordinator]] the simulation is completed successfully.
   *   1. `fail`: Tell the [[Coordinator]] the simulation failed with some exception.
   *
   * The interface can be accessed in 2 modes:
   *   1. ```Direct Interface:``` The simulation logic can be coded directly in a subclass, by
   *      implementing [[run]] and using [[task(t* task]],
-  *      [[simWait]], [[ack]], [[ready]], [[done]], and [[fail]].
+  *      [[simWait]], [[ack]], [[ready]], [[done]], [[succeed]] and [[fail]].
   *   1. ```Actor Interface:``` The simulation logic can be distributed to other actors, typically
   *      [[SimulatedProcess]]es. These
   *      can interact with `Simulation` using the [[Simulation.AddTask]],
@@ -88,7 +89,7 @@ abstract class Simulation(
     * tasks, we can just call [[ready]].
     *
     * In other words, after a [[Task]] completes, the [[Coordinator]] will expect either a
-    * `AckTasks` (via [[ack]]) or `SimDone` (via [[done]] or [[fail]]) before
+    * `AckTasks` (via [[ack]]) or `SimDone` (via [[done]], [[succeed]] or [[fail]]) before
     * it continues.
     *
     * @group react
@@ -143,12 +144,22 @@ abstract class Simulation(
   }
 
   /**
+    * Notifies the [[Coordinator]] that the simulation completed.
+    *
+    * @group act
+    * @param result The result of the simulation.
+    */
+  protected def done(result: Try[Any]): Unit = { 
+    coordinator ! Coordinator.SimDone(name, result)
+  }
+
+  /**
     * Notifies the [[Coordinator]] that the simulation completed successfully.
     *
     * @group act
-    * @param results The successful result of the simulation.
+    * @param result The successful result of the simulation.
     */
-  protected def done(result: Any): Unit = { 
+  protected def succeed(result: Any): Unit = { 
     coordinator ! Coordinator.SimDone(name, Success(result))
   }
 
@@ -190,7 +201,7 @@ abstract class Simulation(
     * The simulation needs to either register more tasks and become ``ready`` or finish.
     *
     * In other words, the [[Coordinator]] will expect either a `SimReady` (via [[ready]])
-    * or `SimDone` (via [[done]] or [[fail]]) before it continues.
+    * or `SimDone` (via [[done]], [[succeed]] or [[fail]]) before it continues.
     *
     * @note We assume the [[Coordinator]] is already waiting for another simulation when the
     *       request is made. Otherwise virtual time may progress unexpectedly and cause
@@ -221,6 +232,7 @@ abstract class Simulation(
     case Simulation.AbortTasks(ids) => abort(ids: _*)
     case Simulation.Wait => coordinator.forward(Coordinator.WaitFor(self))
     case Simulation.Done(result) => done(result)
+    case Simulation.Succeed(result) => succeed(result)
     case Simulation.Fail(exception) => fail(exception)
     case Simulation.Stop => stop()
   }
@@ -304,14 +316,25 @@ object Simulation {
   case class AckTasks(tasks: Seq[UUID])
 
   /**
-    * Tells the [[Simulation]] to complete successfully.
+    * Tells the [[Simulation]] to complete.
     *
     * @see [[Simulation.done]]
     * @group process
     *
     * @param result The successful simulation result.
     */
-  case class Done(result: Any)
+  case class Done(result: Try[Any])
+
+
+  /**
+    * Tells the [[Simulation]] to complete successfully.
+    *
+    * @see [[Simulation.succeed]]
+    * @group process
+    *
+    * @param result The successful simulation result.
+    */
+  case class Succeed(result: Any)
 
   /**
     * Tells the [[Simulation]] to fail.
@@ -384,7 +407,7 @@ class SingleTaskSimulation(
     ready()
   }
 
-  override def complete(task: Task, time: Long) = done((task, time))
+  override def complete(task: Task, time: Long) = succeed((task, time))
 
   override def stop(): Unit = Unit
 }
@@ -475,7 +498,7 @@ abstract class AsyncSimulation(
     * The provided callback function will be called when the corresponding [[Task]] is completed.
     * 
     * When it finishes executing, it must notify the [[Coordinator]] either by acknowledging the 
-    * completed task using [[ack]] or by completing the simulation using [[done]] or [[fail]].
+    * completed task using [[ack]] or by completing the simulation using [[done]], [[succeed]] or [[fail]].
     *
     * The [[ready]] method can also be called if there is no need to acknowledge completed tasks
     * individually. This is unlikely in the current scenario where each task has its own callback,

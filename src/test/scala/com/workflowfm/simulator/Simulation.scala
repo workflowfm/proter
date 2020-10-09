@@ -147,7 +147,7 @@ class SimulationTester
 
   class SimNoTasks(name: String, coordinator: ActorRef)(implicit executionContext: ExecutionContext)
       extends Simulation(name, coordinator) {
-    override def run(): Unit = done(Unit) //finish instantly
+    override def run(): Unit = succeed(Unit) //finish instantly
     override def complete(task: Task, time: Long): Unit =  Unit //does nothing
     override def stop(): Unit = Unit
   }
@@ -203,10 +203,7 @@ class SimulationTester
         ack(Seq(id2))
         t
       }
-      task3.onComplete {
-        case Success(_) => done(Unit)
-        case Failure(f) => fail(f)
-      }
+      task3.onComplete(done)
     }
   }
 
