@@ -26,7 +26,7 @@ class SimulationTests extends SimulationTester {
 
       sim ! Simulation.Start
       expectMsg(Coordinator.SimStarted("sim", sim))
-      expectMsg(Coordinator.SimDone("sim", Success()))
+      expectMsg(Coordinator.SimDone("sim", Success(Unit)))
       expectNoMsg()
     }
 
@@ -147,8 +147,9 @@ class SimulationTester
 
   class SimNoTasks(name: String, coordinator: ActorRef)(implicit executionContext: ExecutionContext)
       extends Simulation(name, coordinator) {
-    override def run(): Future[Any] = { Future.unit } //finish instantly
-    override def complete(task: Task, time: Long): Unit = { Unit } //does nothing
+    override def run(): Unit = done(Unit) //finish instantly
+    override def complete(task: Task, time: Long): Unit =  Unit //does nothing
+    override def stop(): Unit = Unit
   }
 
   class SimSeqOfTasks(name: String, coordinator: ActorRef)(
@@ -156,7 +157,7 @@ class SimulationTester
   ) extends AsyncSimulation(name, coordinator)
       with FutureTasks {
 
-    override def run(): Future[Any] = {
+    override def run(): Unit = {
       val id1 = java.util.UUID.randomUUID
       val id2 = java.util.UUID.randomUUID
       val id3 = java.util.UUID.randomUUID
@@ -202,7 +203,10 @@ class SimulationTester
         ack(Seq(id2))
         t
       }
-      task3
+      task3.onComplete {
+        case Success(_) => done(Unit)
+        case Failure(f) => fail(f)
+      }
     }
   }
 
