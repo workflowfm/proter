@@ -43,14 +43,15 @@ trait Scheduler {
     * @param actor The actor that created this lookahead structure.
     * @param obj The lookahead structure.
     */
-  def setLookahead(actor: ActorRef, obj: Lookahead): Unit = { Unit }
+  def setLookahead(actor: ActorRef, obj: Lookahead): Unit = Unit
 
   /**
     * Removes the lookahead structure associated with the given actor.
     *
     * @param actor The actor corresponding to the lookahead structure.
     */
-  def removeLookahead(actor: ActorRef): Unit = { Unit }
+  def removeLookahead(actor: ActorRef): Unit = Unit
+
   /**
     * Adds an Task described by an (ID,time) pair to the list of completed IDs
     *
@@ -59,6 +60,7 @@ trait Scheduler {
     * @return A LookaheadStructure with this (ID,time) pair added to the list of completed tasks
     */
   def complete(task: Task, time: Long): Unit = Unit
+
   /**
     * Adds a [[Task]] to be scheduled.
     *
@@ -77,8 +79,9 @@ trait Scheduler {
     * Removes all [[Task]]s belonging to an (presumably aborted) simulation.
     *
     * @param simulation The name of the simulation that was aborted.
+    * @param actor The simulation actor responsible for this simulation
     */
-  def removeSimulation(simulation: String): Unit
+  def removeSimulation(simulation: String, actor: ActorRef): Unit
 
   /**
     * Checks if all [[Task]]s have been scheduled.
@@ -108,7 +111,7 @@ trait SortedSetScheduler extends Scheduler {
   /**
     * @inheritdoc
     */
-  override def removeSimulation(simulation: String): Unit = 
+  override def removeSimulation(simulation: String, actor: ActorRef): Unit = 
     tasks --= tasks.filter(_.simulation == simulation)
 
   /**
@@ -528,6 +531,14 @@ class LookaheadScheduler(initialTasks: Task*) extends SortedSetScheduler {
     * @param actor The actor corresponding to the lookahead structure that should be removed.
     */
   override def removeLookahead(actor: ActorRef): Unit = lookaheadObjects -= actor
+
+  /**
+    * @inheritdoc
+    */
+  override def removeSimulation(simulation: String, actor: ActorRef): Unit = {
+    super.removeSimulation(simulation, actor)
+    removeLookahead(actor)
+  }
 
   /**
     * @inheritdoc

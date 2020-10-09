@@ -359,7 +359,7 @@ class Coordinator(
     abortedTasks ++= tasksToAbort
 
     // Remove queued tasks of this simulation from the scheduler.
-    scheduler.removeSimulation(name)
+    scheduler.removeSimulation(name, actor)
 
     publish(ESimEnd(self, time, name, "[Simulation Aborted]"))
     log.debug(s"[COORD:$time] Aborted: [${actor.path.name}]")
