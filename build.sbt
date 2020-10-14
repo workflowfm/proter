@@ -34,3 +34,13 @@ lazy val root = (project in file("."))
     commonSettings,
     name := "wfm-simulator"
   )
+
+lazy val examples = (project in file("examples"))
+  .settings(
+    commonSettings,
+    name := "examples",
+    scalaSource in Compile := baseDirectory.value / "src",
+    scalaSource in Test := baseDirectory.value / "test"
+  ).dependsOn(rootRef)
+
+lazy val rootRef = LocalProject("root")
