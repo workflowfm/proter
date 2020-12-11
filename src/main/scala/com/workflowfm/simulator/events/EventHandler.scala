@@ -1,10 +1,13 @@
 package com.workflowfm.simulator.events
 
-import akka.actor.{ ActorRef, ActorSystem }
-import akka.event.{ Logging, LoggingAdapter }
 import java.text.SimpleDateFormat
+
 import scala.collection.mutable.HashSet
 import scala.concurrent.Promise
+
+import akka.actor.{ ActorRef, ActorSystem }
+import akka.event.{ Logging, LoggingAdapter }
+
 import uk.ac.ed.inf.ppapapan.subakka.{ Subscriber, SubscriptionSwitch }
 
 /**
@@ -29,7 +32,7 @@ trait PoolEventHandler extends EventHandler {
     *
     * @param a The reference to the [[Coordinator]] actor that initialized the stream.
     */
-  override def onInit(a: ActorRef) = {
+  override def onInit(a: ActorRef): Unit = {
     log.debug(s"Pool handler adding coordinator: $a")
     coordinators += a
   }
@@ -40,7 +43,7 @@ trait PoolEventHandler extends EventHandler {
     * @param a The reference to the [[Coordinator]] that closed the stream.
     * @param s
     */
-  override def onDone(a: ActorRef, s: ActorRef) = {
+  override def onDone(a: ActorRef, s: ActorRef): Unit = {
     log.debug(s"Pool handler done with coordinator: $a")
     coordinators -= a
   }
@@ -52,7 +55,7 @@ trait PoolEventHandler extends EventHandler {
 class PrintEventHandler extends EventHandler {
   val formatter = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS")
 
-  override def onEvent(e: Event) = {
+  override def onEvent(e: Event): Unit = {
     val time = formatter.format(System.currentTimeMillis())
     System.err.println(s"[$time] ${Event.asString(e)}")
   }
@@ -72,8 +75,8 @@ trait ResultHandler[R] extends EventHandler {
 class CounterHandler extends ResultHandler[Int] {
   var count = 0
 
-  override def onInit(a: ActorRef) = count = 0
-  override def onEvent(e: Event) = count = count + 1
+  override def onInit(a: ActorRef): Unit = count = 0
+  override def onEvent(e: Event): Unit = count = count + 1
   override def result = count
 }
 
@@ -84,7 +87,7 @@ class CounterHandler extends ResultHandler[Int] {
   * @param handler The [[ResultHandler]] that calculates the result.
   */
 class PromiseHandler[R](handler: ResultHandler[R]) extends ResultHandler[R] {
-  protected val promise = Promise[R]()
+  protected val promise: Promise[R] = Promise[R]()
   def future = promise.future
 
   override def onInit(a: ActorRef): Unit = handler.onInit(a)
@@ -95,7 +98,7 @@ class PromiseHandler[R](handler: ResultHandler[R]) extends ResultHandler[R] {
     if (!promise.isCompleted) promise.success(result)
   }
 
-  override def onFail(ex: Throwable, a: ActorRef, s: ActorRef) = {
+  override def onFail(ex: Throwable, a: ActorRef, s: ActorRef): Unit = {
     handler.onFail(ex, a, s)
     if (!promise.isCompleted) promise.failure(ex)
   }
@@ -120,7 +123,7 @@ class SimulationResultHandler(name: String, callback: String => Unit = { _ => Un
 
   override def onInit(publisher: ActorRef, s: SubscriptionSwitch): Unit = switch = Some(s)
 
-  override def onEvent(evt: Event) = evt match {
+  override def onEvent(evt: Event): Unit = evt match {
     case ESimEnd(_, _, n, r) if n == name => {
       switch.map(_.stop())
       simResult = Some(r)
@@ -139,7 +142,7 @@ class SimulationResultHandler(name: String, callback: String => Unit = { _ => Un
   */
 class ShutdownHandler(implicit system: ActorSystem) extends PoolEventHandler {
 
-  override val log = Logging(system, this.getClass())
+  override val log: LoggingAdapter = Logging(system, this.getClass())
 
   override def onDone(a: ActorRef, s: ActorRef): Unit = {
     super.onDone(a, s)

@@ -1,18 +1,22 @@
 package com.workflowfm.simulator
 
-import akka.actor.ActorSystem
-import akka.testkit.{ ImplicitSender, TestActors, TestKit, TestProbe }
-import akka.pattern.ask
-import akka.util.Timeout
-import com.typesafe.config.ConfigFactory
-import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
-import scala.concurrent._
-import scala.concurrent.Await
-import scala.concurrent.duration._
-import scala.util.{ Failure, Success, Try }
 import java.util.UUID
-import com.workflowfm.simulator.metrics._
-import uk.ac.ed.inf.ppapapan.subakka.MockPublisher
+
+import scala.concurrent._
+import scala.concurrent.Await
+import scala.concurrent.duration._
+import scala.util.{ Failure, Success, Try }
+
+import akka.actor.ActorSystem
+import akka.pattern.ask
+import akka.testkit.{ ImplicitSender, TestActors, TestKit, TestProbe }
+import akka.util.Timeout
+import com.typesafe.config.ConfigFactory
+import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
+
+import uk.ac.ed.inf.ppapapan.subakka.MockPublisher
+
+import com.workflowfm.simulator.metrics._
 
 class CoordinatorTests
     extends TestKit(
@@ -22,7 +26,7 @@ class CoordinatorTests
     with Matchers
     with BeforeAndAfterAll
     with ImplicitSender {
-  implicit val executionContext = ExecutionContext.global //system.dispatchers.lookup("akka.my-dispatcher")
+  implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global //system.dispatchers.lookup("akka.my-dispatcher")
   implicit val timeout: FiniteDuration = 10.seconds
 
   override def afterAll: Unit = {

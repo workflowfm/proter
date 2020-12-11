@@ -1,17 +1,21 @@
 package com.workflowfm.simulator
 
-import akka.actor._
-import akka.event.LoggingReceive
-import akka.util.Timeout
-import akka.pattern.ask
-import com.workflowfm.simulator.events._
-import scala.concurrent.duration._
-import com.workflowfm.simulator.metrics._
+import java.util.UUID
+
 import scala.collection.mutable.{ HashSet, Map, PriorityQueue, Queue, SortedSet }
 import scala.concurrent.{ Await, ExecutionContext, Promise }
+import scala.concurrent.duration._
 import scala.util.{ Failure, Success, Try }
-import java.util.UUID
+
+import akka.actor._
+import akka.event.LoggingReceive
+import akka.pattern.ask
+import akka.util.Timeout
+
 import uk.ac.ed.inf.ppapapan.subakka.HashSetPublisher
+
+import com.workflowfm.simulator.events._
+import com.workflowfm.simulator.metrics._
 
 /**
   * Provides coordination for discrete event simulation of multiple asynchronous simulations.
@@ -38,7 +42,7 @@ class Coordinator(
     def time: Long
 
     /** Events need to be ordered based on their timestamp. */
-    def compare(that: CEvent) = {
+    def compare(that: CEvent): Int = {
       that.time.compare(time)
     }
   }
@@ -102,7 +106,7 @@ class Coordinator(
     * @group resources
     * @param r The [[TaskResource]] to be added.
     */
-  def addResource(r: TaskResource) = if (!resourceMap.contains(r.name)) {
+  def addResource(r: TaskResource): Any = if (!resourceMap.contains(r.name)) {
     publish(EResourceAdd(self, time, r.name, r.costPerTick))
     resourceMap += r.name -> r
   }
@@ -181,7 +185,7 @@ class Coordinator(
     * Removes each of them from the queue and runs them using [[startTask]].
     * @group resources
     */
-  protected def allocateTasks() = {
+  protected def allocateTasks(): Unit = {
     // Assign the next tasks
     scheduler.getNextTasks(time, resourceMap).foreach { task =>
       scheduler.removeTask(task)
@@ -198,7 +202,7 @@ class Coordinator(
     * @group resources
     * @param event The [[CEvent]] that potentially released resources.
     */
-  protected def releaseResources(event: CEvent) = {
+  protected def releaseResources(event: CEvent): Any = {
     event match {
       case FinishingTask(t, task) if (t == time) =>
         // Unbind the resources
@@ -216,7 +220,7 @@ class Coordinator(
     * @group toplevel
     * @param event The [[CEvent]] to process.
     */
-  protected def handleCEvent(event: CEvent) = {
+  protected def handleCEvent(event: CEvent): Unit = {
     log.debug(s"[COORD:$time] Event!")
     event match {
       // A task is finished
@@ -237,7 +241,7 @@ class Coordinator(
     *          time.
     * @param actor The reference to the [[Simulation]] corresponding to the simulation.
     */
-  protected def addSimulation(t: Long, actor: ActorRef) = {
+  protected def addSimulation(t: Long, actor: ActorRef): Any = {
     publish(ESimAdd(self, time, actor.toString(), t))
     if (t >= time) events += StartingSim(t, actor)
   }
@@ -250,7 +254,7 @@ class Coordinator(
     * @param sims A sequence of pairs, each consisting of a starting timestamp and a
     * reference to a [[Simulation]]. Timestamps must be greater or equal to the current time.
     */
-  protected def addSimulations(sims: Seq[(Long, ActorRef)]) = {
+  protected def addSimulations(sims: Seq[(Long, ActorRef)]): PriorityQueue[CEvent] = {
     events ++= sims.flatMap {
       case (t, actor) => {
           publish(ESimAdd(self, time, actor.toString(), t))
@@ -270,7 +274,7 @@ class Coordinator(
     * @group simulations
     * @param simActor The [[akka.actor.ActorRef]] of the [[Simulation]].
     */
-  protected def startSimulation(simActor: ActorRef) = {
+  protected def startSimulation(simActor: ActorRef): Unit = {
     waiting += simActor -> List()
     simActor ! Simulation.Start
   }
@@ -297,7 +301,7 @@ class Coordinator(
     * @param result A string representation of the output of the simulation.
     * @param actor The [[akka.actor.ActorRef]] of the corresponding [[Simulation]].
     */
-  protected def stopSimulation(name: String, result: String, actor: ActorRef) = {
+  protected def stopSimulation(name: String, result: String, actor: ActorRef): Unit = {
     simulations -= name
     waiting -= actor
     scheduler.removeLookahead(actor)
@@ -316,7 +320,7 @@ class Coordinator(
     * @param l The list of tasks to be generated, each represented by a triplet with its unique ID,
     *          [[TaskGenerator]] and list of [[TaskResource]] names that need to be used.
     */
-  protected def addTasks(actor: ActorRef, l: Seq[TaskGenerator]) {
+  protected def addTasks(actor: ActorRef, l: Seq[TaskGenerator]): Unit = {
     l foreach addTask
   }
 
@@ -337,7 +341,7 @@ class Coordinator(
     * @group tasks
     * @param gen The [[TaskGenerator]] that will generate the [[Task]].
     */
-  protected def addTask(gen: TaskGenerator) {
+  protected def addTask(gen: TaskGenerator): Unit = {
     // Create the task
     val t: Task = gen.create(time, sender)
 
@@ -366,7 +370,7 @@ class Coordinator(
     * @param actor The [[Simulation]] actor.
     * @param ack The sequence of [[Task]] UUIDs being acknowledged.
     */
-  protected def ackTasks(actor: ActorRef, ack: Seq[UUID]) {
+  protected def ackTasks(actor: ActorRef, ack: Seq[UUID]): Unit = {
     log.debug(s"[COORD:$time] Ack [${actor.path.name}]: $ack")
     waiting.get(actor) match {
       case None =>
@@ -387,7 +391,7 @@ class Coordinator(
     * @group simulations
     * @param actor The [[Simulation]] actor that is done.
     */
-  protected def ackAll(actor: ActorRef) {
+  protected def ackAll(actor: ActorRef): Unit = {
     log.debug(s"[COORD:$time] Ack ALL [${actor.path.name}]")
     waiting -= actor
     ready(actor)
@@ -411,7 +415,7 @@ class Coordinator(
     * @group tasks
     * @param task The [[Task]] to be started.
     */
-  protected def startTask(task: Task) {
+  protected def startTask(task: Task): Unit = {
     publish(ETaskStart(self, time, task))
     // Mark the start of the task in the metrics
     task.taskResources(resourceMap) map { r =>
@@ -444,7 +448,7 @@ class Coordinator(
     * @group simulations
     * @param actor The reference to the [[Simulation]] we need to wait for.
     */
-  protected def waitFor(actor: ActorRef, ack: ActorRef) {
+  protected def waitFor(actor: ActorRef, ack: ActorRef): Unit = {
     waiting += actor -> List()
     log.debug(s"[COORD:$time] Wait requested: ${actor.path.name}")
     ack ! Simulation.AckWait
@@ -458,7 +462,7 @@ class Coordinator(
     * @group resources
     * @param r The [[TaskResource]] to free up.
     */
-  protected def detach(r: TaskResource) = {
+  protected def detach(r: TaskResource): Any = {
     r.finishTask(time) match {
       case None => Unit
       case Some(task) => publish(ETaskDetach(self, time, task, r.name))
@@ -479,7 +483,7 @@ class Coordinator(
     * @group tasks
     * @param task The [[Task]] that needs to be stopped.
     */
-  protected def stopTask(task: Task) {
+  protected def stopTask(task: Task): Unit = {
     waiting.get(task.actor) match {
       case None => waiting += task.actor -> List(task.id)
       case Some(l) => waiting.update(task.actor, task.id :: l)
@@ -520,7 +524,7 @@ class Coordinator(
     * Starts the entire simulation scenario.
     * @group toplevel
     */
-  def start() = {
+  def start(): Unit = {
     publish(EStart(self))
     tick()
   }
@@ -533,7 +537,7 @@ class Coordinator(
     * @param e The [[com.workflowfm.simulator.events.Event Event]] to check.
     * @return true if it is a [[com.workflowfm.simulator.events.EDone EDone]], otherwise false.
     */
-  override def isFinalEvent(e: Event) = e match {
+  override def isFinalEvent(e: Event): Boolean = e match {
     case EDone(_, _) => true
     case _ => false
   }
@@ -589,7 +593,7 @@ class Coordinator(
     * @group toplevel
     * @return The [[Receive]] behaviour.
     */
-  override def receive = LoggingReceive { publisherBehaviour orElse receiveBehaviour }
+  override def receive: Receive = LoggingReceive { publisherBehaviour orElse receiveBehaviour }
 }
 
 /**

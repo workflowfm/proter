@@ -1,7 +1,8 @@
 package com.workflowfm.simulator.metrics
 
-import com.workflowfm.simulator._
 import java.util.UUID
+
+import com.workflowfm.simulator._
 
 /** Metrics for a simulated [[Task]] that consumed virtual time.
   *
@@ -25,19 +26,19 @@ case class TaskMetrics(
     resources: Seq[String]
 ) {
   /** Sets the starting time for the [[Task]]. */
-  def start(st: Long) = copy(started = Some(st))
+  def start(st: Long): TaskMetrics = copy(started = Some(st))
 
   /** Calculates the task delay as the difference of the creation and starting times. */
-  def delay = started match {
+  def delay: Long = started match {
     case None => 0L
     case Some(s) => s - created
   }
 
   /** Returns the full task and simulation name. */
-  def fullName = s"$task ($simulation)"
+  def fullName: String = s"$task ($simulation)"
 
   /** Returns the time of completion (if any). */
-  def finished = started.map { s => s + duration }
+  def finished: Option[Long] = started.map { s => s + duration }
 }
 
 object TaskMetrics {
@@ -75,18 +76,18 @@ case class SimulationMetrics(
     result: Option[String]
 ) {
   /** Adds some time to the total duration. */
-  def addDuration(d: Long) = copy(duration = duration + d)
+  def addDuration(d: Long): SimulationMetrics = copy(duration = duration + d)
   /** Adds some cost to the total cost. */
-  def addCost(c: Long) = copy(cost = cost + c)
+  def addCost(c: Long): SimulationMetrics = copy(cost = cost + c)
   /** Adds some delay to the total delay. */
-  def addDelay(d: Long) = copy(delay = delay + d)
+  def addDelay(d: Long): SimulationMetrics = copy(delay = delay + d)
   /** Updates the metrics given a new [[Task]] that is created as part of the simulation. */
-  def task(task: Task) = copy(tasks = tasks + 1, cost = cost + task.cost)
+  def task(task: Task): SimulationMetrics = copy(tasks = tasks + 1, cost = cost + task.cost)
   /** Updates the metrics given that the simulation has completed with a certain result.
     * @param res the result of the simulation or localized message of the exception in case of failure
     * @param time the virtual timestamp when the simulation finished
     */
-  def done(res: String, time: Long) = copy(result = Some(res), duration = duration + time - started)
+  def done(res: String, time: Long): SimulationMetrics = copy(result = Some(res), duration = duration + time - started)
 }
 
 object SimulationMetrics {
@@ -115,11 +116,11 @@ case class ResourceMetrics(
 ) {
 
   /** Adds some idle time to the total. */
-  def idle(t: Long) =
+  def idle(t: Long): ResourceMetrics =
     if (idleUpdate < t) copy(idleTime = idleTime + t - idleUpdate, idleUpdate = t) else this
 
   /** Updates the metrics given a new [[Task]] has been attached to the [[TaskResource]]. */
-  def task(t: Long, task: Task) = idle(t).copy(
+  def task(t: Long, task: Task): ResourceMetrics = idle(t).copy(
     tasks = tasks + 1,
     cost = cost + task.duration * costPerTick,
     busyTime = busyTime + task.duration,

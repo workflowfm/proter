@@ -1,14 +1,16 @@
 package com.workflowfm.simulator
 
-import akka.pattern.{ ask, pipe }
-import akka.actor.{ Actor, ActorRef, Props }
-import akka.util.Timeout
+import java.util.UUID
 import java.util.concurrent.TimeUnit
-import scala.concurrent.duration.Duration
+
+import scala.collection.mutable
 import scala.collection.mutable.{ Map, Queue }
 import scala.concurrent.{ ExecutionContext, Future, Promise }
-import java.util.UUID
-import scala.collection.mutable
+import scala.concurrent.duration.Duration
+
+import akka.actor.{ Actor, ActorRef, Props }
+import akka.pattern.{ ask, pipe }
+import akka.util.Timeout
 
 /**
   * An actor managing the interaction between a simulation and a [[Coordinator]].
@@ -285,7 +287,7 @@ class SingleTaskSimulation(
     *
     * @return
     */
-  override def run() = if (promise.isCompleted) promise.future
+  override def run(): Future[Any] = if (promise.isCompleted) promise.future
   else {
     val generator = TaskGenerator(name + "Task", name, duration, cost)
       .withResources(resources)
@@ -296,7 +298,7 @@ class SingleTaskSimulation(
     promise.future
   }
 
-  override def complete(task: Task, time: Long) = promise.success((task, time))
+  override def complete(task: Task, time: Long): Unit = promise.success((task, time))
 }
 
 object SingleTaskSimulation {
@@ -407,7 +409,7 @@ abstract class AsyncSimulation(
     * @param task The [[Task]] that completed.
     * @param time The timestamp of its completion.
     */
-  override def complete(task: Task, time: Long) = {
+  override def complete(task: Task, time: Long): Unit = {
     tasks.get(task.id).map(_(task, time))
     tasks -= task.id
   }
@@ -500,7 +502,7 @@ trait LookingAhead extends Simulation {
     */
   val completed: collection.mutable.Set[(java.util.UUID, Long)] = collection.mutable.Set()
 
-  override def complete(task: Task, time: Long) = {
+  override def complete(task: Task, time: Long): Unit = {
     completed += ((task.id, time))
     lookahead = lookahead - task.id
     lookahead.getTaskData(completed) foreach { x => lookahead = lookahead - x._1.id }

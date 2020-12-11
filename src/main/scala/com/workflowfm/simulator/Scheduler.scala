@@ -1,9 +1,10 @@
 package com.workflowfm.simulator
 
 import scala.annotation.tailrec
-import akka.actor.ActorRef
 import scala.collection.Map
 import scala.collection.mutable.SortedSet
+
+import akka.actor.ActorRef
 
 /**
   * A scheduler selects the next [[Task]]s to be started by the [[Coordinator]] at a given time.
@@ -32,7 +33,7 @@ trait Scheduler {
     * @param resourceMap The map of available [[TaskResource]]s.
     * @return true if the resource is idle, false otherwise.
     */
-  def isIdleResource(r: String, resourceMap: Map[String, TaskResource]) = resourceMap.get(r) match {
+  def isIdleResource(r: String, resourceMap: Map[String, TaskResource]): Boolean = resourceMap.get(r) match {
     case None => false
     case Some(s) => s.isIdle
   }
@@ -290,7 +291,7 @@ case class Schedule(tasks: List[(Long, Long)]) {
     *
     * @return
     */
-  def isValid = Schedule.isValid(tasks)
+  def isValid: Boolean = Schedule.isValid(tasks)
 }
 
 /**
@@ -508,7 +509,7 @@ class LookaheadScheduler(initialTasks: Task*) extends SortedSetScheduler {
     * @param actor The actor that owns the lookahead structure.
     * @param obj The lookahead structure to be added.
     */
-  override def setLookahead(actor: ActorRef, obj: Lookahead) = lookaheadObjects += actor -> obj
+  override def setLookahead(actor: ActorRef, obj: Lookahead): Unit = lookaheadObjects += actor -> obj
   /**
     * Removes the lookahead structure bcorresponding to an actor.
     *

@@ -9,9 +9,14 @@ scalacOptions in (Compile, doc) += "-groups"
 scalacOptions in (Compile, doc) += "-diagrams"
 scalacOptions in (Compile, doc) += "-diagrams-debug"
 
+ThisBuild / scalafixDependencies +=  "com.nequissimus" %% "sort-imports" % "0.5.4"
+
 lazy val commonSettings = Seq(
   organization := "com.workflowfm",
-  scalaVersion := "2.12.12"
+  scalaVersion := "2.12.12",
+  semanticdbEnabled := true,
+  semanticdbVersion := scalafixSemanticdb.revision,
+  scalacOptions += "-Ywarn-unused" // required by `RemoveUnused` rule
 )
 
 libraryDependencies += "org.scalatest" %% "scalatest" % "3.2.0-SNAP10" % Test

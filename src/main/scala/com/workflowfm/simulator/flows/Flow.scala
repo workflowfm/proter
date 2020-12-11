@@ -1,10 +1,14 @@
 package com.workflowfm.simulator.flows
 
-import com.workflowfm.simulator._
-import scala.concurrent.{ ExecutionContext, Future, Promise }
-import akka.actor.{ Actor, ActorRef, Props }
 import java.util.UUID
+
+import scala.concurrent.{ ExecutionContext, Future, Promise }
+
+import akka.actor.{ Actor, ActorRef, Props }
 import akka.protobufv3.internal.Empty
+
+import com.workflowfm.simulator._
+import scala.collection.mutable
 
 sealed trait Flow {
   val id: UUID = java.util.UUID.randomUUID
@@ -74,7 +78,7 @@ class FlowSimulationActor(
     *
     * @param id The id to complete
     */
-  protected def complete(id: UUID) = {
+  protected def complete(id: UUID): mutable.Map[UUID,Callback] = {
     tasks.get(id).map(_(null, 0L))
     tasks -= id
   }
@@ -85,7 +89,7 @@ class FlowSimulationActor(
     *
     * @param flow The flow to be executed
     */
-  protected def execute(flow: Flow) {
+  protected def execute(flow: Flow): Unit = {
     flow match {
       case f: NoTask => complete(f.id)
 

@@ -1,6 +1,6 @@
 package com.workflowfm.simulator
-
 import scala.collection.mutable.Queue
+
 import com.workflowfm.simulator.metrics._
 
 /**

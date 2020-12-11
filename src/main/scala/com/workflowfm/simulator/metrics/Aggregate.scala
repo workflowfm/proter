@@ -1,8 +1,10 @@
 package com.workflowfm.simulator.metrics
 
+import java.util.UUID
+
 import com.workflowfm.simulator._
 import com.workflowfm.simulator.events._
-import java.util.UUID
+import scala.collection.mutable
 
 /**
   * Collects/aggregates metrics across multiple tasks, resources, and simulations.
@@ -13,8 +15,7 @@ import java.util.UUID
   * @groupprio Update 4
   * @groupprio Get 5
   */
-class SimMetricsAggregator {
-  import scala.collection.immutable.Map
+class SimMetricsAggregator {import scala.collection.immutable.Map
 
   /**
     * The '''real''' (system) time that measurement started, or [[scala.None]] if it has not started yet.
@@ -31,7 +32,7 @@ class SimMetricsAggregator {
     * Marks the start of metrics measurement with the current system time.
     * @group Start/End
     */
-  def started = start match {
+  def started: Unit = start match {
     case None => start = Some(System.currentTimeMillis())
     case _ => ()
   }
@@ -40,23 +41,23 @@ class SimMetricsAggregator {
     * Marks the end of metrics measurement with the current system time.
     * @group Start/End
     */
-  def ended = end = Some(System.currentTimeMillis())
+  def ended: Unit = end = Some(System.currentTimeMillis())
 
   /**
     * Task metrics indexed by task ID.
     * @group Values
     */
-  val taskMap = scala.collection.mutable.Map[UUID, TaskMetrics]()
+  val taskMap: mutable.Map[UUID,TaskMetrics] = scala.collection.mutable.Map[UUID, TaskMetrics]()
   /**
     * Simulation metrics indexed by name.
     * @group Values
     */
-  val simMap = scala.collection.mutable.Map[String, SimulationMetrics]()
+  val simMap: mutable.Map[String,SimulationMetrics] = scala.collection.mutable.Map[String, SimulationMetrics]()
   /**
     * Resource metrics indexed by name.
     * @group Values
     */
-  val resourceMap = scala.collection.mutable.Map[String, ResourceMetrics]()
+  val resourceMap: mutable.Map[String,ResourceMetrics] = scala.collection.mutable.Map[String, ResourceMetrics]()
 
   // Set
 
@@ -177,23 +178,23 @@ class SimMetricsAggregator {
     * Returns all the tracked instances of [[TaskMetrics]] sorted by starting time.
     * @group Get
     */
-  def taskMetrics = taskMap.values.toSeq.sortBy(_.started)
+  def taskMetrics: Seq[TaskMetrics] = taskMap.values.toSeq.sortBy(_.started)
   /**
     * Returns all the tracked instances of [[SimulationMetrics]] sorted by simulation name.
     * @group Get
     */
-  def simulationMetrics = simMap.values.toSeq.sortBy(_.name)
+  def simulationMetrics: Seq[SimulationMetrics] = simMap.values.toSeq.sortBy(_.name)
   /**
     * Returns all the tracked instances of [[ResourceMetrics]] sorted by resource time.
     * @group Get
     */
-  def resourceMetrics = resourceMap.values.toSeq.sortBy(_.name)
+  def resourceMetrics: Seq[ResourceMetrics] = resourceMap.values.toSeq.sortBy(_.name)
   /**
     * Returns a [[scala.collection.immutable.Set]] of all task names being tracked.
     * This is useful when using task names as a category, for example to colour code tasks in the timeline.
     * @group Get
     */
-  def taskSet = taskMap.values.map(_.task).toSet[String]
+  def taskSet: Set[String] = taskMap.values.map(_.task).toSet[String]
 
   /**
     * Returns all the tracked instances of [[TaskMetrics]] associated with a particular [[TaskResource]], sorted by starting time.
@@ -201,7 +202,7 @@ class SimMetricsAggregator {
     * @group Get
     */
   // TODO: we used to have 2 levels of sorting!
-  def taskMetricsOf(r: ResourceMetrics) =
+  def taskMetricsOf(r: ResourceMetrics): Seq[TaskMetrics] =
     taskMap.values.toSeq.filter(_.resources.contains(r.name)).sortBy(_.started)
 
   /**
@@ -209,7 +210,7 @@ class SimMetricsAggregator {
     * @param r the tracked [[SimulationMetrics]] of the resource
     * @group Get
     */
-  def taskMetricsOf(s: SimulationMetrics) =
+  def taskMetricsOf(s: SimulationMetrics): Seq[TaskMetrics] =
     taskMap.values.toSeq.filter(_.simulation.equals(s.name)).sortBy(_.started)
 }
 
@@ -221,7 +222,7 @@ class SimMetricsAggregator {
 class SimMetricsHandler extends ResultHandler[SimMetricsAggregator] {
   val metrics = new SimMetricsAggregator()
 
-  override def onEvent(evt: Event) = evt match {
+  override def onEvent(evt: Event): Unit = evt match {
     case EStart(src) => metrics.started
     case EDone(src, t) => {
       metrics.allResources(_.idle(t))

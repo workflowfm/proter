@@ -1,7 +1,9 @@
 package com.workflowfm.simulator
 
-import scala.collection.immutable.{ Map, Queue }
 import java.util.UUID
+
+import scala.collection.immutable.{ Map, Queue }
+
 import akka.actor.ActorRef
 
 /**
