@@ -1,12 +1,13 @@
-package com.workflowfm.simulator
-
-import akka.pattern.ask
-import akka.actor.ActorRef
-import akka.util.Timeout
-import java.util.concurrent.TimeUnit
-import scala.concurrent.duration.Duration
-import scala.concurrent.{ ExecutionContext, Future }
+package com.workflowfm.proter
 import java.util.UUID
+import java.util.concurrent.TimeUnit
+
+import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.duration.Duration
+
+import akka.actor.ActorRef
+import akka.pattern.ask
+import akka.util.Timeout
 
 /**
   * Behaviour of a process that interacts with a [[Simulation]] to simulate [[Task]]s
@@ -55,7 +56,7 @@ trait SimulatedProcess {
       .map { case (task, time) => result(task, time) }
   }
 
-  def simWait() {
+  def simWait(): Unit = {
     (simulationActor ? Simulation.Wait)(Timeout(1, TimeUnit.DAYS))
   }
 }

@@ -1,14 +1,17 @@
-package com.workflowfm.simulator
+package com.workflowfm.proter
 
-import akka.pattern.{ ask, pipe }
-import akka.actor.{ Actor, ActorRef, Props }
-import akka.util.Timeout
-import scala.util.{ Try, Success, Failure }
-import scala.concurrent.duration.Duration
-import scala.collection.mutable.{ Map, Queue }
-import scala.concurrent.{ Future, Promise }
 import java.util.UUID
 import java.util.concurrent.TimeUnit
+
+import scala.collection.mutable
+import scala.collection.mutable.{ Map, Queue }
+import scala.concurrent.{ Future, Promise }
+import scala.concurrent.duration.Duration
+import scala.util.{ Try, Success, Failure }
+
+import akka.actor.{ Actor, ActorRef, Props }
+import akka.pattern.{ ask, pipe }
+import akka.util.Timeout
 
 /**
   * An actor managing the interaction between a simulation and a [[Coordinator]].
@@ -100,9 +103,9 @@ abstract class Simulation(
 
   /**
     * Stops/aborts the simulation.
-    * 
+    *
     * All the necessary steps for a gentle shutdown should be taken here.
-    * 
+    *
     * @group react
     */
   def stop(): Unit
@@ -123,10 +126,10 @@ abstract class Simulation(
     * Notifies the [[Coordinator]] that some [[Task]]s should be aborted.
     *
     * @group act
-    * 
+    *
     * @param id The `UUID` of the [[Task]]s.
     */
-  protected def abort(ids: UUID*) = {
+  protected def abort(ids: UUID*): Unit = {
     coordinator ! Coordinator.AbortTasks(ids)
   }
 
@@ -149,7 +152,7 @@ abstract class Simulation(
     * @group act
     * @param result The result of the simulation.
     */
-  protected def done(result: Try[Any]): Unit = { 
+  protected def done(result: Try[Any]): Unit = {
     coordinator ! Coordinator.SimDone(name, result)
   }
 
@@ -159,7 +162,7 @@ abstract class Simulation(
     * @group act
     * @param result The successful result of the simulation.
     */
-  protected def succeed(result: Any): Unit = { 
+  protected def succeed(result: Any): Unit = {
     coordinator ! Coordinator.SimDone(name, Success(result))
   }
 
@@ -169,7 +172,7 @@ abstract class Simulation(
     * @group act
     * @param exception The `Throwable` that caused the failure.
     */
-  protected def fail(exception: Throwable): Unit = { 
+  protected def fail(exception: Throwable): Unit = {
     coordinator ! Coordinator.SimDone(name, Failure(exception))
   }
 
@@ -178,7 +181,7 @@ abstract class Simulation(
     * one or more completed [[Task]]s.
     *
     * Identifies the tasks via their UUID.
-    * 
+    *
     * @group act
     */
   def ack(tasks: Seq[UUID], lookahead: Option[Lookahead] = None): Unit = {
@@ -273,7 +276,7 @@ object Simulation {
 
   /**
     * Aborts a list of [[Task]]s.
-    * 
+    *
     * @see [[Simulation.abort]]
     * @group process
     *
@@ -325,7 +328,6 @@ object Simulation {
     */
   case class Done(result: Try[Any])
 
-
   /**
     * Tells the [[Simulation]] to complete successfully.
     *
@@ -348,7 +350,7 @@ object Simulation {
 
   /**
     * Tells the [[Simulation]] to stop.
-    * 
+    *
     * @see [[Simulation.stop]]
     * @group coordinator
     */
@@ -396,9 +398,8 @@ class SingleTaskSimulation(
     * @inheritdoc
     *
     * Creates and adds the corresponding [[TaskGenerator]], then calls [[ready]] immediately.
-    *
     */
-  override def run() = {
+  override def run(): Unit = {
     val generator = TaskGenerator(s"${name}Task", name, duration, cost)
       .withResources(resources)
       .withInterrupt(interrupt)
@@ -407,7 +408,7 @@ class SingleTaskSimulation(
     ready()
   }
 
-  override def complete(task: Task, time: Long) = succeed((task, time))
+  override def complete(task: Task, time: Long): Unit = succeed((task, time))
 
   override def stop(): Unit = Unit
 }
@@ -467,20 +468,20 @@ abstract class AsyncSimulation(
     *
     * Its input consists of the generated [[Task]] and the timestamp when it was completed.
     * A `Failure` input corresponds to an exception happening or an aborted task.
-    * 
+    *
     * @group react
     */
   type Callback = Try[(Task, Long)] => Unit
 
   /**
     * Creates a simple success callback from a function.
-    * 
+    *
     * Does nothing on failure.
     *
     * @param f The function to call on success.
     * @return The created [[Callback]].
     */
-  def callback(f: (Task, Long) => Unit): Callback = 
+  def callback(f: (Task, Long) => Unit): Callback =
     t => t.foreach { arg => f(arg._1, arg._2) }
 
   /**
@@ -496,8 +497,8 @@ abstract class AsyncSimulation(
     * with a pre-determined ID.
     *
     * The provided callback function will be called when the corresponding [[Task]] is completed.
-    * 
-    * When it finishes executing, it must notify the [[Coordinator]] either by acknowledging the 
+    *
+    * When it finishes executing, it must notify the [[Coordinator]] either by acknowledging the
     * completed task using [[ack]] or by completing the simulation using [[done]], [[succeed]] or [[fail]].
     *
     * The [[ready]] method can also be called if there is no need to acknowledge completed tasks
@@ -527,7 +528,7 @@ abstract class AsyncSimulation(
     * @param task The [[Task]] that completed.
     * @param time The timestamp of its completion.
     */
-  override def complete(task: Task, time: Long) = {
+  override def complete(task: Task, time: Long): Unit = {
     tasks.get(task.id).map(_(Success(task, time)))
     tasks -= task.id
   }
@@ -536,9 +537,9 @@ abstract class AsyncSimulation(
     * @inheritdoc
     *
     * Calls respective [[Callback]]s with `Failure`.
-    * 
+    *
     * @group act
-    * 
+    *
     * @param id The `UUID` of the [[Task]]s.
     */
   override protected def abort(ids: UUID*): Unit = {
@@ -548,26 +549,26 @@ abstract class AsyncSimulation(
 
   /**
     * @inheritdoc
-    * 
+    *
     * Triggers all callbacks with a `Failure`.
     */
   override def stop(): Unit = {
     tasks.foreach { case (_, c) => c(Failure(Simulation.SimulationStoppingException())) }
   }
 
-/**
-  * A [[Callback]] function that notifies another `Actor` about a [[Task]] completion.
-  * 
-  * This allows the simulation logic of a callback to be implemented in another actor.
-  * The other actor can use the [[Simulation.AddTask]], [[Simulation.AddTaskWithId]],
-  * [[Simulation.AckTasks]], and [[Simulation.Ready]] messages to make progress instead 
-  * of calling the respective methods.
-  *
-  * @group react
-  * 
-  * @param actor
-  * @return
-  */
+  /**
+    * A [[Callback]] function that notifies another `Actor` about a [[Task]] completion.
+    *
+    * This allows the simulation logic of a callback to be implemented in another actor.
+    * The other actor can use the [[Simulation.AddTask]], [[Simulation.AddTaskWithId]],
+    * [[Simulation.AckTasks]], and [[Simulation.Ready]] messages to make progress instead
+    * of calling the respective methods.
+    *
+    * @group react
+    *
+    * @param actor
+    * @return
+    */
   def actorCallback(actor: ActorRef): Callback = t => {
     actor ! t
   }
@@ -582,8 +583,8 @@ abstract class AsyncSimulation(
     * @return The [[Receive]] behaviour for the simulation interface.
     */
   override def simulationReceive: Receive = super.simulationReceive orElse {
-    case Simulation.AddTask(t) => task(t, actorCallback(sender))
-  }
+      case Simulation.AddTask(t) => task(t, actorCallback(sender))
+    }
 }
 
 /**
@@ -638,7 +639,7 @@ trait LookingAhead extends Simulation {
     */
   val completed: collection.mutable.Set[(java.util.UUID, Long)] = collection.mutable.Set()
 
-  override def complete(task: Task, time: Long) = {
+  override def complete(task: Task, time: Long): Unit = {
     completed += ((task.id, time))
     lookahead = lookahead - task.id
     lookahead.getTaskData(completed) foreach { x => lookahead = lookahead - x._1.id }

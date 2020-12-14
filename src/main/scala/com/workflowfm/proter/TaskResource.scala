@@ -1,8 +1,9 @@
-package com.workflowfm.simulator
+package com.workflowfm.proter
+import java.util.UUID
 
 import scala.collection.mutable.Queue
-import com.workflowfm.simulator.metrics._
-import java.util.UUID
+
+import com.workflowfm.proter.metrics._
 
 /**
   * A persistent resource to be used by [[Task]]s.

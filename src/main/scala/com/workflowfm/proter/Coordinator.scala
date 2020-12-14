@@ -1,18 +1,22 @@
-package com.workflowfm.simulator
+package com.workflowfm.proter
+
+import java.util.UUID
+
+import scala.annotation.tailrec
+import scala.collection.mutable.{ HashSet, Map, PriorityQueue, Queue, SortedSet }
+import scala.concurrent.{ Await, ExecutionContext, Promise }
+import scala.concurrent.duration._
+import scala.util.{ Failure, Success, Try }
 
 import akka.actor._
 import akka.event.LoggingReceive
-import akka.util.Timeout
 import akka.pattern.ask
-import com.workflowfm.simulator.events._
-import scala.concurrent.duration._
-import com.workflowfm.simulator.metrics._
-import scala.collection.mutable.{ HashSet, Map, PriorityQueue, Queue, SortedSet }
-import scala.concurrent.{ Await, ExecutionContext, Promise }
-import scala.util.{ Failure, Success, Try }
-import java.util.UUID
+import akka.util.Timeout
+
 import uk.ac.ed.inf.ppapapan.subakka.HashSetPublisher
-import scala.annotation.tailrec
+
+import com.workflowfm.proter.events._
+import com.workflowfm.proter.metrics._
 
 /**
   * Provides coordination for discrete event simulation of multiple asynchronous simulations.
@@ -50,7 +54,7 @@ class Coordinator(
 
   /**
     * Set of simulation names that are running.
-    * 
+    *
     * i.e. they have already started but not finished.
     * @group simulations
     */
@@ -61,15 +65,16 @@ class Coordinator(
     * ordered by (future) timestamp.
     * @group toplevel
     */
-  val events: PriorityQueue[DiscreteEvent] = new PriorityQueue[DiscreteEvent]()(Ordering[DiscreteEvent].reverse) 
+  val events: PriorityQueue[DiscreteEvent] =
+    new PriorityQueue[DiscreteEvent]()(Ordering[DiscreteEvent].reverse)
 
   /**
     * [[scala.collection.mutable.HashSet HashSet]] of [[Task]] IDs that have been aborted.
-    * 
-    * This allows us to skip [[FinishingTask]] events for aborted tasks. We cannot remove those 
+    *
+    * This allows us to skip [[FinishingTask]] events for aborted tasks. We cannot remove those
     * events from the middle of the priority queue, so this is a computationally cheap way
     * to handle this.
-    * 
+    *
     * @group tasks
     */
   val abortedTasks: HashSet[UUID] = HashSet()
@@ -85,17 +90,17 @@ class Coordinator(
     * @group resources
     * @param r The [[TaskResource]] to be added.
     */
-  def addResource(r: TaskResource) = if (!resourceMap.contains(r.name)) {
+  def addResource(r: TaskResource): Any = if (!resourceMap.contains(r.name)) {
     publish(EResourceAdd(self, time, r.name, r.costPerTick))
     resourceMap += r.name -> r
   }
 
   /**
     * Extract all [[DiscreteEvent]]s in the queue that need to be processed in a given timestamp.
-    * 
+    *
     * Sequentially builds a [[scala.collection.immutable.Seq Seq]].
     * At the same time it dequeues the events from the event queue.
-    * 
+    *
     * @group toplevel
     * @param t The given timestamp to look out for. We assume it is less than or equal to
     *          the timestamp of the first [[DiscreteEvent]] in the queue.
@@ -110,7 +115,7 @@ class Coordinator(
 
   /**
     * Progress virtual time by processing the next [[DiscreteEvent]] in the queue.
-    * 
+    *
     * This is called when we are done waiting for any simulations to respond.
     * We take the first event from the queue and then use [[dequeueEvents]] to get
     * all events with the same timestamp.
@@ -120,7 +125,7 @@ class Coordinator(
     *   correct state of the resources if they need to.
     *  - We then handle the events with [[handleDiscreteEvent]].
     *  - If there are no events, no tasks to run, and all simulations have finished, the whole
-    *   simulation is done, so we publish [[com.workflowfm.simulator.events.EDone EDone]].
+    *   simulation is done, so we publish [[com.workflowfm.proterevents.EDone EDone]].
     *  - If there are no events and no simulations to wait for, but there are still tasks to run, we
     *   attempt to allocate and run them. This may happen if something breaks when handling a previous
     *   event.
@@ -165,13 +170,13 @@ class Coordinator(
 
   /**
     * Allocates the tasks due to start next to their resources.
-    * 
+    *
     * Asks the [[Scheduler]] to determine what tasks need to start next.
     * Removes each of them from the queue and runs them using [[startTask]].
-    * 
+    *
     * @group resources
     */
-  protected def allocateTasks() = {
+  protected def allocateTasks(): Unit = {
     // Assign the next tasks
     scheduler.getNextTasks(time, resourceMap).foreach { task =>
       scheduler.removeTask(task)
@@ -181,16 +186,16 @@ class Coordinator(
 
   /**
     * Releases any resources that are not longer used based on the given event.
-    * 
+    *
     * If the provided event is a [[FinishingTask]] event, i.e. a [[Task]] just finished,
     * this means the resources used by that [[Task]] can now be released.
-    * 
+    *
     * Other [[DiscreteEvent]]s are just ignored.
     *
     * @group resources
     * @param event The [[DiscreteEvent]] that potentially released resources.
     */
-  protected def releaseResources(event: DiscreteEvent) = {
+  protected def releaseResources(event: DiscreteEvent): Any = {
     event match {
       case FinishingTask(t, task) if (t == time && !abortedTasks.contains(task.id)) =>
         // Unbind the resources
@@ -209,11 +214,11 @@ class Coordinator(
     * @group toplevel
     * @param event The [[DiscreteEvent]] to process.
     */
-  protected def handleDiscreteEvent(event: DiscreteEvent) = {
+  protected def handleDiscreteEvent(event: DiscreteEvent): Unit = {
     log.debug(s"[COORD:$time] Event!")
     event match {
       // A task is finished
-      case FinishingTask(t, task) if (t == time) => 
+      case FinishingTask(t, task) if (t == time) =>
         if (abortedTasks.contains(task.id)) abortedTasks -= task.id
         else stopTask(task)
 
@@ -238,21 +243,21 @@ class Coordinator(
     *          time.
     * @param actor The reference to the [[Simulation]] corresponding to the simulation.
     */
-  protected def addSimulation(t: Long, actor: ActorRef) = {
+  protected def addSimulation(t: Long, actor: ActorRef): Any = {
     publish(ESimAdd(self, time, actor.toString(), t))
     if (t >= time) events += StartingSim(t, actor)
   }
 
   /**
     * Adds multiple simulations at the same time.
-    * 
+    *
     * This is equivalent to mapping [[addSimulation]] over the given sequence, but more efficient.
     *
     * @group simulations
     * @param sims A sequence of pairs, each consisting of a starting timestamp and a
     * reference to a [[Simulation]]. Timestamps must be greater or equal to the current time.
     */
-  protected def addSimulations(sims: Seq[(Long, ActorRef)]) = {
+  protected def addSimulations(sims: Seq[(Long, ActorRef)]): PriorityQueue[DiscreteEvent] = {
     events ++= sims.flatMap {
       case (t, actor) => {
           publish(ESimAdd(self, time, actor.toString(), t))
@@ -266,14 +271,14 @@ class Coordinator(
 
   /**
     * Start a simulation via the reference to its [[Simulation]].
-    * 
+    *
     * Once the simulation starts, we exect to hear from it in case it wants to add some [[Task]]s.
     * We therefore add it to the waiting queue.
     *
     * @group simulations
     * @param simActor The [[akka.actor.ActorRef]] of the [[Simulation]].
     */
-  protected def startSimulation(simActor: ActorRef) = {
+  protected def startSimulation(simActor: ActorRef): Unit = {
     waiting += simActor -> List()
     simActor ! Simulation.Start
   }
@@ -291,9 +296,9 @@ class Coordinator(
 
   /**
     * Stops a simulation when it is done.
-    * 
+    *
     *  - Removes the simulation from the list of running simulations.
-    *  - Publishes a [[com.workflowfm.simulator.events.ESimEnd ESimEnd]].
+    *  - Publishes a [[com.workflowfm.proter.events.ESimEnd ESimEnd]].
     *  - Calls [[ready]] to handle the fact that we no longer need to wait for this simulation.
     *
     * @group simulations
@@ -301,7 +306,7 @@ class Coordinator(
     * @param result A string representation of the output of the simulation.
     * @param actor The [[akka.actor.ActorRef]] of the corresponding [[Simulation]].
     */
-  protected def stopSimulation(name: String, result: String, actor: ActorRef) = {
+  protected def stopSimulation(name: String, result: String, actor: ActorRef): Unit = {
     simulations -= name
     waiting -= actor
     scheduler.removeLookahead(actor)
@@ -312,10 +317,10 @@ class Coordinator(
 
   /**
     * Stops/aborts a named simulation before it is done.
-    * 
-    * Looks up the simulation actor and then calls 
-    * [[abortSimulation(name:String,actor:akka\.actor\.ActorRef)* abortSimulation]]. 
-    * 
+    *
+    * Looks up the simulation actor and then calls
+    * [[abortSimulation(name:String,actor:akka\.actor\.ActorRef)* abortSimulation]].
+    *
     * @group simulations
     * @param name The name of the simulation to abort.
     */
@@ -325,16 +330,16 @@ class Coordinator(
 
   /**
     * Stops/aborts a simulation before it is done.
-    * 
+    *
     *  - Removes the simulation from the list of running simulations and from the waiting list.
     *  - Detaches all tasks of the simulation from the resources and adds them to the abort list.
     *  - Removes all queued tasks of the simulation from the scheduler.
-    *  - Publishes a [[com.workflowfm.simulator.events.ESimEnd ESimEnd]].
+    *  - Publishes a [[com.workflowfm.proter.events.ESimEnd ESimEnd]].
     *  - Asks the simulation actor to stop.
     *  - Does '''not''' progress time.
     *
     * The bookkeeping assumes the rest of the simulation(s) can still proceed.
-    * 
+    *
     * @group simulations
     * @param name The name of the completed simulation.
     * @param actor The [[akka.actor.ActorRef]] of the corresponding [[Simulation]].
@@ -346,14 +351,15 @@ class Coordinator(
     val tasksToAbort = HashSet[UUID]()
 
     // Detach and abort tasks of this simulation
-    resourceMap.foreach { case (name, resource) =>
-      resource.abortSimulation(name) match {
-        case None => Unit
-        case Some(task) => {
-          publish(ETaskDetach(self, time, task, resource.name))
-          tasksToAbort += task.id
+    resourceMap.foreach {
+      case (name, resource) =>
+        resource.abortSimulation(name) match {
+          case None => Unit
+          case Some(task) => {
+            publish(ETaskDetach(self, time, task, resource.name))
+            tasksToAbort += task.id
+          }
         }
-      }
     }
     tasksToAbort.map { id => publish(ETaskAbort(self, time, id)) }
     abortedTasks ++= tasksToAbort
@@ -372,7 +378,7 @@ class Coordinator(
 
   /**
     * Adds new [[Task]]s for a simulation.
-    * 
+    *
     *  - Calls [[addTask]] for each [[Task]] to be generated.
     *  - Calls [[ready]] to handle the fact that we no longer need to wait for this simulation.
     *
@@ -381,7 +387,7 @@ class Coordinator(
     * @param l The list of tasks to be generated, each represented by a triplet with its unique ID,
     *          [[TaskGenerator]] and list of [[TaskResource]] names that need to be used.
     */
-  protected def addTasks(actor: ActorRef, l: Seq[TaskGenerator]) {
+  protected def addTasks(actor: ActorRef, l: Seq[TaskGenerator]): Unit = {
     l foreach addTask
   }
 
@@ -394,7 +400,7 @@ class Coordinator(
     * multipled by the [[Task.duration]]. Adds this to the [[Task.cost]].
     * This is done at runtime instead of at creation time to support variable resources.
     *
-    *  - Publishes a [[com.workflowfm.simulator.events.ETaskAdd ETaskAdd]].
+    *  - Publishes a [[com.workflowfm.proter.events.ETaskAdd ETaskAdd]].
     *
     *  - If the task does not require any resources, it is started immediately using [[startTask]].
     * Otherwise, we add it to the queue of [[Task]]s.
@@ -402,7 +408,7 @@ class Coordinator(
     * @group tasks
     * @param gen The [[TaskGenerator]] that will generate the [[Task]].
     */
-  protected def addTask(gen: TaskGenerator) {
+  protected def addTask(gen: TaskGenerator): Unit = {
     // Create the task
     val t: Task = gen.create(time, sender)
 
@@ -431,7 +437,7 @@ class Coordinator(
     * @param actor The [[Simulation]] actor.
     * @param ack The sequence of [[Task]] UUIDs being acknowledged.
     */
-  protected def ackTasks(actor: ActorRef, ack: Seq[UUID]) {
+  protected def ackTasks(actor: ActorRef, ack: Seq[UUID]): Unit = {
     log.debug(s"[COORD:$time] Ack [${actor.path.name}]: $ack")
     waiting.get(actor) match {
       case None =>
@@ -452,7 +458,7 @@ class Coordinator(
     * @group simulations
     * @param actor The [[Simulation]] actor that is done.
     */
-  protected def ackAll(actor: ActorRef) {
+  protected def ackAll(actor: ActorRef): Unit = {
     log.debug(s"[COORD:$time] Ack ALL [${actor.path.name}]")
     waiting -= actor
     ready(actor)
@@ -460,14 +466,14 @@ class Coordinator(
 
   /**
     * Start a [[Task]] at the current timestamp.
-    * 
+    *
     * A [[Task]] is started when scheduled, meaning all the [[TaskResource]]s it needs are available
     * and it is the highest priority [[Task]] in the queue for those [[TaskResource]]s.
     *
-    *  - Publishes a [[com.workflowfm.simulator.events.ETaskAdd ETaskAdd]].
+    *  - Publishes a [[com.workflowfm.proter.events.ETaskAdd ETaskAdd]].
     *  - Calls [[TaskResource.startTask]] for each involved [[TaskResource]] to attach this [[Task]]
-    * to them. Publishes a [[com.workflowfm.simulator.events.ETaskAttach ETaskAttach]] for each successful attachment.
-    * Otherwise publishes an appropriate [[com.workflowfm.simulator.events.EError EError]]. The latter would
+    * to them. Publishes a [[com.workflowfm.proter.events.ETaskAttach ETaskAttach]] for each successful attachment.
+    * Otherwise publishes an appropriate [[com.workflowfm.proter.events.EError EError]]. The latter would
     * only happen if the [[Scheduler]] tried to schedule a [[Task]] to a busy [[TaskResource]].
     *  - Creates a [[FinishingTask]] event for this [[Task]] based on its duration, and adds it to
     * the even queue.
@@ -475,7 +481,7 @@ class Coordinator(
     * @group tasks
     * @param task The [[Task]] to be started.
     */
-  protected def startTask(task: Task) {
+  protected def startTask(task: Task): Unit = {
     publish(ETaskStart(self, time, task))
     // Mark the start of the task in the metrics
     task.taskResources(resourceMap) map { r =>
@@ -499,7 +505,7 @@ class Coordinator(
 
   /**
     * Adds a simulation to the waiting list.
-    * 
+    *
     * We will wait for that simulation to send tasks or finish before we progress time.
     * This is used when a simulation wants to react externally to events from another simulation.
     *
@@ -509,7 +515,7 @@ class Coordinator(
     * @group simulations
     * @param actor The reference to the [[Simulation]] we need to wait for.
     */
-  protected def waitFor(actor: ActorRef, ack: ActorRef) {
+  protected def waitFor(actor: ActorRef, ack: ActorRef): Unit = {
     waiting += actor -> List()
     log.debug(s"[COORD:$time] Wait requested: ${actor.path.name}")
     ack ! Simulation.AckWait
@@ -517,14 +523,14 @@ class Coordinator(
 
   /**
     * Detaches the task attached to the given [[TaskResource]].
-    * 
+    *
     * A wrapper of [[TaskResource.finishTask]] that
-    * publishes a [[com.workflowfm.simulator.events.ETaskDetach ETaskDetach]].
+    * publishes a [[com.workflowfm.proter.events.ETaskDetach ETaskDetach]].
     *
     * @group resources
     * @param r The [[TaskResource]] to free up.
     */
-  protected def detach(r: TaskResource) = {
+  protected def detach(r: TaskResource): Any = {
     r.finishTask(time) match {
       case None => Unit
       case Some(task) => publish(ETaskDetach(self, time, task, r.name))
@@ -533,10 +539,10 @@ class Coordinator(
 
   /**
     * Handles a [[Task]] that has just finished.
-    * 
+    *
     *  - Adds the corresponding [[Simulation]] reference to the waiting list as we
     *   expect it to react to the task finishing.
-    *  - Publishes a [[com.workflowfm.simulator.events.ETaskDone ETaskDone]].
+    *  - Publishes a [[com.workflowfm.proter.events.ETaskDone ETaskDone]].
     *  - Notifies the [[Simulation]] that its [[Task]] has finished.
     *
     * Note that resources are detached before this in [[tick]] using [[releaseResources]].
@@ -544,7 +550,7 @@ class Coordinator(
     * @group tasks
     * @param task The [[Task]] that needs to be stopped.
     */
-  protected def stopTask(task: Task) {
+  protected def stopTask(task: Task): Unit = {
     waiting.get(task.actor) match {
       case None => waiting += task.actor -> List(task.id)
       case Some(l) => waiting.update(task.actor, task.id :: l)
@@ -557,38 +563,38 @@ class Coordinator(
 
   /**
     * Aborts a [[Task]].
-    * 
+    *
     *  - Adds the corresponding actor o the waiting list as we
     *   expect it to react to the task aborting.
     *  - Detaches all associated [[TaskResource]]s.
     *  - Adds the task ID to the [[abortedTasks]] set.
-    *  - Publishes a [[com.workflowfm.simulator.events.ETaskAbort ETaskAbort]].
+    *  - Publishes a [[com.workflowfm.proter.events.ETaskAbort ETaskAbort]].
     *
     * @group tasks
     * @param id The `UUID` of the [[Task]] that needs to be aborted.
     * @param source The actor that caused the abort.
     */
-  protected def abortTask(id: UUID, source: ActorRef) {
+  protected def abortTask(id: UUID, source: ActorRef): Unit = {
     // Need to wait for the source if we are not already.
     waiting.get(source) match {
       case None => waiting += source -> List()
       case Some(_) => Unit
     }
     log.debug(s"[COORD:$time] Waiting post-abort: ${source.path.name}")
-    resourceMap.foreach { case (name, resource) => 
-      resource.abortTask(id) match {
-        case None => Unit
-        case Some(task) => publish(ETaskDetach(self, time, task, resource.name))
-      }
+    resourceMap.foreach {
+      case (name, resource) =>
+        resource.abortTask(id) match {
+          case None => Unit
+          case Some(task) => publish(ETaskDetach(self, time, task, resource.name))
+        }
     }
     abortedTasks += id
     publish(ETaskAbort(self, time, id))
   }
 
-
   /**
     * Reacts to the fact that we no longer need to wait for a simulation.
-    * 
+    *
     * This can happen when the simulation has finished or has added its new tasks.
     * We remove it from the waiting queue and then check if the waiting queue is empty.
     * If it is, we can progress time. First, we allocate new tasks, because some of them
@@ -617,32 +623,32 @@ class Coordinator(
     * Starts the entire simulation scenario.
     * @group toplevel
     */
-  def start() = {
+  def start(): Unit = {
     publish(EStart(self))
     tick()
   }
 
   /**
     * Stops the entire simulation and shuts down the actor.
-    * 
+    *
     * @note Dead letters may occur after this, but we are ok with that, at least for now.
     * @group toplevel
     */
-  def stop() = {
+  def stop(): Unit = {
     publish(EDone(self, time))
     context.stop(self)
   }
 
   /**
-    * Checks if a given [[com.workflowfm.simulator.events.Event Event]] in the output stream is the final one.
-    * 
-    * Causes the stream to shutdown after [[com.workflowfm.simulator.events.EDone EDone]] is published.
+    * Checks if a given [[com.workflowfm.proter.events.Event Event]] in the output stream is the final one.
+    *
+    * Causes the stream to shutdown after [[com.workflowfm.proter.events.EDone EDone]] is published.
     *
     * @group toplevel
-    * @param e The [[com.workflowfm.simulator.events.Event Event]] to check.
-    * @return true if it is a [[com.workflowfm.simulator.events.EDone EDone]], otherwise false.
+    * @param e The [[com.workflowfm.proter.events.Event Event]] to check.
+    * @return true if it is a [[com.workflowfm.proter.events.EDone EDone]], otherwise false.
     */
-  override def isFinalEvent(e: Event) = e match {
+  override def isFinalEvent(e: Event): Boolean = e match {
     case EDone(_, _) => true
     case _ => false
   }
@@ -673,8 +679,7 @@ class Coordinator(
       lookahead.map(scheduler.setLookahead(sender(), _))
       ackAll(sender)
     }
-    case Coordinator.AbortTasks(ids) => ids foreach { id => abortTask(id, sender())}
-
+    case Coordinator.AbortTasks(ids) => ids foreach { id => abortTask(id, sender()) }
 
     case Coordinator.WaitFor(actor) => waitFor(actor, sender())
     case Coordinator.SimStarted(name, actor) => simulationStarted(name, actor)
@@ -700,12 +705,12 @@ class Coordinator(
     * @group toplevel
     * @return The [[Receive]] behaviour.
     */
-  override def receive = LoggingReceive { publisherBehaviour orElse receiveBehaviour }
+  override def receive: Receive = LoggingReceive { publisherBehaviour orElse receiveBehaviour }
 }
 
 /**
   * Companion object for [[Coordinator]].
-  * 
+  *
   * Includes some of the actor messages that can be received and sent.
   *
   * @groupname simulations Interaction with a Simulation

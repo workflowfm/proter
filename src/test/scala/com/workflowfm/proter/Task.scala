@@ -1,19 +1,21 @@
-package com.workflowfm.simulator
+package com.workflowfm.proter
 
-import akka.actor.{ ActorRef, ActorSystem }
-import akka.testkit.{ TestKit, TestProbe }
-import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
 import java.util.UUID
-import akka.actor.Actor
 
-import akka.testkit.{ ImplicitSender, TestActors, TestKit, TestProbe }
-import com.typesafe.config.ConfigFactory
-import uk.ac.ed.inf.ppapapan.subakka.MockPublisher
 import scala.concurrent._
 import scala.concurrent.Await
 import scala.concurrent.duration._
+
+import akka.actor.{ ActorRef, ActorSystem }
+import akka.actor.Actor
+import akka.testkit.{ ImplicitSender, TestActors, TestKit, TestProbe }
+import akka.testkit.{ TestKit, TestProbe }
+import com.typesafe.config.ConfigFactory
+import org.junit.runner.RunWith
+import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
+import org.scalatest.junit.JUnitRunner
+
+import uk.ac.ed.inf.ppapapan.subakka.MockPublisher
 
 @RunWith(classOf[JUnitRunner])
 class TaskTests extends TaskTester {
@@ -80,7 +82,7 @@ class TaskTester
     with Matchers
     with BeforeAndAfterAll
     with ImplicitSender {
-  implicit val executionContext = ExecutionContext.global
+  implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
   implicit val timeout: FiniteDuration = 10.seconds
 
   final val probe: TestProbe = TestProbe.apply("TaskTestsProbe")(system);

@@ -1,22 +1,24 @@
-package com.workflowfm.simulator
+package com.workflowfm.proter
 
-import org.scalatest._
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-import akka.testkit._
-import com.typesafe.config.ConfigFactory
+import scala.collection.mutable.Map
+import scala.concurrent._
+import scala.concurrent.duration._
 
 import akka.actor.ActorSystem
 import akka.pattern.ask
-import scala.concurrent._
-import scala.concurrent.duration._
-import com.workflowfm.simulator.metrics._
-import com.workflowfm.simulator.events.{ PrintEventHandler, PromiseHandler }
-import uk.ac.ed.inf.ppapapan.subakka.Subscriber
+import akka.testkit._
 import akka.util.Timeout
-import com.workflowfm.simulator.flows._
-import com.workflowfm.simulator._
-import scala.collection.mutable.Map
+import com.typesafe.config.ConfigFactory
+import org.junit.runner.RunWith
+import org.scalatest._
+import org.scalatest.junit.JUnitRunner
+
+import uk.ac.ed.inf.ppapapan.subakka.Subscriber
+
+import com.workflowfm.proter._
+import com.workflowfm.proter.events.{ PrintEventHandler, PromiseHandler }
+import com.workflowfm.proter.flows._
+import com.workflowfm.proter.metrics._
 
 @RunWith(classOf[JUnitRunner])
 class FlowsTest extends FlowsIntegrationTester {
@@ -585,7 +587,7 @@ akka {
     with OptionValues {
 
   implicit val executionContext: ExecutionContext = ExecutionContext.global
-  implicit val timeout = Timeout(2.seconds)
+  implicit val timeout: Timeout = Timeout(2.seconds)
 
   def singleFlowTest(
       flow: Flow,

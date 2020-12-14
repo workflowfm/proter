@@ -1,22 +1,26 @@
-package com.workflowfm.simulator
+package com.workflowfm.proter
 
-import akka.actor.{ ActorRef, ActorSystem, Props }
-import akka.testkit.{ ImplicitSender, TestActors, TestKit, TestProbe }
-import akka.pattern.ask
-import akka.util.Timeout
+import java.util.UUID
 import java.util.concurrent.TimeUnit
-import com.typesafe.config.ConfigFactory
-import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
+
 import scala.concurrent._
 import scala.concurrent.Await
 import scala.concurrent.duration._
 import scala.util.{ Failure, Success, Try }
-import java.util.UUID
-import com.workflowfm.simulator.metrics._
+
+import akka.actor.{ ActorRef, ActorSystem, Props }
+import akka.pattern.ask
+import akka.testkit.{ ImplicitSender, TestActors, TestKit, TestProbe }
+import akka.util.Timeout
+import com.typesafe.config.ConfigFactory
+import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
+
 import uk.ac.ed.inf.ppapapan.subakka.MockPublisher
 
+import com.workflowfm.proter.metrics._
+
 class SimulationTests extends SimulationTester {
-  implicit val executionContext = ExecutionContext.global
+  implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
   implicit val timeout: FiniteDuration = 10.seconds
 
   "Simulations" must {

@@ -1,4 +1,4 @@
-package com.workflowfm.simulator
+package com.workflowfm.proter
 
 import scala.annotation.tailrec
 
@@ -116,7 +116,7 @@ case class Schedule(tasks: List[(Long, Long)]) {
     *
     * @return
     */
-  def isValid = Schedule.isValid(tasks)
+  def isValid: Boolean = Schedule.isValid(tasks)
 }
 
 /**

@@ -1,9 +1,12 @@
-package com.workflowfm.simulator.flows
+package com.workflowfm.proter.flows
 
-import com.workflowfm.simulator._
-import akka.actor.{ Actor, ActorRef, Props }
 import java.util.UUID
+
 import scala.util.{ Try, Success, Failure }
+
+import akka.actor.{ Actor, ActorRef, Props }
+
+import com.workflowfm.proter._
 
 sealed trait Flow {
   val id: UUID = java.util.UUID.randomUUID
@@ -41,7 +44,7 @@ class FlowSimulationActor(
     * Initiates the execution of the simulation.
     */
   override def run(): Unit = {
-    runFlow(flow, callback((_, _) => succeed(Unit)) )
+    runFlow(flow, callback((_, _) => succeed(Unit)))
     ready()
   }
 
@@ -68,7 +71,7 @@ class FlowSimulationActor(
     *
     * @param id The id to complete
     */
-  protected def complete(id: UUID) = {
+  protected def complete(id: UUID): collection.mutable.Map[UUID, Callback] = {
     tasks.get(id).map(_(Success(null, 0L)))
     tasks -= id
   }
@@ -79,7 +82,7 @@ class FlowSimulationActor(
     *
     * @param flow The flow to be executed
     */
-  protected def execute(flow: Flow) {
+  protected def execute(flow: Flow): Unit = {
     flow match {
       case f: NoTask => complete(f.id)
 
@@ -93,8 +96,10 @@ class FlowSimulationActor(
       }
 
       case f: And => {
-        val leftCallback: Callback = callback((_, _) => (if (!tasks.contains(f.right.id)) complete(f.id)))
-        val rightCallback: Callback = callback((_, _) => (if (!tasks.contains(f.left.id)) complete(f.id)))
+        val leftCallback: Callback =
+          callback((_, _) => (if (!tasks.contains(f.right.id)) complete(f.id)))
+        val rightCallback: Callback =
+          callback((_, _) => (if (!tasks.contains(f.left.id)) complete(f.id)))
         runFlow(f.left, leftCallback)
         runFlow(f.right, rightCallback)
       }
@@ -103,8 +108,10 @@ class FlowSimulationActor(
         runFlow((elem.fold(NoTask()) { (l, r) => And(l, r) }), callback((_, _) => complete(f.id)))
 
       case f: Or => {
-        val leftCallback: Callback = callback((_, _) => (if (tasks.contains(f.right.id)) complete(f.id)))
-        val rightCallback: Callback = callback((_, _) => (if (tasks.contains(f.left.id)) complete(f.id)))
+        val leftCallback: Callback =
+          callback((_, _) => (if (tasks.contains(f.right.id)) complete(f.id)))
+        val rightCallback: Callback =
+          callback((_, _) => (if (tasks.contains(f.left.id)) complete(f.id)))
         runFlow(f.left, leftCallback)
         runFlow(f.right, rightCallback)
       }

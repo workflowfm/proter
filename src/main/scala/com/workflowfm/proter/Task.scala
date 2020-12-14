@@ -1,12 +1,15 @@
-package com.workflowfm.simulator
+package com.workflowfm.proter
+
+import java.util.UUID
+
+import scala.concurrent.Promise
+import scala.concurrent.duration._
 
 import akka.actor._
 import akka.pattern.ask
 import akka.util.Timeout
-import scala.concurrent.Promise
-import scala.concurrent.duration._
-import com.workflowfm.simulator.metrics._
-import java.util.UUID
+
+import com.workflowfm.proter.metrics._
 
 /**
   * A task to be performed in virtual time.
@@ -57,7 +60,7 @@ class Task(
     *
     * @param extra The cost to add.
     */
-  def addCost(extra: Long) = cost += extra
+  def addCost(extra: Long): Unit = cost += extra
 
   /**
     * Finds the soonest this task can start.
@@ -70,7 +73,10 @@ class Task(
     * @param resourceMap A map of all available [[TaskResource]]s
     * @return The (estimated) earliest timestamp when all resources are available.
     */
-  def nextPossibleStart(currentTime: Long, resourceMap: collection.Map[String, TaskResource]) = {
+  def nextPossibleStart(
+      currentTime: Long,
+      resourceMap: collection.Map[String, TaskResource]
+  ): Long = {
     (currentTime /: resources) {
       case (i, rN) =>
         resourceMap.get(rN) match {
@@ -87,7 +93,7 @@ class Task(
     * @param resourceMap The map of available [[TaskResource]]s
     * @return The [[TaskResource]]s required for this task.
     */
-  def taskResources(resourceMap: collection.Map[String, TaskResource]) =
+  def taskResources(resourceMap: collection.Map[String, TaskResource]): Seq[TaskResource] =
     resources flatMap (resourceMap.get(_))
 
   /**
@@ -114,7 +120,7 @@ class Task(
     * @param that The task to compare to.
     * @return A comparative measure (lower means higher priority).
     */
-  def compare(that: Task) = {
+  def compare(that: Task): Int = {
     lazy val cPriority = that.priority.compare(this.priority)
     lazy val cResources = that.resources.size.compare(this.resources.size)
     lazy val cAge = this.created.compare(that.created)
@@ -130,7 +136,7 @@ class Task(
     else cID
   }
 
-  override def toString = {
+  override def toString: String = {
     val res = resources.mkString(",")
     s"Task($id,$name,$simulation,$actor,c$created,[$res],d$duration($estimatedDuration),c$initialCost,i$interrupt,$priority)"
   }
@@ -155,7 +161,7 @@ object Task {
       * @param that Priority to compare to.
       * @return The relative comparison value.
       */
-    def compare(that: Priority) = this.value - that.value
+    def compare(that: Priority): Int = this.value - that.value
   }
   case object Highest extends Priority { val value = 5 }
   case object High extends Priority { val value = 4 }
@@ -205,7 +211,7 @@ case class TaskGenerator(
     * @param actor A reference to the corresponding [[Simulation]] for the task.
     * @return The generated [[Task]].
     */
-  def create(currentTime: Long, actor: ActorRef) = {
+  def create(currentTime: Long, actor: ActorRef): Task = {
     val creation = if (createTime >= 0) createTime else currentTime
 
     new Task(
@@ -230,7 +236,7 @@ case class TaskGenerator(
     * @param i The new ID.
     * @return An updated [[TaskGenerator]].
     */
-  def withID(i: UUID) = copy(id = i)
+  def withID(i: UUID): TaskGenerator = copy(id = i)
 
   /**
     * Update the resources to use.
@@ -238,7 +244,7 @@ case class TaskGenerator(
     * @param r The new resources.
     * @return An updated [[TaskGenerator]].
     */
-  def withResources(r: Seq[String]) = copy(resources = r)
+  def withResources(r: Seq[String]): TaskGenerator = copy(resources = r)
 
   /**
     * Update the priority to use.
@@ -246,49 +252,49 @@ case class TaskGenerator(
     * @param p The new priority.
     * @return An updated [[TaskGenerator]].
     */
-  def withPriority(p: Task.Priority) = copy(priority = p)
+  def withPriority(p: Task.Priority): TaskGenerator = copy(priority = p)
   /**
     * Update the interrupt to use.
     *
     * @param int The new interrupt.
     * @return An updated [[TaskGenerator]].
     */
-  def withInterrupt(int: Int) = copy(interrupt = int)
+  def withInterrupt(int: Int): TaskGenerator = copy(interrupt = int)
   /**
     * Update the duration [[ValueGenerator]] to use.
     *
     * @param dur The new duration generator.
     * @return An updated [[TaskGenerator]].
     */
-  def withDuration(dur: ValueGenerator[Long]) = copy(duration = dur)
+  def withDuration(dur: ValueGenerator[Long]): TaskGenerator = copy(duration = dur)
   /**
     * Update the task name to use.
     *
     * @param n The new name.
     * @return An updated [[TaskGenerator]].
     */
-  def withName(n: String) = copy(name = n)
+  def withName(n: String): TaskGenerator = copy(name = n)
   /**
     * Update the simulation name to use.
     *
     * @param s The new name.
     * @return An updated [[TaskGenerator]].
     */
-  def withSimulation(s: String) = copy(simulation = s)
+  def withSimulation(s: String): TaskGenerator = copy(simulation = s)
   /**
     * Update the custom creation time to use.
     *
     * @param t The new creation time.
     * @return An updated [[TaskGenerator]].
     */
-  def withCreationTime(t: Long) = copy(createTime = t)
+  def withCreationTime(t: Long): TaskGenerator = copy(createTime = t)
   /**
     * Update the custom minimum starting time to use.
     *
     * @param t The new minimum starting time.
     * @return An updated [[TaskGenerator]].
     */
-  def withMinStartTime(t: Long) = copy(minStartTime = t)
+  def withMinStartTime(t: Long): TaskGenerator = copy(minStartTime = t)
 }
 
 /**

@@ -1,14 +1,15 @@
-package com.workflowfm.simulator
+package com.workflowfm.proter
 
-import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
 import scala.collection.mutable.SortedSet
-import akka.actor._
-import akka.testkit.TestProbe
 import scala.concurrent.{ Await, ExecutionContext, Future }
 import scala.concurrent.duration._
+
+import akka.actor._
+import akka.testkit.TestProbe
 import akka.util.Timeout
+import org.junit.runner.RunWith
+import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
+import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
 class SchedulerTests extends TaskTester with ScheduleTester {
@@ -292,5 +293,5 @@ class SchedulerTests extends TaskTester with ScheduleTester {
 }
 
 trait ScheduleTester {
-  def s(l: (Long, Long)*) = Schedule(l.toList)
+  def s(l: (Long, Long)*): Schedule = Schedule(l.toList)
 }
