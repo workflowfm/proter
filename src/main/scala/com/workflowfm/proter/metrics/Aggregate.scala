@@ -2,9 +2,10 @@ package com.workflowfm.proter.metrics
 
 import java.util.UUID
 
+import scala.collection.mutable
+
 import com.workflowfm.proter._
 import com.workflowfm.proter.events._
-import scala.collection.mutable
 
 /**
   * Collects/aggregates metrics across multiple tasks, resources, and simulations.
@@ -47,17 +48,21 @@ class SimMetricsAggregator {import scala.collection.immutable.Map
     * Task metrics indexed by task ID.
     * @group Values
     */
-  val taskMap: mutable.Map[UUID,TaskMetrics] = scala.collection.mutable.Map[UUID, TaskMetrics]()
+  val taskMap: mutable.Map[UUID, TaskMetrics] = scala.collection.mutable.Map[UUID, TaskMetrics]()
+
   /**
     * Simulation metrics indexed by name.
     * @group Values
     */
-  val simMap: mutable.Map[String,SimulationMetrics] = scala.collection.mutable.Map[String, SimulationMetrics]()
+  val simMap: mutable.Map[String, SimulationMetrics] =
+    scala.collection.mutable.Map[String, SimulationMetrics]()
+
   /**
     * Resource metrics indexed by name.
     * @group Values
     */
-  val resourceMap: mutable.Map[String,ResourceMetrics] = scala.collection.mutable.Map[String, ResourceMetrics]()
+  val resourceMap: mutable.Map[String, ResourceMetrics] =
+    scala.collection.mutable.Map[String, ResourceMetrics]()
 
   // Set
 

@@ -2,13 +2,13 @@ package com.workflowfm.proter.flows
 
 import java.util.UUID
 
+import scala.collection.mutable
 import scala.concurrent.{ ExecutionContext, Future, Promise }
 
 import akka.actor.{ Actor, ActorRef, Props }
 import akka.protobufv3.internal.Empty
 
 import com.workflowfm.proter._
-import scala.collection.mutable
 
 sealed trait Flow {
   val id: UUID = java.util.UUID.randomUUID
@@ -78,7 +78,7 @@ class FlowSimulationActor(
     *
     * @param id The id to complete
     */
-  protected def complete(id: UUID): mutable.Map[UUID,Callback] = {
+  protected def complete(id: UUID): mutable.Map[UUID, Callback] = {
     tasks.get(id).map(_(null, 0L))
     tasks -= id
   }

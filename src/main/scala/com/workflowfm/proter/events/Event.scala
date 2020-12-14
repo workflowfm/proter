@@ -1,5 +1,4 @@
 package com.workflowfm.proter.events
-
 import java.util.UUID
 
 import akka.actor.ActorRef

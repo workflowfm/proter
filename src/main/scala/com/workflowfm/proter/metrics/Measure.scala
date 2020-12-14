@@ -83,11 +83,13 @@ case class SimulationMetrics(
   def addDelay(d: Long): SimulationMetrics = copy(delay = delay + d)
   /** Updates the metrics given a new [[Task]] that is created as part of the simulation. */
   def task(task: Task): SimulationMetrics = copy(tasks = tasks + 1, cost = cost + task.cost)
+
   /** Updates the metrics given that the simulation has completed with a certain result.
     * @param res the result of the simulation or localized message of the exception in case of failure
     * @param time the virtual timestamp when the simulation finished
     */
-  def done(res: String, time: Long): SimulationMetrics = copy(result = Some(res), duration = duration + time - started)
+  def done(res: String, time: Long): SimulationMetrics =
+    copy(result = Some(res), duration = duration + time - started)
 }
 
 object SimulationMetrics {

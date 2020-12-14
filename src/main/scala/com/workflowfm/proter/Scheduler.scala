@@ -33,10 +33,11 @@ trait Scheduler {
     * @param resourceMap The map of available [[TaskResource]]s.
     * @return true if the resource is idle, false otherwise.
     */
-  def isIdleResource(r: String, resourceMap: Map[String, TaskResource]): Boolean = resourceMap.get(r) match {
-    case None => false
-    case Some(s) => s.isIdle
-  }
+  def isIdleResource(r: String, resourceMap: Map[String, TaskResource]): Boolean =
+    resourceMap.get(r) match {
+      case None => false
+      case Some(s) => s.isIdle
+    }
 
   /**
     * Sets the lookahead structure for the specified actor.
@@ -509,7 +510,8 @@ class LookaheadScheduler(initialTasks: Task*) extends SortedSetScheduler {
     * @param actor The actor that owns the lookahead structure.
     * @param obj The lookahead structure to be added.
     */
-  override def setLookahead(actor: ActorRef, obj: Lookahead): Unit = lookaheadObjects += actor -> obj
+  override def setLookahead(actor: ActorRef, obj: Lookahead): Unit =
+    lookaheadObjects += actor -> obj
   /**
     * Removes the lookahead structure bcorresponding to an actor.
     *

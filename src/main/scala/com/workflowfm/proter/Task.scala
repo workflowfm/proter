@@ -73,7 +73,10 @@ class Task(
     * @param resourceMap A map of all available [[TaskResource]]s
     * @return The (estimated) earliest timestamp when all resources are available.
     */
-  def nextPossibleStart(currentTime: Long, resourceMap: collection.Map[String, TaskResource]): Long = {
+  def nextPossibleStart(
+      currentTime: Long,
+      resourceMap: collection.Map[String, TaskResource]
+  ): Long = {
     (currentTime /: resources) {
       case (i, rN) =>
         resourceMap.get(rN) match {

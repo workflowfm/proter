@@ -54,7 +54,12 @@ object SimMetricsOutput {
       DurationFormatUtils.formatDuration(to - f, format).toString
     } getOrElse (nullValue)
 
-  def formatDuration(from: Option[Long], to: Option[Long], format: String, nullValue: String): String =
+  def formatDuration(
+      from: Option[Long],
+      to: Option[Long],
+      format: String,
+      nullValue: String
+  ): String =
     from.map { f =>
       to.map { t =>
         DurationFormatUtils.formatDuration(t - f, format).toString
@@ -168,7 +173,11 @@ trait SimMetricsStringOutput extends SimMetricsOutput {
     * @param separator a string (such as a space or comma) to separate values
     * @param lineSep a string (such as a new line) to separate simulations
     */
-  def simulations(aggregator: SimMetricsAggregator, separator: String, lineSep: String = "\n"): String =
+  def simulations(
+      aggregator: SimMetricsAggregator,
+      separator: String,
+      lineSep: String = "\n"
+  ): String =
     aggregator.simulationMetrics.map(simCSV(separator)).mkString(lineSep)
 
   /** Formats all [[ResourceMetrics]] in a [[SimMetricsAggregator]] in a single string.
@@ -177,7 +186,11 @@ trait SimMetricsStringOutput extends SimMetricsOutput {
     * @param separator a string (such as a space or comma) to separate values
     * @param lineSep a string (such as a new line) to separate resources
     */
-  def resources(aggregator: SimMetricsAggregator, separator: String, lineSep: String = "\n"): String =
+  def resources(
+      aggregator: SimMetricsAggregator,
+      separator: String,
+      lineSep: String = "\n"
+  ): String =
     aggregator.resourceMetrics.map(resCSV(separator)).mkString(lineSep)
 }
 
