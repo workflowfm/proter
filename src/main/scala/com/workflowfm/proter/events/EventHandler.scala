@@ -1,4 +1,4 @@
-package com.workflowfm.simulator.events
+package com.workflowfm.proter.events
 
 import java.text.SimpleDateFormat
 

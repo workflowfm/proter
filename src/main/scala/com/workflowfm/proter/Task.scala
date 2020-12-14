@@ -1,4 +1,4 @@
-package com.workflowfm.simulator
+package com.workflowfm.proter
 
 import java.util.UUID
 
@@ -9,7 +9,7 @@ import akka.actor._
 import akka.pattern.ask
 import akka.util.Timeout
 
-import com.workflowfm.simulator.metrics._
+import com.workflowfm.proter.metrics._
 
 /**
   * A task to be performed in virtual time.

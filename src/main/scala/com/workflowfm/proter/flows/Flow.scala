@@ -1,4 +1,4 @@
-package com.workflowfm.simulator.flows
+package com.workflowfm.proter.flows
 
 import java.util.UUID
 
@@ -7,7 +7,7 @@ import scala.concurrent.{ ExecutionContext, Future, Promise }
 import akka.actor.{ Actor, ActorRef, Props }
 import akka.protobufv3.internal.Empty
 
-import com.workflowfm.simulator._
+import com.workflowfm.proter._
 import scala.collection.mutable
 
 sealed trait Flow {

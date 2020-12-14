@@ -37,5 +37,5 @@ libraryDependencies += "junit" % "junit" % "4.8.2"
 lazy val root = (project in file("."))
   .settings(
     commonSettings,
-    name := "wfm-simulator"
+    name := "proter"
   )

@@ -1,4 +1,4 @@
-package com.workflowfm.simulator
+package com.workflowfm.proter
 
 import java.util.UUID
 
@@ -14,8 +14,8 @@ import akka.util.Timeout
 
 import uk.ac.ed.inf.ppapapan.subakka.HashSetPublisher
 
-import com.workflowfm.simulator.events._
-import com.workflowfm.simulator.metrics._
+import com.workflowfm.proter.events._
+import com.workflowfm.proter.metrics._
 
 /**
   * Provides coordination for discrete event simulation of multiple asynchronous simulations.
@@ -139,7 +139,7 @@ class Coordinator(
     *
     * We then handle the events with [[handleCEvent]].
     * If there are no events, no tasks to run, and all simulations have finished, the whole
-    * simulation is done, so we publish [[com.workflowfm.simulator.events.EDone EDone]].
+    * simulation is done, so we publish [[com.workflowfm.proter.events.EDone EDone]].
     * If there are no events and no simulations to wait for, but there are still tasks to run, we
     * attempt to allocate and run them. This may happen if something breaks when handling a previous
     * event.
@@ -293,7 +293,7 @@ class Coordinator(
   /**
     * Stops a simulation when it is done.
     * Removes the simulation from the list of running simulations.
-    * Publishes a [[com.workflowfm.simulator.events.ESimEnd ESimEnd]].
+    * Publishes a [[com.workflowfm.proter.events.ESimEnd ESimEnd]].
     * Calls [[ready]] to handle the fact that we no longer need to wait for this simulation.
     *
     * @group simulations
@@ -333,7 +333,7 @@ class Coordinator(
     * multipled by the [[Task.duration]]. Adds this to the [[Task.cost]].
     * This is done at runtime instead of at creation time to support variable resources.
     *
-    * - Publishes a [[com.workflowfm.simulator.events.ETaskAdd ETaskAdd]].
+    * - Publishes a [[com.workflowfm.proter.events.ETaskAdd ETaskAdd]].
     *
     * - If the task does not require any resources, it is started immediately using [[startTask]].
     * Otherwise, we add it to the queue of [[Task]]s.
@@ -402,11 +402,11 @@ class Coordinator(
     * A [[Task]] is started when scheduled, meaning all the [[TaskResource]]s it needs are available
     * and it is the highest priority [[Task]] in the queue for those [[TaskResource]]s.
     *
-    * - Publishes a [[com.workflowfm.simulator.events.ETaskAdd ETaskAdd]].
+    * - Publishes a [[com.workflowfm.proter.events.ETaskAdd ETaskAdd]].
     *
     * - Calls [[TaskResource.startTask]] for each involved [[TaskResource]] to attach this [[Task]]
-    * to them. Publishes a [[com.workflowfm.simulator.events.ETaskAttach ETaskAttach]] for each successful attachment.
-    * Otherwise publishes an appropriate [[com.workflowfm.simulator.events.EError EError]]. The latter would
+    * to them. Publishes a [[com.workflowfm.proter.events.ETaskAttach ETaskAttach]] for each successful attachment.
+    * Otherwise publishes an appropriate [[com.workflowfm.proter.events.EError EError]]. The latter would
     * only happen if the [[Scheduler]] tried to schedule a [[Task]] to a busy [[TaskResource]].
     *
     * - Creates a [[FinishingTask]] event for this [[Task]] based on its duration, and adds it to
@@ -457,7 +457,7 @@ class Coordinator(
   /**
     * Detaches the task attached to the given [[TaskResource]].
     * A wrapper of [[TaskResource.finishTask]] that
-    * publishes a [[com.workflowfm.simulator.events.ETaskDetach ETaskDetach]].
+    * publishes a [[com.workflowfm.proter.events.ETaskDetach ETaskDetach]].
     *
     * @group resources
     * @param r The [[TaskResource]] to free up.
@@ -474,7 +474,7 @@ class Coordinator(
     * - Adds the corresponding [[Simulation]] reference to the waiting list as we
     * expect it to react to the task finishing.
     *
-    * - Publishes a [[com.workflowfm.simulator.events.ETaskDone ETaskDone]].
+    * - Publishes a [[com.workflowfm.proter.events.ETaskDone ETaskDone]].
     *
     * - Notifies the [[Simulation]] that its [[Task]] has finished.
     *
@@ -530,12 +530,12 @@ class Coordinator(
   }
 
   /**
-    * Checks if a given [[com.workflowfm.simulator.events.Event Event]] in the output stream is the final one.
-    * Causes the stream to shutdown after [[com.workflowfm.simulator.events.EDone EDone]] is published.
+    * Checks if a given [[com.workflowfm.proter.events.Event Event]] in the output stream is the final one.
+    * Causes the stream to shutdown after [[com.workflowfm.proter.events.EDone EDone]] is published.
     *
     * @group toplevel
-    * @param e The [[com.workflowfm.simulator.events.Event Event]] to check.
-    * @return true if it is a [[com.workflowfm.simulator.events.EDone EDone]], otherwise false.
+    * @param e The [[com.workflowfm.proter.events.Event Event]] to check.
+    * @return true if it is a [[com.workflowfm.proter.events.EDone EDone]], otherwise false.
     */
   override def isFinalEvent(e: Event): Boolean = e match {
     case EDone(_, _) => true

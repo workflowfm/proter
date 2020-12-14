@@ -1,9 +1,9 @@
-package com.workflowfm.simulator.metrics
+package com.workflowfm.proter.metrics
 
 import java.util.UUID
 
-import com.workflowfm.simulator._
-import com.workflowfm.simulator.events._
+import com.workflowfm.proter._
+import com.workflowfm.proter.events._
 import scala.collection.mutable
 
 /**

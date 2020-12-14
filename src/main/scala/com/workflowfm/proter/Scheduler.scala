@@ -1,4 +1,4 @@
-package com.workflowfm.simulator
+package com.workflowfm.proter
 
 import scala.annotation.tailrec
 import scala.collection.Map

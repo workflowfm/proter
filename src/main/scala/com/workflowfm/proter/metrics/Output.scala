@@ -1,4 +1,4 @@
-package com.workflowfm.simulator.metrics
+package com.workflowfm.proter.metrics
 
 import java.text.SimpleDateFormat
 

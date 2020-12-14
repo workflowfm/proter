@@ -1,4 +1,4 @@
-package com.workflowfm.simulator
+package com.workflowfm.proter
 
 /**
   * Represents a function that can generate a value for some simulation parameters

@@ -1,7 +1,7 @@
-package com.workflowfm.simulator
+package com.workflowfm.proter
 import scala.collection.mutable.Queue
 
-import com.workflowfm.simulator.metrics._
+import com.workflowfm.proter.metrics._
 
 /**
   * A persistent resource to be used by [[Task]]s.
