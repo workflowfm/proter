@@ -3,14 +3,12 @@ package com.workflowfm.proter
 import java.util.UUID
 import java.util.concurrent.TimeUnit
 
-import scala.collection.mutable
-import scala.collection.mutable.{ Map, Queue }
+import scala.collection.mutable.Map
 import scala.concurrent.{ Future, Promise }
-import scala.concurrent.duration.Duration
 import scala.util.{ Try, Success, Failure }
 
 import akka.actor.{ Actor, ActorRef, Props }
-import akka.pattern.{ ask, pipe }
+import akka.pattern.ask
 import akka.util.Timeout
 
 /**
@@ -370,7 +368,7 @@ object Simulation {
     * @param cause An optional underlying cause.
     */
   final case class SimulationStoppingException(private val cause: Throwable = None.orNull)
-      extends Exception("Simiulation is stopping", cause)
+      extends Exception("Simulation is stopping", cause)
 }
 
 /**
