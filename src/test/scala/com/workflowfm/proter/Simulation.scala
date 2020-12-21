@@ -102,6 +102,25 @@ class SimulationTests extends SimulationTester {
 
     }
 
+    "stop between 2 tasks in sequence" in {
+      val sim = system.actorOf(Props(new TwoTasks("sim", self)))
+
+      sim ! Simulation.Start
+      expectMsg(Coordinator.SimStarted("sim", sim))
+
+      //task1
+      val Coordinator.AddTask(generator1) = expectMsgType[Coordinator.AddTask]
+      expectMsg(Coordinator.SimReady(None))
+ 
+      sim ! Simulation.Stop
+
+      val task1 = generator1.create(0L, sim)
+      sim ! Simulation.TaskCompleted(task1, 2L)
+
+      expectNoMsg()
+
+    }
+
     // "reply to LookaheadNextItter messages" in {
     //     val sim = system.actorOf(Props(new SimLookaheadSeq("sim",self)))
     //     sim ! Simulation.Start

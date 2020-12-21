@@ -552,6 +552,7 @@ abstract class AsyncSimulation(
     */
   override def stop(): Unit = {
     tasks.foreach { case (_, c) => c(Failure(Simulation.SimulationStoppingException())) }
+    tasks.clear()
   }
 
   /**
