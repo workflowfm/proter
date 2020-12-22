@@ -674,6 +674,8 @@ class Coordinator(
     case Coordinator.AddResource(r) => addResource(r)
     case Coordinator.AddResources(r) => r foreach addResource
 
+    case Coordinator.LimitTime(t) => if (t >= time) events += TimeLimit(t)
+
     case Coordinator.AddTasks(l) => addTasks(sender, l)
     case Coordinator.AddTask(generator) => addTask(generator)
 
@@ -775,6 +777,14 @@ object Coordinator {
     * @group toplevel
     */
   case class AddResources(l: Seq[TaskResource])
+
+  /**
+    * Message to introduce a time limit for all simulations.
+    * 
+    * @group toplevel
+    * @param t The timestamp when all simulations must stop.
+    */
+  case class LimitTime(t: Long)
 
   /**
     * Message from a [[Simulation]] that the simulation has started.
