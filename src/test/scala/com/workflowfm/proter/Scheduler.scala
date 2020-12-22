@@ -1,5 +1,4 @@
 package com.workflowfm.proter
-
 import scala.collection.mutable.SortedSet
 import scala.concurrent.{ Await, ExecutionContext, Future }
 import scala.concurrent.duration._

@@ -1,4 +1,5 @@
 package com.workflowfm.proter.events
+
 import java.util.UUID
 
 import akka.actor.ActorRef
@@ -159,6 +160,19 @@ case class ETaskDone(
 ) extends Event
 
 /**
+  * A [[Task]] was aborted.
+  *
+  * @param source
+  * @param time
+  * @param id The `UUID` of the [[Task]] that was aoborted.
+  */
+case class ETaskAbort(
+    override val source: ActorRef,
+    override val time: Long,
+    id: UUID
+) extends Event
+
+/**
   * The entire simulation is complete.
   *
   * @param source
@@ -201,6 +215,8 @@ object Event {
       s"[$t $src] Detaching task [${task.name}](${task.simulation}) from [$r]. (id:${task.id})"
     case ETaskDone(src, t, task) =>
       s"[$t $src] Task [${task.name}](${task.simulation}) completed. (id:${task.id})"
+    case ETaskAbort(src, t, id) =>
+      s"[$t $src] Task id [$id] was aborted."
 
     case EError(src, t, error) => s"[$t $src] !ERROR! $error !ERROR!"
   }

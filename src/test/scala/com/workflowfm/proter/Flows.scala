@@ -92,7 +92,10 @@ class FlowsTester
   implicit val executionContext: ExecutionContext = ExecutionContext.global
 
   val flowsLookaheadTest: Props = FlowsLookaheadTest.props(self)
-  val test: TestActorRef[FlowLookaheadActor] = TestActorRef(new FlowLookaheadActor("testFlow", self, NoTask()))
+
+  val test: TestActorRef[FlowLookaheadActor] = TestActorRef(
+    new FlowLookaheadActor("testFlow", self, NoTask())
+  )
 
   type IDFunction = Map[UUID, Long] => Option[Long]
 

@@ -2,11 +2,9 @@ package com.workflowfm.proter.flows
 
 import java.util.UUID
 
-import scala.collection.mutable
-import scala.concurrent.{ ExecutionContext, Future, Promise }
+import scala.util.{ Try, Success, Failure }
 
 import akka.actor.{ Actor, ActorRef, Props }
-import akka.protobufv3.internal.Empty
 
 import com.workflowfm.proter._
 
@@ -40,19 +38,14 @@ class FlowSimulationActor(
     name: String,
     coordinator: ActorRef,
     protected val flow: Flow
-)(implicit executionContext: ExecutionContext)
-    extends AsyncSimulation(name, coordinator)(executionContext) {
+) extends AsyncSimulation(name, coordinator) {
 
   /**
     * Initiates the execution of the simulation.
-    *
-    * @return A `Future` that completes with a custom output when the simulation is completed.
     */
-  override def run(): Future[Any] = {
-    val promise = Promise[Any]()
-    runFlow(flow, ((_, _) => promise.success(Unit)))
+  override def run(): Unit = {
+    runFlow(flow, callback((_, _) => succeed(Unit)))
     ready()
-    promise.future
   }
 
   /**
@@ -60,13 +53,13 @@ class FlowSimulationActor(
     * In both cases, the callback of the flow is stored in a map.
     *
     * @param flow The flow to run.
-    * @param callback The callback function which is executed once this flow completes.
+    * @param flowCallback The callback function which is executed once this flow completes.
     */
-  protected def runFlow(flow: Flow, callback: Callback): Unit = {
+  protected def runFlow(flow: Flow, flowCallback: Callback): Unit = {
     flow match {
       case f: FlowTask =>
-        task(f.generator, ((t, l) => { callback(t, l); ack(Seq(f.id)) }))
-      case f: Flow => { tasks += flow.id -> callback; execute(f) }
+        task(f.generator, callback((t, l) => { flowCallback(Success(t, l)); ack(Seq(f.id)) }))
+      case f: Flow => { tasks += flow.id -> flowCallback; execute(f) }
     }
   }
 
@@ -78,8 +71,8 @@ class FlowSimulationActor(
     *
     * @param id The id to complete
     */
-  protected def complete(id: UUID): mutable.Map[UUID, Callback] = {
-    tasks.get(id).map(_(null, 0L))
+  protected def complete(id: UUID): collection.mutable.Map[UUID, Callback] = {
+    tasks.get(id).map(_(Success(null, 0L)))
     tasks -= id
   }
 
@@ -97,24 +90,28 @@ class FlowSimulationActor(
       //this is here for the sake of case completeness, should not be called
 
       case f: Then => {
-        val rightCallback: Callback = (_, _) => complete(f.id)
-        val leftCallback: Callback = (_, _) => runFlow(f.right, rightCallback)
+        val rightCallback: Callback = callback((_, _) => complete(f.id))
+        val leftCallback: Callback = callback((_, _) => runFlow(f.right, rightCallback))
         runFlow(f.left, leftCallback)
       }
 
       case f: And => {
-        val leftCallback: Callback = (_, _) => (if (!tasks.contains(f.right.id)) complete(f.id))
-        val rightCallback: Callback = (_, _) => (if (!tasks.contains(f.left.id)) complete(f.id))
+        val leftCallback: Callback =
+          callback((_, _) => (if (!tasks.contains(f.right.id)) complete(f.id)))
+        val rightCallback: Callback =
+          callback((_, _) => (if (!tasks.contains(f.left.id)) complete(f.id)))
         runFlow(f.left, leftCallback)
         runFlow(f.right, rightCallback)
       }
 
       case f @ All(elem @ _*) =>
-        runFlow((elem.fold(NoTask()) { (l, r) => And(l, r) }), (_, _) => complete(f.id))
+        runFlow((elem.fold(NoTask()) { (l, r) => And(l, r) }), callback((_, _) => complete(f.id)))
 
       case f: Or => {
-        val leftCallback: Callback = (_, _) => (if (tasks.contains(f.right.id)) complete(f.id))
-        val rightCallback: Callback = (_, _) => (if (tasks.contains(f.left.id)) complete(f.id))
+        val leftCallback: Callback =
+          callback((_, _) => (if (tasks.contains(f.right.id)) complete(f.id)))
+        val rightCallback: Callback =
+          callback((_, _) => (if (tasks.contains(f.left.id)) complete(f.id)))
         runFlow(f.left, leftCallback)
         runFlow(f.right, rightCallback)
       }
@@ -130,12 +127,9 @@ object FlowSimulationActor {
     * @param name The simulation name.
     * @param coordinator The [[Coordinator]].
     * @param flow The [[Flow]] to be executed
-    * @param executionContext
     * @return The Props of a new flow simulation actor
     */
-  def props(name: String, coordinator: ActorRef, flow: Flow)(
-      implicit executionContext: ExecutionContext
-  ): Props =
+  def props(name: String, coordinator: ActorRef, flow: Flow): Props =
     Props(new FlowSimulationActor(name, coordinator, flow))
 }
 
@@ -153,7 +147,7 @@ trait FlowsLookahead extends FlowSimulationActor with LookingAhead {
     *
     * @return A `Future` that completes with a custom output when the simulation is completed.
     */
-  override def run(): Future[Any] = {
+  override def run(): Unit = {
     lookahead = parseFlow(flow, None, lookahead)._2
     super.run()
   }
@@ -284,8 +278,7 @@ class FlowLookaheadActor(
     name: String,
     coordinator: ActorRef,
     flow: Flow
-)(implicit executionContext: ExecutionContext)
-    extends FlowSimulationActor(name, coordinator, flow)
+) extends FlowSimulationActor(name, coordinator, flow)
     with FlowsLookahead
 
 object FlowLookaheadActor {
@@ -299,8 +292,6 @@ object FlowLookaheadActor {
     * @param executionContext
     * @return The Props of a new flow simulation actor
     */
-  def props(name: String, coordinator: ActorRef, flow: Flow)(
-      implicit executionContext: ExecutionContext
-  ): Props =
+  def props(name: String, coordinator: ActorRef, flow: Flow): Props =
     Props(new FlowLookaheadActor(name, coordinator, flow))
 }

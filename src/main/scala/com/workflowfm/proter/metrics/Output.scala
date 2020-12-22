@@ -96,7 +96,18 @@ trait SimMetricsStringOutput extends SimMetricsOutput {
     * @param separator a string (such as a space or comma) to separate the names
     */
   def taskHeader(separator: String): String =
-    Seq("ID", "Task", "Simulation", "Created", "Start", "Delay", "Duration", "Cost", "Resources")
+    Seq(
+      "ID",
+      "Task",
+      "Simulation",
+      "Created",
+      "Start",
+      "Delay",
+      "Duration",
+      "Cost",
+      "Aborted",
+      "Resources"
+    )
       .mkString(separator)
 
   /** String representation of a [[TaskMetrics]] instance.
@@ -106,7 +117,7 @@ trait SimMetricsStringOutput extends SimMetricsOutput {
     * @param m the [[TaskMetrics]] instance to be handled
     */
   def taskCSV(separator: String, resSeparator: String)(m: TaskMetrics): String = m match {
-    case TaskMetrics(id, task, sim, ct, st, dur, cost, res) =>
+    case TaskMetrics(id, task, sim, ct, st, dur, cost, res, aborted) =>
       Seq(
         id,
         task,
@@ -116,6 +127,7 @@ trait SimMetricsStringOutput extends SimMetricsOutput {
         m.delay,
         dur,
         cost,
+        aborted,
         res.mkString(resSeparator)
       ).mkString(separator)
   }

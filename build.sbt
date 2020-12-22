@@ -27,8 +27,8 @@ libraryDependencies += "com.typesafe.akka" %% "akka-testkit" % "2.5.16" % "test"
 
 libraryDependencies += "com.typesafe.akka" %% "akka-stream" % "2.5.13"
 
-libraryDependencies += "uk.ac.ed.inf" %% "subakka" % "0.1-SNAPSHOT"
-libraryDependencies += "uk.ac.ed.inf" %% "subakka" % "0.1-SNAPSHOT" % Test classifier "tests"
+libraryDependencies += "uk.ac.ed.inf" %% "subakka" % "1.0.0"
+libraryDependencies += "uk.ac.ed.inf" %% "subakka" % "1.0.0" % Test classifier "tests"
 
 libraryDependencies += "org.apache.commons" % "commons-lang3" % "3.3.2"
 
