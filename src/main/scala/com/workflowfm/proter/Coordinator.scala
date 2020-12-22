@@ -56,6 +56,8 @@ class Coordinator(
     * Set of simulation names that are running.
     *
     * i.e. they have already started but not finished.
+    * 
+    * This is currently used to send abort messages.
     * @group simulations
     */
   val simulations: Map[String, ActorRef] = Map[String, ActorRef]()
@@ -284,10 +286,14 @@ class Coordinator(
   }
 
   /**
-    * @todo fix this documentation
-    *
-    * @group simulations
+    * Registers that a simulation has started.
+    * 
+    * Publishes a [[com.workflowfm.proter.events.ESimStart ESimStart]].
+    * 
+    * Also records the actor that manages the simulation.
+    * 
     * @param name The name of the simulation.
+    * @param actor The actor running the simulation
     */
   protected def simulationStarted(name: String, actor: ActorRef): Unit = {
     publish(ESimStart(self, time, name))
