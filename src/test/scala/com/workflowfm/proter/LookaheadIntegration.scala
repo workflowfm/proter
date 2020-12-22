@@ -186,22 +186,22 @@ class DummySim(name: String, coordinator: ActorRef)(implicit executionContext: E
     // i.e. the sequence task2>task3 happens in parallel to task4
     val task1 = task(
       generator1,
-      callback ( (_, _) => {
+      callback((_, _) => {
         task(
           generator2,
-          callback ( (_, _) => {
+          callback((_, _) => {
             task(
               generator3,
-              callback ( (_, _) => { if (tick) succeed(Unit) else { tick = true; ack(Seq(id3)) } })
+              callback((_, _) => { if (tick) succeed(Unit) else { tick = true; ack(Seq(id3)) } })
             ); ack(Seq(id2))
           })
         )
         task(
           generator4,
-           callback ((_, _) => { if (tick) succeed(Unit) else { tick = true; ack(Seq(id4)) } })
+          callback((_, _) => { if (tick) succeed(Unit) else { tick = true; ack(Seq(id4)) } })
         )
         ack(Seq(id1))
-      } )
+      })
     )
 
     ready()
@@ -280,26 +280,26 @@ class DummySim2(name: String, coordinator: ActorRef)(implicit executionContext: 
 
     val task1 = task(
       generator1,
-      callback ( (_, _) =>
-        { task(
+      callback((_, _) => {
+        task(
           generator2,
-          callback( (_, _) =>
-            { task(
+          callback((_, _) => {
+            task(
               generator3,
-              callback ( (_, _) => { if (tick) succeed(Unit) else { tick = true; ack(Seq(id3)) } })
+              callback((_, _) => { if (tick) succeed(Unit) else { tick = true; ack(Seq(id3)) } })
             )
-              ack(Seq(id2))
+            ack(Seq(id2))
           })
         )
         task(
           generator4,
-          callback ( (_, _) =>
-            { task(
+          callback((_, _) => {
+            task(
               generator5,
-              callback ( (_, _) => { if (tick) succeed(Unit) else { tick = true; ack(Seq(id5)) } })
+              callback((_, _) => { if (tick) succeed(Unit) else { tick = true; ack(Seq(id5)) } })
             )
-              ack(Seq(id4))
-            })
+            ack(Seq(id4))
+          })
         )
         ack(Seq(id1))
       })
@@ -401,19 +401,19 @@ class DummySim3(name: String, coordinator: ActorRef)(implicit executionContext: 
     def task5(): Unit = {
       task(
         generator5,
-        callback ( (_, _) => {if (tick) succeed(Unit) else { tick = true; ack(Seq(id5)) } })
+        callback((_, _) => { if (tick) succeed(Unit) else { tick = true; ack(Seq(id5)) } })
       )
     }
 
     val task1 = task(
       generator1,
-      callback ( (_, _) => {
-        task(generator2, callback ( (_, _) => {if (count == 2) task5(); count += 1; ack(Seq(id2)) }))
-        task(generator3, callback ( (_, _) => {if (count == 2) task5(); count += 1; ack(Seq(id3)) }))
-        task(generator4, callback ( (_, _) => {if (count == 2) task5(); count += 1; ack(Seq(id4)) }))
+      callback((_, _) => {
+        task(generator2, callback((_, _) => { if (count == 2) task5(); count += 1; ack(Seq(id2)) }))
+        task(generator3, callback((_, _) => { if (count == 2) task5(); count += 1; ack(Seq(id3)) }))
+        task(generator4, callback((_, _) => { if (count == 2) task5(); count += 1; ack(Seq(id4)) }))
         task(
           generator6,
-          callback ( (_, _) => { if (tick) succeed(Unit) else { tick = true; ack(Seq(id6)) } })
+          callback((_, _) => { if (tick) succeed(Unit) else { tick = true; ack(Seq(id6)) } })
         )
         ack(Seq(id1))
       })
@@ -435,7 +435,9 @@ case object DummySim extends TestObject {
   override def props(name: String, coordinator: ActorRef)(
       implicit executionContext: ExecutionContext
   ): Props = { Props(new DummySim(name, coordinator)) }
-  override def resources: Seq[TaskResource] = Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
+
+  override def resources: Seq[TaskResource] =
+    Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
 }
 
 case object DummySim2 extends TestObject {
@@ -444,7 +446,9 @@ case object DummySim2 extends TestObject {
   override def props(name: String, coordinator: ActorRef)(
       implicit executionContext: ExecutionContext
   ): Props = { Props(new DummySim2(name, coordinator)) }
-  override def resources: Seq[TaskResource] = Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
+
+  override def resources: Seq[TaskResource] =
+    Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
 }
 
 case object DummySim3 extends TestObject {
@@ -453,7 +457,9 @@ case object DummySim3 extends TestObject {
   override def props(name: String, coordinator: ActorRef)(
       implicit executionContext: ExecutionContext
   ): Props = { Props(new DummySim3(name, coordinator)) }
-  override def resources: Seq[TaskResource] = Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
+
+  override def resources: Seq[TaskResource] =
+    Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
 }
 
 case object FlowDummySim extends TestObject {
@@ -488,7 +494,9 @@ case object FlowDummySim extends TestObject {
   override def props(name: String, coordinator: ActorRef)(
       implicit executionContext: ExecutionContext
   ): Props = { FlowLookaheadActor.props(name, coordinator, flow) }
-  override def resources: Seq[TaskResource] = Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
+
+  override def resources: Seq[TaskResource] =
+    Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
 }
 
 case object FlowDummySim2 extends TestObject {
@@ -529,7 +537,9 @@ case object FlowDummySim2 extends TestObject {
   override def props(name: String, coordinator: ActorRef)(
       implicit executionContext: ExecutionContext
   ): Props = { FlowLookaheadActor.props(name, coordinator, flow) }
-  override def resources: Seq[TaskResource] = Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
+
+  override def resources: Seq[TaskResource] =
+    Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
 }
 
 case object FlowDummySim3 extends TestObject {
@@ -576,5 +586,7 @@ case object FlowDummySim3 extends TestObject {
   override def props(name: String, coordinator: ActorRef)(
       implicit executionContext: ExecutionContext
   ): Props = { FlowLookaheadActor.props(name, coordinator, flow) }
-  override def resources: Seq[TaskResource] = Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
+
+  override def resources: Seq[TaskResource] =
+    Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
 }

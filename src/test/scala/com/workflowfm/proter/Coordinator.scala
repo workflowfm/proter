@@ -351,8 +351,15 @@ class CoordinatorTests
 
       // T1 0..3 - to be aborted at 2
       val id1 = UUID.randomUUID()
-      val tg1 = TaskGenerator("T1", id1, "Test", ConstantGenerator(3L), ConstantGenerator(5L)) withResources (Seq(res.name))
-      val expected1 = new Task(id1, "T1", "Test", self, 0L, 0L, Seq(res.name), 3L, 3L, 5L, -1, Task.Medium)
+      val tg1 = TaskGenerator(
+          "T1",
+          id1,
+          "Test",
+          ConstantGenerator(3L),
+          ConstantGenerator(5L)
+        ) withResources (Seq(res.name))
+      val expected1 =
+        new Task(id1, "T1", "Test", self, 0L, 0L, Seq(res.name), 3L, 3L, 5L, -1, Task.Medium)
 
       // T2 0..2
       val id2 = UUID.randomUUID()
@@ -361,8 +368,15 @@ class CoordinatorTests
 
       // T3 0..5
       val id3 = UUID.randomUUID()
-      val tg3 = TaskGenerator("T3", id3, "Test", ConstantGenerator(5L), ConstantGenerator(6L)) withResources (Seq(res.name))
-      val expected3 = new Task(id3, "T3", "Test", self, 0L, 0L, Seq(res.name), 5L, 5L, 6L, -1, Task.Medium)
+      val tg3 = TaskGenerator(
+          "T3",
+          id3,
+          "Test",
+          ConstantGenerator(5L),
+          ConstantGenerator(6L)
+        ) withResources (Seq(res.name))
+      val expected3 =
+        new Task(id3, "T3", "Test", self, 0L, 0L, Seq(res.name), 5L, 5L, 6L, -1, Task.Medium)
 
       // Add all
       coordinator ! Coordinator.AddTasks(Seq(tg1, tg2, tg3))
