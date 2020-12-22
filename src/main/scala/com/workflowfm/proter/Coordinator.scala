@@ -56,7 +56,7 @@ class Coordinator(
     * Set of simulation names that are running.
     *
     * i.e. they have already started but not finished.
-    * 
+    *
     * This is currently used to send abort messages.
     * @group simulations
     */
@@ -287,11 +287,11 @@ class Coordinator(
 
   /**
     * Registers that a simulation has started.
-    * 
+    *
     * Publishes a [[com.workflowfm.proter.events.ESimStart ESimStart]].
-    * 
+    *
     * Also records the actor that manages the simulation.
-    * 
+    *
     * @param name The name of the simulation.
     * @param actor The actor running the simulation
     */
@@ -780,7 +780,7 @@ object Coordinator {
 
   /**
     * Message to introduce a time limit for all simulations.
-    * 
+    *
     * @group toplevel
     * @param t The timestamp when all simulations must stop.
     */

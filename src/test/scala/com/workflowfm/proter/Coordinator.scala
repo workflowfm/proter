@@ -296,7 +296,7 @@ class CoordinatorTests
       coordinator ! Coordinator.SimDone("Test1", Success(Unit))
     }
 
-    "interact correctly with a simulation aborting a task without" in {
+    "interact correctly with a simulation aborting a task without resources" in {
       val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler()))
 
       coordinator ! Coordinator.AddSim(0L, self)
@@ -396,5 +396,81 @@ class CoordinatorTests
 
       coordinator ! Coordinator.SimDone("Test", Success(Unit))
     }
+
+    "interact correctly with two single-task simulations" in {
+      val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler()))
+
+      val probe1 = TestProbe()
+      val probe2 = TestProbe()
+
+      coordinator ! Coordinator.AddSim(0L, probe1.ref)
+      coordinator ! Coordinator.AddSim(1L, probe2.ref)
+      coordinator ! Coordinator.Start
+
+      // Test1 starts
+      probe1.expectMsg(Simulation.Start)
+      coordinator ! Coordinator.SimStarted("Test1", probe1.ref)
+
+      // T1 0..10
+      val id1 = UUID.randomUUID()
+      val tg1 = TaskGenerator("T1", id1, "Test1", ConstantGenerator(10L), ConstantGenerator(5L))
+      probe1.send(coordinator, Coordinator.AddTasks(Seq((tg1))))
+      probe1.send(coordinator, Coordinator.SimReady(None))
+
+      // Test2 starts
+      probe2.expectMsg(Simulation.Start)
+      probe2.reply(Coordinator.SimStarted("Test2", probe2.ref))
+
+      // T2 1..2
+      val id2 = UUID.randomUUID()
+      val tg2 = TaskGenerator("T2", id2, "Test2", ConstantGenerator(1L), ConstantGenerator(5L))
+      probe2.send(coordinator, Coordinator.AddTasks(Seq((tg2))))
+      probe2.send(coordinator, Coordinator.SimReady(None))
+
+      // T2 completes
+      probe2.expectMsgType[Simulation.TaskCompleted]
+      probe2.send(coordinator, Coordinator.SimDone("Test2", Success(Unit)))
+
+      // T1 completes
+      probe1.expectMsgType[Simulation.TaskCompleted]
+      probe1.send(coordinator, Coordinator.SimDone("Test1", Success(Unit)))
+
+    }
+
+    "abort 2 simulations when the time limit is hit" in {
+      val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler()))
+
+      val probe1 = TestProbe()
+      val probe2 = TestProbe()
+
+      coordinator ! Coordinator.AddSim(0L, probe1.ref)
+      coordinator ! Coordinator.AddSim(1L, probe2.ref)
+      coordinator ! Coordinator.LimitTime(5L)
+      coordinator ! Coordinator.Start
+
+      // Test1 starts
+      probe1.expectMsg(Simulation.Start)
+      coordinator ! Coordinator.SimStarted("Test1", probe1.ref)
+
+      // T1 0..10
+      val id1 = UUID.randomUUID()
+      val tg1 = TaskGenerator("T1", id1, "Test1", ConstantGenerator(10L), ConstantGenerator(5L))
+      probe1.send(coordinator, Coordinator.AddTasks(Seq((tg1))))
+      probe1.send(coordinator, Coordinator.SimReady(None))
+
+      // Test2 starts
+      probe2.expectMsg(Simulation.Start)
+      probe2.reply(Coordinator.SimStarted("Test2", probe2.ref))
+
+      // T2 1..2
+      val id2 = UUID.randomUUID()
+      val tg2 = TaskGenerator("T2", id2, "Test2", ConstantGenerator(8L), ConstantGenerator(5L))
+      probe2.send(coordinator, Coordinator.AddTasks(Seq((tg2))))
+      probe2.send(coordinator, Coordinator.SimReady(None))
+
+      probe1.expectMsg(Simulation.Stop)
+      probe2.expectMsg(Simulation.Stop)
+    }
+
   }
 }

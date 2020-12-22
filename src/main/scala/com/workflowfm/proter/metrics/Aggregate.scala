@@ -16,7 +16,7 @@ import com.workflowfm.proter.events._
   * @groupprio Update 4
   * @groupprio Get 5
   */
-class SimMetricsAggregator {import scala.collection.immutable.Map
+class SimMetricsAggregator {
 
   /**
     * The '''real''' (system) time that measurement started, or [[scala.None]] if it has not started yet.
