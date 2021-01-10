@@ -43,6 +43,7 @@ object BPMN {
 
             val taskService: TaskService = runtime.getTaskService();
             val tasks: List[TaskSummary] = taskService.getTasksAssignedAsPotentialOwner("krisv", "en-UK").asScala.toList
+            
             val tasks2: List[TaskSummary] = taskService.getTasksAssignedAsBusinessAdministrator("wbadmin", "en-UK").asScala.toList
             //val task = tasks.head
             println("tasks: "+ tasks.length)

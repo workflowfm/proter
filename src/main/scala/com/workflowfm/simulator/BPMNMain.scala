@@ -68,10 +68,11 @@ object BPMNMain {
         //coordinator ! Coordinator.AddSim(0L,system.actorOf(FlowSimulationActor.props("sim1",coordinator,flow),"sim1"))
                                                                                                     // "myBpmn.bpmn", "MyTest.process"
                                                                                                     // "Evaluation.bpmn", "com.sample.evaluation"
-        coordinator ! Coordinator.AddSim(0L,system.actorOf(BPMNSimulationActor.props("sim1",coordinator,"Evaluation.bpmn", "com.sample.evaluation"),"sim1"))
+        //coordinator ! Coordinator.AddSim(0L,system.actorOf(BPMNSimulationActor.props("sim1",coordinator,"Evaluation.bpmn", "com.sample.evaluation"),"sim1"))
         //coordinator ! Coordinator.AddSim(0L,system.actorOf(BPMNSimulationActor.props("sim1",coordinator,"myBpmn.bpmn", "MyTest.process"),"sim1"))
-        //coordinator ! Coordinator.AddSim(0L,system.actorOf(BPMNSimulationActor.props("sim1",coordinator,"test_human2.bpmn", "MyTest.test_human"),"sim1"))
-       // coordinator ! Coordinator.AddSim(0L,system.actorOf(BPMNSimulationActor.props("sim1",coordinator,"test_script.bpmn", "MyTest.test_script"),"sim1"))
+        coordinator ! Coordinator.AddSim(0L,system.actorOf(BPMNSimulationActor.props("sim1",coordinator,"test_human2.bpmn", "MyTest.test_human"),"sim1"))
+        //coordinator ! Coordinator.AddSim(0L,system.actorOf(BPMNSimulationActor.props("sim1",coordinator,"test_script2.bpmn", "MyTest.test_script"),"sim1"))
+        //coordinator ! Coordinator.AddSim(0L,system.actorOf(BPMNSimulationActor.props("sim1",coordinator,"test_abstract.bpmn", "MyTest.test_abstract"),"sim1"))
 
         coordinator ! Coordinator.Start
     }
