@@ -12,7 +12,6 @@ object Dependencies {
 
   val akkaActor = "com.typesafe.akka" %% "akka-actor" % "2.6.1"
   val akkaTestkit = "com.typesafe.akka" %% "akka-testkit" % "2.6.1" % "test"
-  val akkaStream = "com.typesafe.akka" %% "akka-stream"       % "2.6.1"
 
   val apache = "org.apache.commons" % "commons-lang3" % "3.3.2"
 
@@ -33,6 +32,11 @@ object Dependencies {
     junit,
     akkaTestkit,
     subakkaTests,
+  )
+
+  val akka: Seq[ModuleID] = Seq (
+    akkaActor,
+    akkaTestkit
   )
 }
 
