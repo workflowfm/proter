@@ -1,7 +1,10 @@
-package com.workflowfm.simulator
+package com.workflowfm.proter
+
+import java.util.UUID
 
 import scala.collection.mutable.Queue
-import com.workflowfm.simulator.metrics._
+
+import com.workflowfm.proter.metrics._
 
 /**
   * A persistent resource to be used by [[Task]]s.
@@ -56,13 +59,47 @@ class TaskResource(val name: String, val costPerTick: Int) {
   }
 
   /**
+    * Aborts the current [[Task]] if it matches a given `UUID`.
+    *
+    * Does not actually do anything to the task itself. It merely detaches it and becomes idle.
+    * @param id The `UUID` of the [[Task]] to abort.
+    * @return The [[Task]] if it was aborted successfully or [[scala.None None]] in any other case.
+    */
+  def abortTask(id: UUID): Option[Task] = {
+    currentTask match {
+      case Some((startTime, task)) if task.id == id => {
+        currentTask = None
+        Some(task)
+      }
+      case _ => None
+    }
+  }
+
+  /**
+    * Aborts the current [[Task]] if it belongs to the given simulation.
+    *
+    * Does not actually do anything to the task itself. It merely detaches it and becomes idle.
+    * @param simulation The name of the simulation whose tasks to abort.
+    * @return The [[Task]] if it was aborted successfully or [[scala.None None]] in any other case.
+    */
+  def abortSimulation(simulation: String): Option[Task] = {
+    currentTask match {
+      case Some((startTime, task)) if task.simulation == simulation => {
+        currentTask = None
+        Some(task)
+      }
+      case _ => None
+    }
+  }
+
+  /**
     * Attach a [[Task]] to this resource.
     * If the resource is already attached to another [[Task]], the attached task
     * is returned. Otherwise, we return [[scala.None]].
     *
     * @param task The [[Task]] to attach.
     * @param currentTime The current (virtual) time.
-    * @return [[scala.None]] if the task was attached, or some [[Task]] that
+    * @return [[scala.None None]] if the task was attached, or some [[Task]] that
     *         was already attached before
     */
   def startTask(task: Task, currentTime: Long): Option[Task] = {

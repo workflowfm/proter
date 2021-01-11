@@ -1,17 +1,18 @@
-package com.workflowfm.simulator
+package com.workflowfm.proter
 
-import org.scalatest._
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-import akka.testkit._
-
-import akka.actor.{ ActorRef, ActorSystem, Props }
-import scala.concurrent._
+import java.{ util => ju }
 import java.util.UUID
 
-import com.workflowfm.simulator.flows._
-import com.workflowfm.simulator._
-import java.{ util => ju }
+import scala.concurrent._
+
+import akka.actor.{ ActorRef, ActorSystem, Props }
+import akka.testkit._
+import org.junit.runner.RunWith
+import org.scalatest._
+import org.scalatest.junit.JUnitRunner
+
+import com.workflowfm.proter._
+import com.workflowfm.proter.flows._
 
 @RunWith(classOf[JUnitRunner])
 class Flows extends FlowsTester {
@@ -90,8 +91,11 @@ class FlowsTester
     with ImplicitSender {
   implicit val executionContext: ExecutionContext = ExecutionContext.global
 
-  val flowsLookaheadTest = FlowsLookaheadTest.props(self)
-  val test = TestActorRef(new FlowLookaheadActor("testFlow", self, NoTask()))
+  val flowsLookaheadTest: Props = FlowsLookaheadTest.props(self)
+
+  val test: TestActorRef[FlowLookaheadActor] = TestActorRef(
+    new FlowLookaheadActor("testFlow", self, NoTask())
+  )
 
   type IDFunction = Map[UUID, Long] => Option[Long]
 

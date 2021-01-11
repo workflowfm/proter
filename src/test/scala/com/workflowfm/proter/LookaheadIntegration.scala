@@ -1,23 +1,25 @@
-package com.workflowfm.simulator
+package com.workflowfm.proter
 
-import org.scalatest._
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-import akka.testkit._
+import scala.collection.mutable.Map
+import scala.concurrent._
+import scala.concurrent.duration._
+import scala.reflect._
 
 import akka.actor.{ Actor, ActorRef, ActorSystem, Props }
 import akka.pattern.ask
-import scala.concurrent._
-import scala.concurrent.duration._
-import com.workflowfm.simulator.metrics._
-import com.workflowfm.simulator.flows._
-import uk.ac.ed.inf.ppapapan.subakka.Subscriber
-import com.workflowfm.simulator.events.{ ShutdownHandler }
+import akka.testkit._
 import akka.util.Timeout
-import com.workflowfm.simulator._
-import scala.collection.mutable.Map
-import scala.reflect._
-import com.workflowfm.simulator.events.PromiseHandler
+import org.junit.runner.RunWith
+import org.scalatest._
+import org.scalatest.junit.JUnitRunner
+
+import uk.ac.ed.inf.ppapapan.subakka.Subscriber
+
+import com.workflowfm.proter._
+import com.workflowfm.proter.events.PromiseHandler
+import com.workflowfm.proter.events.{ ShutdownHandler }
+import com.workflowfm.proter.flows._
+import com.workflowfm.proter.metrics._
 
 class LookaheadIntegrationTests
     extends TestKit(ActorSystem("LookaheadTest"))
@@ -103,7 +105,7 @@ trait LookaheadTester {
   self: TestKit =>
 
   implicit val executionContext: ExecutionContext = ExecutionContext.global
-  implicit val timeout = Timeout(2.seconds)
+  implicit val timeout: Timeout = Timeout(2.seconds)
 
   def singleSimulationTest(sim: TestObject): Map[String, Option[Long]] = {
     val coordinator = system.actorOf(Coordinator.props(new LookaheadScheduler()))
@@ -126,10 +128,9 @@ trait LookaheadTester {
 class DummySim(name: String, coordinator: ActorRef)(implicit executionContext: ExecutionContext)
     extends AsyncSimulation(name, coordinator)
     with LookingAhead {
-  val promise = Promise[Any]()
   var tick = false
 
-  override def run(): Future[Any] = {
+  override def run(): Unit = {
     val id1 = java.util.UUID.randomUUID
     val id2 = java.util.UUID.randomUUID
     val id3 = java.util.UUID.randomUUID
@@ -185,36 +186,34 @@ class DummySim(name: String, coordinator: ActorRef)(implicit executionContext: E
     // i.e. the sequence task2>task3 happens in parallel to task4
     val task1 = task(
       generator1,
-      { (_, _) =>
+      callback((_, _) => {
         task(
           generator2,
-          { (_, _) =>
+          callback((_, _) => {
             task(
               generator3,
-              { (_, _) => if (tick) promise.success(Unit) else { tick = true; ack(Seq(id3)) } }
+              callback((_, _) => { if (tick) succeed(Unit) else { tick = true; ack(Seq(id3)) } })
             ); ack(Seq(id2))
-          }
-        );
+          })
+        )
         task(
           generator4,
-          { (_, _) => if (tick) promise.success(Unit) else { tick = true; ack(Seq(id4)) } }
-        );
+          callback((_, _) => { if (tick) succeed(Unit) else { tick = true; ack(Seq(id4)) } })
+        )
         ack(Seq(id1))
-      }
+      })
     )
 
     ready()
-    promise.future
   }
 }
 
 class DummySim2(name: String, coordinator: ActorRef)(implicit executionContext: ExecutionContext)
     extends AsyncSimulation(name, coordinator)
     with LookingAhead {
-  val promise = Promise[Any]()
   var tick = false
 
-  override def run(): Future[Any] = {
+  override def run(): Unit = {
     val id1 = java.util.UUID.randomUUID
     val id2 = java.util.UUID.randomUUID
     val id3 = java.util.UUID.randomUUID
@@ -281,42 +280,41 @@ class DummySim2(name: String, coordinator: ActorRef)(implicit executionContext: 
 
     val task1 = task(
       generator1,
-      { (_, _) =>
+      callback((_, _) => {
         task(
           generator2,
-          { (_, _) =>
+          callback((_, _) => {
             task(
               generator3,
-              { (_, _) => if (tick) promise.success(Unit) else { tick = true; ack(Seq(id3)) } }
-            ); ack(Seq(id2))
-          }
-        );
+              callback((_, _) => { if (tick) succeed(Unit) else { tick = true; ack(Seq(id3)) } })
+            )
+            ack(Seq(id2))
+          })
+        )
         task(
           generator4,
-          { (_, _) =>
+          callback((_, _) => {
             task(
               generator5,
-              { (_, _) => if (tick) promise.success(Unit) else { tick = true; ack(Seq(id5)) } }
-            ); ack(Seq(id4))
-          }
-        );
+              callback((_, _) => { if (tick) succeed(Unit) else { tick = true; ack(Seq(id5)) } })
+            )
+            ack(Seq(id4))
+          })
+        )
         ack(Seq(id1))
-      }
+      })
     )
-
     ready()
-    promise.future
   }
 }
 
 class DummySim3(name: String, coordinator: ActorRef)(implicit executionContext: ExecutionContext)
     extends AsyncSimulation(name, coordinator)
     with LookingAhead {
-  val promise = Promise[Any]()
   var count = 0
   var tick = false
 
-  override def run(): Future[Any] = {
+  override def run(): Unit = {
     val id1 = java.util.UUID.randomUUID
     val id2 = java.util.UUID.randomUUID
     val id3 = java.util.UUID.randomUUID
@@ -400,29 +398,28 @@ class DummySim3(name: String, coordinator: ActorRef)(implicit executionContext: 
     }
     lookahead = lookahead + (function _, generator5)
 
-    def task5() {
+    def task5(): Unit = {
       task(
         generator5,
-        { (_, _) => if (tick) promise.success(Unit) else { tick = true; ack(Seq(id5)) } }
+        callback((_, _) => { if (tick) succeed(Unit) else { tick = true; ack(Seq(id5)) } })
       )
     }
 
     val task1 = task(
       generator1,
-      { (_, _) =>
-        task(generator2, { (_, _) => if (count == 2) task5(); count += 1; ack(Seq(id2)) });
-        task(generator3, { (_, _) => if (count == 2) task5(); count += 1; ack(Seq(id3)) });
-        task(generator4, { (_, _) => if (count == 2) task5(); count += 1; ack(Seq(id4)) });
+      callback((_, _) => {
+        task(generator2, callback((_, _) => { if (count == 2) task5(); count += 1; ack(Seq(id2)) }))
+        task(generator3, callback((_, _) => { if (count == 2) task5(); count += 1; ack(Seq(id3)) }))
+        task(generator4, callback((_, _) => { if (count == 2) task5(); count += 1; ack(Seq(id4)) }))
         task(
           generator6,
-          { (_, _) => if (tick) promise.success(Unit) else { tick = true; ack(Seq(id6)) } }
-        );
+          callback((_, _) => { if (tick) succeed(Unit) else { tick = true; ack(Seq(id6)) } })
+        )
         ack(Seq(id1))
-      }
+      })
     )
 
     ready()
-    promise.future
   }
 }
 
@@ -438,7 +435,9 @@ case object DummySim extends TestObject {
   override def props(name: String, coordinator: ActorRef)(
       implicit executionContext: ExecutionContext
   ): Props = { Props(new DummySim(name, coordinator)) }
-  override def resources = Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
+
+  override def resources: Seq[TaskResource] =
+    Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
 }
 
 case object DummySim2 extends TestObject {
@@ -447,7 +446,9 @@ case object DummySim2 extends TestObject {
   override def props(name: String, coordinator: ActorRef)(
       implicit executionContext: ExecutionContext
   ): Props = { Props(new DummySim2(name, coordinator)) }
-  override def resources = Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
+
+  override def resources: Seq[TaskResource] =
+    Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
 }
 
 case object DummySim3 extends TestObject {
@@ -456,128 +457,136 @@ case object DummySim3 extends TestObject {
   override def props(name: String, coordinator: ActorRef)(
       implicit executionContext: ExecutionContext
   ): Props = { Props(new DummySim3(name, coordinator)) }
-  override def resources = Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
+
+  override def resources: Seq[TaskResource] =
+    Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
 }
 
 case object FlowDummySim extends TestObject {
   val name = "sim4"
 
   // Define tasks
-  val task1 = FlowTask(
+  val task1: FlowTask = FlowTask(
     TaskGenerator("task1", name, ConstantGenerator(2L), ConstantGenerator(0L)) withResources (Seq(
           "r3"
         )) withPriority (Task.High)
   )
 
-  val task2 = FlowTask(
+  val task2: FlowTask = FlowTask(
     TaskGenerator("task2", name, ConstantGenerator(2L), ConstantGenerator(0L)) withResources (Seq(
           "r1"
         )) withPriority (Task.High)
   )
 
-  val task3 = FlowTask(
+  val task3: FlowTask = FlowTask(
     TaskGenerator("task3", name, ConstantGenerator(4L), ConstantGenerator(0L)) withResources (Seq(
           "r2"
         )) withPriority (Task.High)
   )
 
-  val task4 = FlowTask(
+  val task4: FlowTask = FlowTask(
     TaskGenerator("task4", name, ConstantGenerator(4L), ConstantGenerator(0L)) withResources (Seq(
           "r2"
         )) withPriority (Task.Low)
   )
-  val flow = task1 > ((task2 > task3) + task4)
+  val flow: Then = task1 > ((task2 > task3) + task4)
 
   override def props(name: String, coordinator: ActorRef)(
       implicit executionContext: ExecutionContext
   ): Props = { FlowLookaheadActor.props(name, coordinator, flow) }
-  override def resources = Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
+
+  override def resources: Seq[TaskResource] =
+    Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
 }
 
 case object FlowDummySim2 extends TestObject {
   val name = "sim5"
 
   // Define tasks
-  val task1 = FlowTask(
+  val task1: FlowTask = FlowTask(
     TaskGenerator("task1", name, ConstantGenerator(2L), ConstantGenerator(0L)) withResources (Seq(
           "r2"
         )) withPriority (Task.High)
   )
 
-  val task2 = FlowTask(
+  val task2: FlowTask = FlowTask(
     TaskGenerator("task2", name, ConstantGenerator(4L), ConstantGenerator(0L)) withResources (Seq(
           "r1"
         )) withPriority (Task.High)
   )
 
-  val task3 = FlowTask(
+  val task3: FlowTask = FlowTask(
     TaskGenerator("task3", name, ConstantGenerator(3L), ConstantGenerator(0L)) withResources (Seq(
           "r2"
         )) withPriority (Task.High)
   )
 
-  val task4 = FlowTask(
+  val task4: FlowTask = FlowTask(
     TaskGenerator("task4", name, ConstantGenerator(2L), ConstantGenerator(0L)) withResources (Seq(
           "r3"
         )) withPriority (Task.Low)
   )
 
-  val task5 = FlowTask(
+  val task5: FlowTask = FlowTask(
     TaskGenerator("task5", name, ConstantGenerator(3L), ConstantGenerator(0L)) withResources (Seq(
           "r2"
         )) withPriority (Task.Low)
   )
-  val flow = task1 > ((task2 > task3) + (task4 > task5))
+  val flow: Then = task1 > ((task2 > task3) + (task4 > task5))
 
   override def props(name: String, coordinator: ActorRef)(
       implicit executionContext: ExecutionContext
   ): Props = { FlowLookaheadActor.props(name, coordinator, flow) }
-  override def resources = Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
+
+  override def resources: Seq[TaskResource] =
+    Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
 }
 
 case object FlowDummySim3 extends TestObject {
   val name = "sim6"
 
   // Define tasks
-  val task1 = FlowTask(
+  val task1: FlowTask = FlowTask(
     TaskGenerator("task1", name, ConstantGenerator(2L), ConstantGenerator(0L)) withResources (Seq(
           "r2"
         )) withPriority (Task.High)
   )
 
-  val task2 = FlowTask(
+  val task2: FlowTask = FlowTask(
     TaskGenerator("task2", name, ConstantGenerator(4L), ConstantGenerator(0L)) withResources (Seq(
           "r1"
         )) withPriority (Task.High)
   )
 
-  val task3 = FlowTask(
+  val task3: FlowTask = FlowTask(
     TaskGenerator("task3", name, ConstantGenerator(3L), ConstantGenerator(0L)) withResources (Seq(
           "r2"
         )) withPriority (Task.High)
   )
 
-  val task4 = FlowTask(
+  val task4: FlowTask = FlowTask(
     TaskGenerator("task4", name, ConstantGenerator(2L), ConstantGenerator(0L)) withResources (Seq(
           "r3"
         )) withPriority (Task.High)
   )
 
-  val task5 = FlowTask(
+  val task5: FlowTask = FlowTask(
     TaskGenerator("task5", name, ConstantGenerator(4L), ConstantGenerator(0L)) withResources (Seq(
           "r3"
         )) withPriority (Task.High)
   )
 
-  val task6 = FlowTask(
+  val task6: FlowTask = FlowTask(
     TaskGenerator("task6", name, ConstantGenerator(10L), ConstantGenerator(0L)) withResources (Seq(
           "r3"
         )) withPriority (Task.Low)
   )
-  val flow = task1 > (((task2 + task3 + task4) > task5) + task6)
+  val flow: Then = task1 > (((task2 + task3 + task4) > task5) + task6)
 
   override def props(name: String, coordinator: ActorRef)(
       implicit executionContext: ExecutionContext
   ): Props = { FlowLookaheadActor.props(name, coordinator, flow) }
-  override def resources = Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
+
+  override def resources: Seq[TaskResource] =
+    Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
 }
