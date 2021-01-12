@@ -23,7 +23,6 @@ import com.workflowfm.proter.metrics._
   *           A workflow may spawn multiple tasks with the same name, so this is necessary.
   * @param name A descriptive name.
   * @param simulation A unique name of the simulation this task belongs to.
-  * @param actor A reference to the [[Simulation]] that spawned this task.
   * @param created The timestamp when this task was created.
   * @param minStartTime The earliest possible starting time of this task.
   * @param resources The names of the [[TaskResource]]s required by this task.
@@ -38,7 +37,6 @@ class Task(
     val id: UUID,
     val name: String,
     val simulation: String,
-    val actor: ActorRef,
     val created: Long,
     val minStartTime: Long,
     val resources: Seq[String],
@@ -138,7 +136,7 @@ class Task(
 
   override def toString: String = {
     val res = resources.mkString(",")
-    s"Task($id,$name,$simulation,$actor,c$created,[$res],d$duration($estimatedDuration),c$initialCost,i$interrupt,$priority)"
+    s"Task($id,$name,$simulation,$created,[$res],d$duration($estimatedDuration),c$initialCost,i$interrupt,$priority)"
   }
 }
 
@@ -208,17 +206,15 @@ case class TaskGenerator(
     * As a case class, it can be easily manipulated dynamically to alter its values.
     *
     * @param currentTime The current time.
-    * @param actor A reference to the corresponding [[Simulation]] for the task.
     * @return The generated [[Task]].
     */
-  def create(currentTime: Long, actor: ActorRef): Task = {
+  def create(currentTime: Long): Task = {
     val creation = if (createTime >= 0) createTime else currentTime
 
     new Task(
       id,
       name,
       simulation,
-      actor,
       creation,
       minStartTime,
       resources,
