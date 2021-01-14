@@ -41,6 +41,8 @@ class Coordinator(
     startingTime: Long
 ) extends HashSetPublisher[Event] {
 
+  val id: String = this.toString()
+
   /**
     * Map of the available [[TaskResource]]s
     * @group resources
@@ -108,7 +110,7 @@ class Coordinator(
     * @param r The [[TaskResource]] to be added.
     */
   def addResource(r: TaskResource): Unit = if (!resourceMap.contains(r.name)) {
-    publish(EResourceAdd(self, time, r.name, r.costPerTick))
+    publish(EResourceAdd(id, time, r.name, r.costPerTick))
     resourceMap += r.name -> r
   }
 
@@ -166,7 +168,7 @@ class Coordinator(
 
       // Did we somehow go past the event time? This should never happen.
       if (firstEvent.time < time) {
-        publish(EError(self, time, s"Unable to handle past event for time: [${firstEvent.time}]"))
+        publish(EError(id, time, s"Unable to handle past event for time: [${firstEvent.time}]"))
       } else {
         // Jump ahead to the event time. This is a priority queue so we shouldn't skip any events
         time = firstEvent.time
@@ -252,7 +254,7 @@ class Coordinator(
 
       case TimeLimit(t) if (t == time) => stop()
 
-      case _ => publish(EError(self, time, s"Failed to handle event: $event"))
+      case _ => publish(EError(id, time, s"Failed to handle event: $event"))
     }
   }
 
@@ -265,7 +267,7 @@ class Coordinator(
     * @param sim The reference to the [[Simulation]] corresponding to the simulation.
     */
   def addSimulation(t: Long, sim: SimulationRef): Unit = {
-    publish(ESimAdd(self, time, sim.toString(), t))
+    publish(ESimAdd(id, time, sim.toString(), t))
     if (t >= time) events += StartingSim(t, sim)
   }
 
@@ -289,7 +291,7 @@ class Coordinator(
   protected def addSimulations(sims: Seq[(Long, SimulationRef)]): PriorityQueue[DiscreteEvent] = {
     events ++= sims.flatMap {
       case (t, sim) => {
-          publish(ESimAdd(self, time, sim.toString(), t))
+          publish(ESimAdd(id, time, sim.toString(), t))
         }
         if (t >= time)
           Some(StartingSim(t, sim))
@@ -331,7 +333,7 @@ class Coordinator(
     * @param actor The actor running the simulation
     */
   protected def simulationStarted(name: String, actor: SimulationRef): Unit = {
-    publish(ESimStart(self, time, name))
+    publish(ESimStart(id, time, name))
     simulations += name -> actor
   }
 
@@ -350,7 +352,7 @@ class Coordinator(
     simulations -= name
     waiting -= name
     scheduler.removeLookahead(name)
-    publish(ESimEnd(self, time, name, result))
+    publish(ESimEnd(id, time, name, result))
     log.debug(s"[COORD:$time] Finished: [$name]")
     ready(name)
   }
@@ -396,19 +398,19 @@ class Coordinator(
         resource.abortSimulation(name) match {
           case None => Unit
           case Some(task) => {
-            publish(ETaskDetach(self, time, task, resource.name))
+            publish(ETaskDetach(id, time, task, resource.name))
             tasksToAbort += task.id
           }
         }
     }
-    tasksToAbort.map { id => publish(ETaskAbort(self, time, id)) }
+    tasksToAbort.map { id => publish(ETaskAbort(id, time, id)) }
     abortedTasks ++= tasksToAbort
 
     // Remove queued tasks of this simulation from the scheduler.
     scheduler.removeSimulation(name, actor)
 
-    publish(ESimEnd(self, time, name, "[Simulation Aborted]"))
-    log.debug(s"[COORD:$time] Aborted: [${actor.path.name}]")
+    publish(ESimEnd(id, time, name, "[Simulation Aborted]"))
+    log.debug(s"[COORD:$time] Aborted: [$name]")
     actor ! Simulation.Stop
   }
 
@@ -458,7 +460,7 @@ class Coordinator(
     }
     t.addCost(resourceCost)
 
-    publish(ETaskAdd(self, time, t))
+    publish(ETaskAdd(id, time, t))
 
     if (gen.resources.length > 0)
       scheduler.addTask(t)
@@ -522,17 +524,17 @@ class Coordinator(
     * @param task The [[Task]] to be started.
     */
   protected def startTask(task: Task): Unit = {
-    publish(ETaskStart(self, time, task))
+    publish(ETaskStart(id, time, task))
     // Mark the start of the task in the metrics
     task.taskResources(resourceMap) map { r =>
       // Bind each resource to this task
       r.startTask(task, time) match {
         case None =>
-          publish(ETaskAttach(self, time, task, r.name))
+          publish(ETaskAttach(id, time, task, r.name))
         case Some(other) =>
           publish(
             EError(
-              self,
+              id,
               time,
               s"Tried to attach task [${task.name}](${task.simulation}) to [${r.name}], but it was already attached to [${other.name}](${other.simulation}) "
             )
@@ -573,7 +575,7 @@ class Coordinator(
   protected def detach(r: TaskResource): Any = {
     r.finishTask(time) match {
       case None => Unit
-      case Some(task) => publish(ETaskDetach(self, time, task, r.name))
+      case Some(task) => publish(ETaskDetach(id, time, task, r.name))
     }
   }
 
@@ -597,7 +599,7 @@ class Coordinator(
     }
     log.debug(s"[COORD:$time] Waiting post-task: ${task.actor.path.name}")
     scheduler.complete(task, time)
-    publish(ETaskDone(self, time, task))
+    publish(ETaskDone(id, time, task))
     task.actor ! Simulation.TaskCompleted(task, time)
   }
 
@@ -625,11 +627,11 @@ class Coordinator(
       case (name, resource) =>
         resource.abortTask(id) match {
           case None => Unit
-          case Some(task) => publish(ETaskDetach(self, time, task, resource.name))
+          case Some(task) => publish(ETaskDetach(this.id, time, task, resource.name))
         }
     }
     abortedTasks += id
-    publish(ETaskAbort(self, time, id))
+    publish(ETaskAbort(this.id, time, id))
   }
 
   /**
@@ -674,7 +676,7 @@ class Coordinator(
     * @group toplevel
     */
   def start(): Unit = {
-    publish(EStart(self))
+    publish(EStart(id))
     tick()
   }
 
@@ -685,7 +687,7 @@ class Coordinator(
     * @group toplevel
     */
   protected def finish(): Unit = {
-    publish(EDone(self, time))
+    publish(EDone(id, time))
     context.stop(self)
   }
 
