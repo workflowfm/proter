@@ -65,7 +65,7 @@ import scala.util.{ Try, Success, Failure }
   * @param coordinator A reference to the [[Coordinator]] actor running the simulation.
   */
 abstract class Simulation(
-    name: String,
+    val name: String,
     protected val manager: Manager
 ) {
 

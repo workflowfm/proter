@@ -4,14 +4,11 @@ import java.util.UUID
 
 import scala.annotation.tailrec
 import scala.collection.mutable.{ HashSet, Map, PriorityQueue, Queue, SortedSet }
-import scala.concurrent.{ Await, ExecutionContext, Promise }
-import scala.concurrent.duration._
-import scala.util.{ Failure, Success, Try }
+import scala.util.{ Try, Success, Failure }
 
 import uk.ac.ed.inf.ppapapan.subakka.HashSetPublisher
 
 import com.workflowfm.proter.events._
-import com.workflowfm.proter.metrics._
 
 
 trait Manager {
@@ -39,7 +36,7 @@ trait Manager {
 class Coordinator(
     scheduler: Scheduler,
     startingTime: Long
-) extends HashSetPublisher[Event] {
+) extends Manager with HashSetPublisher[Event] {
 
   val id: String = this.toString()
 
@@ -62,14 +59,13 @@ class Coordinator(
   protected val waiting: Map[String, List[UUID]] = Map[String, List[UUID]]()
 
   /**
-    * Set of simulation names that are running.
+    * Set of simulations that are running.
     *
     * i.e. they have already started but not finished.
     *
-    * This is currently used to send abort messages.
     * @group simulations
     */
-  protected val simulations: Map[String, SimulationRef] = Map[String, SimulationRef]()
+  protected val simulations: Map[String, Simulation] = Map[String, Simulation]()
 
   /**
     * [[scala.collection.mutable.PriorityQueue PriorityQueue]] of [[DiscreteEvent]]s to be processed,
@@ -264,20 +260,20 @@ class Coordinator(
     * @group simulations
     * @param t The timestamp when the simulation needs to start. Must be greater or equal to the current
     *          time.
-    * @param sim The reference to the [[Simulation]] corresponding to the simulation.
+    * @param simulation The [[Simulation]] to run.
     */
-  def addSimulation(t: Long, sim: SimulationRef): Unit = {
-    publish(ESimAdd(id, time, sim.toString(), t))
-    if (t >= time) events += StartingSim(t, sim)
+  def addSimulation(t: Long, simulation: Simulation): Unit = {
+    publish(ESimAdd(id, time, simulation.name, t))
+    if (t >= time) events += StartingSim(t, simulation)
   }
 
   /**
     * Add a new simulation to be run in the current virtual time.
     * 
     * @group simulations
-    * @param sim The reference to the [[Simulation]].
+    * @param simulation The [[Simulation]] to run.
     */
-  def addSimulationNow(sim: SimulationRef): Unit = addSimulation(time, sim)
+  def addSimulationNow(simulation: Simulation): Unit = addSimulation(time, simulation)
 
   /**
     * Adds multiple simulations at the same time.
@@ -286,12 +282,12 @@ class Coordinator(
     *
     * @group simulations
     * @param sims A sequence of pairs, each consisting of a starting timestamp and a
-    * reference to a [[Simulation]]. Timestamps must be greater or equal to the current time.
+    * [[Simulation]]. Timestamps must be greater or equal to the current time.
     */
-  protected def addSimulations(sims: Seq[(Long, SimulationRef)]): PriorityQueue[DiscreteEvent] = {
+  protected def addSimulations(sims: Seq[(Long, Simulation)]): PriorityQueue[DiscreteEvent] = {
     events ++= sims.flatMap {
       case (t, sim) => {
-          publish(ESimAdd(id, time, sim.toString(), t))
+          publish(ESimAdd(id, time, sim.name, t))
         }
         if (t >= time)
           Some(StartingSim(t, sim))
@@ -304,37 +300,26 @@ class Coordinator(
     * Add multiple simulations to be run in the current virtual time.
     * 
     * @group simulations
-    * @param sims A sequence of [[Simulation]] references.
+    * @param sims A sequence of [[Simulation]]s.
     */
-  def addSimulationsNow(sims: SimulationRef*): Unit = addSimulations(sims.map((time, _)))
+  def addSimulationsNow(sims: Simulation*): Unit = addSimulations(sims.map((time, _)))
 
   /**
-    * Start a simulation via the reference to its [[Simulation]].
+    * Start a [[Simulation]].
     *
     * Once the simulation starts, we exect to hear from it in case it wants to add some [[Task]]s.
     * We therefore add it to the waiting queue.
     *
-    * @group simulations
-    * @param simActor The [[akka.actor.SimulationRef]] of the [[Simulation]].
-    */
-  protected def startSimulation(simActor: SimulationRef): Unit = {
-    waiting += simActor -> List()
-    simActor ! Simulation.Start
-  }
-
-  /**
-    * Registers that a simulation has started.
-    *
     * Publishes a [[com.workflowfm.proter.events.ESimStart ESimStart]].
-    *
-    * Also records the actor that manages the simulation.
-    *
-    * @param name The name of the simulation.
-    * @param actor The actor running the simulation
+    * 
+    * @group simulations
+    * @param simulation The [[Simulation]] to start.
     */
-  protected def simulationStarted(name: String, actor: SimulationRef): Unit = {
-    publish(ESimStart(id, time, name))
-    simulations += name -> actor
+  protected def startSimulation(simulation: Simulation): Unit = {
+    publish(ESimStart(id, time, simulation.name))
+    simulations += simulation.name -> simulation
+    waiting += simulation.name -> List()
+    simulation.run()
   }
 
   /**
@@ -357,20 +342,7 @@ class Coordinator(
     ready(name)
   }
 
-  /**
-    * Stops/aborts a named simulation before it is done.
-    *
-    * Looks up the simulation actor and then calls
-    * [[abortSimulation(name:String,actor:akka\.actor\.SimulationRef)* abortSimulation]].
-    *
-    * @group simulations
-    * @param name The name of the simulation to abort.
-    */
-  protected def abortSimulation(name: String): Unit = {
-    simulations.get(name).map { actor => abortSimulation(name, actor) }
-  }
-
-  /**
+   /**
     * Stops/aborts a simulation before it is done.
     *
     *  - Removes the simulation from the list of running simulations and from the waiting list.
@@ -383,10 +355,10 @@ class Coordinator(
     * The bookkeeping assumes the rest of the simulation(s) can still proceed.
     *
     * @group simulations
-    * @param name The name of the completed simulation.
-    * @param actor The [[akka.actor.SimulationRef]] of the corresponding [[Simulation]].
+    * @param simulation The [[Simulation]] to stop.
     */
-  protected def abortSimulation(name: String, actor: SimulationRef): Unit = {
+  protected def abortSimulation(simulation: Simulation): Unit = {
+    val name = simulation.name
     simulations -= name
     waiting -= name
 
@@ -403,90 +375,72 @@ class Coordinator(
           }
         }
     }
-    tasksToAbort.map { id => publish(ETaskAbort(id, time, id)) }
+    tasksToAbort.map { tid => publish(ETaskAbort(id, time, tid)) }
     abortedTasks ++= tasksToAbort
 
     // Remove queued tasks of this simulation from the scheduler.
-    scheduler.removeSimulation(name, actor)
+    scheduler.removeSimulation(name)
 
     publish(ESimEnd(id, time, name, "[Simulation Aborted]"))
     log.debug(s"[COORD:$time] Aborted: [$name]")
-    actor ! Simulation.Stop
+    simulation.stop()
   }
 
   protected def abortAllSimulations(): Unit = {
-    simulations.map(s => abortSimulation(s._1, s._2))
+    simulations.map(s => abortSimulation(s._2))
   }
 
   /**
-    * Adds new [[Task]]s for a simulation.
+    * Adds new [[Task]](s) for a simulation.
     *
-    *  - Calls [[addTask]] for each [[Task]] to be generated.
-    *  - Calls [[ready]] to handle the fact that we no longer need to wait for this simulation.
-    *
-    * @group tasks
-    * @param actor The [[akka.actor.SimulationRef]] of the [[Simulation]] that needs to generate the tasks.
-    * @param l The list of tasks to be generated, each represented by a triplet with its unique ID,
-    *          [[TaskGenerator]] and list of [[TaskResource]] names that need to be used.
-    */
-  def addTasks(actor: SimulationRef, l: Seq[TaskGenerator]): Unit = {
-    l foreach addTask
-  }
-
-  /**
-    * Adds a single new [[Task]].
-    *
-    *  - Uses [[TaskGenerator.create]] to create the [[Task]], which will now have a fixed duration and cost.
-    *
-    *  - Calculates the cost of the involved resources by adding the [[TaskResource.costPerTick]]
-    * multipled by the [[Task.duration]]. Adds this to the [[Task.cost]].
-    * This is done at runtime instead of at creation time to support variable resources.
-    *
+    *  - Uses [[Task.create]] to create a [[TaskInstance]], which will now have a fixed duration and cost.
     *  - Publishes a [[com.workflowfm.proter.events.ETaskAdd ETaskAdd]].
-    *
     *  - If the task does not require any resources, it is started immediately using [[startTask]].
-    * Otherwise, we add it to the queue of [[Task]]s.
+    * Otherwise, we add it to the queue of [[TaskInstance]]s.
+    *
     *
     * @group tasks
-    * @param gen The [[TaskGenerator]] that will generate the [[Task]].
+    * @param simulation The name of the [[Simulation]] that owns the task(s).
+    * @param task The list of [[Task]]s to be added.
     */
-  def addTask(gen: TaskGenerator): Unit = {
-    // Create the task
-    val t: Task = gen.create(time, sender)
+  override def addTask(simulation: String, task: Task*): Unit = {
+    task foreach { t => {
+          // Create the task
+      val inst: TaskInstance = t.create(simulation, time)
 
-    // Calculate the cost of all resource usage. We only know this now!
-    val resourceCost = (0L /: t.taskResources(resourceMap)) {
-      case (c, r) => c + r.costPerTick * t.duration
-    }
-    t.addCost(resourceCost)
+      // Calculate the cost of all resource usage. We only know this now!
+      //val resourceCost = (0L /: inst.taskResources(resourceMap)) {
+      //  case (c, r) => c + r.costPerTick * inst.duration
+      //}
+      //inst.addCost(resourceCost)
 
-    publish(ETaskAdd(id, time, t))
+      publish(ETaskAdd(id, time, inst))
 
-    if (gen.resources.length > 0)
-      scheduler.addTask(t)
-    else
-      // if the task does not require resources, start it now
-      startTask(t)
-
-    //sender() ! Coordinator.AckTask(t) //uncomment this to acknowledge AddTask
+      if (t.resources.length > 0)
+        scheduler.addTask(inst)
+      else
+        // if the task does not require resources, start it now
+        startTask(inst)
+    } }
   }
 
+
   /**
-    * Acknowledges that a [[Simulation]] actor has finished reacting to some associated [[Task]]s.
+    * Acknowledges that a [[Simulation]] has finished reacting to some associated [[Task]]s.
     *
-    * Throws a warning if we were not waiting on that actor at all.
+    * Throws a warning if we were not waiting on that simulatoin  at all.
     * @group tasks
-    * @param actor The [[Simulation]] actor.
-    * @param ack The sequence of [[Task]] UUIDs being acknowledged.
+    * @param simulation The name of the [[Simulation]].
+    * @param ids The sequence of [[TaskInstance]] UUIDs being acknowledged.
     */
-  protected def ackTasks(sim: SimulationRef, ack: Seq[UUID]): Unit = {
-    log.debug(s"[COORD:$time] Ack [${sim.toString()}]: $ack")
-    waiting.get(sim) match {
+  override def ackTask(simulation: String, ids: UUID*): Unit = {
+    log.debug(s"[COORD:$time] Ack [${simulation}]: $ids")
+    waiting.get(simulation) match {
       case None =>
-        log.warning(s"[COORD:$time] Unexpected tasks acknowledged by ${sim.toString()}: $ack")
+        log.warning(s"[COORD:$time] Unexpected tasks acknowledged by ${simulation}: $ids")
       case Some(l) => {
-        waiting.update(sim, l.diff(ack))
-        ready(sim)
+        waiting.update(simulation, l.diff(ids))
+        ready(simulation)
       }
     }
   }
@@ -500,20 +454,20 @@ class Coordinator(
     * @group simulations
     * @param actor The [[Simulation]] actor that is done.
     */
-  protected def ackAll(actor: SimulationRef): Unit = {
-    log.debug(s"[COORD:$time] Ack ALL [${actor.path.name}]")
-    waiting -= actor
-    ready(actor)
+  protected def simReady(simulation: String): Unit = {
+    log.debug(s"[COORD:$time] Ack ALL [$simulation]")
+    waiting -= simulation
+    ready(simulation)
   }
 
   /**
-    * Start a [[Task]] at the current timestamp.
+    * Start a [[TaskInstance]] at the current timestamp.
     *
-    * A [[Task]] is started when scheduled, meaning all the [[TaskResource]]s it needs are available
-    * and it is the highest priority [[Task]] in the queue for those [[TaskResource]]s.
+    * A [[TaskInstance]] is started when scheduled, meaning all the [[TaskResource]]s it needs are available
+    * and it is the highest priority [[TaskInstance]] in the queue for those [[TaskResource]]s.
     *
     *  - Publishes a [[com.workflowfm.proter.events.ETaskAdd ETaskAdd]].
-    *  - Calls [[TaskResource.startTask]] for each involved [[TaskResource]] to attach this [[Task]]
+    *  - Calls [[TaskResource.startTask]] for each involved [[TaskResource]] to attach this [[TaskInstnace]]
     * to them. Publishes a [[com.workflowfm.proter.events.ETaskAttach ETaskAttach]] for each successful attachment.
     * Otherwise publishes an appropriate [[com.workflowfm.proter.events.EError EError]]. The latter would
     * only happen if the [[Scheduler]] tried to schedule a [[Task]] to a busy [[TaskResource]].
@@ -523,7 +477,7 @@ class Coordinator(
     * @group tasks
     * @param task The [[Task]] to be started.
     */
-  protected def startTask(task: Task): Unit = {
+  protected def startTask(task: TaskInstance): Unit = {
     publish(ETaskStart(id, time, task))
     // Mark the start of the task in the metrics
     task.taskResources(resourceMap) map { r =>
@@ -557,10 +511,21 @@ class Coordinator(
     * @group simulations
     * @param actor The reference to the [[Simulation]] we need to wait for.
     */
-  protected def waitFor(actor: SimulationRef, ack: SimulationRef): Unit = {
-    waiting += actor -> List()
-    log.debug(s"[COORD:$time] Wait requested: ${actor.path.name}")
-    ack ! Simulation.AckWait
+  override def waitFor(simulation: String): Unit = {
+    waiting += simulation -> List()
+    log.debug(s"[COORD:$time] Wait requested: $simulation")
+  }
+
+
+  override def simDone(simulation: String, result: Try[Any]): Unit = {
+    result match {
+      case Success(res) => {
+        stopSimulation(simulation, res.toString)
+      }
+      case Failure(ex) => {
+        stopSimulation(simulation, ex.getLocalizedMessage)
+      }
+    }
   }
 
   /**
@@ -580,7 +545,7 @@ class Coordinator(
   }
 
   /**
-    * Handles a [[Task]] that has just finished.
+    * Handles a [[TaskInstance]] that has just finished.
     *
     *  - Adds the corresponding [[Simulation]] reference to the waiting list as we
     *   expect it to react to the task finishing.
@@ -590,59 +555,52 @@ class Coordinator(
     * Note that resources are detached before this in [[tick]] using [[releaseResources]].
     *
     * @group tasks
-    * @param task The [[Task]] that needs to be stopped.
+    * @param task The [[TaskInstance]] that needs to be stopped.
     */
-  protected def stopTask(task: Task): Unit = {
-    waiting.get(task.actor) match {
-      case None => waiting += task.actor -> List(task.id)
-      case Some(l) => waiting.update(task.actor, task.id :: l)
+  protected def stopTask(task: TaskInstance): Unit = {
+    waiting.get(task.simulation) match {
+      case None => waiting += task.simulation -> List(task.id)
+      case Some(l) => waiting.update(task.simulation, task.id :: l)
     }
-    log.debug(s"[COORD:$time] Waiting post-task: ${task.actor.path.name}")
+    log.debug(s"[COORD:$time] Waiting post-task: ${task.simulation}")
     scheduler.complete(task, time)
     publish(ETaskDone(id, time, task))
-    task.actor ! Simulation.TaskCompleted(task, time)
+    simulations.get(task.simulation).map(_.complete(task, time))
   }
 
   /**
-    * Aborts a [[Task]].
+    * Aborts one or more [[TaskInstance]]s.
     *
-    *  - Adds the corresponding actor o the waiting list as we
+    *  - Adds the corresponding simulation to the waiting list as we
     *   expect it to react to the task aborting.
     *  - Detaches all associated [[TaskResource]]s.
     *  - Adds the task ID to the [[abortedTasks]] set.
     *  - Publishes a [[com.workflowfm.proter.events.ETaskAbort ETaskAbort]].
     *
     * @group tasks
-    * @param id The `UUID` of the [[Task]] that needs to be aborted.
-    * @param source The actor that caused the abort.
+    * @param id The `UUID` of the [[TaskInstance]] that needs to be aborted.
     */
-  protected def abortTask(id: UUID, source: String): Unit = {
-    // Need to wait for the source if we are not already.
-    waiting.get(source) match {
-      case None => waiting += source -> List()
-      case Some(_) => Unit
-    }
-    log.debug(s"[COORD:$time] Waiting post-abort: ${source}")
-    resourceMap.foreach {
+  override def abortTask(ids: UUID*): Unit = ids foreach { id => {
+    val tasks = resourceMap.flatMap {
       case (name, resource) =>
-        resource.abortTask(id) match {
-          case None => Unit
-          case Some(task) => publish(ETaskDetach(this.id, time, task, resource.name))
-        }
+        resource.abortTask(id).map { task => {
+          publish(ETaskDetach(this.id, time, task, resource.name))
+          task
+        } }
     }
+    // All tasks in the list should have the same id so we assume they are all the same
+    // and work with just he head.
+    // Need to wait for the source if we are not already.
+    tasks.headOption.map { task => {
+      log.debug(s"[COORD:$time] Waiting post-abort: ${task.simulation}")
+      waiting.get(task.simulation) match {
+        case None => waiting += task.simulation -> List(id)
+        case Some(l) => waiting.update(task.simulation, id :: l)
+      }
+    } }
     abortedTasks += id
     publish(ETaskAbort(this.id, time, id))
-  }
-
-  /**
-    * Abort multiple [[Task]]s in one go.
-    * 
-    * @see [[abortTask]]
-    *
-    * @param source The owner of the [[Task]]s.
-    * @param ids The ids of the [[Task]]s to abort.
-    */
-  def abortTasks(source: String, ids: UUID*): Unit = ids map (abortTask(_, source))
+  } }
 
   /**
     * Reacts to the fact that we no longer need to wait for a simulation.
@@ -669,6 +627,10 @@ class Coordinator(
         }
       }
     }
+  }
+
+  override def lookahead(simulation: String, lookahead: Lookahead): Unit = {
+    scheduler.setLookahead(simulation, lookahead)
   }
 
   /**
@@ -726,35 +688,5 @@ class Coordinator(
     case _ => false
   }
 
-}
-/*
-    case Coordinator.AckTasks(ack, lookahead) => {
-      lookahead.map(scheduler.setLookahead(sender(), _))
-      ackTasks(sender, ack)
-    }
-    case Coordinator.SimReady(lookahead) => {
-      lookahead.map(scheduler.setLookahead(sender(), _))
-      ackAll(sender)
-    }
-    case Coordinator.WaitFor(actor) => waitFor(actor, sender())
-    case Coordinator.SimStarted(name, actor) => simulationStarted(name, actor)
-    case Coordinator.SimDone(name, result) =>
-      result match {
-        case Success(res) => {
-          stopSimulation(name, res.toString, sender)
-        }
-        case Failure(ex) => {
-          stopSimulation(name, ex.getLocalizedMessage, sender)
-          ex.printStackTrace()
-        }
-      }
-
-    case Coordinator.UpdateLookahead(obj) => scheduler.setLookahead(sender(), obj)
-  }
-*/
-
-
-trait SimulationRef {
-  def name: String
 }
 

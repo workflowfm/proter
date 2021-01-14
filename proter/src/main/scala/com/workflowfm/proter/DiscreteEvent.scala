@@ -1,7 +1,5 @@
 package com.workflowfm.proter
 
-import akka.actor.ActorRef
-
 /**
   * Discrete Events that need to be handled.
   */
@@ -45,13 +43,13 @@ case class FinishingTask(override val time: Long, task: TaskInstance) extends Di
   * Event fired when a simulation needs to start.
   *
   * @param time The timestamp of the event
-  * @param simulation The actor reference to the [[Simulation]] that needs to start.
+  * @param simulation The [[Simulation]] that needs to start.
   */
-case class StartingSim(override val time: Long, simulation: ActorRef) extends DiscreteEvent {
+case class StartingSim(override val time: Long, simulation: Simulation) extends DiscreteEvent {
   override val classOrder: Short = 10
 
   override def sameClassCompare(that: DiscreteEvent): Int = that match {
-    case StartingSim(_, s) => simulation.compareTo(s)
+    case StartingSim(_, s) => simulation.name.compareTo(s.name)
     case _ => 0
   }
 }
