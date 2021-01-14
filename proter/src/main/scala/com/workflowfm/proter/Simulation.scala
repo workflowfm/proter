@@ -431,7 +431,7 @@ trait LookingAhead { self: Simulation =>
   override def complete(task: TaskInstance, time: Long): Unit = {
     completed += ((task.id, time))
     lookahead = lookahead - task.id
-    lookahead.getTaskData(completed) foreach { x => lookahead = lookahead - x._1.id }
+    lookahead.getTaskData(completed).flatMap(_._1.id) foreach { id => lookahead = lookahead - id }
     sendLookahead()
     self.complete(task, time)
   }
