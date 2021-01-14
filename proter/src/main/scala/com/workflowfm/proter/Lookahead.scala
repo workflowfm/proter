@@ -24,19 +24,19 @@ trait Lookahead {
   /**
     * Adds an entry to the strucutre, comprised of a function that describes the
     * prerequisites and resultant starting time of a set of tasks, and a list
-    * of [[Task]]s that describe the tasks that should start if this
+    * of [[Task]]s that should start if this
     * function returns `Some(value)`.
     *
     * The function has type `Map[UUID,Long]=>Option[Long]`. It should take a map that
     * contains the IDs of completed/scheduled tasks and their respective finishing times,
-    * and it should return `None` if the prerequisites of this entry are met, and
+    * and it should return `None` if the prerequisites of this entry are not met, and
     * `Some(value)` if the prerequisites are met, where `value` should be the starting time
     * of the tasks contained in this entry. This allows us to express a complex relationship
     * whereby the starting time of the tasks in this lookahead entry can be an intricate
     * function of the finishing times of the prerequisites.
     *
     * @param function The function that describes the prerequisites of this entry. Should return
-    * `None` if the prerequisites are not met, and `Some(value)` if the prerequistes are met, where
+    * `None` if the prerequisites are not met, or `Some(value)` if the prerequistes are met, where
     * the value is the starting time of the tasks in this entry.
     * @param generators A list of [[Task]]s that describes the tasks that should start if
     * the prerequistes are met.

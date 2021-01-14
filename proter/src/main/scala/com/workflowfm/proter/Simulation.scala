@@ -416,6 +416,9 @@ trait LookingAhead { self: Simulation =>
     */
   def sendLookahead(): Unit = manager.lookahead(self.name, lookahead)
 
+  val completed: collection.mutable.Set[(UUID, Long)] = collection.mutable.Set()
+
+
   /**
     * Manages a [[Task]] whose simulation has completed.
     *
@@ -425,8 +428,6 @@ trait LookingAhead { self: Simulation =>
     * @param task The [[Task]] that completed.
     * @param time The timestamp of its completion.
     */
-  val completed: collection.mutable.Set[(UUID, Long)] = collection.mutable.Set()
-
   override def complete(task: TaskInstance, time: Long): Unit = {
     completed += ((task.id, time))
     lookahead = lookahead - task.id

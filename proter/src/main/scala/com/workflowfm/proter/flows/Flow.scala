@@ -2,9 +2,7 @@ package com.workflowfm.proter.flows
 
 import java.util.UUID
 
-import scala.util.{ Try, Success, Failure }
-
-import akka.actor.{ Actor, ActorRef, Props }
+import scala.util.Success
 
 import com.workflowfm.proter._
 
@@ -16,29 +14,29 @@ sealed trait Flow {
 }
 
 case class NoTask() extends Flow
-case class FlowTask(generator: TaskGenerator) extends Flow { override val id = generator.id }
+case class FlowTask(task: Task) extends Flow { override val id = task.id.getOrElse(UUID.randomUUID()) }
 case class Then(left: Flow, right: Flow) extends Flow
 case class And(left: Flow, right: Flow) extends Flow
 case class All(elements: Flow*) extends Flow
 case class Or(left: Flow, right: Flow) extends Flow
 
 /**
-  * An actor which implements the "Flows" interface which can be used to create simple workflow simulations.
+  * A simulation of a [[Flow]].
   *
-  * This actor uses a [[Flow]] structure which describes how and in what order certain tasks should be executed.
-  * A Flow may consist of a single FlowTask or some combination of FlowTasks which are joined using `And`s, `Then`s,
-  * and `Or`s.
+  * It uses a [[Flow]] structure which describes how and in what order certain tasks should be executed.
+  * A Flow may consist of a single [[FlowTask]] or some combination of [[FlowTask]]s which are joined 
+  * using [[And]]s, [[Then]]s, and [[Or]]s.
   *
   * @param name The name of the simulation being managed.
-  * @param coordinator A reference to the [[Coordinator]] actor running the simulation.
+  * @param manager The simulation manager for this simualation.
   * @param flow The flow which describes how the simulation behaves
   * @param executionContext
   */
-class FlowSimulationActor(
+class FlowSimulation(
     name: String,
-    coordinator: ActorRef,
+    manager: Manager,
     protected val flow: Flow
-) extends AsyncSimulation(name, coordinator) {
+) extends AsyncSimulation(name, manager) {
 
   /**
     * Initiates the execution of the simulation.
@@ -58,7 +56,7 @@ class FlowSimulationActor(
   protected def runFlow(flow: Flow, flowCallback: Callback): Unit = {
     flow match {
       case f: FlowTask =>
-        task(f.generator, callback((t, l) => { flowCallback(Success(t, l)); ack(Seq(f.id)) }))
+        task(f.task.withID(f.id), callback((t, l) => { flowCallback(Success(t, l)); ack(Seq(f.id)) }))
       case f: Flow => { tasks += flow.id -> flowCallback; execute(f) }
     }
   }
@@ -86,7 +84,7 @@ class FlowSimulationActor(
     flow match {
       case f: NoTask => complete(f.id)
 
-      case FlowTask(generator: TaskGenerator) => {}
+      case _: FlowTask => {}
       //this is here for the sake of case completeness, should not be called
 
       case f: Then => {
@@ -119,27 +117,13 @@ class FlowSimulationActor(
   }
 }
 
-object FlowSimulationActor {
-
-  /**
-    * Creates props of a [[FlowSimulationActor]].
-    *
-    * @param name The simulation name.
-    * @param coordinator The [[Coordinator]].
-    * @param flow The [[Flow]] to be executed
-    * @return The Props of a new flow simulation actor
-    */
-  def props(name: String, coordinator: ActorRef, flow: Flow): Props =
-    Props(new FlowSimulationActor(name, coordinator, flow))
-}
-
 /**
-  * A triat which provides Lookahead compatability to [[FlowSimulationActor]]s.
+  * A triat which provides Lookahead compatibility to [[FlowSimulation]]s.
   *
   * Works by parsing the entire flow at the start of the simulation to build a
   * [[Lookahead]] automatically.
   */
-trait FlowsLookahead extends FlowSimulationActor with LookingAhead {
+trait FlowsLookahead extends FlowSimulation with LookingAhead {
 
   /**
     * Initiates the execution of the simulation.
@@ -216,11 +200,11 @@ trait FlowsLookahead extends FlowSimulationActor with LookingAhead {
       lookaheadStructure: Lookahead
   ): (IDFunction, Lookahead) = {
     flow match {
-      case f: NoTask => ((m: Map[UUID, Long]) => (Some(Long.MinValue)), NoLookahead)
-      case FlowTask(g) => {
+      case _: NoTask => ((_: Map[UUID, Long]) => (Some(Long.MinValue)), NoLookahead)
+      case f @ FlowTask(g) => {
         var s = lookaheadStructure
         if (extraFunction.isDefined) s = s + (extraFunction.get, g)
-        ((m: Map[UUID, Long]) => (m.get(g.id)), s)
+        ((m: Map[UUID, Long]) => (m.get(f.id)), s)
       }
       case f: Then => {
         val l = parseFlow(f.left, extraFunction, lookaheadStructure)
@@ -239,7 +223,7 @@ trait FlowsLookahead extends FlowSimulationActor with LookingAhead {
           functions.map(_._2).fold(NoLookahead) { (a, b) => a and b }
         )
       }
-      case f @ All(elem @ _*) => {
+      case All(elem @ _*) => {
         val functions = elem map (parseFlow(_, extraFunction, lookaheadStructure))
         (
           (m) => {
@@ -264,34 +248,4 @@ trait FlowsLookahead extends FlowSimulationActor with LookingAhead {
       }
     }
   }
-}
-
-/**
-  * A [[Flow]] actor with lookahead functionality.
-  *
-  * @param name The simulation name.
-  * @param coordinator The [[Coordinator]].
-  * @param flow The [[Flow]] to be executed
-  * @param executionContext
-  */
-class FlowLookaheadActor(
-    name: String,
-    coordinator: ActorRef,
-    flow: Flow
-) extends FlowSimulationActor(name, coordinator, flow)
-    with FlowsLookahead
-
-object FlowLookaheadActor {
-
-  /**
-    * Creates props of a [[FlowLookaheadActor]].
-    *
-    * @param name The simulation name.
-    * @param coordinator The [[Coordinator]].
-    * @param flow The [[Flow]] to be executed
-    * @param executionContext
-    * @return The Props of a new flow simulation actor
-    */
-  def props(name: String, coordinator: ActorRef, flow: Flow): Props =
-    Props(new FlowLookaheadActor(name, coordinator, flow))
 }

@@ -1,5 +1,7 @@
 package com.workflowfm.proter
 
+import java.util.UUID
+
 import scala.annotation.tailrec
 import scala.collection.Map
 import scala.collection.mutable.SortedSet
@@ -206,7 +208,7 @@ class LookaheadScheduler(initialTasks: TaskInstance*) extends SortedSetScheduler
   protected val lookaheadObjects: collection.mutable.Map[String, Lookahead] =
     collection.mutable.Map()
 
-  protected val completed: collection.mutable.Set[(java.util.UUID, Long)] = collection.mutable.Set()
+  protected val completed: collection.mutable.Set[(UUID, Long)] = collection.mutable.Set()
 
   /**
     * Adds / updates the lookahead structure corresponding to a particular actor.
@@ -256,7 +258,7 @@ class LookaheadScheduler(initialTasks: TaskInstance*) extends SortedSetScheduler
     //combine lookahead structures
     val lookaheadSetThisIter = lookaheadObjects.values.fold(NoLookahead) { (a, b) => a and b }
     //get future tasks from currently running tasks
-    var futureTasksFoundSoFar = Seq[(java.util.UUID, Long)]()
+    var futureTasksFoundSoFar = Seq[(UUID, Long)]()
     val inProgressFutureTasks = resourceMap.flatMap {
       case (_, x) =>
         if (!x.currentTask.isDefined) Seq()
@@ -322,7 +324,7 @@ class LookaheadScheduler(initialTasks: TaskInstance*) extends SortedSetScheduler
       resourceMap: Map[String, TaskResource],
       schedules: Map[String, Schedule],
       tasks: SortedSet[TaskInstance],
-      scheduledThisIter: Seq[(java.util.UUID, Long)],
+      scheduledThisIter: Seq[(UUID, Long)],
       lookaheadSetThisIter: Lookahead,
       result: Queue[TaskInstance]
   ): Seq[TaskInstance] =
@@ -364,7 +366,7 @@ class LookaheadScheduler(initialTasks: TaskInstance*) extends SortedSetScheduler
     */
   private def tasksAfterThis(
       simulation: String,
-      scheduled: Seq[(java.util.UUID, Long)],
+      scheduled: Seq[(UUID, Long)],
       lookaheadStructureThisIter: Lookahead
   ): Seq[TaskInstance] = {
     val taskData = lookaheadStructureThisIter.getTaskData((scheduled ++ completed))
