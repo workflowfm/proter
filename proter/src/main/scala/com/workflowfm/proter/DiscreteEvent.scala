@@ -32,7 +32,7 @@ sealed trait DiscreteEvent extends Ordered[DiscreteEvent] {
   * @param time The timestamp of the event
   * @param task The [[Task]] that was finished.
   */
-case class FinishingTask(override val time: Long, task: Task) extends DiscreteEvent {
+case class FinishingTask(override val time: Long, task: TaskInstance) extends DiscreteEvent {
   override val classOrder: Short = 5
 
   override def sameClassCompare(that: DiscreteEvent): Int = that match {

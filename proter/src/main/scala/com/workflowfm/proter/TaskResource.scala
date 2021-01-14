@@ -2,12 +2,9 @@ package com.workflowfm.proter
 
 import java.util.UUID
 
-import scala.collection.mutable.Queue
-
-import com.workflowfm.proter.metrics._
-
 /**
-  * A persistent resource to be used by [[Task]]s.
+  * A persistent resource to be used by [[Task]]s/[[TaskInstance]]s.
+  * 
   * A [[TaskResource]], or simply "resource", corresponds to a persistent resource.
   * Typical examples are human actors or persistent machinery.
   * Each [[TaskGenerator]] may require a different combination of resources.
@@ -15,24 +12,24 @@ import com.workflowfm.proter.metrics._
   * Each [[TaskResource]] is assumed to have a unique name and a `costPerTick`, i.e. the
   * cost (if any) of using the resource per unit of time.
   *
-  * We say a [[TaskResource]] is ''attached'' to a [[Task]] when the task that uses this
+  * We say a [[TaskResource]] is ''attached'' to a [[TaskInstance]] when the task that uses this
   * resource is being performed. The `currentTask` variable holds the task that is currently
   * attached to the resource (if any) coupled with the virtual timestamp of when it started.
   * A [[TaskResource]] is ''idle''' when it has no tasks attached to it.
   *
   * The [[Coordinator]] calls upon [[startTask]] to attach a task to the resource and
   * [[finishTask]] to detach it. The [[Coordinator]] has full control over the resource and
-  * makes all necessary checks to ensure consistent behaviour (e.g. not starting a [[Task]] when
-  * another [[Task]] is already attached).
+  * makes all necessary checks to ensure consistent behaviour (e.g. not starting a [[TaskInstance]] when
+  * another [[TaskInstance]] is already attached).
   *
   * @param name The name of the resource.
   * @param costPerTick The cost of using the resource per unit of time.
   */
 class TaskResource(val name: String, val costPerTick: Int) {
   /**
-    * Some [[Task]] currently attached to the resource, or [[scala.None]] if idle.
+    * Some [[TaskInstance]] currently attached to the resource, or [[scala.None]] if idle.
     */
-  var currentTask: Option[(Long, Task)] = None
+  var currentTask: Option[(Long, TaskInstance)] = None
 
   /**
     * True if the resource is idle, false otherwise.
@@ -42,14 +39,14 @@ class TaskResource(val name: String, val costPerTick: Int) {
   def isIdle: Boolean = currentTask == None
 
   /**
-    * Detaches the current [[Task]] (if any) if it has completed.
+    * Detaches the current [[TaskInstance]] (if any) if it has completed.
     * Checks to ensure the task is completed with respect to the current time and the task duration.
     *
     * Does not actually do anything to the task itself. It merely detaches it and becomes idle.
     * @param currentTime The current (virtual) time.
-    * @return The [[Task]] that was detached, if any.
+    * @return The [[TaskInstance]] that was detached, if any.
     */
-  def finishTask(currentTime: Long): Option[Task] = currentTask match {
+  def finishTask(currentTime: Long): Option[TaskInstance] = currentTask match {
     case None => None
     case Some((startTime, task)) =>
       if (currentTime >= startTime + task.duration) {
@@ -59,13 +56,13 @@ class TaskResource(val name: String, val costPerTick: Int) {
   }
 
   /**
-    * Aborts the current [[Task]] if it matches a given `UUID`.
+    * Aborts the current [[TaskInstance]] if it matches a given `UUID`.
     *
     * Does not actually do anything to the task itself. It merely detaches it and becomes idle.
-    * @param id The `UUID` of the [[Task]] to abort.
-    * @return The [[Task]] if it was aborted successfully or [[scala.None None]] in any other case.
+    * @param id The `UUID` of the [[TaskInstance]] to abort.
+    * @return The [[TaskInstance]] if it was aborted successfully or [[scala.None None]] in any other case.
     */
-  def abortTask(id: UUID): Option[Task] = {
+  def abortTask(id: UUID): Option[TaskInstance] = {
     currentTask match {
       case Some((startTime, task)) if task.id == id => {
         currentTask = None
@@ -76,13 +73,13 @@ class TaskResource(val name: String, val costPerTick: Int) {
   }
 
   /**
-    * Aborts the current [[Task]] if it belongs to the given simulation.
+    * Aborts the current [[TaskInstance]] if it belongs to the given simulation.
     *
     * Does not actually do anything to the task itself. It merely detaches it and becomes idle.
     * @param simulation The name of the simulation whose tasks to abort.
-    * @return The [[Task]] if it was aborted successfully or [[scala.None None]] in any other case.
+    * @return The [[TaskInstance]] if it was aborted successfully or [[scala.None None]] in any other case.
     */
-  def abortSimulation(simulation: String): Option[Task] = {
+  def abortSimulation(simulation: String): Option[TaskInstance] = {
     currentTask match {
       case Some((startTime, task)) if task.simulation == simulation => {
         currentTask = None
@@ -93,16 +90,17 @@ class TaskResource(val name: String, val costPerTick: Int) {
   }
 
   /**
-    * Attach a [[Task]] to this resource.
-    * If the resource is already attached to another [[Task]], the attached task
+    * Attach a [[TaskInstance]] to this resource.
+    * 
+    * If the resource is already attached to another [[TaskInstance]], the attached task
     * is returned. Otherwise, we return [[scala.None]].
     *
-    * @param task The [[Task]] to attach.
+    * @param task The [[TaskInstance]] to attach.
     * @param currentTime The current (virtual) time.
-    * @return [[scala.None None]] if the task was attached, or some [[Task]] that
+    * @return [[scala.None None]] if the task was attached, or some [[TaskInstance]] that
     *         was already attached before
     */
-  def startTask(task: Task, currentTime: Long): Option[Task] = {
+  def startTask(task: TaskInstance, currentTime: Long): Option[TaskInstance] = {
     currentTask match {
       case None => {
         currentTask = Some(currentTime, task)
@@ -116,9 +114,10 @@ class TaskResource(val name: String, val costPerTick: Int) {
 
   /**
     * Estimates the earliest time the resource will become available.
-    * Lets the [[Scheduler]] (via [[Task.nextPossibleStart]]) know an
+    * 
+    * Lets the [[Scheduler]] (via [[TaskInstance.nextPossibleStart]]) know an
     * '''estimate''' of when we expect to have this resource available again.
-    * This is based off of [[Task.estimatedDuration]] so may not be the correct, but is more
+    * This is based off of [[TaskInstance.estimatedDuration]] so may not be the correct, but is more
     * realistic in terms of what we know at a specific given point in time.
     *
     * @param currentTime
