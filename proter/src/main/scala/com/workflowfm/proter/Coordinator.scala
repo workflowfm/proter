@@ -13,6 +13,18 @@ import uk.ac.ed.inf.ppapapan.subakka.HashSetPublisher
 import com.workflowfm.proter.events._
 import com.workflowfm.proter.metrics._
 
+
+trait Manager {
+  def addTask(simulation: String, task: Task*): Unit
+  def ackTask(simulation: String, ids: UUID*): Unit
+  def abortTask(ids: UUID*): Unit
+  def waitFor(simulation: String): Unit
+  def lookahead(simulation: String, lookahead: Lookahead)
+  def simReady(simulation: String): Unit
+  def simDone(simulation:String, result: Try[Any]): Unit
+}
+
+
 /**
   * Provides coordination for discrete event simulation of multiple asynchronous simulations.
   *
