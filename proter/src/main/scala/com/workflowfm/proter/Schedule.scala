@@ -60,7 +60,7 @@ case class Schedule(tasks: List[(Long, Long)]) {
   }
 
   /**
-    * Adds the estimated interval of a [[Task]] to the schedule, if possible.
+    * Adds the estimated interval of a [[TaskInstance]] to the schedule, if possible.
     *
     * The new interval can only be added if it does not clash with any of the existing intervals.
     *
@@ -68,27 +68,27 @@ case class Schedule(tasks: List[(Long, Long)]) {
     *
     * @see [[Schedule.+>(start:Long,end:Long)* Schedule.+>]]
     * @see [[Schedule.add]]
-    * @param startTime The timestamp the [[Task]] started.
-    * @param t The [[Task]] to be added.
+    * @param startTime The timestamp the [[TaskInstance]] started.
+    * @param t The [[TaskInstance]] to be added.
     * @return The updated schedule, or the same schedule if the update fails.
     */
-  def +>(startTime: Long, t: Task): Schedule = this +> (startTime, startTime + t.estimatedDuration)
+  def +>(startTime: Long, t: TaskInstance): Schedule = this +> (startTime, startTime + t.estimatedDuration)
 
   /**
-    * Finds the earliest possible start for a [[Task]] in the schedule.
+    * Finds the earliest possible start for a [[TaskInstance]] in the schedule.
     *
-    * A [[Task]] fits into the schedule if the interval defined by the start time
-    * and the estimated duration of the [[Task]] has no overlap with any other interval in the
+    * A [[TaskInstance]] fits into the schedule if the interval defined by the start time
+    * and the estimated duration of the [[TaskInstance]] has no overlap with any other interval in the
     * schedule.
     *
     * Uses [[Schedule.fit]] for the calculation.
     * @see [[Schedule.fit]]
     *
-    * @param currentTime The current (and thus earliest possible) time for the [[Task]].
-    * @param t The [[Task]] to be checked.
-    * @return The earliest possible start for the [[Task]] in this schedule.
+    * @param currentTime The current (and thus earliest possible) time for the [[TaskInstance]].
+    * @param t The [[TaskInstance]] to be checked.
+    * @return The earliest possible start for the [[TaskInstance]] in this schedule.
     */
-  def ?(currentTime: Long, t: Task): Long = Schedule.fit(currentTime, t.estimatedDuration, tasks)
+  def ?(currentTime: Long, t: TaskInstance): Long = Schedule.fit(currentTime, t.estimatedDuration, tasks)
 
   /**
     * Merges the schedule with another one.
@@ -133,7 +133,7 @@ object Schedule {
   def apply(): Schedule = Schedule(List.empty[(Long, Long)])
 
   /**
-    * Creates a [[Schedule]] from a [[TaskResource]] based on its currently running [[Task]] (if any).
+    * Creates a [[Schedule]] from a [[TaskResource]] based on its currently running [[TaskInstance]] (if any).
     *
     * @param r The [[TaskResource]] to schedule for.
     * @return The initialised schedule.

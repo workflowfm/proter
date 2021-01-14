@@ -4,8 +4,6 @@ import java.util.UUID
 
 import scala.collection.immutable.{ Map, Queue }
 
-import akka.actor.ActorRef
-
 /**
   * A Lookahead contains information about the order in which tasks run.
   *
@@ -26,7 +24,7 @@ trait Lookahead {
   /**
     * Adds an entry to the strucutre, comprised of a function that describes the
     * prerequisites and resultant starting time of a set of tasks, and a list
-    * of [[TaskGenerator]]s that describe the tasks that should start if this
+    * of [[Task]]s that describe the tasks that should start if this
     * function returns `Some(value)`.
     *
     * The function has type `Map[UUID,Long]=>Option[Long]`. It should take a map that
@@ -40,19 +38,19 @@ trait Lookahead {
     * @param function The function that describes the prerequisites of this entry. Should return
     * `None` if the prerequisites are not met, and `Some(value)` if the prerequistes are met, where
     * the value is the starting time of the tasks in this entry.
-    * @param generators A list of [[TaskGenerator]]s that describes the tasks that should start if
+    * @param generators A list of [[Task]]s that describes the tasks that should start if
     * the prerequistes are met.
     * @return A Lookahead with the specified entry added to it.
     */
-  def ++(function: Map[UUID, Long] => Option[Long], generators: List[TaskGenerator]): Lookahead
+  def ++(function: Map[UUID, Long] => Option[Long], generators: List[Task]): Lookahead
 
   /**
     * Retrieves all tasks that can start given the list of scheduled/completed tasks
     *
     * @param scheduled The list of tasks that have been scheduled/completed, described with an (ID,time) tuple
-    * @return The list of tasks that can start, described by (TaskGenerator,starting_time) tuples
+    * @return The list of tasks that can start, described by (Task,starting_time) tuples
     */
-  def getTaskData(scheduled: Iterable[(UUID, Long)]): Seq[(TaskGenerator, Long)]
+  def getTaskData(scheduled: Iterable[(UUID, Long)]): Seq[(Task, Long)]
 
   /**
     * Provides a nicer interface for adding elements to the lookeahead structure.
@@ -67,7 +65,7 @@ trait Lookahead {
     */
   /* todo e.g. // e.g. [[abortSimulation(name:String,actor:akka\.actor\.ActorRef)*
    * abortSimulation]]. */
-  def +(function: Map[UUID, Long] => Option[Long], generator: TaskGenerator): Lookahead =
+  def +(function: Map[UUID, Long] => Option[Long], generator: Task): Lookahead =
     this.++(function, List(generator))
 
   /**
@@ -82,14 +80,14 @@ trait Lookahead {
     * @param generator The generator fo the task that will start when the prior task finishes.
     * @return
     */
-  def +>(sourceID: UUID, generator: TaskGenerator): Lookahead = {
+  def +>(sourceID: UUID, generator: Task): Lookahead = {
     val function: Map[UUID, Long] => Option[Long] = { s =>
       s.get(sourceID)
     }
     this.+(function, generator)
   }
 
-  def +>>(source: Set[UUID], generator: TaskGenerator): Lookahead = {
+  def +>>(source: Set[UUID], generator: Task): Lookahead = {
     val function: Map[UUID, Long] => Option[Long] = { s =>
       val times = source map (s.get(_))
       if (times.contains(None)) None
@@ -129,13 +127,13 @@ case class Lookaheads(lookaheads: Queue[Lookahead]) extends Lookahead {
     */
   override def ++(
       function: Map[UUID, Long] => Option[Long],
-      generators: List[TaskGenerator]
+      generators: List[Task]
   ): Lookahead = Lookaheads(lookaheads map (_.++(function, generators)))
 
   /**
     * @inheritdoc
     */
-  override def getTaskData(scheduled: Iterable[(UUID, Long)]): Seq[(TaskGenerator, Long)] =
+  override def getTaskData(scheduled: Iterable[(UUID, Long)]): Seq[(Task, Long)] =
     lookaheads flatMap (_.getTaskData(scheduled))
 
   /**
@@ -167,7 +165,7 @@ object Lookaheads {
   * @param completed The initial completed tasks. Empty by default.
   */
 case class LookaheadSet(
-    lookaheadSet: Set[(Map[UUID, Long] => Option[Long], List[(TaskGenerator)])] = Set()
+    lookaheadSet: Set[(Map[UUID, Long] => Option[Long], List[(Task)])] = Set()
 ) extends Lookahead {
 
   /**
@@ -187,7 +185,7 @@ case class LookaheadSet(
     */
   override def ++(
       function: Map[UUID, Long] => Option[Long],
-      generators: List[TaskGenerator]
+      generators: List[Task]
   ): Lookahead = {
     copy(lookaheadSet = lookaheadSet + ((function, generators)))
   }
@@ -195,8 +193,8 @@ case class LookaheadSet(
   /**
     * @inheritdoc
     */
-  override def getTaskData(scheduled: Iterable[(UUID, Long)]): Seq[(TaskGenerator, Long)] = {
-    val y = lookaheadSet flatMap { x: (Map[UUID, Long] => Option[Long], Seq[TaskGenerator]) =>
+  override def getTaskData(scheduled: Iterable[(UUID, Long)]): Seq[(Task, Long)] = {
+    val y = lookaheadSet flatMap { x: (Map[UUID, Long] => Option[Long], Seq[Task]) =>
       x match {
         case (function, data) =>
           val l = function((scheduled).foldLeft(Map.empty[UUID, Long]) { (a, b) =>
@@ -226,10 +224,10 @@ case object NoLookahead extends Lookahead {
     */
   override def ++(
       function: Map[UUID, Long] => Option[Long],
-      generators: List[TaskGenerator]
+      generators: List[Task]
   ): Lookahead = LookaheadSet() ++ (function, generators)
   /**
     * @inheritdoc
     */
-  override def getTaskData(scheduled: Iterable[(UUID, Long)]): Seq[(TaskGenerator, Long)] = Seq()
+  override def getTaskData(scheduled: Iterable[(UUID, Long)]): Seq[(Task, Long)] = Seq()
 }

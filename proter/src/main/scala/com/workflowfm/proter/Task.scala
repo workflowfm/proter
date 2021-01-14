@@ -171,7 +171,7 @@ case class Task(
     * @param addedCost Any added cost, such as resource running costs.
     * @return The generated [[TaskInstance]].
     */
-  def create(simulation: String, currentTime: Long, addedCost: Long = 0L): TaskInstance = {
+  def create(simulation: String, currentTime: Long): TaskInstance = {
     val creation = if (createTime >= 0) createTime else currentTime
 
     new TaskInstance(
@@ -183,7 +183,7 @@ case class Task(
       resources,
       duration.get,
       duration.estimate,
-      cost.get + addedCost,
+      cost.get,
       interrupt,
       priority
     )
