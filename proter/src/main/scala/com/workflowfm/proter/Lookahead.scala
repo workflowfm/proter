@@ -175,7 +175,7 @@ case class LookaheadSet(
     LookaheadSet(
       lookaheadSet.filter {
         //remove all entries that spawn this task
-        entry => entry._2 forall (data => data.id != id)
+        entry => entry._2 forall (data => data.id != Some(id))
       }
     )
   }
