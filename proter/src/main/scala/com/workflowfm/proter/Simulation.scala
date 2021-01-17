@@ -77,11 +77,11 @@ abstract class Simulation(
   def run(): Unit
 
   /**
-    * Manages a completed [[Task]].
+    * Manages a completed [[TaskInstance]].
     *
     * The simulation logic must react to this by either registering more tasks or finishing.
     *
-    * If new tasks are produced, the completed [[Task]] must be ``acknowledged`` to the
+    * If new tasks are produced, the completed [[TaskInstance]] must be ``acknowledged`` to the
     * [[Coordinator]] via [[ack]]. Alternatively, if we do not want to ``ack`` all completed
     * tasks, we can just call [[ready]].
     *
@@ -259,7 +259,7 @@ class SingleTaskSimulation(
     ready()
   }
 
-  override def complete(task: Task, time: Long): Unit = succeed((task, time))
+  override def complete(task: TaskInstance, time: Long): Unit = succeed((task, time))
 
   override def stop(): Unit = Unit
 }

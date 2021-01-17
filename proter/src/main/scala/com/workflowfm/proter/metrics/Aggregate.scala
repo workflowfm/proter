@@ -86,10 +86,10 @@ class SimMetricsAggregator {
   def +=(m: ResourceMetrics): ResourceMetrics = { resourceMap += (m.name -> m); m }
 
   /**
-    * Initializes and adds a new [[TaskMetrics]] instance given a new [[Task]].
+    * Initializes and adds a new [[TaskMetrics]] instance given a new [[TaskInstance]].
     * @group Set
     */
-  def addTask(task: Task): TaskMetrics = this += TaskMetrics(task)
+  def addTask(task: TaskInstance): TaskMetrics = this += TaskMetrics(task)
   /**
     * Initializes and adds a new [[SimulationMetrics]] instance given the name of the simulation starting now
     * and the current virtual time.
@@ -109,7 +109,7 @@ class SimMetricsAggregator {
     *
     * @return the updated [[TaskMetrics]] or [[scala.None]] if the identified instance does not exist
     *
-    * @param taskID the task ID for the involved [[Task]]
+    * @param taskID the task ID for the involved [[TaskInstance]]
     * @param u a function to update the [[TaskMetrics]] instance
     *
     * @see [[com.workflowfm.pew.metrics.MetricsAggregator]] for examples in a similar context
@@ -122,14 +122,14 @@ class SimMetricsAggregator {
     *
     * @return the updated [[TaskMetrics]] or [[scala.None]] if the identified instance does not exist
     *
-    * @param task the involved [[Task]]
+    * @param task the involved [[TaskInstance]]
     * @param u a function to update the [[TaskMetrics]] instance
     *
     * @see [[com.workflowfm.pew.metrics.MetricsAggregator]] for examples in a similar context
     *
     * @group Update
     */
-  def task(task: Task)(u: TaskMetrics => TaskMetrics): Option[TaskMetrics] =
+  def task(task: TaskInstance)(u: TaskMetrics => TaskMetrics): Option[TaskMetrics] =
     taskMap.get(task.id).map { m => this += u(m) }
 
   /** Updates a [[SimulationMetrics]] instance.
@@ -243,7 +243,7 @@ class SimMetricsHandler extends ResultHandler[SimMetricsAggregator] {
       metrics.simulation(task.simulation)(_.task(task).addDelay(t - task.created))
     }
     case ETaskAttach(src, t, task, r) => metrics.resource(r)(_.task(t, task))
-    case ETaskDetach(src, t, task, r) => Unit
+    case ETaskDetach(src, t, task, r, c) => metrics.task(task)(_.addCost(c))
     case ETaskDone(src, t, task) => Unit
     case ETaskAbort(src, t, id) => metrics.task(id)(_.abort(t))
 

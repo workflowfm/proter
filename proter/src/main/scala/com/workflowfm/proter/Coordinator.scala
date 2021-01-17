@@ -369,8 +369,8 @@ class Coordinator(
       case (name, resource) =>
         resource.abortSimulation(name) match {
           case None => Unit
-          case Some(task) => {
-            publish(ETaskDetach(id, time, task, resource.name))
+          case Some((start, task)) => {
+            publish(ETaskDetach(id, time, task, resource.name, resource.costPerTick * (time - start)))
             tasksToAbort += task.id
           }
         }
@@ -454,7 +454,7 @@ class Coordinator(
     * @group simulations
     * @param actor The [[Simulation]] actor that is done.
     */
-  protected def simReady(simulation: String): Unit = {
+  def simReady(simulation: String): Unit = {
     log.debug(s"[COORD:$time] Ack ALL [$simulation]")
     waiting -= simulation
     ready(simulation)
@@ -540,7 +540,7 @@ class Coordinator(
   protected def detach(r: TaskResource): Any = {
     r.finishTask(time) match {
       case None => Unit
-      case Some(task) => publish(ETaskDetach(id, time, task, r.name))
+      case Some(task) => publish(ETaskDetach(id, time, task, r.name, r.costPerTick * task.duration))
     }
   }
 
@@ -583,8 +583,8 @@ class Coordinator(
   override def abortTask(ids: UUID*): Unit = ids foreach { id => {
     val tasks = resourceMap.flatMap {
       case (name, resource) =>
-        resource.abortTask(id).map { task => {
-          publish(ETaskDetach(this.id, time, task, resource.name))
+        resource.abortTask(id).map { case (start, task) => {
+          publish(ETaskDetach(this.id, time, task, resource.name, resource.costPerTick * (time - start)))
           task
         } }
     }
@@ -683,7 +683,7 @@ class Coordinator(
     * @param e The [[com.workflowfm.proter.events.Event Event]] to check.
     * @return true if it is a [[com.workflowfm.proter.events.EDone EDone]], otherwise false.
     */
-  override protected def isFinalEvent(e: Event): Boolean = e match {
+  override def isFinalEvent(e: Event): Boolean = e match {
     case EDone(_, _) => true
     case _ => false
   }

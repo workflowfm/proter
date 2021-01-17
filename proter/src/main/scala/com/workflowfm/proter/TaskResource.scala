@@ -60,13 +60,13 @@ class TaskResource(val name: String, val costPerTick: Int) {
     *
     * Does not actually do anything to the task itself. It merely detaches it and becomes idle.
     * @param id The `UUID` of the [[TaskInstance]] to abort.
-    * @return The [[TaskInstance]] if it was aborted successfully or [[scala.None None]] in any other case.
+    * @return The starting time and [[TaskInstance]] if it was aborted successfully or [[scala.None None]] in any other case.
     */
-  def abortTask(id: UUID): Option[TaskInstance] = {
+  def abortTask(id: UUID): Option[(Long, TaskInstance)] = {
     currentTask match {
       case Some((startTime, task)) if task.id == id => {
         currentTask = None
-        Some(task)
+        Some((startTime, task))
       }
       case _ => None
     }
@@ -77,13 +77,13 @@ class TaskResource(val name: String, val costPerTick: Int) {
     *
     * Does not actually do anything to the task itself. It merely detaches it and becomes idle.
     * @param simulation The name of the simulation whose tasks to abort.
-    * @return The [[TaskInstance]] if it was aborted successfully or [[scala.None None]] in any other case.
+    * @return The starting time and [[TaskInstance]] if it was aborted successfully or [[scala.None None]] in any other case.
     */
-  def abortSimulation(simulation: String): Option[TaskInstance] = {
+  def abortSimulation(simulation: String): Option[(Long, TaskInstance)] = {
     currentTask match {
       case Some((startTime, task)) if task.simulation == simulation => {
         currentTask = None
-        Some(task)
+        Some((startTime, task))
       }
       case _ => None
     }

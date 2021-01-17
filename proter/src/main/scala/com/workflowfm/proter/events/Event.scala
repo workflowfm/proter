@@ -138,12 +138,14 @@ case class ETaskAttach(
   * @param time
   * @param task The [[TaskInstance]] that was detached.
   * @param resource The involved [[TaskResource]].
+  * @param cost The resource cost associated with this task and resource.
   */
 case class ETaskDetach(
     override val source: String,
     override val time: Long,
     task: TaskInstance,
-    resource: String
+    resource: String,
+    cost: Long
 ) extends Event
 
 /**
@@ -211,8 +213,8 @@ object Event {
       s"[$t $src] Starting task [${task.name}](${task.simulation}). Ticks remaining: ${task.duration}. (id:${task.id})"
     case ETaskAttach(src, t, task, r) =>
       s"[$t $src] Attaching task [${task.name}](${task.simulation}) to [$r]. Ticks remaining: ${task.duration}. (id:${task.id})"
-    case ETaskDetach(src, t, task, r) =>
-      s"[$t $src] Detaching task [${task.name}](${task.simulation}) from [$r]. (id:${task.id})"
+    case ETaskDetach(src, t, task, r, c) =>
+      s"[$t $src] Detaching task [${task.name}](${task.simulation}) from [$r] with cost [$c]. (id:${task.id})"
     case ETaskDone(src, t, task) =>
       s"[$t $src] Task [${task.name}](${task.simulation}) completed. (id:${task.id})"
     case ETaskAbort(src, t, id) =>
