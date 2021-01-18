@@ -189,7 +189,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       val m = new TestResourceMap("A")
       m.lookahead = NoLookahead +> (id(1L), Task(
               "t2",
-              "sim",
+              Some(id(2L)),
               ConstantGenerator(2L),
               ConstantGenerator(2L)
             ))
@@ -199,7 +199,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       val m = new TestResourceMap("A", "B")
       m.lookahead = NoLookahead +> (id(1L), Task(
               "t2",
-              "sim",
+              Some(id(2L)),
               ConstantGenerator(5L),
               ConstantGenerator(5L)
             ).withPriority(Task.High).withResources(Seq("B")))
@@ -212,7 +212,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       val m = new TestResourceMap("A", "B")
       m.lookahead = NoLookahead +> (id(1L), Task(
               "t2",
-              "sim",
+              Some(id(2L)),
               ConstantGenerator(5L),
               ConstantGenerator(5L)
             ).withPriority(Task.Low).withResources(Seq("B")))
@@ -225,14 +225,13 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       val m = new TestResourceMap("A", "B")
       m.lookahead = NoLookahead +> (id(1L), Task(
               "t2",
-              id(2L),
-              "sim",
+              Some(id(2L)),
               ConstantGenerator(2L),
               ConstantGenerator(2L)
             ).withPriority(Task.High).withResources(Seq("A")))
       m.lookahead = m.lookahead +> (id(2L), Task(
               "t3",
-              "sim",
+              Some(id(3L)),
               ConstantGenerator(5L),
               ConstantGenerator(5L)
             ).withPriority(Task.High).withResources(Seq("B")))
@@ -245,11 +244,11 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       val m = new TestResourceMap("A")
       m.lookahead = NoLookahead +> (id(1L), Task(
               "t2",
-              "sim",
+              Some(id(2L)),
               ConstantGenerator(5L),
               ConstantGenerator(5L)
             ).withPriority(Task.Low).withResources(Seq("B")))
-      m.m.get("A").map { _.startTask(t(1L, Seq("A"), Task.High, 0L, 5L, actor = mock), 0L) }
+      m.m.get("A").map { _.startTask(t(1L, Seq("A"), Task.High, 0L, 5L), 0L) }
       m.l(t(1L, Seq("A"))) should be(Seq())
     }
 
