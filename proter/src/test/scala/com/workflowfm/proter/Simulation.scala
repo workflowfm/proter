@@ -3,7 +3,6 @@ package com.workflowfm.proter
 import java.util.UUID
 
 import scala.concurrent._
-import scala.concurrent.duration._
 import scala.util.{ Failure, Success, Try }
 
 import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
@@ -13,7 +12,6 @@ import org.scalamock.scalatest.MockFactory
 class SimulationTests extends SimulationTester with MockFactory {
 
   implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
-  implicit val timeout: FiniteDuration = 10.seconds
 
   "Simulations" must {
 
@@ -266,22 +264,22 @@ class SimulationTester
     with Matchers
     with BeforeAndAfterAll {
 
-  class NoTasks(name: String, coordinator: Manager) extends Simulation(name, coordinator) {
+  class NoTasks(override val name: String, override protected val manager: Manager) extends Simulation {
     override def run(): Unit = succeed(Unit) //finish instantly
     override def complete(task: TaskInstance, time: Long): Unit = Unit //does nothing
     override def stop(): Unit = Unit
   }
 
   class ThreeFutureTasks(
-      name: String,
-      coordinator: Manager,
-      onFail: Throwable => Unit = _ => Unit,
-      d1: Long = 2L,
-      d2: Long = 2L,
-      d3: Long = 3L
+    override val name: String,
+    override protected val manager: Manager,
+    onFail: Throwable => Unit = _ => Unit,
+    d1: Long = 2L,
+    d2: Long = 2L,
+    d3: Long = 3L
   )(
       implicit executionContext: ExecutionContext
-  ) extends AsyncSimulation(name, coordinator)
+  ) extends AsyncSimulation
       with FutureTasks {
 
     val id1 = UUID.randomUUID
@@ -311,12 +309,12 @@ class SimulationTester
   }
 
   class TwoTasks(
-      name: String,
-      coordinator: Manager,
-      onFail: Throwable => Unit = _ => Unit,
-      d1: Long = 2L,
-      d2: Long = 2L
-  ) extends AsyncSimulation(name, coordinator)
+    override val name: String,
+    override protected val manager: Manager,
+    onFail: Throwable => Unit = _ => Unit,
+    d1: Long = 2L,
+    d2: Long = 2L
+  ) extends AsyncSimulation
       with FutureTasks {
 
     val id1 = UUID.randomUUID

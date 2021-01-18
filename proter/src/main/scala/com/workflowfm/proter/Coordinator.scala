@@ -33,7 +33,7 @@ trait Manager {
   */
 class Coordinator(
     scheduler: Scheduler,
-    startingTime: Long
+    startingTime: Long = 0L
 ) extends Manager with HashMapPublisher {
 
   val id: String = this.toString()

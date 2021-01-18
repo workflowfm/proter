@@ -64,10 +64,10 @@ import scala.util.{ Try, Success, Failure }
   * @param name The name of the simulation being managed.
   * @param coordinator A reference to the [[Coordinator]] actor running the simulation.
   */
-abstract class Simulation(
-    val name: String,
-    protected val manager: Manager
-) {
+trait Simulation {
+
+  def name: String
+  protected def manager: Manager
 
   /**
     * Initiates the execution of the simulation.
@@ -235,14 +235,14 @@ object Simulation {
   * @param priority The explicit priority of the [[Task]].
   */
 class SingleTaskSimulation(
-    name: String,
-    manager: Manager,
+    override val name: String,
+    override protected val manager: Manager,
     resources: Seq[String],
     duration: ValueGenerator[Long],
     cost: ValueGenerator[Long] = new ConstantGenerator(0L),
     interrupt: Int = (-1),
     priority: Task.Priority = Task.Medium
-) extends Simulation(name, manager) {
+) extends Simulation {
 
   lazy val theTask: Task = Task(s"${name}Task", duration)
       .withCostGenerator(cost)
@@ -274,10 +274,7 @@ class SingleTaskSimulation(
   * @param name The name of the simulation.
   * @param coordinator A reference to the [[Coordinator]] actor running the simulation.
   */
-abstract class AsyncSimulation(
-    name: String,
-    manager: Manager
-) extends Simulation(name, manager) {
+trait AsyncSimulation extends Simulation {
 
   /**
     * The type of the callback function.

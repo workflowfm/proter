@@ -33,10 +33,10 @@ case class Or(left: Flow, right: Flow) extends Flow
   * @param executionContext
   */
 class FlowSimulation(
-    name: String,
-    manager: Manager,
+    override val name: String,
+    override protected val manager: Manager,
     protected val flow: Flow
-) extends AsyncSimulation(name, manager) {
+) extends AsyncSimulation {
 
   /**
     * Initiates the execution of the simulation.
@@ -118,7 +118,7 @@ class FlowSimulation(
 }
 
 /**
-  * A triat which provides Lookahead compatibility to [[FlowSimulation]]s.
+  * A trait which provides Lookahead compatibility to [[FlowSimulation]]s.
   *
   * Works by parsing the entire flow at the start of the simulation to build a
   * [[Lookahead]] automatically.
