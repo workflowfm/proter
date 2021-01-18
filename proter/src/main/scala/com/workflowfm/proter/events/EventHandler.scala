@@ -1,40 +1,41 @@
 package com.workflowfm.proter.events
 
 import java.text.SimpleDateFormat
+import java.util.UUID
 
 import scala.collection.mutable.HashSet
 import scala.concurrent.Promise
 
-import akka.actor.{ ActorRef, ActorSystem }
-import akka.event.{ Logging, LoggingAdapter }
-
-import uk.ac.ed.inf.ppapapan.subakka.{ Subscriber, SubscriptionSwitch }
-
 /**
   * A [[uk.ac.ed.inf.ppapapan.subakka.Subscriber]] for [[Coordinator]] [[Event]]s.
   */
-trait EventHandler extends Subscriber[Event]
+trait EventHandler {
+  val id: UUID = UUID.randomUUID
+
+  def onInit(publisher: Publisher): Unit = ()
+  def onEvent(event: Event): Unit = ()
+  def onDone(publisher: Publisher): Unit = ()
+  def onFail(e: Throwable, publisher:  Publisher): Unit = ()
+}
 
 /**
   * An [[EventHandler]] for a pool of [[Coordinator]]s.
   */
 trait PoolEventHandler extends EventHandler {
 
-  def log: LoggingAdapter
-
   /**
     * The set of [[Coordinator]]s we have subscribed to.
     */
-  val coordinators: HashSet[ActorRef] = HashSet[ActorRef]()
+  val coordinators: HashSet[Publisher] = HashSet[Publisher]()
 
   /**
     * Initializes the event stream by adding the coordinator to [[coordinators]].
     *
     * @param a The reference to the [[Coordinator]] actor that initialized the stream.
     */
-  override def onInit(a: ActorRef): Unit = {
-    log.debug(s"Pool handler adding coordinator: $a")
-    coordinators += a
+  override def onInit(c: Publisher): Unit = {
+    //log.debug(s"Pool handler adding coordinator: $a")
+    coordinators += c
   }
 
   /**
@@ -43,9 +44,14 @@ trait PoolEventHandler extends EventHandler {
     * @param a The reference to the [[Coordinator]] that closed the stream.
     * @param s
     */
-  override def onDone(a: ActorRef, s: ActorRef): Unit = {
-    log.debug(s"Pool handler done with coordinator: $a")
-    coordinators -= a
+  override def onDone(c: Publisher): Unit = {
+    //log.debug(s"Pool handler done with coordinator: $a")
+    coordinators -= c
+  }
+
+  override def onFail(e: Throwable, c: Publisher): Unit = {
+    //log.debug(s"Pool handler done with coordinator: $a")
+    coordinators -= c
   }
 }
 
@@ -75,7 +81,7 @@ trait ResultHandler[R] extends EventHandler {
 class CounterHandler extends ResultHandler[Int] {
   var count = 0
 
-  override def onInit(a: ActorRef): Unit = count = 0
+  override def onInit(c: Publisher): Unit = count = 0
   override def onEvent(e: Event): Unit = count = count + 1
   override def result = count
 }
@@ -90,16 +96,16 @@ class PromiseHandler[R](handler: ResultHandler[R]) extends ResultHandler[R] {
   protected val promise: Promise[R] = Promise[R]()
   def future = promise.future
 
-  override def onInit(a: ActorRef): Unit = handler.onInit(a)
+  override def onInit(c: Publisher): Unit = handler.onInit(c)
   override def onEvent(e: Event): Unit = handler.onEvent(e)
 
-  override def onDone(a: ActorRef, s: ActorRef): Unit = {
-    handler.onDone(a, s)
+  override def onDone(c: Publisher): Unit = {
+    handler.onDone(c)
     if (!promise.isCompleted) promise.success(result)
   }
 
-  override def onFail(ex: Throwable, a: ActorRef, s: ActorRef): Unit = {
-    handler.onFail(ex, a, s)
+  override def onFail(ex: Throwable,c: Publisher): Unit = {
+    handler.onFail(ex, c)
     if (!promise.isCompleted) promise.failure(ex)
   }
 
@@ -118,14 +124,14 @@ object PromiseHandler {
   */
 class SimulationResultHandler(name: String, callback: String => Unit = { _ => Unit })
     extends ResultHandler[Option[String]] {
-  var switch: Option[SubscriptionSwitch] = None
+  var coordinator: Option[Publisher] = None
   var simResult: Option[String] = None
 
-  override def onInit(publisher: ActorRef, s: SubscriptionSwitch): Unit = switch = Some(s)
+  override def onInit(publisher: Publisher): Unit = coordinator = Some(publisher)
 
   override def onEvent(evt: Event): Unit = evt match {
     case ESimEnd(_, _, n, r) if n == name => {
-      switch.map(_.stop())
+      coordinator.map(_.unsubscribe(this))
       simResult = Some(r)
       callback(r)
     }
@@ -133,25 +139,4 @@ class SimulationResultHandler(name: String, callback: String => Unit = { _ => Un
   }
 
   override def result = simResult
-}
-
-/**
-  * A [[PoolEventHandler]] that shuts down the [[akka.actor.ActorSystem ActorSystem]] when all [[Coordinator]]s are done.
-  *
-  * @param system The [[akka.actor.ActorSystem ActorSystem]] to shut down.
-  */
-class ShutdownHandler(implicit system: ActorSystem) extends PoolEventHandler {
-
-  override val log: LoggingAdapter = Logging(system, this.getClass())
-
-  override def onDone(a: ActorRef, s: ActorRef): Unit = {
-    super.onDone(a, s)
-    if (coordinators.isEmpty) {
-      log.debug(
-        "********************************************* SHUTTING DOWN!!! ***********************************************"
-      )
-      Thread.sleep(1000)
-      system.terminate()
-    }
-  }
 }

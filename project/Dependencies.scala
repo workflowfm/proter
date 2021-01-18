@@ -22,9 +22,7 @@ object Dependencies {
   val sortImports = "com.nequissimus" %% "sort-imports" % "0.5.4"
 
   val common: Seq[ModuleID] = Seq(
-    akkaActor,
-    apache,
-    subakka,
+    apache
   )
 
   val testAll: Seq[ModuleID] = Seq(
@@ -38,7 +36,8 @@ object Dependencies {
 
   val akka: Seq[ModuleID] = Seq (
     akkaActor,
-    akkaTestkit
+    akkaTestkit,
+    subakka,
   )
 }
 

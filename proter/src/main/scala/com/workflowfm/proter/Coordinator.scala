@@ -6,8 +6,6 @@ import scala.annotation.tailrec
 import scala.collection.mutable.{ HashSet, Map, PriorityQueue, Queue, SortedSet }
 import scala.util.{ Try, Success, Failure }
 
-import uk.ac.ed.inf.ppapapan.subakka.HashSetPublisher
-
 import com.workflowfm.proter.events._
 
 
@@ -36,7 +34,7 @@ trait Manager {
 class Coordinator(
     scheduler: Scheduler,
     startingTime: Long
-) extends Manager with HashSetPublisher[Event] {
+) extends Manager with HashMapPublisher {
 
   val id: String = this.toString()
 
@@ -238,7 +236,7 @@ class Coordinator(
     * @param event The [[DiscreteEvent]] to process.
     */
   protected def handleDiscreteEvent(event: DiscreteEvent): Unit = {
-    log.debug(s"[COORD:$time] Event!")
+    //log.debug(s"[COORD:$time] Event!")
     event match {
       // A task is finished
       case FinishingTask(t, task) if (t == time) =>
@@ -338,7 +336,7 @@ class Coordinator(
     waiting -= name
     scheduler.removeLookahead(name)
     publish(ESimEnd(id, time, name, result))
-    log.debug(s"[COORD:$time] Finished: [$name]")
+    //log.debug(s"[COORD:$time] Finished: [$name]")
     ready(name)
   }
 
@@ -382,7 +380,7 @@ class Coordinator(
     scheduler.removeSimulation(name)
 
     publish(ESimEnd(id, time, name, "[Simulation Aborted]"))
-    log.debug(s"[COORD:$time] Aborted: [$name]")
+    //log.debug(s"[COORD:$time] Aborted: [$name]")
     simulation.stop()
   }
 
@@ -434,10 +432,10 @@ class Coordinator(
     * @param ids The sequence of [[TaskInstance]] UUIDs being acknowledged.
     */
   override def ackTask(simulation: String, ids: UUID*): Unit = {
-    log.debug(s"[COORD:$time] Ack [${simulation}]: $ids")
+    //log.debug(s"[COORD:$time] Ack [${simulation}]: $ids")
     waiting.get(simulation) match {
       case None =>
-        log.warning(s"[COORD:$time] Unexpected tasks acknowledged by ${simulation}: $ids")
+        //log.warning(s"[COORD:$time] Unexpected tasks acknowledged by ${simulation}: $ids")
       case Some(l) => {
         waiting.update(simulation, l.diff(ids))
         ready(simulation)
@@ -455,7 +453,7 @@ class Coordinator(
     * @param actor The [[Simulation]] actor that is done.
     */
   def simReady(simulation: String): Unit = {
-    log.debug(s"[COORD:$time] Ack ALL [$simulation]")
+    //log.debug(s"[COORD:$time] Ack ALL [$simulation]")
     waiting -= simulation
     ready(simulation)
   }
@@ -513,7 +511,7 @@ class Coordinator(
     */
   override def waitFor(simulation: String): Unit = {
     waiting += simulation -> List()
-    log.debug(s"[COORD:$time] Wait requested: $simulation")
+    //log.debug(s"[COORD:$time] Wait requested: $simulation")
   }
 
 
@@ -562,7 +560,7 @@ class Coordinator(
       case None => waiting += task.simulation -> List(task.id)
       case Some(l) => waiting.update(task.simulation, task.id :: l)
     }
-    log.debug(s"[COORD:$time] Waiting post-task: ${task.simulation}")
+    //log.debug(s"[COORD:$time] Waiting post-task: ${task.simulation}")
     scheduler.complete(task, time)
     publish(ETaskDone(id, time, task))
     simulations.get(task.simulation).map(_.complete(task, time))
@@ -592,7 +590,7 @@ class Coordinator(
     // and work with just he head.
     // Need to wait for the source if we are not already.
     tasks.headOption.map { task => {
-      log.debug(s"[COORD:$time] Waiting post-abort: ${task.simulation}")
+      //log.debug(s"[COORD:$time] Waiting post-abort: ${task.simulation}")
       waiting.get(task.simulation) match {
         case None => waiting += task.simulation -> List(id)
         case Some(l) => waiting.update(task.simulation, id :: l)
@@ -619,7 +617,7 @@ class Coordinator(
       case Some(_) => Unit
       case _ => {
         waiting -= name
-        log.debug(s"[COORD:$time] Waiting: ${waiting.keys}")
+        //log.debug(s"[COORD:$time] Waiting: ${waiting.keys}")
         // Are all actors ready?
         if (waiting.isEmpty) {
           allocateTasks()
@@ -650,7 +648,6 @@ class Coordinator(
     */
   protected def finish(): Unit = {
     publish(EDone(id, time))
-    context.stop(self)
   }
 
   /**

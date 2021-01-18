@@ -2,15 +2,6 @@ package com.workflowfm.proter
 
 import java.util.UUID
 
-import scala.concurrent.Promise
-import scala.concurrent.duration._
-
-import akka.actor._
-import akka.pattern.ask
-import akka.util.Timeout
-
-import com.workflowfm.proter.metrics._
-
 /**
   * An instance of a task to be performed in virtual time.
   * 

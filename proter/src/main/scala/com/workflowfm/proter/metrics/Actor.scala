@@ -1,12 +1,5 @@
 package com.workflowfm.proter.metrics
-import akka.actor.Actor
-import akka.actor.ActorRef
-import akka.actor.ActorSystem
-import akka.actor.Props
 
-import uk.ac.ed.inf.ppapapan.subakka.SubscriberActor
-
-import com.workflowfm.proter.Coordinator
 import com.workflowfm.proter.events.{ EDone, Event, EventHandler }
 
 class SimOutputHandler(output: SimMetricsOutput) extends EventHandler {
