@@ -4,102 +4,137 @@ import java.util.UUID
 
 import scala.concurrent._
 import scala.concurrent.duration._
-import scala.util.{ Failure, Success, Try }
+import scala.util.{ Failure, Success }
 
-import akka.actor.{ ActorRef, ActorSystem, Props }
-import akka.testkit.{ ImplicitSender, TestActors, TestKit, TestProbe }
-import com.typesafe.config.ConfigFactory
 import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
+import org.scalamock.scalatest.MockFactory
 
-import uk.ac.ed.inf.ppapapan.subakka.MockPublisher
 
-class SimulationTests extends SimulationTester {
+class SimulationTests extends SimulationTester with MockFactory {
+
   implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
   implicit val timeout: FiniteDuration = 10.seconds
 
   "Simulations" must {
 
     "interact correctly having  no tasks" in {
-      val sim = system.actorOf(Props(new NoTasks("sim", self)))
+      val mockinator: Coordinator = mock[Coordinator]
+      val sim = new NoTasks("sim", mockinator)
 
-      sim ! Simulation.Start
-      expectMsg(Coordinator.SimStarted("sim", sim))
-      expectMsg(Coordinator.SimDone("sim", Success(Unit)))
-      expectNoMsg()
+      (mockinator.simDone _).expects("sim", Success(Unit)).once()
+
+      sim.run()
     }
 
     "interact correctly having one task" in {
-      val sim =
-        system.actorOf(SingleTaskSimulation.props("sim", self, Seq("r1"), ConstantGenerator(2L)))
+      val mockinator: Coordinator = mock[Coordinator]
+      val sim = new SingleTaskSimulation("sim", mockinator, Seq("r1"), ConstantGenerator(2L))
 
-      sim ! Simulation.Start
-      expectMsg(Coordinator.SimStarted("sim", sim))
-      val Coordinator.AddTask(generator) = expectMsgType[Coordinator.AddTask]
-      expectMsg(Coordinator.SimReady(None))
+      var t1: Option[Task] = None
 
-      val task = generator.create(0L, sim)
-      sim ! Simulation.TaskCompleted(task, 2L)
-      val Coordinator.SimDone(name, _) = expectMsgType[Coordinator.SimDone]
-      name should be("sim")
-      expectNoMsg()
+      inSequence {
+        mockinator.addTask _ expects (where {
+          (s: String, ts: Seq[Task]) => s == "sim" && ts.length == 1 && ts.head.duration == ConstantGenerator(2L)
+        } ) onCall {
+          (_: String, ts: Seq[Task]) => t1 = Some(ts.head)
+        } once
+
+        mockinator.simReady _ expects "sim" onCall { s: String => t1 match {
+          case None => fail("No task was captured!")
+          case Some(t) => sim.complete(t.create(s, 0L), 2L)
+        } } once
+
+        mockinator.simDone _ expects ("sim", Success(*)) once
+      }
+
+      sim.run()
     }
 
     "interact correctly having 2 tasks in sequence with callback" in {
-      val sim = system.actorOf(Props(new TwoTasks("sim", self)))
+      val mockinator: Coordinator = mock[Coordinator]
+      val sim = new TwoTasks("sim", mockinator)
 
-      sim ! Simulation.Start
-      expectMsg(Coordinator.SimStarted("sim", sim))
+      var t1: Option[Task] = None
+      var t2: Option[Task] = None
 
-      //task1
-      val Coordinator.AddTask(generator1) = expectMsgType[Coordinator.AddTask]
-      expectMsg(Coordinator.SimReady(None))
-      val task1 = generator1.create(0L, sim)
-      sim ! Simulation.TaskCompleted(task1, 2L)
+      inSequence {
+        mockinator.addTask _ expects (where {
+          (s: String, ts: Seq[Task]) => s == "sim" && ts.length == 1 && ts.head.name.equals("task1")
+        } ) onCall {
+          (_: String, ts: Seq[Task]) => t1 = Some(ts.head)
+        } once
 
-      //task2
-      val Coordinator.AddTask(generator2) = expectMsgType[Coordinator.AddTask]
-      expectMsg(Coordinator.AckTasks(Seq(generator1.id)))
-      val task2 = generator2.create(2L, sim)
-      sim ! Simulation.TaskCompleted(task2, 4L)
+        mockinator.simReady _ expects "sim" onCall { s: String => t1 match {
+          case None => fail("No task was captured!")
+          case Some(t) => sim.complete(t.create(s, 0L), 2L)
+        } } once
 
-      //expectMsg( Coordinator.AckTasks(Seq(id3)))
-      val Coordinator.SimDone(name, _) = expectMsgType[Coordinator.SimDone]
-      name should be("sim")
-      expectNoMsg()
+       mockinator.addTask _ expects (where {
+          (s: String, ts: Seq[Task]) => s == "sim" && ts.length == 1 && ts.head.name.equals("task2")
+        } ) onCall {
+          (_: String, ts: Seq[Task]) => t2 = Some(ts.head)
+        } once
 
+        mockinator.ackTask _ expects ("sim", *) onCall { (s: String, _: Seq[UUID]) => t2 match {
+          case None => fail("No task was captured!")
+          case Some(t) => sim.complete(t.create(s, 2L), 4L)
+        } } once
+
+        mockinator.simDone _ expects ("sim", Success(*)) once
+      }
+
+      sim.run()
     }
 
     "interact correctly having 3 tasks in sequence with Futures" in {
-      val sim = system.actorOf(Props(new ThreeFutureTasks("sim", self)))
+      val mockinator: Coordinator = mock[Coordinator]
+      val sim = new ThreeFutureTasks("sim", mockinator)
 
-      sim ! Simulation.Start
-      expectMsg(Coordinator.SimStarted("sim", sim))
+      var t1: Option[Task] = None
+      var t2: Option[Task] = None
+      var t3: Option[Task] = None
 
-      //task1
-      val Coordinator.AddTask(generator1) = expectMsgType[Coordinator.AddTask]
-      expectMsg(Coordinator.SimReady(None))
-      val task1 = generator1.create(0L, sim)
-      sim ! Simulation.TaskCompleted(task1, 2L)
+      inSequence {
+        mockinator.addTask _ expects (where {
+          (s: String, ts: Seq[Task]) => s == "sim" && ts.length == 1 && ts.head.name.equals("task1")
+        } ) onCall {
+          (_: String, ts: Seq[Task]) => t1 = Some(ts.head)
+        } once
 
-      //task2
-      val Coordinator.AddTask(generator2) = expectMsgType[Coordinator.AddTask]
-      expectMsg(Coordinator.AckTasks(Seq(generator1.id)))
-      val task2 = generator2.create(2L, sim)
-      sim ! Simulation.TaskCompleted(task2, 4L)
+        mockinator.simReady _ expects "sim" onCall { s: String => t1 match {
+          case None => fail("No task was captured!")
+          case Some(t) => sim.complete(t.create(s, 0L), 2L)
+        } } once
 
-      //task3
-      val Coordinator.AddTask(generator3) = expectMsgType[Coordinator.AddTask]
-      expectMsg(Coordinator.AckTasks(Seq(generator2.id)))
-      val task3 = generator3.create(2L, sim)
-      sim ! Simulation.TaskCompleted(task3, 6L)
+       mockinator.addTask _ expects (where {
+          (s: String, ts: Seq[Task]) => s == "sim" && ts.length == 1 && ts.head.name.equals("task2")
+        } ) onCall {
+          (_: String, ts: Seq[Task]) => t2 = Some(ts.head)
+        } once
 
-      //expectMsg( Coordinator.AckTasks(Seq(id3)))
-      val Coordinator.SimDone(name, _) = expectMsgType[Coordinator.SimDone]
-      name should be("sim")
-      expectNoMsg()
+        mockinator.ackTask _ expects ("sim", *) onCall { (s: String, _: Seq[UUID]) => t2 match {
+          case None => fail("No task was captured!")
+          case Some(t) => sim.complete(t.create(s, 2L), 4L)
+        } } once
 
+       mockinator.addTask _ expects (where {
+          (s: String, ts: Seq[Task]) => s == "sim" && ts.length == 1 && ts.head.name.equals("task3")
+        } ) onCall {
+          (_: String, ts: Seq[Task]) => t3 = Some(ts.head)
+        } once
+
+        mockinator.ackTask _ expects ("sim", *) onCall { (s: String, _: Seq[UUID]) => t3 match {
+          case None => fail("No task was captured!")
+          case Some(t) => sim.complete(t.create(s, 4L), 6L)
+        } } once
+
+        mockinator.simDone _ expects ("sim", Success(*)) once
+      }
+
+      sim.run()
     }
 
+/*
     "stop between 2 tasks in sequence" in {
       val sim = system.actorOf(Props(new TwoTasks("sim", self)))
 
@@ -203,7 +238,7 @@ class SimulationTests extends SimulationTester {
       expectNoMsg()
       ignoreNoMsg()
     }
-
+ */
     // "reply to LookaheadNextItter messages" in {
     //     val sim = system.actorOf(Props(new SimLookaheadSeq("sim",self)))
     //     sim ! Simulation.Start
@@ -260,27 +295,19 @@ class SimulationTests extends SimulationTester {
 }
 
 class SimulationTester
-    extends TestKit(
-      ActorSystem("SimulationTests", ConfigFactory.parseString(MockPublisher.config))
-    )
-    with WordSpecLike
+    extends WordSpecLike
     with Matchers
-    with BeforeAndAfterAll
-    with ImplicitSender {
+    with BeforeAndAfterAll {
 
-  override def afterAll: Unit = {
-    TestKit.shutdownActorSystem(system)
-  }
-
-  class NoTasks(name: String, coordinator: ActorRef) extends Simulation(name, coordinator) {
+  class NoTasks(name: String, coordinator: Manager) extends Simulation(name, coordinator) {
     override def run(): Unit = succeed(Unit) //finish instantly
-    override def complete(task: Task, time: Long): Unit = Unit //does nothing
+    override def complete(task: TaskInstance, time: Long): Unit = Unit //does nothing
     override def stop(): Unit = Unit
   }
 
   class ThreeFutureTasks(
       name: String,
-      coordinator: ActorRef,
+      coordinator: Manager,
       onFail: Throwable => Unit = _ => Unit,
       d1: Long = 2L,
       d2: Long = 2L,
@@ -296,43 +323,19 @@ class SimulationTester
       val id3 = UUID.randomUUID
 
       val task1 = futureTask(
-        TaskGenerator(
-          "task1",
-          id1,
-          "sim",
-          ConstantGenerator(d1),
-          ConstantGenerator(0L),
-          0L,
-          Seq("r1")
-        )
+        Task("task1", d1) withID id1 withResources Seq("r1")
       )
       ready()
       val task2 = task1 flatMap { _ =>
         val t = futureTask(
-          TaskGenerator(
-            "task2",
-            id2,
-            "sim",
-            ConstantGenerator(d2),
-            ConstantGenerator(0L),
-            0L,
-            Seq("r1")
-          )
+          Task("task2", d2) withID id2 withResources Seq("r1")
         )
         ack(Seq(id1))
         t
       }
       val task3 = task2 flatMap { _ =>
         val t = futureTask(
-          TaskGenerator(
-            "task3",
-            id3,
-            "sim",
-            ConstantGenerator(d3),
-            ConstantGenerator(0L),
-            0L,
-            Seq("r1")
-          )
+          Task("task3", d3) withID id3 withResources Seq("r1")
         )
         ack(Seq(id2))
         t
@@ -344,7 +347,7 @@ class SimulationTester
 
   class TwoTasks(
       name: String,
-      coordinator: ActorRef,
+      coordinator: Manager,
       onFail: Throwable => Unit = _ => Unit,
       d1: Long = 2L,
       d2: Long = 2L
@@ -354,25 +357,9 @@ class SimulationTester
     val id1 = UUID.randomUUID
     val id2 = UUID.randomUUID
 
-    val generator1: TaskGenerator = TaskGenerator(
-      "task1",
-      id1,
-      "sim",
-      ConstantGenerator(d1),
-      ConstantGenerator(0L),
-      0L,
-      Seq("r1")
-    )
+    val generator1: Task = Task("task1", d1) withID id1 withResources Seq("r1")
 
-    val generator2: TaskGenerator = TaskGenerator(
-      "task2",
-      id2,
-      "sim",
-      ConstantGenerator(d2),
-      ConstantGenerator(0L),
-      0L,
-      Seq("r1")
-    )
+    val generator2: Task = Task("task2", d2) withID id2 withResources Seq("r1")
 
     val callback: Callback = {
       case Success((t, _)) => {
@@ -417,3 +404,4 @@ class SimulationTester
   //     }
   // }
 }
+ 
