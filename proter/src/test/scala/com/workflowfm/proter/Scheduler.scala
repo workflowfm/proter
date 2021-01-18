@@ -3,11 +3,7 @@ import scala.collection.mutable.SortedSet
 import scala.concurrent.{ Await, ExecutionContext, Future }
 import scala.concurrent.duration._
 
-import akka.actor._
-import akka.testkit.TestProbe
-import akka.util.Timeout
 import org.junit.runner.RunWith
-import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
 import org.scalatest.junit.JUnitRunner
 
 @RunWith(classOf[JUnitRunner])
@@ -191,7 +187,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
     }
     "select a single task with a lookahead structure" in {
       val m = new TestResourceMap("A")
-      m.lookahead = NoLookahead +> (id(1L), TaskGenerator(
+      m.lookahead = NoLookahead +> (id(1L), Task(
               "t2",
               "sim",
               ConstantGenerator(2L),
@@ -201,7 +197,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
     }
     "not select a task which would offset a higher priority future task" in {
       val m = new TestResourceMap("A", "B")
-      m.lookahead = NoLookahead +> (id(1L), TaskGenerator(
+      m.lookahead = NoLookahead +> (id(1L), Task(
               "t2",
               "sim",
               ConstantGenerator(5L),
@@ -214,7 +210,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
     }
     "select a task which offsets a lower priority future task" in {
       val m = new TestResourceMap("A", "B")
-      m.lookahead = NoLookahead +> (id(1L), TaskGenerator(
+      m.lookahead = NoLookahead +> (id(1L), Task(
               "t2",
               "sim",
               ConstantGenerator(5L),
@@ -227,14 +223,14 @@ class SchedulerTests extends TaskTester with ScheduleTester {
     }
     "consider a distant future task" in {
       val m = new TestResourceMap("A", "B")
-      m.lookahead = NoLookahead +> (id(1L), TaskGenerator(
+      m.lookahead = NoLookahead +> (id(1L), Task(
               "t2",
               id(2L),
               "sim",
               ConstantGenerator(2L),
               ConstantGenerator(2L)
             ).withPriority(Task.High).withResources(Seq("A")))
-      m.lookahead = m.lookahead +> (id(2L), TaskGenerator(
+      m.lookahead = m.lookahead +> (id(2L), Task(
               "t3",
               "sim",
               ConstantGenerator(5L),
@@ -247,7 +243,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
     }
     "consider currently-running tasks" in {
       val m = new TestResourceMap("A")
-      m.lookahead = NoLookahead +> (id(1L), TaskGenerator(
+      m.lookahead = NoLookahead +> (id(1L), Task(
               "t2",
               "sim",
               ConstantGenerator(5L),
@@ -271,20 +267,20 @@ class SchedulerTests extends TaskTester with ScheduleTester {
     def r(name: String) = new TaskResource(name, 0)
 
     // pre-attach Tasks to resources
-    def +(r: String, duration: Long, actor: ActorRef = mock): TestResourceMap = {
-      m.get(r).map { _.startTask(t(0L, Seq(r), Task.Medium, 0L, duration, actor = actor), 0L) }
+    def +(r: String, duration: Long): TestResourceMap = {
+      m.get(r).map { _.startTask(t(0L, Seq(r), Task.Medium, 0L, duration), 0L) }
       this
     }
 
     // test DefaultScheduler
-    def s(tasks: Task*): Seq[Long] =
+    def s(tasks: TaskInstance*): Seq[Long] =
       new DefaultScheduler(tasks: _*).getNextTasks(0L, m) map (_.id
             .getMostSignificantBits())
 
     // test LookaheadScheduler
-    def l(tasks: Task*): Seq[Long] = {
+    def l(tasks: TaskInstance*): Seq[Long] = {
       val ls = new LookaheadScheduler(tasks: _*)
-      ls.setLookahead(self, lookahead)
+      ls.setLookahead("Test", lookahead)
       ls.getNextTasks(0L, m) map (_.id
         .getMostSignificantBits())
     }

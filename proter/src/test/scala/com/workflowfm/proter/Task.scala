@@ -3,19 +3,11 @@ package com.workflowfm.proter
 import java.util.UUID
 
 import scala.concurrent._
-import scala.concurrent.Await
 import scala.concurrent.duration._
 
-import akka.actor.{ ActorRef, ActorSystem }
-import akka.actor.Actor
-import akka.testkit.{ ImplicitSender, TestActors, TestKit, TestProbe }
-import akka.testkit.{ TestKit, TestProbe }
-import com.typesafe.config.ConfigFactory
 import org.junit.runner.RunWith
-import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
+import org.scalatest.{ Matchers, WordSpecLike }
 import org.scalatest.junit.JUnitRunner
-
-import uk.ac.ed.inf.ppapapan.subakka.MockPublisher
 
 @RunWith(classOf[JUnitRunner])
 class TaskTests extends TaskTester {
@@ -77,20 +69,10 @@ class TaskTests extends TaskTester {
 }
 
 class TaskTester
-    extends TestKit(ActorSystem("TaskTests", ConfigFactory.parseString(MockPublisher.config)))
-    with WordSpecLike
-    with Matchers
-    with BeforeAndAfterAll
-    with ImplicitSender {
+    extends WordSpecLike
+    with Matchers {
   implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
   implicit val timeout: FiniteDuration = 10.seconds
-
-  final val probe: TestProbe = TestProbe.apply("TaskTestsProbe")(system);
-  final val mock: ActorRef = probe.ref;
-
-  override def afterAll: Unit = {
-    TestKit.shutdownActorSystem(system)
-  }
 
   def t(
       id: Long,
@@ -99,14 +81,12 @@ class TaskTester
       created: Long = 0L,
       duration: Long = 1L,
       interrupt: Int = 0,
-      name: String = "X",
-      actor: ActorRef = mock
-  ) =
-    new Task(
+      name: String = "X"
+  ): TaskInstance =
+    new TaskInstance(
       new UUID(id, id),
       name,
       "Test",
-      actor,
       created,
       0L, //todo add tests for minStartTime
       resources,
