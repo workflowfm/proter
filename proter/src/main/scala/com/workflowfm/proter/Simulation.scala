@@ -244,18 +244,19 @@ class SingleTaskSimulation(
     priority: Task.Priority = Task.Medium
 ) extends Simulation(name, manager) {
 
+  lazy val theTask: Task = Task(s"${name}Task", duration)
+      .withCostGenerator(cost)
+      .withResources(resources)
+      .withInterrupt(interrupt)
+      .withPriority(priority)
+
   /**
     * @inheritdoc
     *
     * Creates and adds the corresponding [[Task]], then calls [[ready]] immediately.
     */
   override def run(): Unit = {
-    val generator = Task(s"${name}Task", duration)
-      .withCostGenerator(cost)
-      .withResources(resources)
-      .withInterrupt(interrupt)
-      .withPriority(priority)
-    task(generator)
+    task(theTask)
     ready()
   }
 
