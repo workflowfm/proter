@@ -34,7 +34,7 @@ trait HashMapPublisher extends Publisher {
 
   val subscribers: HashMap[UUID,EventHandler] = HashMap[UUID,EventHandler]()
 
-  override def doPublish(evt: Event): Unit = subscribers mapValues (_.onEvent(evt))
+  override def doPublish(evt: Event): Unit = subscribers foreach (_._2.onEvent(evt))
 
   override def subscribe(subscriber: EventHandler): Unit = {
     subscribers += subscriber.id -> subscriber
@@ -42,7 +42,7 @@ trait HashMapPublisher extends Publisher {
   }
 
   override def stopStream(): Unit = {
-    subscribers mapValues (_.onDone(this))
+    subscribers foreach (_._2.onDone(this))
     subscribers.clear()
   }
 
