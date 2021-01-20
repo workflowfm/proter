@@ -1,0 +1,10 @@
+{
+  "data": [
+  {"id": "startEvent", "duration":2, "cost":0, "resources":["r1","r2","r3"]},
+  {"id": "serviceTask", "duration":3, "cost":0, "resources":["r1","r3"]},
+  {"id": "userTaskA", "duration":2, "cost":0, "resources":["r1"]},
+  {"id": "userTaskB", "duration":3, "cost":0, "resources":["r2"]},
+  {"id": "scriptTask", "duration":4, "cost":0, "resources":["r3"]},
+  {"id": "endEvent" , "duration":3, "cost":0, "resources":["r1","r2","r3"]}
+  ]
+}

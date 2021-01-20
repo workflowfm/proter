@@ -1,5 +1,5 @@
 ThisBuild / autoAPIMappings := true
-fork in run := true
+//fork in run := true
 
 // Fixes some sbt import problems.
 // https://github.com/sbt/sbt-native-packager/issues/1063
@@ -25,26 +25,19 @@ libraryDependencies += "uk.ac.ed.inf" %% "subakka" % "0.1-SNAPSHOT" % Test class
 libraryDependencies += "org.apache.commons" % "commons-lang3" % "3.3.2"
 libraryDependencies += "junit" % "junit" % "4.8.2"
 
-// jpbm stuff:
-libraryDependencies += "org.jboss.narayana.jta" % "narayana-jta" % "5.9.0.Final"
-libraryDependencies += "org.drools" % "drools-core" % "7.45.0.Final"
-libraryDependencies += "org.jbpm" % "jbpm-bpmn2" % "7.45.0.Final"
-libraryDependencies += "org.jbpm" % "jbpm-audit" % "7.45.0.Final"
-libraryDependencies += "org.jbpm" % "jbpm-flow" % "7.45.0.Final"
-libraryDependencies += "org.jbpm" % "jbpm-runtime-manager" % "7.45.0.Final"
-libraryDependencies += "org.jbpm" % "jbpm-human-task-core" % "7.45.0.Final"
-libraryDependencies += "org.jbpm" % "jbpm-test" % "7.45.0.Final"
-libraryDependencies += "org.jbpm" % "jbpm-test-util" % "7.45.0.Final"
-libraryDependencies += "org.kie" % "kie-test-util" % "7.45.0.Final"
-//libraryDependencies += "org.subethamail" % "subethasmtp-wiser" % "1.2" % "provided"
-libraryDependencies += "org.apache.logging.log4j" % "log4j-core" % "2.14.0"
-libraryDependencies += "org.slf4j" % "jcl-over-slf4j" % "1.7.26"  //runtime??
-libraryDependencies += "com.h2database" % "h2" % "1.3.173"
-libraryDependencies += "org.hibernate" % "hibernate-entitymanager" % "5.3.17.Final"
-libraryDependencies += "org.kie" % "kie-api" % "7.45.0.Final"
-libraryDependencies += "org.kie" % "kie-internal" % "7.45.0.Final"
-libraryDependencies += "com.thoughtworks.xstream" % "xstream" % "1.4.11.1"
-libraryDependencies += "ch.qos.logback" % "logback-classic" % "1.2.3"
+// https://mvnrepository.com/artifact/org.camunda.bpm.model/camunda-bpmn-model
+libraryDependencies += "org.camunda.bpm.model" % "camunda-bpmn-model" % "7.14.0"
+
+// https://mvnrepository.com/artifact/org.camunda.bpm/camunda-engine
+libraryDependencies += "org.camunda.bpm" % "camunda-engine" % "7.14.0" % "provided"
+
+// https://mvnrepository.com/artifact/de.odysseus.juel/juel-api
+libraryDependencies += "de.odysseus.juel" % "juel-api" % "2.2.7"
+// https://mvnrepository.com/artifact/de.odysseus.juel/juel-impl
+libraryDependencies += "de.odysseus.juel" % "juel-impl" % "2.2.7"
+
+libraryDependencies += "io.spray" %%  "spray-json" % "1.3.6"
+
 
 
 lazy val root = (project in file("."))
@@ -55,10 +48,10 @@ lazy val root = (project in file("."))
 
 lazy val rootRef = LocalProject("root")
 
-lazy val bpmnTest = (project in file("bpmnTest"))
+lazy val camundaTest= (project in file("camundaTest"))
   .settings(
     commonSettings,
-    name := "bpmnTest",
+    name := "camundaTest",
     scalaSource in Compile := baseDirectory.value / "src",
     scalaSource in Test := baseDirectory.value / "test"
   ).dependsOn(rootRef)

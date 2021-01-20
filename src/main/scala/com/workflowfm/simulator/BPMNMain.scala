@@ -1,5 +1,3 @@
-package com.workflowfm.simulator.flowsExample
-
 import akka.actor.ActorSystem
 import akka.util.Timeout
 import akka.pattern.ask
@@ -18,7 +16,7 @@ object BPMNMain {
 
     def main(args: Array[String]): Unit = {
 
-        implicit val system: ActorSystem = ActorSystem("FlowsMain")
+        implicit val system: ActorSystem = ActorSystem("BpmnMain")
         implicit val executionContext: ExecutionContext = ExecutionContext.global
         implicit val timeout = Timeout(2.seconds)
 
@@ -27,8 +25,8 @@ object BPMNMain {
 
         val handler = SimMetricsOutputs(
 	        new SimMetricsPrinter(),
-            new SimCSVFileOutput("flowsExample" + File.separator + "output" + File.separator,"FlowsMain"),
-	        new SimD3Timeline("flowsExample" + File.separator + "output" + File.separator,"FlowsMain")
+            new SimCSVFileOutput("bpmnTest" + File.separator + "output" + File.separator,"BpmnMain"),
+	        new SimD3Timeline("bpmnTest" + File.separator + "output" + File.separator,"BpmnMain")
         )
 
         Await.result(new SimOutputHandler(handler).subAndForgetTo(coordinator,Some("MetricsHandler")), 3.seconds)
@@ -45,16 +43,16 @@ object BPMNMain {
         //=========================================================================================
 
         // // Define resources
-        // val r1 = new TaskResource("r1",0)
-        // val r2 = new TaskResource("r2",0)
-        // val r3 = new TaskResource("r3",0)
+        val r1 = new TaskResource("r1",0)
+        val r2 = new TaskResource("r2",0)
+        val r3 = new TaskResource("r3",0)
         // val r4 = new TaskResource("r4",0)
         // val r5 = new TaskResource("r5",0)
         // val r6 = new TaskResource("r6",0)
         // val r7 = new TaskResource("r7",0)
         // val r8 = new TaskResource("r8",0)
-        // val resources = List (r1,r2,r3,r4,r5,r6,r7,r8)
-        // coordinator ! Coordinator.AddResources(resources)
+        val resources = List (r1,r2,r3)
+        coordinator ! Coordinator.AddResources(resources)
 
         // // Define tasks 
         // val task1 = FlowTask(TaskGenerator("task1","sim1",ConstantGenerator(1L),ConstantGenerator(0L)).withResources(Seq("r1")))
@@ -63,16 +61,7 @@ object BPMNMain {
 
         // val flow = task1 > task2 > task3
         
-        //BPMN.runScriptProcess("myBpmn.bpmn", "MyTest.process")
-
-        //coordinator ! Coordinator.AddSim(0L,system.actorOf(FlowSimulationActor.props("sim1",coordinator,flow),"sim1"))
-                                                                                                    // "myBpmn.bpmn", "MyTest.process"
-                                                                                                    // "Evaluation.bpmn", "com.sample.evaluation"
-        //coordinator ! Coordinator.AddSim(0L,system.actorOf(BPMNSimulationActor.props("sim1",coordinator,"Evaluation.bpmn", "com.sample.evaluation"),"sim1"))
-        //coordinator ! Coordinator.AddSim(0L,system.actorOf(BPMNSimulationActor.props("sim1",coordinator,"myBpmn.bpmn", "MyTest.process"),"sim1"))
-        coordinator ! Coordinator.AddSim(0L,system.actorOf(BPMNSimulationActor.props("sim1",coordinator,"test_human2.bpmn", "MyTest.test_human"),"sim1"))
-        //coordinator ! Coordinator.AddSim(0L,system.actorOf(BPMNSimulationActor.props("sim1",coordinator,"test_script2.bpmn", "MyTest.test_script"),"sim1"))
-        //coordinator ! Coordinator.AddSim(0L,system.actorOf(BPMNSimulationActor.props("sim1",coordinator,"test_abstract.bpmn", "MyTest.test_abstract"),"sim1"))
+        coordinator ! Coordinator.AddSim(0L,system.actorOf(BPMNSimulationActor.props("sim1",coordinator),"sim1"))
 
         coordinator ! Coordinator.Start
     }

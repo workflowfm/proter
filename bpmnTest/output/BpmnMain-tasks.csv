@@ -1,0 +1,4 @@
+ID,Task,Simulation,Created,Start,Delay,Duration,Cost,Resources
+8fcabc99-bd96-4fcf-8e43-b9a20777c365,Service Task,sim1,0,0,0,3,0,r1;r3
+0ed5d9cc-c46f-4f63-8e19-21af2166c1c8,User Task A,sim1,3,3,0,2,0,r1
+e5221d1b-13b2-48e5-87dd-428a8a52612d,Script Task,sim1,5,5,0,4,0,r3
