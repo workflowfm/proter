@@ -172,11 +172,13 @@ class Coordinator(
 
         // Release all resources from finished tasks before you notify anyone
         eventsToHandle foreach releaseResources
+        // 
+        val doWait = eventsToHandle map waitForSimOfEvent exists identity
         // Handle the event
         eventsToHandle foreach handleDiscreteEvent
 
         // If we are not waiting for anything, continue
-        if (waiting.isEmpty) tick()
+        if (!doWait) tick()
       }
 
     } else if (scheduler.noMoreTasks() && simulations.isEmpty) {
@@ -222,6 +224,26 @@ class Coordinator(
         // Unbind the resources
         task.taskResources(resourceMap).foreach(detach)
       case _ => Unit
+    }
+  }
+
+  protected def waitForSimOfEvent(event: DiscreteEvent): Boolean = {
+    //log.debug(s"[COORD:$time] Event!")
+    event match {
+      // A task is finished
+      case FinishingTask(t, task) if (t == time) =>
+        if (!abortedTasks.contains(task.id)) {
+          waitForTask(task)
+          true
+        } else false
+
+      // A simulation (workflow) is starting now
+      case StartingSim(t, sim) if (t == time) => {
+        waitFor(sim.name)
+        true
+      }
+
+      case _ => false
     }
   }
 
@@ -316,7 +338,6 @@ class Coordinator(
   protected def startSimulation(simulation: Simulation): Unit = {
     publish(ESimStart(id, time, simulation.name))
     simulations += simulation.name -> simulation
-    waiting += simulation.name -> List()
     simulation.run()
   }
 
@@ -514,6 +535,10 @@ class Coordinator(
     //log.debug(s"[COORD:$time] Wait requested: $simulation")
   }
 
+  protected def waitForTask(task: TaskInstance): Unit = waiting.get(task.simulation) match {
+    case None => waiting += task.simulation -> List(task.id)
+    case Some(l) => waiting.update(task.simulation, task.id :: l)
+  }
 
   override def simDone(simulation: String, result: Try[Any]): Unit = {
     result match {
@@ -556,10 +581,6 @@ class Coordinator(
     * @param task The [[TaskInstance]] that needs to be stopped.
     */
   protected def stopTask(task: TaskInstance): Unit = {
-    waiting.get(task.simulation) match {
-      case None => waiting += task.simulation -> List(task.id)
-      case Some(l) => waiting.update(task.simulation, task.id :: l)
-    }
     //log.debug(s"[COORD:$time] Waiting post-task: ${task.simulation}")
     scheduler.complete(task, time)
     publish(ETaskDone(id, time, task))
@@ -589,13 +610,7 @@ class Coordinator(
     // All tasks in the list should have the same id so we assume they are all the same
     // and work with just he head.
     // Need to wait for the source if we are not already.
-    tasks.headOption.map { task => {
-      //log.debug(s"[COORD:$time] Waiting post-abort: ${task.simulation}")
-      waiting.get(task.simulation) match {
-        case None => waiting += task.simulation -> List(id)
-        case Some(l) => waiting.update(task.simulation, id :: l)
-      }
-    } }
+    tasks.headOption.map(waitForTask)
     abortedTasks += id
     publish(ETaskAbort(this.id, time, id))
   } }
