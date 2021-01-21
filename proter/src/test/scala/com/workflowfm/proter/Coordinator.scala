@@ -77,13 +77,35 @@ class CoordinatorTests
     "interact correctly with two parallel 2plus1 simulations" in {
       val coordinator = new Coordinator(new DefaultScheduler())
 
-      val handler = new com.workflowfm.proter.events.PrintEventHandler
-      coordinator.subscribe(handler)
       val sim1: Simulation = mockTwoPlusOneTasks("sim1", coordinator, 0L, 2L, 2L, 2L, 2L, 3L, 5L)
       val sim2: Simulation = mockTwoPlusOneTasks("sim2", coordinator, 1L, 1L, 2L, 1L, 2L, 3L, 5L)
 
       coordinator.addSimulation(0L, sim1)
       coordinator.addSimulation(1L, sim2)
+      coordinator.start()
+    }
+
+    "interact correctly with 100 parallel 2plus1 simulations" in {
+      val coordinator = new Coordinator(new DefaultScheduler())
+
+//      val handler = new com.workflowfm.proter.events.PrintEventHandler
+//      coordinator.subscribe(handler)
+      for (i <- 1 to 10) {
+        val start = i % 10
+        val sim: Simulation = mockTwoPlusOneTasks(
+          "sim" + i + "(" + start + ")", 
+          coordinator, 
+          start, 
+          2L, 
+          start + 2L, 
+          2L, 
+          start + 2L, 
+          3L, 
+          start + 5L
+        )
+        coordinator.addSimulation(start, sim)
+      }
+
       coordinator.start()
     }
 
