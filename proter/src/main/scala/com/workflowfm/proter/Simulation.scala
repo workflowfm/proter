@@ -2,9 +2,21 @@ package com.workflowfm.proter
 
 import java.util.UUID
 
-import scala.collection.mutable.Map
+import scala.collection.mutable.{ Map, HashSet, Queue }
 import scala.concurrent.{ Future, Promise }
 import scala.util.{ Try, Success, Failure }
+
+
+sealed trait SimResponse {
+  val simulation: String
+}
+case class SimReady(
+  override val simulation: String, 
+  tasks: Seq[Task], 
+  abort: Seq[UUID] = Seq(), 
+  lookahead: Lookahead = NoLookahead
+) extends SimResponse
+case class SimDone(override val simulation: String, result: Try[Any]) extends SimResponse
 
 
 /**
@@ -66,7 +78,14 @@ import scala.util.{ Try, Success, Failure }
   */
 trait Simulation {
 
+  val waiting: HashSet[UUID] = HashSet[UUID]()
+
+  val tasksToAdd: Queue[Task] = Queue[Task]()
+
+  val abort: HashSet[UUID] = HashSet[UUID]()
+
   def name: String
+
   protected def manager: Manager
 
   /**
@@ -95,6 +114,13 @@ trait Simulation {
     */
   def complete(task: TaskInstance, time: Long): Unit = Unit
 
+  def completed(time: Long, tasks: Seq[TaskInstance]): Unit = {
+    this.synchronized {
+      waiting ++= tasks.map(_.id)
+    }
+    tasks.foreach(complete(_, time))
+  }
+
   /**
     * Stops/aborts the simulation.
     *
@@ -112,8 +138,8 @@ trait Simulation {
     * @param t The [[Task]] to send.
     * @param resources The names of the [[TaskResource]]s that need to be used for the [[Task]].
     */
-  def task(t: Task): Unit = {
-    manager.addTask(name, t)
+  def task(t: Task): Unit = this.synchronized {
+    tasksToAdd += t
   }
 
   /**
@@ -123,8 +149,8 @@ trait Simulation {
     *
     * @param id The `UUID` of the [[Task]]s.
     */
-  protected def abort(ids: UUID*): Unit = {
-    manager.abortTask(ids: _*)
+  protected def abort(ids: UUID*): Unit = this.synchronized {
+    abort ++= ids
   }
 
   /**
@@ -134,7 +160,8 @@ trait Simulation {
     * @param result The result of the simulation.
     */
   protected def done(result: Try[Any]): Unit = {
-    manager.simDone(name, result)
+    clear()
+    manager.simResponse(SimDone(name, result))
   }
 
   /**
@@ -144,7 +171,8 @@ trait Simulation {
     * @param result The successful result of the simulation.
     */
   protected def succeed(result: Any): Unit = {
-    manager.simDone(name, Success(result))
+    clear()
+    manager.simResponse(SimDone(name, Success(result)))
   }
 
   /**
@@ -154,7 +182,8 @@ trait Simulation {
     * @param exception The `Throwable` that caused the failure.
     */
   protected def fail(exception: Throwable): Unit = {
-    manager.simDone(name, Failure(exception))
+    clear()
+    manager.simResponse(SimDone(name, Failure(exception)))
   }
 
   /**
@@ -165,9 +194,13 @@ trait Simulation {
     *
     * @group act
     */
-  def ack(tasks: Seq[UUID], lookahead: Option[Lookahead] = None): Unit = {
-    lookahead.map(manager.lookahead(name, _))
-    manager.ackTask(name, tasks: _*)
+  def ack(taskIDs: Seq[UUID]): Unit = this.synchronized {
+    waiting --= taskIDs
+    if (waiting.isEmpty) {
+      val response = SimReady(name, tasksToAdd.clone.toSeq, abort.clone.toSeq, getLookahead())
+      clear()
+      manager.simResponse(response)
+    }
   }
 
   /**
@@ -176,9 +209,10 @@ trait Simulation {
     *
     * @group act
     */
-  def ready(lookahead: Option[Lookahead] = None): Unit = {
-    lookahead.map(manager.lookahead(name, _))
-    manager.simReady(name)
+  def ready(): Unit = {
+    val response = SimReady(name, tasksToAdd.clone.toSeq, abort.clone.toSeq, getLookahead())
+    clear()
+    manager.simResponse(response)  
   }
 
   /**
@@ -197,15 +231,21 @@ trait Simulation {
     *
     * @return A `Future` of the acknowledgement message [[Simulation.AckWait]]
     */
-  def simWait(): Unit = {
-    manager.waitFor(name)
-  }
+//  def simWait(): Unit = {
+//    manager.waitFor(name)
+ // }
 
+  def getLookahead(): Lookahead = NoLookahead
+
+  protected def clear(): Unit = {
+    waiting.clear()
+    tasksToAdd.clear()
+    abort.clear()
+  }
 }
 
 
 object Simulation {
-
   /**
     * Exception used when aborting a [[Task]].
     *
@@ -409,10 +449,8 @@ trait FutureTasks { self: AsyncSimulation =>
 trait LookingAhead { self: Simulation =>
   var lookahead: Lookahead = LookaheadSet()
 
-  /**
-    * Sends the lookahead structure to the scheduler
-    */
-  def sendLookahead(): Unit = manager.lookahead(self.name, lookahead)
+  override def getLookahead(): Lookahead = lookahead
+
 
   val completed: collection.mutable.Set[(UUID, Long)] = collection.mutable.Set()
 
@@ -430,7 +468,6 @@ trait LookingAhead { self: Simulation =>
     completed += ((task.id, time))
     lookahead = lookahead - task.id
     lookahead.getTaskData(completed).flatMap(_._1.id) foreach { id => lookahead = lookahead - id }
-    sendLookahead()
     self.complete(task, time)
   }
 }

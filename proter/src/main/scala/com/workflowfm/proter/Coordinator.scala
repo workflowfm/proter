@@ -10,13 +10,8 @@ import com.workflowfm.proter.events._
 
 
 trait Manager {
-  def addTask(simulation: String, task: Task*): Unit
-  def ackTask(simulation: String, ids: UUID*): Unit
-  def abortTask(ids: UUID*): Unit
-  def waitFor(simulation: String): Unit
-  def lookahead(simulation: String, lookahead: Lookahead)
-  def simReady(simulation: String): Unit
-  def simDone(simulation:String, result: Try[Any]): Unit
+//  def waitFor(simulation: String): Unit
+  def simResponse(response: SimResponse): Unit
 }
 
 
@@ -54,7 +49,7 @@ class Coordinator(
     *
     * @group simulations
     */
-  protected val waiting: Map[String, List[UUID]] = Map[String, List[UUID]]()
+  protected val waiting: HashSet[String] = HashSet[String]()
 
   /**
     * Set of simulations that are running.
@@ -103,10 +98,10 @@ class Coordinator(
     * @group resources
     * @param r The [[TaskResource]] to be added.
     */
-  def addResource(r: TaskResource): Unit = if (!resourceMap.contains(r.name)) {
+  def addResource(r: TaskResource): Unit = this.synchronized {  if (!resourceMap.contains(r.name)) {
     publish(EResourceAdd(id, time, r.name, r.costPerTick))
     resourceMap += r.name -> r
-  }
+  } }
 
   /**
     * Add multiple [[TaskResource]]s in one go.
@@ -170,10 +165,12 @@ class Coordinator(
         // Dequeue all the events that need to happen now
         val eventsToHandle = dequeueEvents(firstEvent.time)
 
-        // Release all resources from finished tasks before you notify anyone
-        eventsToHandle foreach releaseResources
-        // 
+        // Set up waiting list
         val doWait = eventsToHandle map waitForSimOfEvent exists identity
+
+        // Release all resources from finished tasks before you notify anyone
+        eventsToHandle flatMap filterFinishingTasks groupBy (_.simulation) foreach stopTasks
+
         // Handle the event
         eventsToHandle foreach handleDiscreteEvent
 
@@ -218,12 +215,19 @@ class Coordinator(
     * @group resources
     * @param event The [[DiscreteEvent]] that potentially released resources.
     */
-  protected def releaseResources(event: DiscreteEvent): Any = {
+  protected def filterFinishingTasks(event: DiscreteEvent): Option[TaskInstance] = {
     event match {
-      case FinishingTask(t, task) if (t == time && !abortedTasks.contains(task.id)) =>
-        // Unbind the resources
-        task.taskResources(resourceMap).foreach(detach)
-      case _ => Unit
+      case FinishingTask(t, task) if (t == time) => {
+        if (abortedTasks.contains(task.id)) {
+          abortedTasks -= task.id
+          None
+        } else {
+          // Unbind the resources
+          task.taskResources(resourceMap).foreach(detach)
+          Some(task)
+        }
+      }
+      case _ => None
     }
   }
 
@@ -233,7 +237,7 @@ class Coordinator(
       // A task is finished
       case FinishingTask(t, task) if (t == time) =>
         if (!abortedTasks.contains(task.id)) {
-          waitForTask(task)
+          waitFor(task.simulation)
           true
         } else false
 
@@ -247,23 +251,11 @@ class Coordinator(
     }
   }
 
-  /**
-    * Processes a [[DiscreteEvent]].
-    *
-    *  - [[FinishingTask]] means a task finished and we need to stop it with [[stopTask]].
-    *  - [[StartingSim]] means a simulation needs to start and we do this with [[startSimulation]].
-    *  - [[TimeLimit]] means we need to abort all simulations with [[abortAllSimulations]] and clear the queue.
-    *
-    * @group toplevel
-    * @param event The [[DiscreteEvent]] to process.
-    */
   protected def handleDiscreteEvent(event: DiscreteEvent): Unit = {
     //log.debug(s"[COORD:$time] Event!")
     event match {
-      // A task is finished
-      case FinishingTask(t, task) if (t == time) =>
-        if (abortedTasks.contains(task.id)) abortedTasks -= task.id
-        else stopTask(task)
+      // A task is finished, but we handle this elsewhere
+      case FinishingTask(t, task) if (t == time) => Unit
 
       // A simulation (workflow) is starting now
       case StartingSim(t, sim) if (t == time) => startSimulation(sim)
@@ -282,7 +274,7 @@ class Coordinator(
     *          time.
     * @param simulation The [[Simulation]] to run.
     */
-  def addSimulation(t: Long, simulation: Simulation): Unit = {
+  def addSimulation(t: Long, simulation: Simulation): Unit = this.synchronized {
     publish(ESimAdd(id, time, simulation.name, t))
     if (t >= time) events += StartingSim(t, simulation)
   }
@@ -304,7 +296,7 @@ class Coordinator(
     * @param sims A sequence of pairs, each consisting of a starting timestamp and a
     * [[Simulation]]. Timestamps must be greater or equal to the current time.
     */
-  protected def addSimulations(sims: Seq[(Long, Simulation)]): PriorityQueue[DiscreteEvent] = {
+  def addSimulations(sims: Seq[(Long, Simulation)]): PriorityQueue[DiscreteEvent] = this.synchronized {
     events ++= sims.flatMap {
       case (t, sim) => {
           publish(ESimAdd(id, time, sim.name, t))
@@ -422,7 +414,7 @@ class Coordinator(
     * @param simulation The name of the [[Simulation]] that owns the task(s).
     * @param task The list of [[Task]]s to be added.
     */
-  override def addTask(simulation: String, task: Task*): Unit = {
+  protected def addTask(simulation: String, task: Seq[Task]): Unit = {
     task foreach { t => {
           // Create the task
       val inst: TaskInstance = t.create(simulation, time)
@@ -443,41 +435,6 @@ class Coordinator(
     } }
   }
 
-
-  /**
-    * Acknowledges that a [[Simulation]] has finished reacting to some associated [[Task]]s.
-    *
-    * Throws a warning if we were not waiting on that simulatoin  at all.
-    * @group tasks
-    * @param simulation The name of the [[Simulation]].
-    * @param ids The sequence of [[TaskInstance]] UUIDs being acknowledged.
-    */
-  override def ackTask(simulation: String, ids: UUID*): Unit = {
-    //log.debug(s"[COORD:$time] Ack [${simulation}]: $ids")
-    waiting.get(simulation) match {
-      case None =>
-        //log.warning(s"[COORD:$time] Unexpected tasks acknowledged by ${simulation}: $ids")
-      case Some(l) => {
-        waiting.update(simulation, l.diff(ids))
-        ready(simulation)
-      }
-    }
-  }
-
-  /**
-    * Acknowledges that a [[Simulation]] actor has finished processing everything.
-    *
-    * Removes the actor from the waiting list completely, without the need to
-    * acknowledge individual [[Task]]s.
-    *
-    * @group simulations
-    * @param actor The [[Simulation]] actor that is done.
-    */
-  def simReady(simulation: String): Unit = {
-    //log.debug(s"[COORD:$time] Ack ALL [$simulation]")
-    waiting -= simulation
-    ready(simulation)
-  }
 
   /**
     * Start a [[TaskInstance]] at the current timestamp.
@@ -530,17 +487,12 @@ class Coordinator(
     * @group simulations
     * @param actor The reference to the [[Simulation]] we need to wait for.
     */
-  override def waitFor(simulation: String): Unit = {
-    waiting += simulation -> List()
+  protected def waitFor(simulation: String): Unit = {
+    waiting += simulation
     //log.debug(s"[COORD:$time] Wait requested: $simulation")
   }
 
-  protected def waitForTask(task: TaskInstance): Unit = waiting.get(task.simulation) match {
-    case None => waiting += task.simulation -> List(task.id)
-    case Some(l) => waiting.update(task.simulation, task.id :: l)
-  }
-
-  override def simDone(simulation: String, result: Try[Any]): Unit = {
+  protected def simDone(simulation: String, result: Try[Any]): Unit = {
     result match {
       case Success(res) => {
         stopSimulation(simulation, res.toString)
@@ -580,12 +532,15 @@ class Coordinator(
     * @group tasks
     * @param task The [[TaskInstance]] that needs to be stopped.
     */
-  protected def stopTask(task: TaskInstance): Unit = {
+  protected def stopTasks(taskGroup: (String, Seq[TaskInstance])): Unit = taskGroup match {
+    case (simulation, tasks) => {
     //log.debug(s"[COORD:$time] Waiting post-task: ${task.simulation}")
-    scheduler.complete(task, time)
-    publish(ETaskDone(id, time, task))
-    simulations.get(task.simulation).map(_.complete(task, time))
-  }
+      tasks foreach { task =>
+        scheduler.complete(task, time)
+        publish(ETaskDone(id, time, task))
+      }
+      simulations.get(simulation).map(_.completed(time, tasks))
+    } }
 
   /**
     * Aborts one or more [[TaskInstance]]s.
@@ -599,18 +554,14 @@ class Coordinator(
     * @group tasks
     * @param id The `UUID` of the [[TaskInstance]] that needs to be aborted.
     */
-  override def abortTask(ids: UUID*): Unit = ids foreach { id => {
+  protected def abortTask(ids: Seq[UUID]): Unit = ids foreach { id => {
     val tasks = resourceMap.flatMap {
-      case (name, resource) =>
+      case (_, resource) =>
         resource.abortTask(id).map { case (start, task) => {
           publish(ETaskDetach(this.id, time, task, resource.name, resource.costPerTick * (time - start)))
           task
         } }
     }
-    // All tasks in the list should have the same id so we assume they are all the same
-    // and work with just he head.
-    // Need to wait for the source if we are not already.
-    tasks.headOption.map(waitForTask)
     abortedTasks += id
     publish(ETaskAbort(this.id, time, id))
   } }
@@ -627,24 +578,28 @@ class Coordinator(
     * @param actor The [[akka.actor.SimulationRef SimulationRef]] of the [[Simulation]] that is ready.
     */
   protected def ready(name: String): Unit = {
-    // Is there at least one task to wait for?
-    waiting.get(name).flatMap(_.headOption) match {
-      case Some(_) => Unit
-      case _ => {
-        waiting -= name
-        //log.debug(s"[COORD:$time] Waiting: ${waiting.keys}")
-        // Are all actors ready?
-        if (waiting.isEmpty) {
-          allocateTasks()
-          tick()
-        }
-      }
+    waiting -= name
+    if (waiting.isEmpty) {
+      allocateTasks()
+      tick()
     }
   }
-
-  override def lookahead(simulation: String, lookahead: Lookahead): Unit = {
+  
+  protected def setLookahead(simulation: String, lookahead: Lookahead): Unit = {
     scheduler.setLookahead(simulation, lookahead)
   }
+
+  def simResponse(response: SimResponse): Unit = { 
+    response match {
+    case SimReady(sim, tasks, abort, lookahead) => {
+      addTask(sim, tasks)
+      abortTask(abort)
+      setLookahead(sim, lookahead)
+      ready(sim)
+    }
+    case SimDone(sim, result) => simDone(sim, result)
+  }}
+
 
   /**
     * Starts the entire simulation scenario.
