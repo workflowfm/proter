@@ -3,6 +3,7 @@ package com.workflowfm.proter
 import java.util.UUID
 
 import scala.concurrent._
+import scala.concurrent.duration._
 import scala.util.{ Failure, Success, Try }
 
 import org.scalatest.{ Matchers, WordSpecLike }
@@ -27,7 +28,7 @@ class CoordinatorTests
       sim.run _ expects () onCall( _ => coordinator.simResponse(SimDone("sim", Success(Unit))) ) once
 
       coordinator.addSimulation(0L, sim)
-      coordinator.start()
+      Await.result(coordinator.start(), 3.seconds)
     }
 
     "interact correctly with a simulation with one task" in {
@@ -35,7 +36,7 @@ class CoordinatorTests
       val sim: Simulation = mockSingleTask("sim", coordinator, 1L, 2L, 3L)
 
       coordinator.addSimulation(1L, sim)
-      coordinator.start()
+      Await.result(coordinator.start(), 3.seconds)
     }
 
     "interact correctly with a simulation with two tasks in sequence" in {
@@ -43,7 +44,7 @@ class CoordinatorTests
       val sim: Simulation = mockTwoTasks("sim", coordinator, 0L, 2L, 2L, 3L, 5L)
 
       coordinator.addSimulation(0L, sim)
-      coordinator.start()
+      Await.result(coordinator.start(), 3.seconds)
     }
 
     "interact correctly with a simulation with two tasks in parallel, then one more" in {
@@ -51,7 +52,7 @@ class CoordinatorTests
       val sim: Simulation = mockTwoPlusOneTasks("sim", coordinator, 0L, 2L, 2L, 2L, 2L, 3L, 5L)
 
       coordinator.addSimulation(0L, sim)
-      coordinator.start()
+      Await.result(coordinator.start(), 3.seconds)
     }
 
     "interact correctly with two interleaved single-task simulations" in {
@@ -61,7 +62,7 @@ class CoordinatorTests
 
       coordinator.addSimulation(0L, sim1)
       coordinator.addSimulation(1L, sim2)
-      coordinator.start()
+      Await.result(coordinator.start(), 3.seconds)
     }
 
     "interact correctly with two parallel single-task simulations, a short within a long one" in {
@@ -71,7 +72,7 @@ class CoordinatorTests
 
       coordinator.addSimulation(0L, sim1)
       coordinator.addSimulation(1L, sim2)
-      coordinator.start()
+      Await.result(coordinator.start(), 3.seconds)
     }
 
     "interact correctly with two 2plus1 simulations" in {
@@ -82,7 +83,7 @@ class CoordinatorTests
 
       coordinator.addSimulation(0L, sim1)
       coordinator.addSimulation(1L, sim2)
-      coordinator.start()
+      Await.result(coordinator.start(), 3.seconds)
     }
 
     "interact correctly with 100 2plus1 simulations" in {
@@ -106,7 +107,7 @@ class CoordinatorTests
         coordinator.addSimulation(start, sim)
       }
 
-      coordinator.start()
+      Await.result(coordinator.start(), 3.seconds)
     }
 
     /*

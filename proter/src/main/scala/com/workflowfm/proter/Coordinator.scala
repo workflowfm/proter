@@ -4,10 +4,10 @@ import java.util.UUID
 
 import scala.annotation.tailrec
 import scala.collection.mutable.{ HashSet, Map, PriorityQueue, Queue, SortedSet }
+import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.util.{ Try, Success, Failure }
 
 import com.workflowfm.proter.events._
-
 
 trait Manager {
 //  def waitFor(simulation: String): Unit
@@ -29,9 +29,11 @@ trait Manager {
 class Coordinator(
     scheduler: Scheduler,
     startingTime: Long = 0L
-) extends Manager with HashMapPublisher {
+)(implicit executionContext: ExecutionContext = ExecutionContext.global) extends Manager with HashMapPublisher {
 
   val id: String = this.toString()
+
+  val promise: Promise[Unit] = Promise[Unit]()
 
   /**
     * Map of the available [[TaskResource]]s
@@ -539,7 +541,7 @@ class Coordinator(
         scheduler.complete(task, time)
         publish(ETaskDone(id, time, task))
       }
-      simulations.get(simulation).map(_.completed(time, tasks))
+      simulations.get(simulation).map(x => Future { x.completed(time, tasks) })
     } }
 
   /**
@@ -605,9 +607,11 @@ class Coordinator(
     * Starts the entire simulation scenario.
     * @group toplevel
     */
-  def start(): Unit = {
-    publish(EStart(id))
-    tick()
+  def start(): Future[Unit] = {
+    Future { 
+      publish(EStart(id))
+      tick()
+    }.flatMap(_ => promise.future)
   }
 
   /**
@@ -618,6 +622,7 @@ class Coordinator(
     */
   protected def finish(): Unit = {
     publish(EDone(id, time))
+    promise.success(Unit)
   }
 
   /**
