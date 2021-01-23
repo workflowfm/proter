@@ -383,8 +383,9 @@ trait AsyncSimulation extends Simulation {
     * @param time The timestamp of its completion.
     */
   override def complete(task: TaskInstance, time: Long): Unit = {
-    tasks.get(task.id).map(_(Success(task, time)))
+    val callback = tasks.get(task.id)
     tasks -= task.id
+    callback.map(_(Success(task, time)))
   }
 
   /**

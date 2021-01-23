@@ -8,6 +8,7 @@ import com.workflowfm.proter._
 
 sealed trait Flow {
   val id: UUID = java.util.UUID.randomUUID
+
   def +(f: Flow) = And(this, f)
   def >(f: Flow) = Then(this, f)
   def |(f: Flow) = Or(this, f)
@@ -69,9 +70,10 @@ class FlowSimulation(
     *
     * @param id The id to complete
     */
-  protected def complete(id: UUID): collection.mutable.Map[UUID, Callback] = {
-    tasks.get(id).map(_(Success(null, 0L)))
+  protected def complete(id: UUID): Unit = {
+    val callback = tasks.get(id)
     tasks -= id
+    callback.map(_(Success(null, 0L)))
   }
 
   /**
