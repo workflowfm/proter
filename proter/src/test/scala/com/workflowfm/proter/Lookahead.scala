@@ -1,5 +1,7 @@
 package com.workflowfm.proter
 
+import java.util.UUID
+
 import scala.collection.mutable.Map
 import scala.concurrent._
 import scala.concurrent.duration._
@@ -32,27 +34,27 @@ class LookaheadTests
       testMetrics.get("task4 (sim1)").value.value should be(12)
     }
 
-    "execute simulation where in-progress tasks must be considered [ 1 > ( (2>3) + (4>5) ) ]" in {
+    "consider in-progress tasks [ 1 > ( (2>3) + (4>5) ) ]" in {
       val coordinator = getCoordinator()
       val testMetrics = singleSimulationTest(coordinator, new DummySim2(coordinator))
       testMetrics.size should be(5)
-      testMetrics.get("task1 (sim2)").value.value should be(2)
-      testMetrics.get("task2 (sim2)").value.value should be(6)
-      testMetrics.get("task3 (sim2)").value.value should be(9)
-      testMetrics.get("task4 (sim2)").value.value should be(4)
-      testMetrics.get("task5 (sim2)").value.value should be(12)
+      testMetrics.get("task1 (sim1)").value.value should be(2)
+      testMetrics.get("task2 (sim1)").value.value should be(6)
+      testMetrics.get("task3 (sim1)").value.value should be(9)
+      testMetrics.get("task4 (sim1)").value.value should be(4)
+      testMetrics.get("task5 (sim1)").value.value should be(12)
     }
 
-    "execute simulation where a many-to-one future task relationship is involved [ 1 > ( ( (2+3+4)>5 ) + 6 ) ]" in {
+    "execute many-to-one future task relationships [ 1 > ( ( (2+3+4)>5 ) + 6 ) ]" in {
       val coordinator = getCoordinator()
       val testMetrics = singleSimulationTest(coordinator, new DummySim3(coordinator))
       testMetrics.size should be(6)
-      testMetrics.get("task1 (sim3)").value.value should be(2)
-      testMetrics.get("task2 (sim3)").value.value should be(6)
-      testMetrics.get("task3 (sim3)").value.value should be(5)
-      testMetrics.get("task4 (sim3)").value.value should be(4)
-      testMetrics.get("task5 (sim3)").value.value should be(10)
-      testMetrics.get("task6 (sim3)").value.value should be(20)
+      testMetrics.get("task1 (sim1)").value.value should be(2)
+      testMetrics.get("task2 (sim1)").value.value should be(6)
+      testMetrics.get("task3 (sim1)").value.value should be(5)
+      testMetrics.get("task4 (sim1)").value.value should be(4)
+      testMetrics.get("task5 (sim1)").value.value should be(10)
+      testMetrics.get("task6 (sim1)").value.value should be(20)
     }
   }
 
@@ -62,33 +64,33 @@ class LookaheadTests
       val coordinator = getCoordinator()
       val testMetrics = singleSimulationTest(coordinator, new FlowDummySim(coordinator))
       testMetrics.size should be(4)
-      testMetrics.get("task1 (sim4)").value.value should be(2)
-      testMetrics.get("task2 (sim4)").value.value should be(4)
-      testMetrics.get("task3 (sim4)").value.value should be(8)
-      testMetrics.get("task4 (sim4)").value.value should be(12)
+      testMetrics.get("task1 (sim1)").value.value should be(2)
+      testMetrics.get("task2 (sim1)").value.value should be(4)
+      testMetrics.get("task3 (sim1)").value.value should be(8)
+      testMetrics.get("task4 (sim1)").value.value should be(12)
     }
 
     "execute simulation where in-progress tasks must be considered [ 1 > ( (2>3) + (4>5) ) ]" in {
       val coordinator = getCoordinator()
       val testMetrics = singleSimulationTest(coordinator, new FlowDummySim2(coordinator))
       testMetrics.size should be(5)
-      testMetrics.get("task1 (sim5)").value.value should be(2)
-      testMetrics.get("task2 (sim5)").value.value should be(6)
-      testMetrics.get("task3 (sim5)").value.value should be(9)
-      testMetrics.get("task4 (sim5)").value.value should be(4)
-      testMetrics.get("task5 (sim5)").value.value should be(12)
+      testMetrics.get("task1 (sim1)").value.value should be(2)
+      testMetrics.get("task2 (sim1)").value.value should be(6)
+      testMetrics.get("task3 (sim1)").value.value should be(9)
+      testMetrics.get("task4 (sim1)").value.value should be(4)
+      testMetrics.get("task5 (sim1)").value.value should be(12)
     }
 
     "execute simulation where a many-to-one future task relationship is involved [ 1 > ( ( (2+3+4)>5 ) + 6 ) ]" in {
       val coordinator = getCoordinator()
       val testMetrics = singleSimulationTest(coordinator, new FlowDummySim3(coordinator))
       testMetrics.size should be(6)
-      testMetrics.get("task1 (sim6)").value.value should be(2)
-      testMetrics.get("task2 (sim6)").value.value should be(6)
-      testMetrics.get("task3 (sim6)").value.value should be(5)
-      testMetrics.get("task4 (sim6)").value.value should be(4)
-      testMetrics.get("task5 (sim6)").value.value should be(10)
-      testMetrics.get("task6 (sim6)").value.value should be(20)
+      testMetrics.get("task1 (sim1)").value.value should be(2)
+      testMetrics.get("task2 (sim1)").value.value should be(6)
+      testMetrics.get("task3 (sim1)").value.value should be(5)
+      testMetrics.get("task4 (sim1)").value.value should be(4)
+      testMetrics.get("task5 (sim1)").value.value should be(10)
+      testMetrics.get("task6 (sim1)").value.value should be(20)
     }
   }
 
@@ -412,25 +414,25 @@ object FlowDummySim {
   val task1: FlowTask = FlowTask(
     Task("task1", 2L) withResources (Seq(
           "r3"
-        )) withPriority (Task.High)
+        )) withPriority (Task.High) withID UUID.randomUUID
   )
 
   val task2: FlowTask = FlowTask(
     Task("task2", 2L) withResources (Seq(
           "r1"
-        )) withPriority (Task.High)
+        )) withPriority (Task.High) withID UUID.randomUUID
   )
 
   val task3: FlowTask = FlowTask(
     Task("task3", 4L) withResources (Seq(
           "r2"
-        )) withPriority (Task.High)
+        )) withPriority (Task.High) withID UUID.randomUUID
   )
 
   val task4: FlowTask = FlowTask(
     Task("task4", 4L) withResources (Seq(
           "r2"
-        )) withPriority (Task.Low)
+        )) withPriority (Task.Low) withID UUID.randomUUID
   )
   val flow: Then = task1 > ((task2 > task3) + task4)
 
@@ -444,31 +446,31 @@ object FlowDummySim2 {
   val task1: FlowTask = FlowTask(
     Task("task1", 2L) withResources (Seq(
           "r2"
-        )) withPriority (Task.High)
+        )) withPriority (Task.High) withID UUID.randomUUID
   )
 
   val task2: FlowTask = FlowTask(
     Task("task2", 4L) withResources (Seq(
           "r1"
-        )) withPriority (Task.High)
+        )) withPriority (Task.High) withID UUID.randomUUID
   )
 
   val task3: FlowTask = FlowTask(
     Task("task3", 3L) withResources (Seq(
           "r2"
-        )) withPriority (Task.High)
+        )) withPriority (Task.High) withID UUID.randomUUID
   )
 
   val task4: FlowTask = FlowTask(
     Task("task4", 2L) withResources (Seq(
           "r3"
-        )) withPriority (Task.Low)
+        )) withPriority (Task.Low) withID UUID.randomUUID
   )
 
   val task5: FlowTask = FlowTask(
     Task("task5", 3L) withResources (Seq(
           "r2"
-        )) withPriority (Task.Low)
+        )) withPriority (Task.Low) withID UUID.randomUUID
   )
   val flow: Then = task1 > ((task2 > task3) + (task4 > task5))
 
@@ -481,37 +483,37 @@ object FlowDummySim3 {
   val task1: FlowTask = FlowTask(
     Task("task1", 2L) withResources (Seq(
           "r2"
-        )) withPriority (Task.High)
+        )) withPriority (Task.High) withID UUID.randomUUID
   )
 
   val task2: FlowTask = FlowTask(
     Task("task2", 4L) withResources (Seq(
           "r1"
-        )) withPriority (Task.High)
+        )) withPriority (Task.High) withID UUID.randomUUID
   )
 
   val task3: FlowTask = FlowTask(
     Task("task3", 3L) withResources (Seq(
           "r2"
-        )) withPriority (Task.High)
+        )) withPriority (Task.High) withID UUID.randomUUID
   )
 
   val task4: FlowTask = FlowTask(
     Task("task4", 2L) withResources (Seq(
           "r3"
-        )) withPriority (Task.High)
+        )) withPriority (Task.High) withID UUID.randomUUID
   )
 
   val task5: FlowTask = FlowTask(
     Task("task5", 4L) withResources (Seq(
           "r3"
-        )) withPriority (Task.High)
+        )) withPriority (Task.High) withID UUID.randomUUID
   )
 
   val task6: FlowTask = FlowTask(
     Task("task6", 10L) withResources (Seq(
           "r3"
-        )) withPriority (Task.Low)
+        )) withPriority (Task.Low) withID UUID.randomUUID
   )
   val flow: Then = task1 > (((task2 + task3 + task4) > task5) + task6)
 

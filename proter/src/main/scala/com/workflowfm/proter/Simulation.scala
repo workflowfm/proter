@@ -114,7 +114,7 @@ trait Simulation {
     */
   def complete(task: TaskInstance, time: Long): Unit = Unit
 
-  def completed(time: Long, tasks: Seq[TaskInstance]): Unit = {
+  final def completed(time: Long, tasks: Seq[TaskInstance]): Unit = {
     this.synchronized {
       waiting ++= tasks.map(_.id)
     }
@@ -447,13 +447,13 @@ trait FutureTasks { self: AsyncSimulation =>
   * Provides a lookahead structure that can be built up by the simulation and then sent to the scheduler
   * for use in making schedules which look into the future to consider upcoming tasks in scheduling.
   */
-trait LookingAhead { self: Simulation =>
+trait LookingAhead extends Simulation {
   var lookahead: Lookahead = LookaheadSet()
 
   override def getLookahead(): Lookahead = lookahead
 
 
-  val completed: collection.mutable.Set[(UUID, Long)] = collection.mutable.Set()
+  val completedTasks: collection.mutable.Set[(UUID, Long)] = collection.mutable.Set()
 
 
   /**
@@ -466,9 +466,9 @@ trait LookingAhead { self: Simulation =>
     * @param time The timestamp of its completion.
     */
   override def complete(task: TaskInstance, time: Long): Unit = {
-    completed += ((task.id, time))
+    completedTasks += ((task.id, time))
     lookahead = lookahead - task.id
-    lookahead.getTaskData(completed).flatMap(_._1.id) foreach { id => lookahead = lookahead - id }
-    self.complete(task, time)
+    lookahead.getTaskData(completedTasks).flatMap(_._1.id) foreach { id => lookahead = lookahead - id }
+    super.complete(task, time)
   }
 }
