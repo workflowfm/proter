@@ -114,7 +114,8 @@ trait Simulation {
     */
   def complete(task: TaskInstance, time: Long): Unit = Unit
 
-  final def completed(time: Long, tasks: Seq[TaskInstance]): Unit = {
+  //final : cannot be final because that prevents mockups in scalamock
+  def completed(time: Long, tasks: Seq[TaskInstance]): Unit = {
     this.synchronized {
       waiting ++= tasks.map(_.id)
     }
