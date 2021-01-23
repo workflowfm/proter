@@ -4,16 +4,9 @@ import scala.collection.mutable.Map
 import scala.concurrent._
 import scala.concurrent.duration._
 
-import akka.actor.ActorSystem
-import akka.pattern.ask
-import akka.testkit._
-import akka.util.Timeout
-import com.typesafe.config.ConfigFactory
 import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner
-
-import uk.ac.ed.inf.ppapapan.subakka.Subscriber
 
 import com.workflowfm.proter._
 import com.workflowfm.proter.events.{ PrintEventHandler, PromiseHandler }
@@ -26,7 +19,7 @@ class FlowsTest extends FlowsIntegrationTester {
     "execute a single flow" in {
       val r1 = new TaskResource("r1", 0)
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(
+        Task("task1", 1L).withResources(
           Seq("r1")
         )
       )
@@ -40,12 +33,12 @@ class FlowsTest extends FlowsIntegrationTester {
       val r1 = new TaskResource("r1", 0)
       val r2 = new TaskResource("r2", 0)
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(
+        Task("task1", 1L).withResources(
           Seq("r1")
         )
       )
       val task2 = FlowTask(
-        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)).withResources(
+        Task("task2", 2L).withResources(
           Seq("r2")
         )
       )
@@ -59,12 +52,12 @@ class FlowsTest extends FlowsIntegrationTester {
     "execute an AND of two tasks which use the same resources" in {
       val r1 = new TaskResource("r1", 0)
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(
+        Task("task1", 1L).withResources(
           Seq("r1")
         )
       )
       val task2 = FlowTask(
-        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)).withResources(
+        Task("task2", 2L).withResources(
           Seq("r1")
         )
       )
@@ -81,12 +74,12 @@ class FlowsTest extends FlowsIntegrationTester {
       val r1 = new TaskResource("r1", 0)
       val r2 = new TaskResource("r2", 0)
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(
+        Task("task1", 1L).withResources(
           Seq("r1")
         )
       )
       val task2 = FlowTask(
-        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)).withResources(
+        Task("task2", 2L).withResources(
           Seq("r2")
         )
       )
@@ -104,27 +97,27 @@ class FlowsTest extends FlowsIntegrationTester {
       val r4 = new TaskResource("r4", 0)
       val r5 = new TaskResource("r5", 0)
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(
+        Task("task1", 1L).withResources(
           Seq("r1")
         )
       )
       val task2 = FlowTask(
-        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)).withResources(
+        Task("task2", 2L).withResources(
           Seq("r2")
         )
       )
       val task3 = FlowTask(
-        TaskGenerator("task3", "sim1", ConstantGenerator(4L), ConstantGenerator(0L)).withResources(
+        Task("task3", 4L).withResources(
           Seq("r3")
         )
       )
       val task4 = FlowTask(
-        TaskGenerator("task4", "sim1", ConstantGenerator(8L), ConstantGenerator(0L)).withResources(
+        Task("task4", 8L).withResources(
           Seq("r4")
         )
       )
       val task5 = FlowTask(
-        TaskGenerator("task5", "sim1", ConstantGenerator(16L), ConstantGenerator(0L)).withResources(
+        Task("task5", 16L).withResources(
           Seq("r5")
         )
       )
@@ -145,27 +138,27 @@ class FlowsTest extends FlowsIntegrationTester {
       val r4 = new TaskResource("r4", 0)
       val r5 = new TaskResource("r5", 0)
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(
+        Task("task1", 1L).withResources(
           Seq("r1")
         )
       )
       val task2 = FlowTask(
-        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)).withResources(
+        Task("task2", 2L).withResources(
           Seq("r2")
         )
       )
       val task3 = FlowTask(
-        TaskGenerator("task3", "sim1", ConstantGenerator(4L), ConstantGenerator(0L)).withResources(
+        Task("task3", 4L).withResources(
           Seq("r3")
         )
       )
       val task4 = FlowTask(
-        TaskGenerator("task4", "sim1", ConstantGenerator(8L), ConstantGenerator(0L)).withResources(
+        Task("task4", 8L).withResources(
           Seq("r4")
         )
       )
       val task5 = FlowTask(
-        TaskGenerator("task5", "sim1", ConstantGenerator(16L), ConstantGenerator(0L)).withResources(
+        Task("task5", 16L).withResources(
           Seq("r5")
         )
       )
@@ -186,27 +179,27 @@ class FlowsTest extends FlowsIntegrationTester {
       val r4 = new TaskResource("r4", 0)
       val r5 = new TaskResource("r5", 0)
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(
+        Task("task1", 1L).withResources(
           Seq("r1")
         )
       )
       val task2 = FlowTask(
-        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)).withResources(
+        Task("task2", 2L).withResources(
           Seq("r2")
         )
       )
       val task3 = FlowTask(
-        TaskGenerator("task3", "sim1", ConstantGenerator(4L), ConstantGenerator(0L)).withResources(
+        Task("task3", 4L).withResources(
           Seq("r3")
         )
       )
       val task4 = FlowTask(
-        TaskGenerator("task4", "sim1", ConstantGenerator(8L), ConstantGenerator(0L)).withResources(
+        Task("task4", 8L).withResources(
           Seq("r4")
         )
       )
       val task5 = FlowTask(
-        TaskGenerator("task5", "sim1", ConstantGenerator(16L), ConstantGenerator(0L)).withResources(
+        Task("task5", 16L).withResources(
           Seq("r5")
         )
       )
@@ -227,27 +220,27 @@ class FlowsTest extends FlowsIntegrationTester {
       val r4 = new TaskResource("r4", 0)
       val r5 = new TaskResource("r5", 0)
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(
+        Task("task1", 1L).withResources(
           Seq("r1")
         )
       )
       val task2 = FlowTask(
-        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)).withResources(
+        Task("task2", 2L).withResources(
           Seq("r2")
         )
       )
       val task3 = FlowTask(
-        TaskGenerator("task3", "sim1", ConstantGenerator(4L), ConstantGenerator(0L)).withResources(
+        Task("task3", 4L).withResources(
           Seq("r3")
         )
       )
       val task4 = FlowTask(
-        TaskGenerator("task4", "sim1", ConstantGenerator(8L), ConstantGenerator(0L)).withResources(
+        Task("task4", 8L).withResources(
           Seq("r4")
         )
       )
       val task5 = FlowTask(
-        TaskGenerator("task5", "sim1", ConstantGenerator(16L), ConstantGenerator(0L)).withResources(
+        Task("task5", 16L).withResources(
           Seq("r5")
         )
       )
@@ -268,27 +261,27 @@ class FlowsTest extends FlowsIntegrationTester {
       val r4 = new TaskResource("r4", 0)
       val r5 = new TaskResource("r5", 0)
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(
+        Task("task1", 1L).withResources(
           Seq("r1")
         )
       )
       val task2 = FlowTask(
-        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)).withResources(
+        Task("task2", 2L).withResources(
           Seq("r2")
         )
       )
       val task3 = FlowTask(
-        TaskGenerator("task3", "sim1", ConstantGenerator(4L), ConstantGenerator(0L)).withResources(
+        Task("task3", 4L).withResources(
           Seq("r3")
         )
       )
       val task4 = FlowTask(
-        TaskGenerator("task4", "sim1", ConstantGenerator(8L), ConstantGenerator(0L)).withResources(
+        Task("task4", 8L).withResources(
           Seq("r4")
         )
       )
       val task5 = FlowTask(
-        TaskGenerator("task5", "sim1", ConstantGenerator(16L), ConstantGenerator(0L)).withResources(
+        Task("task5", 16L).withResources(
           Seq("r5")
         )
       )
@@ -307,17 +300,17 @@ class FlowsTest extends FlowsIntegrationTester {
       val r2 = new TaskResource("r2", 0)
       val r3 = new TaskResource("r3", 0)
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(
+        Task("task1", 1L).withResources(
           Seq("r1")
         )
       )
       val task2 = FlowTask(
-        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)).withResources(
+        Task("task2", 2L).withResources(
           Seq("r2")
         )
       )
       val task3 = FlowTask(
-        TaskGenerator("task3", "sim1", ConstantGenerator(4L), ConstantGenerator(0L)).withResources(
+        Task("task3", 4L).withResources(
           Seq("r3")
         )
       )
@@ -336,27 +329,27 @@ class FlowsTest extends FlowsIntegrationTester {
       val r4 = new TaskResource("r4", 0)
       val r5 = new TaskResource("r5", 0)
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(
+        Task("task1", 1L).withResources(
           Seq("r1")
         )
       )
       val task2 = FlowTask(
-        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)).withResources(
+        Task("task2", 2L).withResources(
           Seq("r2")
         )
       )
       val task3 = FlowTask(
-        TaskGenerator("task3", "sim1", ConstantGenerator(4L), ConstantGenerator(0L)).withResources(
+        Task("task3", 4L).withResources(
           Seq("r3")
         )
       )
       val task4 = FlowTask(
-        TaskGenerator("task4", "sim1", ConstantGenerator(8L), ConstantGenerator(0L)).withResources(
+        Task("task4", 8L).withResources(
           Seq("r4")
         )
       )
       val task5 = FlowTask(
-        TaskGenerator("task5", "sim1", ConstantGenerator(16L), ConstantGenerator(0L)).withResources(
+        Task("task5", 16L).withResources(
           Seq("r5")
         )
       )
@@ -380,42 +373,42 @@ class FlowsTest extends FlowsIntegrationTester {
       val r7 = new TaskResource("r7", 0)
       val r8 = new TaskResource("r8", 0)
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(
+        Task("task1", 1L).withResources(
           Seq("r1")
         )
       )
       val task2 = FlowTask(
-        TaskGenerator("task2", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(
+        Task("task2", 1L).withResources(
           Seq("r2")
         )
       )
       val task3 = FlowTask(
-        TaskGenerator("task3", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(
+        Task("task3", 1L).withResources(
           Seq("r3")
         )
       )
       val task4 = FlowTask(
-        TaskGenerator("task4", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(
+        Task("task4", 1L).withResources(
           Seq("r4")
         )
       )
       val task5 = FlowTask(
-        TaskGenerator("task5", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(
+        Task("task5", 1L).withResources(
           Seq("r5")
         )
       )
       val task6 = FlowTask(
-        TaskGenerator("task6", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(
+        Task("task6", 1L).withResources(
           Seq("r6")
         )
       )
       val task7 = FlowTask(
-        TaskGenerator("task7", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(
+        Task("task7", 1L).withResources(
           Seq("r7")
         )
       )
       val task8 = FlowTask(
-        TaskGenerator("task8", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(
+        Task("task8", 1L).withResources(
           Seq("r8")
         )
       )
@@ -441,12 +434,12 @@ class FlowsTest extends FlowsIntegrationTester {
       val r1 = new TaskResource("r1", 0)
       val r2 = new TaskResource("r2", 0)
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(
+        Task("task1", 1L).withResources(
           Seq("r1")
         )
       )
       val task2 = FlowTask(
-        TaskGenerator("task2", "sim1", ConstantGenerator(2L), ConstantGenerator(0L)).withResources(
+        Task("task2", 2L).withResources(
           Seq("r2")
         )
       )
@@ -460,44 +453,44 @@ class FlowsTest extends FlowsIntegrationTester {
     }
 
     "execute two simulations which use different tasks" in {
-      val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler()))
+      val coordinator = new Coordinator(new DefaultScheduler())
 
       val smh = new PromiseHandler(new SimMetricsHandler)
-      smh.subAndForgetTo(coordinator)
+      coordinator.subscribe(smh)
 
       val r1 = new TaskResource("r1", 0)
       val r2 = new TaskResource("r2", 0)
       val r3 = new TaskResource("r3", 0)
 
-      coordinator ! Coordinator.AddResources(List(r1, r2, r3))
+      coordinator.addResources(r1, r2, r3)
 
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(
+        Task("task1", 1L).withResources(
           Seq("r1")
         )
       )
       val task2 = FlowTask(
-        TaskGenerator("task2", "sim2", ConstantGenerator(2L), ConstantGenerator(0L)).withResources(
+        Task("task2", 2L).withResources(
           Seq("r2")
         )
       )
       val task3 = FlowTask(
-        TaskGenerator("task3", "sim2", ConstantGenerator(4L), ConstantGenerator(0L)).withResources(
+        Task("task3", 4L).withResources(
           Seq("r3")
         )
       )
       val flow1 = task1
       val flow2 = Then(task2, task3)
 
-      coordinator ! Coordinator.AddSim(
+      coordinator.addSimulation(
         0L,
-        system.actorOf(FlowSimulationActor.props("sim1", coordinator, flow1))
+        new FlowSimulation("sim1", coordinator, flow1)
       )
-      coordinator ! Coordinator.AddSim(
+      coordinator.addSimulation(
         0L,
-        system.actorOf(FlowSimulationActor.props("sim2", coordinator, flow2))
+        new FlowSimulation("sim2", coordinator, flow2)
       )
-      coordinator ! Coordinator.Start
+      coordinator.start()
 
       val metrics = Await.result(smh.future, 3.seconds)
       val testMetrics = metrics.taskMap.map {
@@ -510,44 +503,44 @@ class FlowsTest extends FlowsIntegrationTester {
     }
 
     "execute two simulations which use the same tasks" in {
-      val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler()))
+      val coordinator = new Coordinator(new DefaultScheduler())
 
       val smh = new PromiseHandler(new SimMetricsHandler)
-      smh.subAndForgetTo(coordinator)
+      coordinator.subscribe(smh)
 
       val r1 = new TaskResource("r1", 0)
       val r2 = new TaskResource("r2", 0)
       val r3 = new TaskResource("r3", 0)
 
-      coordinator ! Coordinator.AddResources(List(r1, r2, r3))
+      coordinator.addResources(r1, r2, r3)
 
       val task1 = FlowTask(
-        TaskGenerator("task1", "sim1", ConstantGenerator(1L), ConstantGenerator(0L)).withResources(
+        Task("task1", 1L).withResources(
           Seq("r1")
         )
       )
       val task2 = FlowTask(
-        TaskGenerator("task2", "sim2", ConstantGenerator(2L), ConstantGenerator(0L)).withResources(
+        Task("task2", 2L).withResources(
           Seq("r2")
         )
       )
       val task3 = FlowTask(
-        TaskGenerator("task3", "sim2", ConstantGenerator(4L), ConstantGenerator(0L)).withResources(
+        Task("task3", 4L).withResources(
           Seq("r3")
         )
       )
       val flow1 = task1
       val flow2 = Then(task2, task1)
 
-      coordinator ! Coordinator.AddSim(
+      coordinator.addSimulation(
         0L,
-        system.actorOf(FlowSimulationActor.props("sim1", coordinator, flow1))
+        new FlowSimulation("sim1", coordinator, flow1)
       )
-      coordinator ! Coordinator.AddSim(
+      coordinator.addSimulation(
         0L,
-        system.actorOf(FlowSimulationActor.props("sim2", coordinator, flow2))
+        new FlowSimulation("sim2", coordinator, flow2)
       )
-      coordinator ! Coordinator.Start
+      coordinator.start()
 
       val metrics = Await.result(smh.future, 3.seconds)
       val testMetrics = metrics.taskMap.map {
@@ -562,32 +555,9 @@ class FlowsTest extends FlowsIntegrationTester {
 }
 
 class FlowsIntegrationTester
-    extends TestKit(
-      ActorSystem(
-        "FlowsTest",
-        ConfigFactory.parseString("""
-akka {
-    log-dead-letters = off
-    log-dead-letters-during-shutdown = off
-    stdout-loglevel = "OFF"
-    loglevel = "OFF"    
-    actor {
-      debug {
-        receive = off
-        unhandled = off
-      }
-    }
-}
-    """)
-      )
-    )
-    with WordSpecLike
+    extends WordSpecLike
     with Matchers
-    with BeforeAndAfterAll
     with OptionValues {
-
-  implicit val executionContext: ExecutionContext = ExecutionContext.global
-  implicit val timeout: Timeout = Timeout(2.seconds)
 
   def singleFlowTest(
       flow: Flow,
@@ -595,26 +565,21 @@ akka {
       simName: String = "sim1"
   ): Map[String, Option[Long]] = {
 
-    val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler()))
+    val coordinator = new Coordinator(new DefaultScheduler())
 
     val smh = new PromiseHandler(new SimMetricsHandler)
-    Await.result(smh.subAndForgetTo(coordinator), 1.second)
-    //Await.result(new PrintEventHandler().subAndForgetTo(coordinator), 1.second)
+    coordinator.subscribe(smh)
 
-    coordinator ! Coordinator.AddResources(resources)
-    coordinator ! Coordinator.AddSim(
+    coordinator.addResources(resources: _*)
+    coordinator.addSimulation(
       0L,
-      system.actorOf(FlowSimulationActor.props(simName, coordinator, flow))
+      new FlowSimulation(simName, coordinator, flow)
     )
-    coordinator ! Coordinator.Start
+    coordinator.start()
 
     val metrics = Await.result(smh.future, 3.seconds)
     metrics.taskMap.map {
       case (_, tm) => tm.fullName -> tm.finished
     }
-  }
-
-  override def afterAll: Unit = {
-    TestKit.shutdownActorSystem(system)
   }
 }
