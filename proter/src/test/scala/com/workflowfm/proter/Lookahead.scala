@@ -3,40 +3,28 @@ package com.workflowfm.proter
 import scala.collection.mutable.Map
 import scala.concurrent._
 import scala.concurrent.duration._
-import scala.reflect._
 
-import akka.actor.{ Actor, ActorRef, ActorSystem, Props }
-import akka.pattern.ask
-import akka.testkit._
-import akka.util.Timeout
 import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner
 
-import uk.ac.ed.inf.ppapapan.subakka.Subscriber
-
-import com.workflowfm.proter._
 import com.workflowfm.proter.events.PromiseHandler
-import com.workflowfm.proter.events.{ ShutdownHandler }
 import com.workflowfm.proter.flows._
 import com.workflowfm.proter.metrics._
 
-class LookaheadIntegrationTests
-    extends TestKit(ActorSystem("LookaheadTest"))
-    with LookaheadTester
+@RunWith(classOf[JUnitRunner])
+class LookaheadTests
+    extends LookaheadTester
     with WordSpecLike
     with Matchers
-    with BeforeAndAfterAll
     with OptionValues {
 
-  override def afterAll: Unit = {
-    TestKit.shutdownActorSystem(system)
-  }
 
   "Lookahead systems" should {
 
     "execute a basic scenario without blocking high priority tasks [ 1 > ( (2>3) + 4 ) ]" in {
-      val testMetrics = singleSimulationTest(DummySim)
+      val coordinator = getCoordinator()
+      val testMetrics = singleSimulationTest(coordinator, new DummySim(coordinator))
       testMetrics.size should be(4)
       testMetrics.get("task1 (sim1)").value.value should be(2)
       testMetrics.get("task2 (sim1)").value.value should be(4)
@@ -45,7 +33,8 @@ class LookaheadIntegrationTests
     }
 
     "execute simulation where in-progress tasks must be considered [ 1 > ( (2>3) + (4>5) ) ]" in {
-      val testMetrics = singleSimulationTest(DummySim2)
+      val coordinator = getCoordinator()
+      val testMetrics = singleSimulationTest(coordinator, new DummySim2(coordinator))
       testMetrics.size should be(5)
       testMetrics.get("task1 (sim2)").value.value should be(2)
       testMetrics.get("task2 (sim2)").value.value should be(6)
@@ -55,7 +44,8 @@ class LookaheadIntegrationTests
     }
 
     "execute simulation where a many-to-one future task relationship is involved [ 1 > ( ( (2+3+4)>5 ) + 6 ) ]" in {
-      val testMetrics = singleSimulationTest(DummySim3)
+      val coordinator = getCoordinator()
+      val testMetrics = singleSimulationTest(coordinator, new DummySim3(coordinator))
       testMetrics.size should be(6)
       testMetrics.get("task1 (sim3)").value.value should be(2)
       testMetrics.get("task2 (sim3)").value.value should be(6)
@@ -69,7 +59,8 @@ class LookaheadIntegrationTests
   "Lookahead flows" should {
 
     "execute a basic scenario without blocking high priority tasks [ 1 > ( (2>3) + 4 ) ]" in {
-      val testMetrics = singleSimulationTest(FlowDummySim)
+      val coordinator = getCoordinator()
+      val testMetrics = singleSimulationTest(coordinator, new FlowDummySim(coordinator))
       testMetrics.size should be(4)
       testMetrics.get("task1 (sim4)").value.value should be(2)
       testMetrics.get("task2 (sim4)").value.value should be(4)
@@ -78,7 +69,8 @@ class LookaheadIntegrationTests
     }
 
     "execute simulation where in-progress tasks must be considered [ 1 > ( (2>3) + (4>5) ) ]" in {
-      val testMetrics = singleSimulationTest(FlowDummySim2)
+      val coordinator = getCoordinator()
+      val testMetrics = singleSimulationTest(coordinator, new FlowDummySim2(coordinator))
       testMetrics.size should be(5)
       testMetrics.get("task1 (sim5)").value.value should be(2)
       testMetrics.get("task2 (sim5)").value.value should be(6)
@@ -88,7 +80,8 @@ class LookaheadIntegrationTests
     }
 
     "execute simulation where a many-to-one future task relationship is involved [ 1 > ( ( (2+3+4)>5 ) + 6 ) ]" in {
-      val testMetrics = singleSimulationTest(FlowDummySim3)
+      val coordinator = getCoordinator()
+      val testMetrics = singleSimulationTest(coordinator, new FlowDummySim3(coordinator))
       testMetrics.size should be(6)
       testMetrics.get("task1 (sim6)").value.value should be(2)
       testMetrics.get("task2 (sim6)").value.value should be(6)
@@ -102,32 +95,39 @@ class LookaheadIntegrationTests
 }
 
 trait LookaheadTester {
-  self: TestKit =>
 
-  implicit val executionContext: ExecutionContext = ExecutionContext.global
-  implicit val timeout: Timeout = Timeout(2.seconds)
+  def getCoordinator(): Coordinator = {
+    val coordinator = new Coordinator(new LookaheadScheduler())
 
-  def singleSimulationTest(sim: TestObject): Map[String, Option[Long]] = {
-    val coordinator = system.actorOf(Coordinator.props(new LookaheadScheduler()))
-    //val shutdownActor = Subscriber.actor(new ShutdownHandler()) //not needed
-    //val smh = new SimMetricsHandler
+    coordinator.addResources(
+      new TaskResource("r1", 0),
+      new TaskResource("r2", 0),
+      new TaskResource("r3", 0),
+      new TaskResource("r4", 0),
+      new TaskResource("r5", 0),
+      new TaskResource("r6", 0),
+    )   
+
+    coordinator
+  }
+
+  def singleSimulationTest(coordinator: Coordinator, sim: Simulation with LookingAhead): Map[String, Option[Long]] = {
     val smh = new PromiseHandler(new SimMetricsHandler)
+    coordinator.subscribe(smh)
 
-    Await.result(smh.subAndForgetTo(coordinator), 1.second)
-    //Await.result(shutdownActor ? Subscriber.SubAndForgetTo(coordinator), 3.seconds) //not needed
-
-    coordinator ! Coordinator.AddResources(sim.resources)
-
-    coordinator ! Coordinator.AddSim(0L, system.actorOf(sim.props(sim.name, coordinator), sim.name))
-    coordinator ! Coordinator.Start
+    coordinator.addSimulation(0L, sim)
+    coordinator.start()
     val metrics = Await.result(smh.future, 3.seconds)
     metrics.taskMap map { x => x._2.fullName -> x._2.finished }
   }
 }
 
-class DummySim(name: String, coordinator: ActorRef)(implicit executionContext: ExecutionContext)
-    extends AsyncSimulation(name, coordinator)
-    with LookingAhead {
+abstract class DummyLookaheadSim (
+  override val name: String,
+  override protected val manager: Manager
+) extends AsyncSimulation with LookingAhead
+
+class DummySim(coordinator: Manager) extends DummyLookaheadSim("sim1", coordinator) {
   var tick = false
 
   override def run(): Unit = {
@@ -135,10 +135,9 @@ class DummySim(name: String, coordinator: ActorRef)(implicit executionContext: E
     val id2 = java.util.UUID.randomUUID
     val id3 = java.util.UUID.randomUUID
     val id4 = java.util.UUID.randomUUID
-    val generator1 = TaskGenerator(
+    val generator1 = Task(
       "task1",
-      id1,
-      name,
+      Some(id1),
       ConstantGenerator(2L),
       ConstantGenerator(0L),
       0L,
@@ -146,10 +145,9 @@ class DummySim(name: String, coordinator: ActorRef)(implicit executionContext: E
       (-1),
       Task.High
     )
-    val generator2 = TaskGenerator(
+    val generator2 = Task(
       "task2",
-      id2,
-      name,
+      Some(id2),
       ConstantGenerator(2L),
       ConstantGenerator(0L),
       0L,
@@ -157,10 +155,9 @@ class DummySim(name: String, coordinator: ActorRef)(implicit executionContext: E
       (-1),
       Task.High
     )
-    val generator3 = TaskGenerator(
+    val generator3 = Task(
       "task3",
-      id3,
-      name,
+      Some(id3),
       ConstantGenerator(4L),
       ConstantGenerator(0L),
       0L,
@@ -168,10 +165,9 @@ class DummySim(name: String, coordinator: ActorRef)(implicit executionContext: E
       (-1),
       Task.High
     )
-    val generator4 = TaskGenerator(
+    val generator4 = Task(
       "task4",
-      id4,
-      name,
+      Some(id4),
       ConstantGenerator(4L),
       ConstantGenerator(0L),
       0L,
@@ -208,9 +204,7 @@ class DummySim(name: String, coordinator: ActorRef)(implicit executionContext: E
   }
 }
 
-class DummySim2(name: String, coordinator: ActorRef)(implicit executionContext: ExecutionContext)
-    extends AsyncSimulation(name, coordinator)
-    with LookingAhead {
+class DummySim2(coordinator: Manager) extends DummyLookaheadSim("sim1", coordinator) {
   var tick = false
 
   override def run(): Unit = {
@@ -219,10 +213,9 @@ class DummySim2(name: String, coordinator: ActorRef)(implicit executionContext: 
     val id3 = java.util.UUID.randomUUID
     val id4 = java.util.UUID.randomUUID
     val id5 = java.util.UUID.randomUUID
-    val generator1 = TaskGenerator(
+    val generator1 = Task(
       "task1",
-      id1,
-      name,
+      Some(id1),
       ConstantGenerator(2L),
       ConstantGenerator(0L),
       0L,
@@ -230,10 +223,9 @@ class DummySim2(name: String, coordinator: ActorRef)(implicit executionContext: 
       (-1),
       Task.High
     )
-    val generator2 = TaskGenerator(
+    val generator2 = Task(
       "task2",
-      id2,
-      name,
+      Some(id2),
       ConstantGenerator(4L),
       ConstantGenerator(0L),
       0L,
@@ -241,10 +233,9 @@ class DummySim2(name: String, coordinator: ActorRef)(implicit executionContext: 
       (-1),
       Task.High
     )
-    val generator3 = TaskGenerator(
+    val generator3 = Task(
       "task3",
-      id3,
-      name,
+      Some(id3),
       ConstantGenerator(3L),
       ConstantGenerator(0L),
       0L,
@@ -252,10 +243,9 @@ class DummySim2(name: String, coordinator: ActorRef)(implicit executionContext: 
       (-1),
       Task.High
     )
-    val generator4 = TaskGenerator(
+    val generator4 = Task(
       "task4",
-      id4,
-      name,
+      Some(id4),
       ConstantGenerator(2L),
       ConstantGenerator(0L),
       0L,
@@ -263,10 +253,9 @@ class DummySim2(name: String, coordinator: ActorRef)(implicit executionContext: 
       (-1),
       Task.Low
     )
-    val generator5 = TaskGenerator(
+    val generator5 = Task(
       "task5",
-      id5,
-      name,
+      Some(id5),
       ConstantGenerator(3L),
       ConstantGenerator(0L),
       0L,
@@ -308,9 +297,7 @@ class DummySim2(name: String, coordinator: ActorRef)(implicit executionContext: 
   }
 }
 
-class DummySim3(name: String, coordinator: ActorRef)(implicit executionContext: ExecutionContext)
-    extends AsyncSimulation(name, coordinator)
-    with LookingAhead {
+class DummySim3(coordinator: Manager) extends DummyLookaheadSim("sim1", coordinator) {
   var count = 0
   var tick = false
 
@@ -321,10 +308,9 @@ class DummySim3(name: String, coordinator: ActorRef)(implicit executionContext: 
     val id4 = java.util.UUID.randomUUID
     val id5 = java.util.UUID.randomUUID
     val id6 = java.util.UUID.randomUUID
-    val generator1 = TaskGenerator(
+    val generator1 = Task(
       "task1",
-      id1,
-      name,
+      Some(id1),
       ConstantGenerator(2L),
       ConstantGenerator(0L),
       0L,
@@ -332,10 +318,9 @@ class DummySim3(name: String, coordinator: ActorRef)(implicit executionContext: 
       (-1),
       Task.High
     )
-    val generator2 = TaskGenerator(
+    val generator2 = Task(
       "task2",
-      id2,
-      name,
+      Some(id2),
       ConstantGenerator(4L),
       ConstantGenerator(0L),
       0L,
@@ -343,10 +328,9 @@ class DummySim3(name: String, coordinator: ActorRef)(implicit executionContext: 
       (-1),
       Task.High
     )
-    val generator3 = TaskGenerator(
+    val generator3 = Task(
       "task3",
-      id3,
-      name,
+      Some(id3),
       ConstantGenerator(3L),
       ConstantGenerator(0L),
       0L,
@@ -354,10 +338,9 @@ class DummySim3(name: String, coordinator: ActorRef)(implicit executionContext: 
       (-1),
       Task.High
     )
-    val generator4 = TaskGenerator(
+    val generator4 = Task(
       "task4",
-      id4,
-      name,
+      Some(id4),
       ConstantGenerator(2L),
       ConstantGenerator(0L),
       0L,
@@ -365,10 +348,9 @@ class DummySim3(name: String, coordinator: ActorRef)(implicit executionContext: 
       (-1),
       Task.High
     )
-    val generator5 = TaskGenerator(
+    val generator5 = Task(
       "task5",
-      id5,
-      name,
+      Some(id5),
       ConstantGenerator(4L),
       ConstantGenerator(0L),
       0L,
@@ -376,10 +358,9 @@ class DummySim3(name: String, coordinator: ActorRef)(implicit executionContext: 
       (-1),
       Task.High
     )
-    val generator6 = TaskGenerator(
+    val generator6 = Task(
       "task6",
-      id6,
-      name,
+      Some(id6),
       ConstantGenerator(10L),
       ConstantGenerator(0L),
       0L,
@@ -423,170 +404,116 @@ class DummySim3(name: String, coordinator: ActorRef)(implicit executionContext: 
   }
 }
 
-sealed trait TestObject {
-  val name: String
-  def props(name: String, coordinator: ActorRef)(implicit executionContext: ExecutionContext): Props
-  def resources: Seq[TaskResource]
-}
 
-case object DummySim extends TestObject {
-  val name = "sim1"
+class FlowDummySim(coordinator: Manager) extends FlowLookahead("sim1", coordinator, FlowDummySim.flow)
 
-  override def props(name: String, coordinator: ActorRef)(
-      implicit executionContext: ExecutionContext
-  ): Props = { Props(new DummySim(name, coordinator)) }
-
-  override def resources: Seq[TaskResource] =
-    Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
-}
-
-case object DummySim2 extends TestObject {
-  val name = "sim2"
-
-  override def props(name: String, coordinator: ActorRef)(
-      implicit executionContext: ExecutionContext
-  ): Props = { Props(new DummySim2(name, coordinator)) }
-
-  override def resources: Seq[TaskResource] =
-    Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
-}
-
-case object DummySim3 extends TestObject {
-  val name = "sim3"
-
-  override def props(name: String, coordinator: ActorRef)(
-      implicit executionContext: ExecutionContext
-  ): Props = { Props(new DummySim3(name, coordinator)) }
-
-  override def resources: Seq[TaskResource] =
-    Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
-}
-
-case object FlowDummySim extends TestObject {
-  val name = "sim4"
-
+object FlowDummySim {
   // Define tasks
   val task1: FlowTask = FlowTask(
-    TaskGenerator("task1", name, ConstantGenerator(2L), ConstantGenerator(0L)) withResources (Seq(
+    Task("task1", 2L) withResources (Seq(
           "r3"
         )) withPriority (Task.High)
   )
 
   val task2: FlowTask = FlowTask(
-    TaskGenerator("task2", name, ConstantGenerator(2L), ConstantGenerator(0L)) withResources (Seq(
+    Task("task2", 2L) withResources (Seq(
           "r1"
         )) withPriority (Task.High)
   )
 
   val task3: FlowTask = FlowTask(
-    TaskGenerator("task3", name, ConstantGenerator(4L), ConstantGenerator(0L)) withResources (Seq(
+    Task("task3", 4L) withResources (Seq(
           "r2"
         )) withPriority (Task.High)
   )
 
   val task4: FlowTask = FlowTask(
-    TaskGenerator("task4", name, ConstantGenerator(4L), ConstantGenerator(0L)) withResources (Seq(
+    Task("task4", 4L) withResources (Seq(
           "r2"
         )) withPriority (Task.Low)
   )
   val flow: Then = task1 > ((task2 > task3) + task4)
 
-  override def props(name: String, coordinator: ActorRef)(
-      implicit executionContext: ExecutionContext
-  ): Props = { FlowLookaheadActor.props(name, coordinator, flow) }
-
-  override def resources: Seq[TaskResource] =
-    Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
 }
 
-case object FlowDummySim2 extends TestObject {
-  val name = "sim5"
+class FlowDummySim2(coordinator: Manager) extends FlowLookahead("sim1", coordinator, FlowDummySim2.flow)
+
+object FlowDummySim2 {
 
   // Define tasks
   val task1: FlowTask = FlowTask(
-    TaskGenerator("task1", name, ConstantGenerator(2L), ConstantGenerator(0L)) withResources (Seq(
+    Task("task1", 2L) withResources (Seq(
           "r2"
         )) withPriority (Task.High)
   )
 
   val task2: FlowTask = FlowTask(
-    TaskGenerator("task2", name, ConstantGenerator(4L), ConstantGenerator(0L)) withResources (Seq(
+    Task("task2", 4L) withResources (Seq(
           "r1"
         )) withPriority (Task.High)
   )
 
   val task3: FlowTask = FlowTask(
-    TaskGenerator("task3", name, ConstantGenerator(3L), ConstantGenerator(0L)) withResources (Seq(
+    Task("task3", 3L) withResources (Seq(
           "r2"
         )) withPriority (Task.High)
   )
 
   val task4: FlowTask = FlowTask(
-    TaskGenerator("task4", name, ConstantGenerator(2L), ConstantGenerator(0L)) withResources (Seq(
+    Task("task4", 2L) withResources (Seq(
           "r3"
         )) withPriority (Task.Low)
   )
 
   val task5: FlowTask = FlowTask(
-    TaskGenerator("task5", name, ConstantGenerator(3L), ConstantGenerator(0L)) withResources (Seq(
+    Task("task5", 3L) withResources (Seq(
           "r2"
         )) withPriority (Task.Low)
   )
   val flow: Then = task1 > ((task2 > task3) + (task4 > task5))
 
-  override def props(name: String, coordinator: ActorRef)(
-      implicit executionContext: ExecutionContext
-  ): Props = { FlowLookaheadActor.props(name, coordinator, flow) }
-
-  override def resources: Seq[TaskResource] =
-    Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
 }
 
-case object FlowDummySim3 extends TestObject {
-  val name = "sim6"
+class FlowDummySim3(coordinator: Manager) extends FlowLookahead("sim1", coordinator, FlowDummySim3.flow)
 
+object FlowDummySim3 {
   // Define tasks
   val task1: FlowTask = FlowTask(
-    TaskGenerator("task1", name, ConstantGenerator(2L), ConstantGenerator(0L)) withResources (Seq(
+    Task("task1", 2L) withResources (Seq(
           "r2"
         )) withPriority (Task.High)
   )
 
   val task2: FlowTask = FlowTask(
-    TaskGenerator("task2", name, ConstantGenerator(4L), ConstantGenerator(0L)) withResources (Seq(
+    Task("task2", 4L) withResources (Seq(
           "r1"
         )) withPriority (Task.High)
   )
 
   val task3: FlowTask = FlowTask(
-    TaskGenerator("task3", name, ConstantGenerator(3L), ConstantGenerator(0L)) withResources (Seq(
+    Task("task3", 3L) withResources (Seq(
           "r2"
         )) withPriority (Task.High)
   )
 
   val task4: FlowTask = FlowTask(
-    TaskGenerator("task4", name, ConstantGenerator(2L), ConstantGenerator(0L)) withResources (Seq(
+    Task("task4", 2L) withResources (Seq(
           "r3"
         )) withPriority (Task.High)
   )
 
   val task5: FlowTask = FlowTask(
-    TaskGenerator("task5", name, ConstantGenerator(4L), ConstantGenerator(0L)) withResources (Seq(
+    Task("task5", 4L) withResources (Seq(
           "r3"
         )) withPriority (Task.High)
   )
 
   val task6: FlowTask = FlowTask(
-    TaskGenerator("task6", name, ConstantGenerator(10L), ConstantGenerator(0L)) withResources (Seq(
+    Task("task6", 10L) withResources (Seq(
           "r3"
         )) withPriority (Task.Low)
   )
   val flow: Then = task1 > (((task2 + task3 + task4) > task5) + task6)
 
-  override def props(name: String, coordinator: ActorRef)(
-      implicit executionContext: ExecutionContext
-  ): Props = { FlowLookaheadActor.props(name, coordinator, flow) }
-
-  override def resources: Seq[TaskResource] =
-    Seq("r1", "r2", "r3") map (x => new TaskResource(x, 0))
 }
+

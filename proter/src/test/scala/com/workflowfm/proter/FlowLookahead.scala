@@ -2,13 +2,10 @@ package com.workflowfm.proter
 
 import java.util.UUID
 
-import scala.concurrent._
-
 import org.junit.runner.RunWith
 import org.scalatest._
 import org.scalatest.junit.JUnitRunner
 
-import com.workflowfm.proter._
 import com.workflowfm.proter.flows._
 
 @RunWith(classOf[JUnitRunner])
