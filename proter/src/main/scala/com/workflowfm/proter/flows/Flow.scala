@@ -125,7 +125,11 @@ class FlowSimulation(
   * Works by parsing the entire flow at the start of the simulation to build a
   * [[Lookahead]] automatically.
   */
-trait FlowsLookahead extends FlowSimulation with LookingAhead {
+class FlowLookahead(
+  name: String,
+  manager: Manager,
+  flow: Flow
+) extends FlowSimulation(name, manager, flow) with LookingAhead {
 
   /**
     * Initiates the execution of the simulation.

@@ -14,7 +14,7 @@ import com.workflowfm.proter.flows._
 import com.workflowfm.proter.metrics._
 
 @RunWith(classOf[JUnitRunner])
-class FlowsTest extends FlowsIntegrationTester {
+class FlowTests extends FlowsTester {
   "Flows" must {
     "execute a single flow" in {
       val task1 = FlowTask(Task("task1", 1L))
@@ -378,7 +378,7 @@ class FlowsTest extends FlowsIntegrationTester {
   }
 }
 
-class FlowsIntegrationTester
+class FlowsTester
     extends WordSpecLike
     with Matchers
     with OptionValues {
