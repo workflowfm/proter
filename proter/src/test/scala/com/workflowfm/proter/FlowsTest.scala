@@ -17,33 +17,18 @@ import com.workflowfm.proter.metrics._
 class FlowsTest extends FlowsIntegrationTester {
   "Flows" must {
     "execute a single flow" in {
-      val r1 = new TaskResource("r1", 0)
-      val task1 = FlowTask(
-        Task("task1", 1L).withResources(
-          Seq("r1")
-        )
-      )
+      val task1 = FlowTask(Task("task1", 1L))
       val flow1 = task1
-      val testMetrics = singleFlowTest(flow1, List(r1))
+      val testMetrics = singleFlowTest(flow1, List())
 
       testMetrics.get("task1 (sim1)").value.value should be(1)
     }
 
     "execute an AND of two tasks which use different resources" in {
-      val r1 = new TaskResource("r1", 0)
-      val r2 = new TaskResource("r2", 0)
-      val task1 = FlowTask(
-        Task("task1", 1L).withResources(
-          Seq("r1")
-        )
-      )
-      val task2 = FlowTask(
-        Task("task2", 2L).withResources(
-          Seq("r2")
-        )
-      )
+      val task1 = FlowTask(Task("task1", 1L))
+      val task2 = FlowTask(Task("task2", 2L))
       val flow1 = And(task1, task2)
-      val testMetrics = singleFlowTest(flow1, List(r1, r2))
+      val testMetrics = singleFlowTest(flow1)
 
       testMetrics.get("task1 (sim1)").value.value should be(1)
       testMetrics.get("task2 (sim1)").value.value should be(2)
@@ -71,58 +56,37 @@ class FlowsTest extends FlowsIntegrationTester {
     }
 
     "execute a THEN of two tasks" in {
-      val r1 = new TaskResource("r1", 0)
-      val r2 = new TaskResource("r2", 0)
       val task1 = FlowTask(
-        Task("task1", 1L).withResources(
-          Seq("r1")
-        )
+        Task("task1", 1L)
       )
       val task2 = FlowTask(
-        Task("task2", 2L).withResources(
-          Seq("r2")
-        )
+        Task("task2", 2L)
       )
       val flow1 = Then(task1, task2)
-      val testMetrics = singleFlowTest(flow1, List(r1, r2))
+      val testMetrics = singleFlowTest(flow1)
 
       testMetrics.get("task1 (sim1)").value.value should be(1)
       testMetrics.get("task2 (sim1)").value.value should be(3)
     }
 
     "execute nested ANDs (left associativity)" in {
-      val r1 = new TaskResource("r1", 0)
-      val r2 = new TaskResource("r2", 0)
-      val r3 = new TaskResource("r3", 0)
-      val r4 = new TaskResource("r4", 0)
-      val r5 = new TaskResource("r5", 0)
       val task1 = FlowTask(
-        Task("task1", 1L).withResources(
-          Seq("r1")
-        )
+        Task("task1", 1L)
       )
       val task2 = FlowTask(
-        Task("task2", 2L).withResources(
-          Seq("r2")
-        )
+        Task("task2", 2L)
       )
       val task3 = FlowTask(
-        Task("task3", 4L).withResources(
-          Seq("r3")
-        )
+        Task("task3", 4L)
       )
       val task4 = FlowTask(
-        Task("task4", 8L).withResources(
-          Seq("r4")
-        )
+        Task("task4", 8L)
       )
       val task5 = FlowTask(
-        Task("task5", 16L).withResources(
-          Seq("r5")
-        )
+        Task("task5", 16L)
       )
       val flow1 = And(And(And(And(task1, task2), task3), task4), task5)
-      val testMetrics = singleFlowTest(flow1, List(r1, r2, r3, r4, r5))
+      val testMetrics = singleFlowTest(flow1)
 
       testMetrics.get("task1 (sim1)").value.value should be(1)
       testMetrics.get("task2 (sim1)").value.value should be(2)
@@ -132,38 +96,23 @@ class FlowsTest extends FlowsIntegrationTester {
     }
 
     "execute nested ANDs (right associativity)" in {
-      val r1 = new TaskResource("r1", 0)
-      val r2 = new TaskResource("r2", 0)
-      val r3 = new TaskResource("r3", 0)
-      val r4 = new TaskResource("r4", 0)
-      val r5 = new TaskResource("r5", 0)
       val task1 = FlowTask(
-        Task("task1", 1L).withResources(
-          Seq("r1")
-        )
+        Task("task1", 1L)
       )
       val task2 = FlowTask(
-        Task("task2", 2L).withResources(
-          Seq("r2")
-        )
+        Task("task2", 2L)
       )
       val task3 = FlowTask(
-        Task("task3", 4L).withResources(
-          Seq("r3")
-        )
+        Task("task3", 4L)
       )
       val task4 = FlowTask(
-        Task("task4", 8L).withResources(
-          Seq("r4")
-        )
+        Task("task4", 8L)
       )
       val task5 = FlowTask(
-        Task("task5", 16L).withResources(
-          Seq("r5")
-        )
+        Task("task5", 16L)
       )
       val flow1 = And(task1, And(task2, And(task3, And(task4, task5))))
-      val testMetrics = singleFlowTest(flow1, List(r1, r2, r3, r4, r5))
+      val testMetrics = singleFlowTest(flow1)
 
       testMetrics.get("task1 (sim1)").value.value should be(1)
       testMetrics.get("task2 (sim1)").value.value should be(2)
@@ -173,38 +122,23 @@ class FlowsTest extends FlowsIntegrationTester {
     }
 
     "execute nested THENs (left associativity)" in {
-      val r1 = new TaskResource("r1", 0)
-      val r2 = new TaskResource("r2", 0)
-      val r3 = new TaskResource("r3", 0)
-      val r4 = new TaskResource("r4", 0)
-      val r5 = new TaskResource("r5", 0)
       val task1 = FlowTask(
-        Task("task1", 1L).withResources(
-          Seq("r1")
-        )
+        Task("task1", 1L)
       )
       val task2 = FlowTask(
-        Task("task2", 2L).withResources(
-          Seq("r2")
-        )
+        Task("task2", 2L)
       )
       val task3 = FlowTask(
-        Task("task3", 4L).withResources(
-          Seq("r3")
-        )
+        Task("task3", 4L)
       )
       val task4 = FlowTask(
-        Task("task4", 8L).withResources(
-          Seq("r4")
-        )
+        Task("task4", 8L)
       )
       val task5 = FlowTask(
-        Task("task5", 16L).withResources(
-          Seq("r5")
-        )
+        Task("task5", 16L)
       )
       val flow1 = Then(Then(Then(Then(task1, task2), task3), task4), task5)
-      val testMetrics = singleFlowTest(flow1, List(r1, r2, r3, r4, r5))
+      val testMetrics = singleFlowTest(flow1)
 
       testMetrics.get("task1 (sim1)").value.value should be(1)
       testMetrics.get("task2 (sim1)").value.value should be(3)
@@ -214,38 +148,23 @@ class FlowsTest extends FlowsIntegrationTester {
     }
 
     "execute nested THENs (right associativity)" in {
-      val r1 = new TaskResource("r1", 0)
-      val r2 = new TaskResource("r2", 0)
-      val r3 = new TaskResource("r3", 0)
-      val r4 = new TaskResource("r4", 0)
-      val r5 = new TaskResource("r5", 0)
       val task1 = FlowTask(
-        Task("task1", 1L).withResources(
-          Seq("r1")
-        )
+        Task("task1", 1L)
       )
       val task2 = FlowTask(
-        Task("task2", 2L).withResources(
-          Seq("r2")
-        )
+        Task("task2", 2L)
       )
       val task3 = FlowTask(
-        Task("task3", 4L).withResources(
-          Seq("r3")
-        )
+        Task("task3", 4L)
       )
       val task4 = FlowTask(
-        Task("task4", 8L).withResources(
-          Seq("r4")
-        )
+        Task("task4", 8L)
       )
       val task5 = FlowTask(
-        Task("task5", 16L).withResources(
-          Seq("r5")
-        )
+        Task("task5", 16L)
       )
       val flow1 = Then(task1, Then(task2, Then(task3, Then(task4, task5))))
-      val testMetrics = singleFlowTest(flow1, List(r1, r2, r3, r4, r5))
+      val testMetrics = singleFlowTest(flow1)
 
       testMetrics.get("task1 (sim1)").value.value should be(1)
       testMetrics.get("task2 (sim1)").value.value should be(3)
@@ -255,38 +174,23 @@ class FlowsTest extends FlowsIntegrationTester {
     }
 
     "execute mixed AND/THEN flows" in {
-      val r1 = new TaskResource("r1", 0)
-      val r2 = new TaskResource("r2", 0)
-      val r3 = new TaskResource("r3", 0)
-      val r4 = new TaskResource("r4", 0)
-      val r5 = new TaskResource("r5", 0)
       val task1 = FlowTask(
-        Task("task1", 1L).withResources(
-          Seq("r1")
-        )
+        Task("task1", 1L)
       )
       val task2 = FlowTask(
-        Task("task2", 2L).withResources(
-          Seq("r2")
-        )
+        Task("task2", 2L)
       )
       val task3 = FlowTask(
-        Task("task3", 4L).withResources(
-          Seq("r3")
-        )
+        Task("task3", 4L)
       )
       val task4 = FlowTask(
-        Task("task4", 8L).withResources(
-          Seq("r4")
-        )
+        Task("task4", 8L)
       )
       val task5 = FlowTask(
-        Task("task5", 16L).withResources(
-          Seq("r5")
-        )
+        Task("task5", 16L)
       )
       val flow1 = Then(And(task1, Then(task2, task3)), And(task4, task5))
-      val testMetrics = singleFlowTest(flow1, List(r1, r2, r3, r4, r5))
+      val testMetrics = singleFlowTest(flow1)
 
       testMetrics.get("task1 (sim1)").value.value should be(1)
       testMetrics.get("task2 (sim1)").value.value should be(2)
@@ -296,26 +200,17 @@ class FlowsTest extends FlowsIntegrationTester {
     }
 
     "execute OR followed by a THEN" in {
-      val r1 = new TaskResource("r1", 0)
-      val r2 = new TaskResource("r2", 0)
-      val r3 = new TaskResource("r3", 0)
       val task1 = FlowTask(
-        Task("task1", 1L).withResources(
-          Seq("r1")
-        )
+        Task("task1", 1L)
       )
       val task2 = FlowTask(
-        Task("task2", 2L).withResources(
-          Seq("r2")
-        )
+        Task("task2", 2L)
       )
       val task3 = FlowTask(
-        Task("task3", 4L).withResources(
-          Seq("r3")
-        )
+        Task("task3", 4L)
       )
       val flow1 = Then(Or(task1, task2), task3)
-      val testMetrics = singleFlowTest(flow1, List(r1, r2, r3))
+      val testMetrics = singleFlowTest(flow1)
 
       testMetrics.get("task1 (sim1)").value.value should be(1)
       testMetrics.get("task2 (sim1)").value.value should be(2)
@@ -323,38 +218,23 @@ class FlowsTest extends FlowsIntegrationTester {
     }
 
     "execute mixed AND/THEN/OR flows" in {
-      val r1 = new TaskResource("r1", 0)
-      val r2 = new TaskResource("r2", 0)
-      val r3 = new TaskResource("r3", 0)
-      val r4 = new TaskResource("r4", 0)
-      val r5 = new TaskResource("r5", 0)
       val task1 = FlowTask(
-        Task("task1", 1L).withResources(
-          Seq("r1")
-        )
+        Task("task1", 1L)
       )
       val task2 = FlowTask(
-        Task("task2", 2L).withResources(
-          Seq("r2")
-        )
+        Task("task2", 2L)
       )
       val task3 = FlowTask(
-        Task("task3", 4L).withResources(
-          Seq("r3")
-        )
+        Task("task3", 4L)
       )
       val task4 = FlowTask(
-        Task("task4", 8L).withResources(
-          Seq("r4")
-        )
+        Task("task4", 8L)
       )
       val task5 = FlowTask(
-        Task("task5", 16L).withResources(
-          Seq("r5")
-        )
+        Task("task5", 16L)
       )
       val flow1 = Then(Then(task1, Or(task2, task3)), And(task4, task5))
-      val testMetrics = singleFlowTest(flow1, List(r1, r2, r3, r4, r5))
+      val testMetrics = singleFlowTest(flow1)
 
       testMetrics.get("task1 (sim1)").value.value should be(1)
       testMetrics.get("task2 (sim1)").value.value should be(3)
@@ -364,53 +244,29 @@ class FlowsTest extends FlowsIntegrationTester {
     }
 
     "execute multpile tasks of same duration" in {
-      val r1 = new TaskResource("r1", 0)
-      val r2 = new TaskResource("r2", 0)
-      val r3 = new TaskResource("r3", 0)
-      val r4 = new TaskResource("r4", 0)
-      val r5 = new TaskResource("r5", 0)
-      val r6 = new TaskResource("r6", 0)
-      val r7 = new TaskResource("r7", 0)
-      val r8 = new TaskResource("r8", 0)
       val task1 = FlowTask(
-        Task("task1", 1L).withResources(
-          Seq("r1")
-        )
+        Task("task1", 1L)
       )
       val task2 = FlowTask(
-        Task("task2", 1L).withResources(
-          Seq("r2")
-        )
+        Task("task2", 1L)
       )
       val task3 = FlowTask(
-        Task("task3", 1L).withResources(
-          Seq("r3")
-        )
+        Task("task3", 1L)
       )
       val task4 = FlowTask(
-        Task("task4", 1L).withResources(
-          Seq("r4")
-        )
+        Task("task4", 1L)
       )
       val task5 = FlowTask(
-        Task("task5", 1L).withResources(
-          Seq("r5")
-        )
+        Task("task5", 1L)
       )
       val task6 = FlowTask(
-        Task("task6", 1L).withResources(
-          Seq("r6")
-        )
+        Task("task6", 1L)
       )
       val task7 = FlowTask(
-        Task("task7", 1L).withResources(
-          Seq("r7")
-        )
+        Task("task7", 1L)
       )
       val task8 = FlowTask(
-        Task("task8", 1L).withResources(
-          Seq("r8")
-        )
+        Task("task8", 1L)
       )
 
       val flow1 = Then(
@@ -418,7 +274,7 @@ class FlowsTest extends FlowsIntegrationTester {
         And(Then(task5, task6), Then(task7, task8))
       )
 
-      val testMetrics = singleFlowTest(flow1, List(r1, r2, r3, r4, r5, r6, r7, r8))
+      val testMetrics = singleFlowTest(flow1)
 
       testMetrics.get("task1 (sim1)").value.value should be(1)
       testMetrics.get("task2 (sim1)").value.value should be(2)
@@ -431,20 +287,14 @@ class FlowsTest extends FlowsIntegrationTester {
     }
 
     "execute a flow which uses the same task multiple times" in {
-      val r1 = new TaskResource("r1", 0)
-      val r2 = new TaskResource("r2", 0)
       val task1 = FlowTask(
-        Task("task1", 1L).withResources(
-          Seq("r1")
-        )
+        Task("task1", 1L)
       )
       val task2 = FlowTask(
-        Task("task2", 2L).withResources(
-          Seq("r2")
-        )
+        Task("task2", 2L)
       )
       val flow1 = Then(And(task1, task2), task1)
-      val testMetrics = singleFlowTest(flow1, List(r1, r2))
+      val testMetrics = singleFlowTest(flow1)
 
       //testMetrics.get("task1 (sim1)").value.value should be (1)
       testMetrics.get("task2 (sim1)").value.value should be(2)
@@ -458,26 +308,15 @@ class FlowsTest extends FlowsIntegrationTester {
       val smh = new PromiseHandler(new SimMetricsHandler)
       coordinator.subscribe(smh)
 
-      val r1 = new TaskResource("r1", 0)
-      val r2 = new TaskResource("r2", 0)
-      val r3 = new TaskResource("r3", 0)
-
-      coordinator.addResources(r1, r2, r3)
 
       val task1 = FlowTask(
-        Task("task1", 1L).withResources(
-          Seq("r1")
-        )
+        Task("task1", 1L)
       )
       val task2 = FlowTask(
-        Task("task2", 2L).withResources(
-          Seq("r2")
-        )
+        Task("task2", 2L)
       )
       val task3 = FlowTask(
-        Task("task3", 4L).withResources(
-          Seq("r3")
-        )
+        Task("task3", 4L)
       )
       val flow1 = task1
       val flow2 = Then(task2, task3)
@@ -508,26 +347,11 @@ class FlowsTest extends FlowsIntegrationTester {
       val smh = new PromiseHandler(new SimMetricsHandler)
       coordinator.subscribe(smh)
 
-      val r1 = new TaskResource("r1", 0)
-      val r2 = new TaskResource("r2", 0)
-      val r3 = new TaskResource("r3", 0)
-
-      coordinator.addResources(r1, r2, r3)
-
       val task1 = FlowTask(
-        Task("task1", 1L).withResources(
-          Seq("r1")
-        )
+        Task("task1", 1L)
       )
       val task2 = FlowTask(
-        Task("task2", 2L).withResources(
-          Seq("r2")
-        )
-      )
-      val task3 = FlowTask(
-        Task("task3", 4L).withResources(
-          Seq("r3")
-        )
+        Task("task2", 2L)
       )
       val flow1 = task1
       val flow2 = Then(task2, task1)
@@ -560,9 +384,9 @@ class FlowsIntegrationTester
     with OptionValues {
 
   def singleFlowTest(
-      flow: Flow,
-      resources: List[TaskResource],
-      simName: String = "sim1"
+    flow: Flow,
+    resources: List[TaskResource] = List(),
+    simName: String = "sim1"
   ): Map[String, Option[Long]] = {
 
     val coordinator = new Coordinator(new DefaultScheduler())
