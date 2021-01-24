@@ -327,7 +327,6 @@ class CoordinatorTests
 
       inSequence {
         sim1.run _ expects () onCall ( _ => {
-          println("HIHIHI")
           coordinator.simResponse(SimReady("sim1", Seq(tg1a)))
         }) once()
 

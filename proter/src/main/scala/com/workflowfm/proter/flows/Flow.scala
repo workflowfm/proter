@@ -7,19 +7,35 @@ import scala.util.Success
 import com.workflowfm.proter._
 
 sealed trait Flow {
-  val id: UUID = java.util.UUID.randomUUID
+  val id: UUID = UUID.randomUUID
 
-  def +(f: Flow) = And(this, f)
-  def >(f: Flow) = Then(this, f)
-  def |(f: Flow) = Or(this, f)
+  def +(f: Flow): And = new And(this, f)
+  def >(f: Flow): Then = new Then(this, f)
+  def |(f: Flow): Or = new Or(this, f)
+  def *(i: Int): Flow = new All((for (_ <- 1 to i) yield this.copy()) :_*)
+
+  def copy(): Flow
 }
 
-case class NoTask() extends Flow
-case class FlowTask(task: Task) extends Flow { override val id = task.id.getOrElse(UUID.randomUUID()) }
-case class Then(left: Flow, right: Flow) extends Flow
-case class And(left: Flow, right: Flow) extends Flow
-case class All(elements: Flow*) extends Flow
-case class Or(left: Flow, right: Flow) extends Flow
+class NoTask() extends Flow {
+  override def copy(): Flow = new NoTask()
+}
+class FlowTask(val task: Task) extends Flow { 
+  override val id = task.id.getOrElse(UUID.randomUUID()) 
+  override def copy(): Flow = new FlowTask(task.withID(UUID.randomUUID))
+}
+class Then(val left: Flow, val right: Flow) extends Flow {
+  override def copy(): Flow = new Then(left.copy(), right.copy())
+}
+class And(val left: Flow, val right: Flow) extends Flow {
+  override def copy(): Flow = new And(left.copy(), right.copy())
+}
+class All(val elements: Flow*) extends Flow {
+  override def copy(): Flow = new All(elements.map(_.copy()) :_*)
+}
+class Or(val left: Flow, val right: Flow) extends Flow {
+  override def copy(): Flow = new Or(left.copy(), right.copy())
+}
 
 /**
   * A simulation of a [[Flow]].
@@ -104,8 +120,8 @@ class FlowSimulation(
         runFlow(f.right, rightCallback)
       }
 
-      case f @ All(elem @ _*) =>
-        runFlow((elem.fold(NoTask()) { (l, r) => And(l, r) }), callback((_, _) => complete(f.id)))
+      case f: All =>
+        runFlow((f.elements.fold(new NoTask()) { (l, r) => new And(l, r) }), callback((_, _) => complete(f.id)))
 
       case f: Or => {
         val leftCallback: Callback =
@@ -207,9 +223,9 @@ class FlowLookahead(
   ): (IDFunction, Lookahead) = {
     flow match {
       case _: NoTask => ((_: Map[UUID, Long]) => (Some(Long.MinValue)), NoLookahead)
-      case f @ FlowTask(g) => {
+      case f: FlowTask => {
         var s = lookaheadStructure
-        if (extraFunction.isDefined) s = s + (extraFunction.get, g)
+        if (extraFunction.isDefined) s = s + (extraFunction.get, f.task)
         ((m: Map[UUID, Long]) => (m.get(f.id)), s)
       }
       case f: Then => {
@@ -229,8 +245,8 @@ class FlowLookahead(
           functions.map(_._2).fold(NoLookahead) { (a, b) => a and b }
         )
       }
-      case All(elem @ _*) => {
-        val functions = elem map (parseFlow(_, extraFunction, lookaheadStructure))
+      case f: All => {
+        val functions = f.elements map (parseFlow(_, extraFunction, lookaheadStructure))
         (
           (m) => {
             val results = functions map (_._1(m))
