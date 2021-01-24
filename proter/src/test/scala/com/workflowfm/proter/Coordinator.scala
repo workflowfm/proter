@@ -109,83 +109,66 @@ class CoordinatorTests
 
       Await.result(coordinator.start(), 3.seconds)
     }
-/*
+
     "interact correctly with a simulation reacting to another" in {
       val coordinator = new Coordinator(new DefaultScheduler())
 
-      // probe represents a 2nd simulation starting at 1
-      val probe = TestProbe()
+      val sim1: Simulation = mock[Simulation]
+      sim1.name _ expects () returning "sim1" anyNumberOfTimes()
+      val sim2: Simulation = mock[Simulation]
+      sim2.name _ expects () returning "sim2" anyNumberOfTimes()
 
-      coordinator ! Coordinator.AddSim(0L, self)
-      coordinator ! Coordinator.AddSim(1L, probe.ref)
-      coordinator ! Coordinator.Start
-
-      // Test1 starts
-      expectMsg(Simulation.Start)
-      coordinator ! Coordinator.SimStarted("Test1", self)
-
-      // T1a 0..10
       val id1a = UUID.randomUUID()
-      val tg1a = TaskGenerator("T1a", id1a, "Test1", ConstantGenerator(10L), ConstantGenerator(5L))
-      val expected1a =
-        new Task(id1a, "T1a", "Test1", self, 0L, 0L, Seq(), 10L, 10L, 5L, -1, Task.Medium)
-      coordinator ! Coordinator.AddTasks(Seq((tg1a)))
-      coordinator ! Coordinator.SimReady(None)
+      val tg1a = Task("T1a", 10) withID id1a
+      val expected1a = tg1a.create("sim1", 0L)
 
-      // Test2 starts
-      probe.expectMsg(Simulation.Start)
-      probe.reply(Coordinator.SimStarted("Test2", self))
-
-      // T2a 1..2
-      val id2a = UUID.randomUUID()
-      val tg2a = TaskGenerator("T2a", id2a, "Test2", ConstantGenerator(1L), ConstantGenerator(5L))
-      val expected2a =
-        new Task(id2a, "T2a", "Test2", self, 1L, 0L, Seq(), 1L, 1L, 5L, -1, Task.Medium)
-      probe.send(coordinator, Coordinator.AddTasks(Seq((tg2a))))
-      probe.send(coordinator, Coordinator.SimReady(None))
-
-      // T2a completes
-      val Simulation.TaskCompleted(task2a, time2a) =
-        probe.expectMsgType[Simulation.TaskCompleted]
-      time2a should be(2L)
-      task2a.compare(expected2a) should be(0)
-
-      // Test1 requests wait
-      coordinator ! Coordinator.WaitFor(self)
-      expectMsg(Simulation.AckWait)
-
-      // Test2 completes
-      probe.send(coordinator, Coordinator.SimDone("Test2", Success(Unit)))
-
-      // Coordinator must wait
-      Thread.sleep(500)
-      coordinator ! Coordinator.Ping
-      expectMsgType[Coordinator.Time].time should be(2L)
-
-      // T1b 2..3
       val id1b = UUID.randomUUID()
-      val tg1b = TaskGenerator("T1b", id1b, "Test1", ConstantGenerator(1L), ConstantGenerator(5L))
-      val expected1b =
-        new Task(id1b, "T1b", "Test1", self, 2L, 0L, Seq(), 1L, 1L, 5L, -1, Task.Medium)
-      coordinator ! Coordinator.AddTasks(Seq((tg1b)))
-      coordinator ! Coordinator.SimReady(None)
+      val tg1b = Task("T1b", 3L) withID id1b
+      val expected1b = tg1b.create("sim1", 2L)
 
-      // T1b completes
-      val Simulation.TaskCompleted(task1b, time1b) =
-        expectMsgType[Simulation.TaskCompleted]
-      time1b should be(3L)
-      task1b.compare(expected1b) should be(0)
-      coordinator ! Coordinator.AckTasks(Seq(id1b))
+      val id2 = UUID.randomUUID()
+      val tg2 = Task("T2", 1) withID id2
+      val expected2 = tg2.create("sim2", 1L)
 
-      // T1a completes
-      val Simulation.TaskCompleted(task1a, time1a) =
-        expectMsgType[Simulation.TaskCompleted]
-      time1a should be(10L)
-      task1a.compare(expected1a) should be(0)
+      inSequence {
+        sim1.run _ expects () onCall ( _ => {
+          coordinator.simResponse(SimReady("sim1", Seq(tg1a)))
+        }) once()
 
-      coordinator ! Coordinator.SimDone("Test1", Success(Unit))
+        sim2.run _ expects () onCall ( _ => {
+          coordinator.simResponse(SimReady("sim2", Seq(tg2)))
+        }) once()
+        
+        sim2.completed _ expects (
+          where { (time, tasks) => {
+            tasks.size == 1 && containsTask(tasks, expected2) && time == 2L
+          }}
+        ) onCall { (_, _) => {
+          coordinator.waitFor("sim1")
+          coordinator.simResponse(SimDone("sim2", Success(Unit)))
+          Thread.sleep(500)
+          coordinator.simResponse(SimReady("sim1", Seq(tg1b)))
+        }} once()
+
+       sim1.completed _ expects (
+          where { (time, tasks) => {
+            tasks.size == 1 && containsTask(tasks, expected1b) && time == 5L
+          }}
+        ) onCall { (_, _) => {
+          coordinator.simResponse(SimReady("sim1", Seq()))
+        }} once()
+
+        sim1.completed _ expects (
+          where { (time, tasks) => tasks.size == 1 && containsTask(tasks, expected1a) && time == 10L }
+        ) onCall ( _ => coordinator.simResponse(SimDone("sim1", Success(Unit))) ) once()
+
+      }
+
+      coordinator.addSimulation(0, sim1)
+      coordinator.addSimulation(1, sim2)
+
+      Await.result(coordinator.start(), 3.seconds)
     }
- */
     
     "interact correctly with a simulation aborting a task without resources" in {
       val coordinator = new Coordinator(new DefaultScheduler())
@@ -318,6 +301,67 @@ class CoordinatorTests
         )
         coordinator.addSimulation(start, sim)
       }
+
+      Await.result(coordinator.start(), 3.seconds)
+    }
+
+    "interact correctly with a simulation reacting to another" in {
+      val coordinator = new Coordinator(new DefaultScheduler())
+
+      val sim1: Simulation = mock[Simulation]
+      sim1.name _ expects () returning "sim1" anyNumberOfTimes()
+      val sim2: Simulation = mock[Simulation]
+      sim2.name _ expects () returning "sim2" anyNumberOfTimes()
+
+      val id1a = UUID.randomUUID()
+      val tg1a = Task("T1a", 10) withID id1a
+      val expected1a = tg1a.create("sim1", 0L)
+
+      val id1b = UUID.randomUUID()
+      val tg1b = Task("T1b", 3L) withID id1b
+      val expected1b = tg1b.create("sim1", 2L)
+
+      val id2 = UUID.randomUUID()
+      val tg2 = Task("T2", 1) withID id2
+      val expected2 = tg2.create("sim2", 1L)
+
+      inSequence {
+        sim1.run _ expects () onCall ( _ => {
+          println("HIHIHI")
+          coordinator.simResponse(SimReady("sim1", Seq(tg1a)))
+        }) once()
+
+        sim2.run _ expects () onCall ( _ => {
+          coordinator.simResponse(SimReady("sim2", Seq(tg2)))
+        }) once()
+        
+        sim2.completed _ expects (
+          where { (time, tasks) => {
+            tasks.size == 1 && containsTask(tasks, expected2) && time == 2L
+          }}
+        ) onCall { (_, _) => {
+          coordinator.waitFor("sim1")
+          coordinator.simResponse(SimDone("sim2", Success(Unit)))
+          Thread.sleep(500)
+          coordinator.simResponse(SimReady("sim1", Seq(tg1b)))
+        }} once()
+
+       sim1.completed _ expects (
+          where { (time, tasks) => {
+            tasks.size == 1 && containsTask(tasks, expected1b) && time == 5L
+          }}
+        ) onCall { (_, _) => {
+          coordinator.simResponse(SimReady("sim1", Seq()))
+        }} once()
+
+        sim1.completed _ expects (
+          where { (time, tasks) => tasks.size == 1 && containsTask(tasks, expected1a) && time == 10L }
+        ) onCall ( _ => coordinator.simResponse(SimDone("sim1", Success(Unit))) ) once()
+
+      }
+
+      coordinator.addSimulation(0, sim1)
+      coordinator.addSimulation(1, sim2)
 
       Await.result(coordinator.start(), 3.seconds)
     }
