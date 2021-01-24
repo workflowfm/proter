@@ -27,8 +27,9 @@ trait Manager {
   * @param startingTime The starting timestamp of the entire simulation.
   */
 class Coordinator(
-    scheduler: Scheduler,
-    startingTime: Long = 0L
+  scheduler: Scheduler,
+  singleThread: Boolean = false,
+  startingTime: Long = 0L
 )(implicit executionContext: ExecutionContext = ExecutionContext.global) extends Manager with HashMapPublisher {
 
   val id: String = this.toString()
@@ -541,7 +542,12 @@ class Coordinator(
         scheduler.complete(task, time)
         publish(ETaskDone(id, time, task))
       }
-      simulations.get(simulation).map(x => Future { x.completed(time, tasks) })
+      simulations.get(simulation).map(x => 
+        if (singleThread)
+          x.completed(time, tasks)
+        else
+          Future { x.completed(time, tasks) }
+      )
     } }
 
   /**

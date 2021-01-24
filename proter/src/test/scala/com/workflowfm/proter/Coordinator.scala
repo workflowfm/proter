@@ -325,6 +325,100 @@ class CoordinatorTests
     }
  */
   }
+
+  "The single-threaded Coordinator" must {
+
+    "interact correctly with a simulation with no tasks" in {
+      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val sim: Simulation = mock[Simulation]
+
+      sim.name _ expects () returning "sim" anyNumberOfTimes()
+
+      sim.run _ expects () onCall( _ => coordinator.simResponse(SimDone("sim", Success(Unit))) ) once
+
+      coordinator.addSimulation(0L, sim)
+      Await.result(coordinator.start(), 3.seconds)
+    }
+
+    "interact correctly with a simulation with one task" in {
+      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val sim: Simulation = mockSingleTask("sim", coordinator, 1L, 2L, 3L)
+
+      coordinator.addSimulation(1L, sim)
+      Await.result(coordinator.start(), 3.seconds)
+    }
+
+    "interact correctly with a simulation with two tasks in sequence" in {
+      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val sim: Simulation = mockTwoTasks("sim", coordinator, 0L, 2L, 2L, 3L, 5L)
+
+      coordinator.addSimulation(0L, sim)
+      Await.result(coordinator.start(), 3.seconds)
+    }
+
+    "interact correctly with a simulation with two tasks in parallel, then one more" in {
+      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val sim: Simulation = mockTwoPlusOneTasks("sim", coordinator, 0L, 2L, 2L, 2L, 2L, 3L, 5L)
+
+      coordinator.addSimulation(0L, sim)
+      Await.result(coordinator.start(), 3.seconds)
+    }
+
+    "interact correctly with two interleaved single-task simulations" in {
+      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val sim1: Simulation = mockSingleTask("sim1", coordinator, 0L, 2L, 2L)
+      val sim2: Simulation = mockSingleTask("sim2", coordinator, 1L, 1L, 2L)
+
+      coordinator.addSimulation(0L, sim1)
+      coordinator.addSimulation(1L, sim2)
+      Await.result(coordinator.start(), 3.seconds)
+    }
+
+    "interact correctly with two parallel single-task simulations, a short within a long one" in {
+       val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val sim1: Simulation = mockSingleTask("sim1", coordinator, 0L, 10L, 10L)
+      val sim2: Simulation = mockSingleTask("sim2", coordinator, 1L, 1L, 2L)
+
+      coordinator.addSimulation(0L, sim1)
+      coordinator.addSimulation(1L, sim2)
+      Await.result(coordinator.start(), 3.seconds)
+    }
+
+    "interact correctly with two 2plus1 simulations" in {
+      val coordinator = new Coordinator(new DefaultScheduler(), true)
+
+      val sim1: Simulation = mockTwoPlusOneTasks("sim1", coordinator, 0L, 2L, 2L, 2L, 2L, 3L, 5L)
+      val sim2: Simulation = mockTwoPlusOneTasks("sim2", coordinator, 1L, 1L, 2L, 1L, 2L, 3L, 5L)
+
+      coordinator.addSimulation(0L, sim1)
+      coordinator.addSimulation(1L, sim2)
+      Await.result(coordinator.start(), 3.seconds)
+    }
+
+    "interact correctly with 100 2plus1 simulations" in {
+      val coordinator = new Coordinator(new DefaultScheduler(), true)
+
+//      val handler = new com.workflowfm.proter.events.PrintEventHandler
+//      coordinator.subscribe(handler)
+      for (i <- 1 to 100) {
+        val start = i % 10
+        val sim: Simulation = mockTwoPlusOneTasks(
+          "sim" + i + "(" + start + ")", 
+          coordinator, 
+          start, 
+          2L, 
+          start + 2L, 
+          2L, 
+          start + 2L, 
+          3L, 
+          start + 5L
+        )
+        coordinator.addSimulation(start, sim)
+      }
+
+      Await.result(coordinator.start(), 3.seconds)
+    }
+  }
 }
 
 trait MockSimulations { self: MockFactory =>
