@@ -31,7 +31,7 @@ class CoordinatorTests
       Await.result(coordinator.start(), 3.seconds)
     }
 
-    "interact correctly with a simulation with one task" in {
+    "interact correctly with a simulation with just one task" in {
       val coordinator = new Coordinator(new DefaultScheduler())
       val sim: Simulation = mockSingleTask("sim", coordinator, 1L, 2L, 3L)
 
@@ -39,9 +39,17 @@ class CoordinatorTests
       Await.result(coordinator.start(), 3.seconds)
     }
 
-    "interact correctly with a simulation with two tasks in sequence" in {
+    "interact correctly with a simulation with just two tasks in sequence" in {
       val coordinator = new Coordinator(new DefaultScheduler())
       val sim: Simulation = mockTwoTasks("sim", coordinator, 0L, 2L, 2L, 3L, 5L)
+
+      coordinator.addSimulation(0L, sim)
+      Await.result(coordinator.start(), 3.seconds)
+    }
+
+    "interact correctly with a simulation with ten tasks in sequence" in {
+      val coordinator = new Coordinator(new DefaultScheduler())
+      val sim: Simulation = mockRepeater("sim", coordinator, 0L, 2L, 10)
 
       coordinator.addSimulation(0L, sim)
       Await.result(coordinator.start(), 3.seconds)
@@ -108,6 +116,26 @@ class CoordinatorTests
       }
 
       Await.result(coordinator.start(), 3.seconds)
+    }
+
+    "interact correctly with 100x10 task simulations" in {
+      val coordinator = new Coordinator(new DefaultScheduler())
+
+//      val handler = new com.workflowfm.proter.events.PrintEventHandler
+//      coordinator.subscribe(handler)
+      for (i <- 1 to 100) {
+        val start = i % 10
+        val sim: Simulation = mockRepeater(
+          "sim" + i + "(" + start + ")", 
+          coordinator, 
+          start,
+          2L,
+          10
+        )
+        coordinator.addSimulation(start, sim)
+      }
+
+      Await.result(coordinator.start(), 10.seconds)
     }
 
     "interact correctly with a simulation reacting to another" in {
@@ -226,7 +254,7 @@ class CoordinatorTests
       Await.result(coordinator.start(), 3.seconds)
     }
 
-    "interact correctly with a simulation with one task" in {
+    "interact correctly with a simulation with just one task" in {
       val coordinator = new Coordinator(new DefaultScheduler(), true)
       val sim: Simulation = mockSingleTask("sim", coordinator, 1L, 2L, 3L)
 
@@ -234,9 +262,17 @@ class CoordinatorTests
       Await.result(coordinator.start(), 3.seconds)
     }
 
-    "interact correctly with a simulation with two tasks in sequence" in {
+    "interact correctly with a simulation with just two tasks in sequence" in {
       val coordinator = new Coordinator(new DefaultScheduler(), true)
       val sim: Simulation = mockTwoTasks("sim", coordinator, 0L, 2L, 2L, 3L, 5L)
+
+      coordinator.addSimulation(0L, sim)
+      Await.result(coordinator.start(), 3.seconds)
+    }
+
+    "interact correctly with a simulation with ten tasks in sequence" in {
+      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val sim: Simulation = mockRepeater("sim", coordinator, 0L, 2L, 10)
 
       coordinator.addSimulation(0L, sim)
       Await.result(coordinator.start(), 3.seconds)
@@ -303,6 +339,26 @@ class CoordinatorTests
       }
 
       Await.result(coordinator.start(), 3.seconds)
+    }
+
+    "interact correctly with 100x10 task simulations" in {
+      val coordinator = new Coordinator(new DefaultScheduler())
+
+//      val handler = new com.workflowfm.proter.events.PrintEventHandler
+//      coordinator.subscribe(handler)
+      for (i <- 1 to 100) {
+        val start = i % 10
+        val sim: Simulation = mockRepeater(
+          "sim" + i + "(" + start + ")", 
+          coordinator, 
+          start,
+          2L,
+          10
+        )
+        coordinator.addSimulation(start, sim)
+      }
+
+      Await.result(coordinator.start(), 10.seconds)
     }
 
     "interact correctly with a simulation reacting to another" in {
@@ -471,6 +527,41 @@ trait MockSimulations { self: MockFactory =>
         where { (time, tasks) => tasks.size == 1 && containsTask(tasks, expected2) && time == expectedEnd2 }
       ) onCall ( _ => coordinator.simResponse(SimDone(name, Success(Unit))) ) once()
 
+    }
+
+    sim
+  }
+
+  def mockRepeater(
+    name: String, 
+    coordinator: Coordinator, 
+    expectedCreate: Long,
+    duration: Long, 
+    repeat: Int
+  ): Simulation = {
+    val sim: Simulation = mock[Simulation]
+    sim.name _ expects () returning name anyNumberOfTimes()
+
+    var i = 0
+    var tg = Task("T" + i, duration) withID UUID.randomUUID
+    var expected = tg.create(name, expectedCreate)
+        i += 1
+
+    inSequence {
+      sim.run _ expects () onCall ( _ => {
+        coordinator.simResponse(SimReady(name, Seq(tg)))
+      }) once()
+
+      sim.completed _ expects (
+        where { (time, tasks) => tasks.size == 1 && containsTask(tasks, expected) && time == (expectedCreate + i * duration) }
+      ) onCall ( _ => if (i < repeat) {
+        tg = Task("T" + i, duration) withID UUID.randomUUID
+        expected = tg.create(name, expectedCreate + i * duration)
+        i += 1
+        coordinator.simResponse(SimReady(name, Seq(tg)))
+      } else {
+        coordinator.simResponse(SimDone(name, Success(Unit)))
+      }) repeat(repeat)
     }
 
     sim
