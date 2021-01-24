@@ -10,7 +10,7 @@ import scala.util.{ Try, Success, Failure }
 import com.workflowfm.proter.events._
 
 trait Manager {
-//  def waitFor(simulation: String): Unit
+  def waitFor(simulation: String): Unit
   def simResponse(response: SimResponse): Unit
 }
 
@@ -181,7 +181,7 @@ class Coordinator(
         if (!doWait) tick()
       }
 
-    } else if (scheduler.noMoreTasks() && simulations.isEmpty) {
+    } else if (scheduler.noMoreTasks() && simulations.isEmpty && !promise.isCompleted) {
       finish()
     } else if (waiting.isEmpty && !scheduler.noMoreTasks()) { // this may happen if handleDiscreteEvent fails
       allocateTasks()
@@ -490,7 +490,7 @@ class Coordinator(
     * @group simulations
     * @param actor The reference to the [[Simulation]] we need to wait for.
     */
-  protected def waitFor(simulation: String): Unit = {
+  override def waitFor(simulation: String): Unit = this.synchronized {
     waiting += simulation
     //log.debug(s"[COORD:$time] Wait requested: $simulation")
   }
@@ -597,16 +597,16 @@ class Coordinator(
     scheduler.setLookahead(simulation, lookahead)
   }
 
-  def simResponse(response: SimResponse): Unit = { 
+  def simResponse(response: SimResponse): Unit = if (!promise.isCompleted) {
     response match {
-    case SimReady(sim, tasks, abort, lookahead) => {
-      addTask(sim, tasks)
-      abortTask(abort)
-      setLookahead(sim, lookahead)
-      ready(sim)
-    }
-    case SimDone(sim, result) => simDone(sim, result)
-  }}
+      case SimReady(sim, tasks, abort, lookahead) => {
+        addTask(sim, tasks)
+        abortTask(abort)
+        setLookahead(sim, lookahead)
+        ready(sim)
+      }
+      case SimDone(sim, result) => simDone(sim, result)
+    }}
 
 
   /**

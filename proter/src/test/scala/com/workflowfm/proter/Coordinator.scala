@@ -66,7 +66,7 @@ class CoordinatorTests
     }
 
     "interact correctly with two parallel single-task simulations, a short within a long one" in {
-       val coordinator = new Coordinator(new DefaultScheduler())
+      val coordinator = new Coordinator(new DefaultScheduler())
       val sim1: Simulation = mockSingleTask("sim1", coordinator, 0L, 10L, 10L)
       val sim2: Simulation = mockSingleTask("sim2", coordinator, 1L, 1L, 2L)
 
@@ -109,10 +109,9 @@ class CoordinatorTests
 
       Await.result(coordinator.start(), 3.seconds)
     }
-
-    /*
+/*
     "interact correctly with a simulation reacting to another" in {
-      val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler()))
+      val coordinator = new Coordinator(new DefaultScheduler())
 
       // probe represents a 2nd simulation starting at 1
       val probe = TestProbe()
@@ -186,144 +185,48 @@ class CoordinatorTests
 
       coordinator ! Coordinator.SimDone("Test1", Success(Unit))
     }
-
+ */
+    
     "interact correctly with a simulation aborting a task without resources" in {
-      val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler()))
+      val coordinator = new Coordinator(new DefaultScheduler())
 
-      coordinator ! Coordinator.AddSim(0L, self)
-      coordinator ! Coordinator.Start
-      expectMsg(Simulation.Start)
-      coordinator ! Coordinator.SimStarted("Test", self)
+      val sim: Simulation = mockAbort("sim", coordinator, None)
 
-      // T1 0..3 - to be aborted at 2
-      val id1 = UUID.randomUUID()
-      val tg1 = TaskGenerator("T1", id1, "Test", ConstantGenerator(3L), ConstantGenerator(5L))
-      val expected1 = new Task(id1, "T1", "Test", self, 0L, 0L, Seq(), 3L, 3L, 5L, -1, Task.Medium)
+      coordinator.addSimulation(0L, sim)
 
-      // T2 0..2
-      val id2 = UUID.randomUUID()
-      val tg2 = TaskGenerator("T2", id2, "Test", ConstantGenerator(2L), ConstantGenerator(6L))
-      val expected2 = new Task(id2, "T2", "Test", self, 0L, 0L, Seq(), 2L, 2L, 6L, -1, Task.Medium)
-
-      // T3 0..5
-      val id3 = UUID.randomUUID()
-      val tg3 = TaskGenerator("T3", id3, "Test", ConstantGenerator(5L), ConstantGenerator(6L))
-      val expected3 = new Task(id3, "T3", "Test", self, 0L, 0L, Seq(), 5L, 5L, 6L, -1, Task.Medium)
-
-      // Add all
-      coordinator ! Coordinator.AddTasks(Seq(tg1, tg2, tg3))
-      coordinator ! Coordinator.SimReady()
-
-      // T2 completes
-      expectMsgType[Simulation.TaskCompleted]
-
-      // Abort T1
-      coordinator ! Coordinator.AbortTasks(Seq(id1))
-      coordinator ! Coordinator.SimReady()
-
-      // T3 completes
-      val Simulation.TaskCompleted(task3, time3) = expectMsgType[Simulation.TaskCompleted]
-      task3.compare(expected3) should be(0)
-      time3 should be(5L)
-
-      coordinator ! Coordinator.SimDone("Test", Success(Unit))
+      Await.result(coordinator.start(), 3.seconds)
     }
 
     "interact correctly with a simulation aborting a task with resources" in {
-      val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler()))
-
-      coordinator ! Coordinator.AddSim(0L, self)
-      coordinator ! Coordinator.Start
-      expectMsg(Simulation.Start)
-      coordinator ! Coordinator.SimStarted("Test", self)
+      val coordinator = new Coordinator(new DefaultScheduler())
 
       val res = new TaskResource("R", 0)
-      coordinator ! Coordinator.AddResource(res)
+      coordinator.addResource(res)
 
-      // T1 0..3 - to be aborted at 2
-      val id1 = UUID.randomUUID()
-      val tg1 = TaskGenerator(
-          "T1",
-          id1,
-          "Test",
-          ConstantGenerator(3L),
-          ConstantGenerator(5L)
-        ) withResources (Seq(res.name))
-      val expected1 =
-        new Task(id1, "T1", "Test", self, 0L, 0L, Seq(res.name), 3L, 3L, 5L, -1, Task.Medium)
+      val sim: Simulation = mockAbort("sim", coordinator, Some(res))
 
-      // T2 0..2
-      val id2 = UUID.randomUUID()
-      val tg2 = TaskGenerator("T2", id2, "Test", ConstantGenerator(2L), ConstantGenerator(6L))
-      val expected2 = new Task(id2, "T2", "Test", self, 0L, 0L, Seq(), 2L, 2L, 6L, -1, Task.Medium)
+      coordinator.addSimulation(0L, sim)
 
-      // T3 0..5
-      val id3 = UUID.randomUUID()
-      val tg3 = TaskGenerator(
-          "T3",
-          id3,
-          "Test",
-          ConstantGenerator(5L),
-          ConstantGenerator(6L)
-        ) withResources (Seq(res.name))
-      val expected3 =
-        new Task(id3, "T3", "Test", self, 0L, 0L, Seq(res.name), 5L, 5L, 6L, -1, Task.Medium)
-
-      // Add all
-      coordinator ! Coordinator.AddTasks(Seq(tg1, tg2, tg3))
-      coordinator ! Coordinator.SimReady()
-
-      // T2 completes
-      expectMsgType[Simulation.TaskCompleted]
-
-      // Abort T1
-      coordinator ! Coordinator.AbortTasks(Seq(id1))
-      coordinator ! Coordinator.SimReady()
-
-      // T3 completes
-      val Simulation.TaskCompleted(task3, time3) = expectMsgType[Simulation.TaskCompleted]
-      task3.compare(expected3) should be(0)
-      time3 should be(5L)
-
-      coordinator ! Coordinator.SimDone("Test", Success(Unit))
+      Await.result(coordinator.start(), 3.seconds)
     }
-
 
     "abort 2 simulations when the time limit is hit" in {
-      val coordinator = system.actorOf(Coordinator.props(new DefaultScheduler()))
+      val coordinator = new Coordinator(new DefaultScheduler())
 
-      val probe1 = TestProbe()
-      val probe2 = TestProbe()
+      val sim1: Simulation = mockSingleTask("sim1", coordinator, 0L, 3L, 3L)
+      val sim2: Simulation = mockAborted("sim2", coordinator, 10L)
+      val sim3: Simulation = mockAborted("sim3", coordinator, 3L)
 
-      coordinator ! Coordinator.AddSim(0L, probe1.ref)
-      coordinator ! Coordinator.AddSim(1L, probe2.ref)
-      coordinator ! Coordinator.LimitTime(5L)
-      coordinator ! Coordinator.Start
+      coordinator.addSimulations(Seq(
+        (0L, sim1),
+        (0L, sim2),
+        (4L, sim3)
+      ))
 
-      // Test1 starts
-      probe1.expectMsg(Simulation.Start)
-      coordinator ! Coordinator.SimStarted("Test1", probe1.ref)
+      coordinator.limit(5L)
 
-      // T1 0..10
-      val id1 = UUID.randomUUID()
-      val tg1 = TaskGenerator("T1", id1, "Test1", ConstantGenerator(10L), ConstantGenerator(5L))
-      probe1.send(coordinator, Coordinator.AddTasks(Seq((tg1))))
-      probe1.send(coordinator, Coordinator.SimReady(None))
-
-      // Test2 starts
-      probe2.expectMsg(Simulation.Start)
-      probe2.reply(Coordinator.SimStarted("Test2", probe2.ref))
-
-      // T2 1..2
-      val id2 = UUID.randomUUID()
-      val tg2 = TaskGenerator("T2", id2, "Test2", ConstantGenerator(8L), ConstantGenerator(5L))
-      probe2.send(coordinator, Coordinator.AddTasks(Seq((tg2))))
-      probe2.send(coordinator, Coordinator.SimReady(None))
-
-      probe1.expectMsg(Simulation.Stop)
-      probe2.expectMsg(Simulation.Stop)
+      Await.result(coordinator.start(), 3.seconds)
     }
- */
   }
 
   "The single-threaded Coordinator" must {
@@ -415,6 +318,47 @@ class CoordinatorTests
         )
         coordinator.addSimulation(start, sim)
       }
+
+      Await.result(coordinator.start(), 3.seconds)
+    }
+
+    "interact correctly with a simulation aborting a task without resources" in {
+      val coordinator = new Coordinator(new DefaultScheduler(), true)
+
+      val sim: Simulation = mockAbort("sim", coordinator, None)
+
+      coordinator.addSimulation(0L, sim)
+
+      Await.result(coordinator.start(), 3.seconds)
+    }
+
+    "interact correctly with a simulation aborting a task with resources" in {
+      val coordinator = new Coordinator(new DefaultScheduler(), true)
+
+      val res = new TaskResource("R", 0)
+      coordinator.addResource(res)
+
+      val sim: Simulation = mockAbort("sim", coordinator, Some(res))
+
+      coordinator.addSimulation(0L, sim)
+
+      Await.result(coordinator.start(), 3.seconds)
+    }
+
+    "abort 2 simulations when the time limit is hit" in {
+      val coordinator = new Coordinator(new DefaultScheduler(), true)
+
+      val sim1: Simulation = mockSingleTask("sim1", coordinator, 0L, 3L, 3L)
+      val sim2: Simulation = mockAborted("sim2", coordinator, 10L)
+      val sim3: Simulation = mockAborted("sim3", coordinator, 3L)
+
+      coordinator.addSimulations(Seq(
+        (0L, sim1),
+        (0L, sim2),
+        (4L, sim3)
+      ))
+
+      coordinator.limit(5L)
 
       Await.result(coordinator.start(), 3.seconds)
     }
@@ -554,6 +498,75 @@ trait MockSimulations { self: MockFactory =>
         where { (time, tasks) => tasks.size == 1 && containsTask(tasks, expected3) && time == expectedEnd3 }
       ) onCall ( _ => coordinator.simResponse(SimDone(name, Success(Unit))) ) once()
 
+    }
+
+    sim
+  }
+
+  def mockAbort(
+    name: String,
+    coordinator: Coordinator,
+    resource: Option[TaskResource]
+  ): Simulation = {
+    val sim: Simulation = mock[Simulation]
+    sim.name _ expects () returning name anyNumberOfTimes()
+
+    // T1 0..3 - to be aborted at 2
+    val id1 = UUID.randomUUID()
+    val tg1 = Task("T1", 3) withID id1 withResources (resource map (_.name) toSeq)
+    //val expected1 = tg1.create(name, 0)
+
+    // T2 0..2
+    val id2 = UUID.randomUUID()
+    val tg2 = Task("T2", 2) withID id2 
+    val expected2 = tg2.create(name, 0)
+
+    // T3 0..5
+    val id3 = UUID.randomUUID()
+    val tg3 = Task("T3", 5) withID id3 withResources (resource map (_.name) toSeq) withPriority (Task.Low)
+    val expected3 = tg3.create(name, 0) 
+
+    val expectedTime = if (resource.isEmpty) 5L else 7L
+
+    inSequence {
+      sim.run _ expects () onCall ( _ => {
+        coordinator.simResponse(SimReady(name, Seq(tg1, tg2, tg3)))
+      }) once()
+
+      sim.completed _ expects (
+        where { (time, tasks) => {
+          tasks.size == 1 && containsTask(tasks, expected2) && time == 2 
+        }}
+      ) onCall { (_, _) => {
+        coordinator.simResponse(SimReady(name, Seq(), Seq(id1)))
+      }} once()
+
+      sim.completed _ expects (
+        where { (time, tasks) => tasks.size == 1 && containsTask(tasks, expected3) && time == expectedTime }
+      ) onCall ( _ => coordinator.simResponse(SimDone(name, Success(Unit))) ) once()
+
+    }
+
+    sim
+  }
+
+  def mockAborted(
+    name: String,
+    coordinator: Coordinator,
+    duration: Long
+  ): Simulation = {
+    val sim: Simulation = mock[Simulation]
+    sim.name _ expects () returning name anyNumberOfTimes()
+
+    val id = UUID.randomUUID()
+    val tg = Task("T", duration) withID id
+
+    inSequence {
+      sim.run _ expects () onCall ( _ => {
+        coordinator.simResponse(SimReady(name, Seq(tg)))
+      }) once()
+
+      sim.stop _ expects () once()
     }
 
     sim
