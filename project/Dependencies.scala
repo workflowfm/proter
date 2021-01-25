@@ -30,14 +30,14 @@ object Dependencies {
     scalaCheck,
     scalaMock,
     junit,
-    akkaTestkit,
-    subakkaTests,
   )
 
   val akka: Seq[ModuleID] = Seq (
     akkaActor,
     akkaTestkit,
     subakka,
+    akkaTestkit,
+    subakkaTests,
   )
 }
 
