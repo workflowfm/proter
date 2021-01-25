@@ -1,7 +1,6 @@
 package com.workflowfm.proter.events
 
-  import java.util.UUID
-
+import java.util.UUID
 
 trait Publisher {
 
@@ -25,14 +24,11 @@ trait SubscriptionSwitch {
   def stop(): Unit
 }
 
-
-
-
 trait HashMapPublisher extends Publisher {
 
   import scala.collection.mutable.HashMap
 
-  val subscribers: HashMap[UUID,EventHandler] = HashMap[UUID,EventHandler]()
+  val subscribers: HashMap[UUID, EventHandler] = HashMap[UUID, EventHandler]()
 
   override def doPublish(evt: Event): Unit = subscribers foreach (_._2.onEvent(evt))
 

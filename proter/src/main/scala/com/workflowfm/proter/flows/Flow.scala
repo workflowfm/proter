@@ -12,7 +12,7 @@ sealed trait Flow {
   def +(f: Flow): And = new And(this, f)
   def >(f: Flow): Then = new Then(this, f)
   def |(f: Flow): Or = new Or(this, f)
-  def *(i: Int): Flow = new All((for (_ <- 1 to i) yield this.copy()) :_*)
+  def *(i: Int): Flow = new All((for (_ <- 1 to i) yield this.copy()): _*)
 
   def copy(): Flow
 }
@@ -20,19 +20,24 @@ sealed trait Flow {
 class NoTask() extends Flow {
   override def copy(): Flow = new NoTask()
 }
-class FlowTask(val task: Task) extends Flow { 
-  override val id = task.id.getOrElse(UUID.randomUUID()) 
+
+class FlowTask(val task: Task) extends Flow {
+  override val id: UUID = task.id.getOrElse(UUID.randomUUID())
   override def copy(): Flow = new FlowTask(task.withID(UUID.randomUUID))
 }
+
 class Then(val left: Flow, val right: Flow) extends Flow {
   override def copy(): Flow = new Then(left.copy(), right.copy())
 }
+
 class And(val left: Flow, val right: Flow) extends Flow {
   override def copy(): Flow = new And(left.copy(), right.copy())
 }
+
 class All(val elements: Flow*) extends Flow {
-  override def copy(): Flow = new All(elements.map(_.copy()) :_*)
+  override def copy(): Flow = new All(elements.map(_.copy()): _*)
 }
+
 class Or(val left: Flow, val right: Flow) extends Flow {
   override def copy(): Flow = new Or(left.copy(), right.copy())
 }
@@ -41,7 +46,7 @@ class Or(val left: Flow, val right: Flow) extends Flow {
   * A simulation of a [[Flow]].
   *
   * It uses a [[Flow]] structure which describes how and in what order certain tasks should be executed.
-  * A Flow may consist of a single [[FlowTask]] or some combination of [[FlowTask]]s which are joined 
+  * A Flow may consist of a single [[FlowTask]] or some combination of [[FlowTask]]s which are joined
   * using [[And]]s, [[Then]]s, and [[Or]]s.
   *
   * @param name The name of the simulation being managed.
@@ -73,7 +78,10 @@ class FlowSimulation(
   protected def runFlow(flow: Flow, flowCallback: Callback): Unit = {
     flow match {
       case f: FlowTask =>
-        task(f.task.withID(f.id), callback((t, l) => { flowCallback(Success(t, l)); ack(Seq(f.id)) }))
+        task(
+          f.task.withID(f.id),
+          callback((t, l) => { flowCallback(Success(t, l)); ack(Seq(f.id)) })
+        )
       case f: Flow => { tasks += flow.id -> flowCallback; execute(f) }
     }
   }
@@ -121,7 +129,10 @@ class FlowSimulation(
       }
 
       case f: All =>
-        runFlow((f.elements.fold(new NoTask()) { (l, r) => new And(l, r) }), callback((_, _) => complete(f.id)))
+        runFlow(
+          (f.elements.fold(new NoTask()) { (l, r) => new And(l, r) }),
+          callback((_, _) => complete(f.id))
+        )
 
       case f: Or => {
         val leftCallback: Callback =
@@ -142,10 +153,11 @@ class FlowSimulation(
   * [[Lookahead]] automatically.
   */
 class FlowLookahead(
-  name: String,
-  manager: Manager,
-  flow: Flow
-) extends FlowSimulation(name, manager, flow) with LookingAhead {
+    name: String,
+    manager: Manager,
+    flow: Flow
+) extends FlowSimulation(name, manager, flow)
+    with LookingAhead {
 
   /**
     * Initiates the execution of the simulation.

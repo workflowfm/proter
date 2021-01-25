@@ -46,7 +46,7 @@ case class TaskMetrics(
     * @param addedCost The extra cost to add.
     * @return The updated [[TaskMetrics]].
     */
-  def addCost(addedCost: Long): TaskMetrics = 
+  def addCost(addedCost: Long): TaskMetrics =
     copy(cost = cost + addedCost)
 
   /** Calculates the task delay as the difference of the creation and starting times. */

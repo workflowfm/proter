@@ -72,7 +72,8 @@ case class Schedule(tasks: List[(Long, Long)]) {
     * @param t The [[TaskInstance]] to be added.
     * @return The updated schedule, or the same schedule if the update fails.
     */
-  def +>(startTime: Long, t: TaskInstance): Schedule = this +> (startTime, startTime + t.estimatedDuration)
+  def +>(startTime: Long, t: TaskInstance): Schedule =
+    this +> (startTime, startTime + t.estimatedDuration)
 
   /**
     * Finds the earliest possible start for a [[TaskInstance]] in the schedule.
@@ -88,7 +89,8 @@ case class Schedule(tasks: List[(Long, Long)]) {
     * @param t The [[TaskInstance]] to be checked.
     * @return The earliest possible start for the [[TaskInstance]] in this schedule.
     */
-  def ?(currentTime: Long, t: TaskInstance): Long = Schedule.fit(currentTime, t.estimatedDuration, tasks)
+  def ?(currentTime: Long, t: TaskInstance): Long =
+    Schedule.fit(currentTime, t.estimatedDuration, tasks)
 
   /**
     * Merges the schedule with another one.

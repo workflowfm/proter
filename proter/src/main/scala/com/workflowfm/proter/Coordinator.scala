@@ -14,7 +14,6 @@ trait Manager {
   def simResponse(response: SimResponse): Unit
 }
 
-
 /**
   * Provides coordination for discrete event simulation of multiple asynchronous simulations.
   *
@@ -27,10 +26,12 @@ trait Manager {
   * @param startingTime The starting timestamp of the entire simulation.
   */
 class Coordinator(
-  scheduler: Scheduler,
-  singleThread: Boolean = false,
-  startingTime: Long = 0L
-)(implicit executionContext: ExecutionContext = ExecutionContext.global) extends Manager with HashMapPublisher {
+    scheduler: Scheduler,
+    singleThread: Boolean = false,
+    startingTime: Long = 0L
+)(implicit executionContext: ExecutionContext = ExecutionContext.global)
+    extends Manager
+    with HashMapPublisher {
 
   val id: String = this.toString()
 
@@ -97,14 +98,16 @@ class Coordinator(
 
   /**
     * Add a new [[TaskResource]] to our map of available resources.
-    * 
+    *
     * @group resources
     * @param r The [[TaskResource]] to be added.
     */
-  def addResource(r: TaskResource): Unit = this.synchronized {  if (!resourceMap.contains(r.name)) {
-    publish(EResourceAdd(id, time, r.name, r.costPerTick))
-    resourceMap += r.name -> r
-  } }
+  def addResource(r: TaskResource): Unit = this.synchronized {
+    if (!resourceMap.contains(r.name)) {
+      publish(EResourceAdd(id, time, r.name, r.costPerTick))
+      resourceMap += r.name -> r
+    }
+  }
 
   /**
     * Add multiple [[TaskResource]]s in one go.
@@ -284,7 +287,7 @@ class Coordinator(
 
   /**
     * Add a new simulation to be run in the current virtual time.
-    * 
+    *
     * @group simulations
     * @param simulation The [[Simulation]] to run.
     */
@@ -313,7 +316,7 @@ class Coordinator(
 
   /**
     * Add multiple simulations to be run in the current virtual time.
-    * 
+    *
     * @group simulations
     * @param sims A sequence of [[Simulation]]s.
     */
@@ -326,7 +329,7 @@ class Coordinator(
     * We therefore add it to the waiting queue.
     *
     * Publishes a [[com.workflowfm.proter.events.ESimStart ESimStart]].
-    * 
+    *
     * @group simulations
     * @param simulation The [[Simulation]] to start.
     */
@@ -356,7 +359,7 @@ class Coordinator(
     ready(name)
   }
 
-   /**
+  /**
     * Stops/aborts a simulation before it is done.
     *
     *  - Removes the simulation from the list of running simulations and from the waiting list.
@@ -384,7 +387,9 @@ class Coordinator(
         resource.abortSimulation(name) match {
           case None => Unit
           case Some((start, task)) => {
-            publish(ETaskDetach(id, time, task, resource.name, resource.costPerTick * (time - start)))
+            publish(
+              ETaskDetach(id, time, task, resource.name, resource.costPerTick * (time - start))
+            )
             tasksToAbort += task.id
           }
         }
@@ -412,32 +417,32 @@ class Coordinator(
     *  - If the task does not require any resources, it is started immediately using [[startTask]].
     * Otherwise, we add it to the queue of [[TaskInstance]]s.
     *
-    *
     * @group tasks
     * @param simulation The name of the [[Simulation]] that owns the task(s).
     * @param task The list of [[Task]]s to be added.
     */
   protected def addTask(simulation: String, task: Seq[Task]): Unit = {
-    task foreach { t => {
-          // Create the task
-      val inst: TaskInstance = t.create(simulation, time)
+    task foreach { t =>
+      {
+        // Create the task
+        val inst: TaskInstance = t.create(simulation, time)
 
-      // Calculate the cost of all resource usage. We only know this now!
-      //val resourceCost = (0L /: inst.taskResources(resourceMap)) {
-      //  case (c, r) => c + r.costPerTick * inst.duration
-      //}
-      //inst.addCost(resourceCost)
+        // Calculate the cost of all resource usage. We only know this now!
+        //val resourceCost = (0L /: inst.taskResources(resourceMap)) {
+        //  case (c, r) => c + r.costPerTick * inst.duration
+        //}
+        //inst.addCost(resourceCost)
 
-      publish(ETaskAdd(id, time, inst))
+        publish(ETaskAdd(id, time, inst))
 
-      if (t.resources.length > 0)
-        scheduler.addTask(inst)
-      else
-        // if the task does not require resources, start it now
-        startTask(inst)
-    } }
+        if (t.resources.length > 0)
+          scheduler.addTask(inst)
+        else
+          // if the task does not require resources, start it now
+          startTask(inst)
+      }
+    }
   }
-
 
   /**
     * Start a [[TaskInstance]] at the current timestamp.
@@ -537,18 +542,21 @@ class Coordinator(
     */
   protected def stopTasks(taskGroup: (String, Seq[TaskInstance])): Unit = taskGroup match {
     case (simulation, tasks) => {
-    //log.debug(s"[COORD:$time] Waiting post-task: ${task.simulation}")
+      //log.debug(s"[COORD:$time] Waiting post-task: ${task.simulation}")
       tasks foreach { task =>
         scheduler.complete(task, time)
         publish(ETaskDone(id, time, task))
       }
-      simulations.get(simulation).map(x => 
-        if (singleThread)
-          x.completed(time, tasks)
-        else
-          Future { x.completed(time, tasks) }
-      )
-    } }
+      simulations
+        .get(simulation)
+        .map(x =>
+          if (singleThread)
+            x.completed(time, tasks)
+          else
+            Future { x.completed(time, tasks) }
+        )
+    }
+  }
 
   /**
     * Aborts one or more [[TaskInstance]]s.
@@ -562,17 +570,29 @@ class Coordinator(
     * @group tasks
     * @param id The `UUID` of the [[TaskInstance]] that needs to be aborted.
     */
-  protected def abortTask(ids: Seq[UUID]): Unit = ids foreach { id => {
-    val tasks = resourceMap.flatMap {
-      case (_, resource) =>
-        resource.abortTask(id).map { case (start, task) => {
-          publish(ETaskDetach(this.id, time, task, resource.name, resource.costPerTick * (time - start)))
-          task
-        } }
+  protected def abortTask(ids: Seq[UUID]): Unit = ids foreach { id =>
+    {
+      val tasks = resourceMap.flatMap {
+        case (_, resource) =>
+          resource.abortTask(id).map {
+            case (start, task) => {
+              publish(
+                ETaskDetach(
+                  this.id,
+                  time,
+                  task,
+                  resource.name,
+                  resource.costPerTick * (time - start)
+                )
+              )
+              task
+            }
+          }
+      }
+      abortedTasks += id
+      publish(ETaskAbort(this.id, time, id))
     }
-    abortedTasks += id
-    publish(ETaskAbort(this.id, time, id))
-  } }
+  }
 
   /**
     * Reacts to the fact that we no longer need to wait for a simulation.
@@ -592,7 +612,7 @@ class Coordinator(
       tick()
     }
   }
-  
+
   protected def setLookahead(simulation: String, lookahead: Lookahead): Unit = {
     scheduler.setLookahead(simulation, lookahead)
   }
@@ -606,15 +626,15 @@ class Coordinator(
         ready(sim)
       }
       case SimDone(sim, result) => simDone(sim, result)
-    }}
-
+    }
+  }
 
   /**
     * Starts the entire simulation scenario.
     * @group toplevel
     */
   def start(): Future[Any] = {
-    Future { 
+    Future {
       publish(EStart(id))
       tick()
     }.flatMap(_ => promise.future)
@@ -633,7 +653,7 @@ class Coordinator(
 
   /**
     * Aborts all simulations and stops immediately.
-    * 
+    *
     * @group toplevel
     */
   def stop(): Unit = {
@@ -644,7 +664,7 @@ class Coordinator(
 
   /**
     * Sets a time limit in virtual time for the simulation to end.
-    * 
+    *
     * @note Once a time limit is placed it cannot be removed. Multiple time limits can be set
     * so that the earliest one will be triggered.
     *
@@ -667,4 +687,3 @@ class Coordinator(
   }
 
 }
-

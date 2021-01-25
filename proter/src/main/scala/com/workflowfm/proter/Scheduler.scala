@@ -300,9 +300,9 @@ class LookaheadScheduler(initialTasks: TaskInstance*) extends SortedSetScheduler
     *
     * Taking each [[TaskInstance]] from high to low priority, the algorithm does the following:
     *   1. It merges the current [[Schedule]]s of all the [[TaskResource]]s involved in the [[Task]].
-    *   1. It finds the earliest possible starting time of the [[TaskInstance]] in the merged [[Schedule]], 
+    *   1. It finds the earliest possible starting time of the [[TaskInstance]] in the merged [[Schedule]],
     *      using the task's minimum starting time.
-    *   1. It finds the tasks that will start after the [[TaskInstance]] using the lookahead structure, 
+    *   1. It finds the tasks that will start after the [[TaskInstance]] using the lookahead structure,
     *      and updates the structure.
     *   1. Takes the interval defined by the starting time and the estimated duration of the [[TaskInstance]]
     *      and adds it to the [[Schedule]]s of all the involved [[TaskResource]]s.

@@ -6,15 +6,15 @@ import scala.collection.mutable.{ Map, HashSet, Queue }
 import scala.concurrent.{ Future, Promise }
 import scala.util.{ Try, Success, Failure }
 
-
 sealed trait SimResponse {
   val simulation: String
 }
+
 case class SimReady(
-  override val simulation: String, 
-  tasks: Seq[Task], 
-  abort: Seq[UUID] = Seq(), 
-  lookahead: Lookahead = NoLookahead
+    override val simulation: String,
+    tasks: Seq[Task],
+    abort: Seq[UUID] = Seq(),
+    lookahead: Lookahead = NoLookahead
 ) extends SimResponse
 case class SimDone(override val simulation: String, result: Try[Any]) extends SimResponse
 
@@ -24,7 +24,6 @@ trait SimulationRef {
   def stop(): Unit
   def completed(time: Long, tasks: Seq[TaskInstance]): Unit
 }
-
 
 /**
   * An actor managing the interaction between a simulation and a [[Coordinator]].
@@ -202,7 +201,7 @@ trait Simulation extends SimulationRef {
   def ready(): Unit = {
     val response = SimReady(name, tasksToAdd.clone.toSeq, abort.clone.toSeq, getLookahead())
     clear()
-    manager.simResponse(response)  
+    manager.simResponse(response)
   }
 
   /**
@@ -234,8 +233,8 @@ trait Simulation extends SimulationRef {
   }
 }
 
-
 object Simulation {
+
   /**
     * Exception used when aborting a [[Task]].
     *
@@ -275,10 +274,10 @@ class SingleTaskSimulation(
 ) extends Simulation {
 
   lazy val theTask: Task = Task(s"${name}Task", duration)
-      .withCostGenerator(cost)
-      .withResources(resources)
-      .withInterrupt(interrupt)
-      .withPriority(priority)
+    .withCostGenerator(cost)
+    .withResources(resources)
+    .withInterrupt(interrupt)
+    .withPriority(priority)
 
   /**
     * @inheritdoc
@@ -442,9 +441,7 @@ trait LookingAhead extends Simulation {
 
   override def getLookahead(): Lookahead = lookahead
 
-
   val completedTasks: collection.mutable.Set[(UUID, Long)] = collection.mutable.Set()
-
 
   /**
     * Manages a [[Task]] whose simulation has completed.
@@ -458,7 +455,9 @@ trait LookingAhead extends Simulation {
   override def complete(task: TaskInstance, time: Long): Unit = {
     completedTasks += ((task.id, time))
     lookahead = lookahead - task.id
-    lookahead.getTaskData(completedTasks).flatMap(_._1.id) foreach { id => lookahead = lookahead - id }
+    lookahead.getTaskData(completedTasks).flatMap(_._1.id) foreach { id =>
+      lookahead = lookahead - id
+    }
     super.complete(task, time)
   }
 }

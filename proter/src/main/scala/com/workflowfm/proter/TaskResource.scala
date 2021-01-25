@@ -4,7 +4,7 @@ import java.util.UUID
 
 /**
   * A persistent resource to be used by [[Task]]s/[[TaskInstance]]s.
-  * 
+  *
   * A [[TaskResource]], or simply "resource", corresponds to a persistent resource.
   * Typical examples are human actors or persistent machinery.
   * Each [[TaskGenerator]] may require a different combination of resources.
@@ -91,7 +91,7 @@ class TaskResource(val name: String, val costPerTick: Int) {
 
   /**
     * Attach a [[TaskInstance]] to this resource.
-    * 
+    *
     * If the resource is already attached to another [[TaskInstance]], the attached task
     * is returned. Otherwise, we return [[scala.None]].
     *
@@ -114,7 +114,7 @@ class TaskResource(val name: String, val costPerTick: Int) {
 
   /**
     * Estimates the earliest time the resource will become available.
-    * 
+    *
     * Lets the [[Scheduler]] (via [[TaskInstance.nextPossibleStart]]) know an
     * '''estimate''' of when we expect to have this resource available again.
     * This is based off of [[TaskInstance.estimatedDuration]] so may not be the correct, but is more

@@ -15,7 +15,7 @@ trait EventHandler {
   def onInit(publisher: Publisher): Unit = ()
   def onEvent(event: Event): Unit = ()
   def onDone(publisher: Publisher): Unit = ()
-  def onFail(e: Throwable, publisher:  Publisher): Unit = ()
+  def onFail(e: Throwable, publisher: Publisher): Unit = ()
 }
 
 /**
@@ -104,7 +104,7 @@ class PromiseHandler[R](handler: ResultHandler[R]) extends ResultHandler[R] {
     if (!promise.isCompleted) promise.success(result)
   }
 
-  override def onFail(ex: Throwable,c: Publisher): Unit = {
+  override def onFail(ex: Throwable, c: Publisher): Unit = {
     handler.onFail(ex, c)
     if (!promise.isCompleted) promise.failure(ex)
   }
