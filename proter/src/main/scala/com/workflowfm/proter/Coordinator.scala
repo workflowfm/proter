@@ -299,7 +299,7 @@ class Coordinator(
     * @param sims A sequence of pairs, each consisting of a starting timestamp and a
     * [[Simulation]]. Timestamps must be greater or equal to the current time.
     */
-  def addSimulations(sims: Seq[(Long, SimulationRef)]): PriorityQueue[DiscreteEvent] = this.synchronized {
+  def addSimulations(sims: Seq[(Long, SimulationRef)]): Unit = this.synchronized {
     events ++= sims.flatMap {
       case (t, sim) => {
           publish(ESimAdd(id, time, sim.name, t))
@@ -613,7 +613,7 @@ class Coordinator(
     * Starts the entire simulation scenario.
     * @group toplevel
     */
-  def start(): Future[Unit] = {
+  def start(): Future[Any] = {
     Future { 
       publish(EStart(id))
       tick()

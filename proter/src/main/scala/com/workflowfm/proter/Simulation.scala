@@ -22,7 +22,7 @@ trait SimulationRef {
   def name: String
   def run(): Unit
   def stop(): Unit
-  def completed(time: Long, tasks: Seq[TaskInstance])
+  def completed(time: Long, tasks: Seq[TaskInstance]): Unit
 }
 
 
