@@ -61,7 +61,7 @@ class Coordinator(
     *
     * @group simulations
     */
-  protected val simulations: Map[String, Simulation] = Map[String, Simulation]()
+  protected val simulations: Map[String, SimulationRef] = Map[String, SimulationRef]()
 
   /**
     * [[scala.collection.mutable.PriorityQueue PriorityQueue]] of [[DiscreteEvent]]s to be processed,
@@ -277,7 +277,7 @@ class Coordinator(
     *          time.
     * @param simulation The [[Simulation]] to run.
     */
-  def addSimulation(t: Long, simulation: Simulation): Unit = this.synchronized {
+  def addSimulation(t: Long, simulation: SimulationRef): Unit = this.synchronized {
     publish(ESimAdd(id, time, simulation.name, t))
     if (t >= time) events += StartingSim(t, simulation)
   }
@@ -288,7 +288,7 @@ class Coordinator(
     * @group simulations
     * @param simulation The [[Simulation]] to run.
     */
-  def addSimulationNow(simulation: Simulation): Unit = addSimulation(time, simulation)
+  def addSimulationNow(simulation: SimulationRef): Unit = addSimulation(time, simulation)
 
   /**
     * Adds multiple simulations at the same time.
@@ -299,7 +299,7 @@ class Coordinator(
     * @param sims A sequence of pairs, each consisting of a starting timestamp and a
     * [[Simulation]]. Timestamps must be greater or equal to the current time.
     */
-  def addSimulations(sims: Seq[(Long, Simulation)]): PriorityQueue[DiscreteEvent] = this.synchronized {
+  def addSimulations(sims: Seq[(Long, SimulationRef)]): PriorityQueue[DiscreteEvent] = this.synchronized {
     events ++= sims.flatMap {
       case (t, sim) => {
           publish(ESimAdd(id, time, sim.name, t))
@@ -317,7 +317,7 @@ class Coordinator(
     * @group simulations
     * @param sims A sequence of [[Simulation]]s.
     */
-  def addSimulationsNow(sims: Simulation*): Unit = addSimulations(sims.map((time, _)))
+  def addSimulationsNow(sims: SimulationRef*): Unit = addSimulations(sims.map((time, _)))
 
   /**
     * Start a [[Simulation]].
@@ -330,7 +330,7 @@ class Coordinator(
     * @group simulations
     * @param simulation The [[Simulation]] to start.
     */
-  protected def startSimulation(simulation: Simulation): Unit = {
+  protected def startSimulation(simulation: SimulationRef): Unit = {
     publish(ESimStart(id, time, simulation.name))
     simulations += simulation.name -> simulation
     simulation.run()
@@ -371,7 +371,7 @@ class Coordinator(
     * @group simulations
     * @param simulation The [[Simulation]] to stop.
     */
-  protected def abortSimulation(simulation: Simulation): Unit = {
+  protected def abortSimulation(simulation: SimulationRef): Unit = {
     val name = simulation.name
     simulations -= name
     waiting -= name

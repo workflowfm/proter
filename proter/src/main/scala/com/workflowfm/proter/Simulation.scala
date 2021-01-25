@@ -18,6 +18,13 @@ case class SimReady(
 ) extends SimResponse
 case class SimDone(override val simulation: String, result: Try[Any]) extends SimResponse
 
+trait SimulationRef {
+  def name: String
+  def run(): Unit
+  def stop(): Unit
+  def completed(time: Long, tasks: Seq[TaskInstance])
+}
+
 
 /**
   * An actor managing the interaction between a simulation and a [[Coordinator]].
@@ -76,24 +83,15 @@ case class SimDone(override val simulation: String, result: Try[Any]) extends Si
   * @param name The name of the simulation being managed.
   * @param coordinator A reference to the [[Coordinator]] actor running the simulation.
   */
-trait Simulation {
+trait Simulation extends SimulationRef {
 
-  val waiting: HashSet[UUID] = HashSet[UUID]()
+  protected val waiting: HashSet[UUID] = HashSet[UUID]()
 
-  val tasksToAdd: Queue[Task] = Queue[Task]()
+  protected val tasksToAdd: Queue[Task] = Queue[Task]()
 
-  val abort: HashSet[UUID] = HashSet[UUID]()
-
-  def name: String
+  protected val abort: HashSet[UUID] = HashSet[UUID]()
 
   protected def manager: Manager
-
-  /**
-    * Initiates the execution of the simulation.
-    *
-    * @group act
-    */
-  def run(): Unit
 
   /**
     * Manages a completed [[TaskInstance]].
@@ -115,21 +113,12 @@ trait Simulation {
   def complete(task: TaskInstance, time: Long): Unit = Unit
 
   //final : cannot be final because that prevents mockups in scalamock
-  def completed(time: Long, tasks: Seq[TaskInstance]): Unit = {
+  override def completed(time: Long, tasks: Seq[TaskInstance]): Unit = {
     this.synchronized {
       waiting ++= tasks.map(_.id)
     }
     tasks.foreach(complete(_, time))
   }
-
-  /**
-    * Stops/aborts the simulation.
-    *
-    * All the necessary steps for a gentle shutdown should be taken here.
-    *
-    * @group react
-    */
-  def stop(): Unit
 
   /**
     * Declare a new [[Task]] that needs to be sent to the [[Coordinator]] for simulation.
@@ -150,7 +139,7 @@ trait Simulation {
     *
     * @param id The `UUID` of the [[Task]]s.
     */
-  protected def abort(ids: UUID*): Unit = this.synchronized {
+  def abort(ids: UUID*): Unit = this.synchronized {
     abort ++= ids
   }
 
@@ -160,7 +149,7 @@ trait Simulation {
     * @group act
     * @param result The result of the simulation.
     */
-  protected def done(result: Try[Any]): Unit = {
+  def done(result: Try[Any]): Unit = {
     clear()
     manager.simResponse(SimDone(name, result))
   }
@@ -171,7 +160,7 @@ trait Simulation {
     * @group act
     * @param result The successful result of the simulation.
     */
-  protected def succeed(result: Any): Unit = {
+  def succeed(result: Any): Unit = {
     clear()
     manager.simResponse(SimDone(name, Success(result)))
   }
@@ -182,7 +171,7 @@ trait Simulation {
     * @group act
     * @param exception The `Throwable` that caused the failure.
     */
-  protected def fail(exception: Throwable): Unit = {
+  def fail(exception: Throwable): Unit = {
     clear()
     manager.simResponse(SimDone(name, Failure(exception)))
   }
@@ -232,9 +221,9 @@ trait Simulation {
     *
     * @return A `Future` of the acknowledgement message [[Simulation.AckWait]]
     */
-//  def simWait(): Unit = {
-//    manager.waitFor(name)
- // }
+  def simWait(): Unit = {
+    manager.waitFor(name)
+  }
 
   def getLookahead(): Lookahead = NoLookahead
 
@@ -398,7 +387,7 @@ trait AsyncSimulation extends Simulation {
     *
     * @param id The `UUID` of the [[Task]]s.
     */
-  override protected def abort(ids: UUID*): Unit = {
+  override def abort(ids: UUID*): Unit = {
     super.abort(ids: _*)
     ids map { id => tasks.get(id).map(_(Failure(Simulation.TaskAbortedException()))) }
   }

@@ -45,7 +45,7 @@ case class FinishingTask(override val time: Long, task: TaskInstance) extends Di
   * @param time The timestamp of the event
   * @param simulation The [[Simulation]] that needs to start.
   */
-case class StartingSim(override val time: Long, simulation: Simulation) extends DiscreteEvent {
+case class StartingSim(override val time: Long, simulation: SimulationRef) extends DiscreteEvent {
   override val classOrder: Short = 10
 
   override def sameClassCompare(that: DiscreteEvent): Int = that match {
