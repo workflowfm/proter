@@ -12,7 +12,7 @@ import akka.util.Timeout
 
 import com.workflowfm.proter._
 
-class AkkaManager(manager: ActorRef, timeout: Timeout) extends Manager {
+class AkkaManager(manager: ActorRef, timeout: Timeout = Timeout(1, TimeUnit.MINUTES)) extends Manager {
 
   override def waitFor(simulation: String): Unit =
     Await.result((manager ? CoordinatorActor.WaitFor(simulation))(timeout), timeout.duration)

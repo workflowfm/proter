@@ -240,7 +240,7 @@ class SimulationTests extends SimulationTester with MockFactory {
   }
 }
 
-class SimulationTester
+trait SimulationTester
     extends WordSpecLike
     with Matchers
     with BeforeAndAfterAll {
@@ -295,8 +295,7 @@ class SimulationTester
     onFail: Throwable => Unit = _ => Unit,
     d1: Long = 2L,
     d2: Long = 2L
-  ) extends AsyncSimulation
-      with FutureTasks {
+  ) extends AsyncSimulation {
 
     val id1 = UUID.randomUUID
     val id2 = UUID.randomUUID
