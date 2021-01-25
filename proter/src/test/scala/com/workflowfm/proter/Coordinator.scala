@@ -468,7 +468,7 @@ trait MockSimulations { self: MockFactory =>
 
   def mockSingleTask(
     name: String, 
-    coordinator: Coordinator, 
+    coordinator: Manager, 
     expectedCreate: Long, 
     duration: Long, 
     expectedEnd: Long
@@ -494,7 +494,7 @@ trait MockSimulations { self: MockFactory =>
 
   def mockTwoTasks(
     name: String, 
-    coordinator: Coordinator, 
+    coordinator: Manager, 
     expectedCreate1: Long,
     duration1: Long, 
     expectedEnd1: Long, 
@@ -534,7 +534,7 @@ trait MockSimulations { self: MockFactory =>
 
   def mockRepeater(
     name: String, 
-    coordinator: Coordinator, 
+    coordinator: Manager, 
     expectedCreate: Long,
     duration: Long, 
     repeat: Int
@@ -569,7 +569,7 @@ trait MockSimulations { self: MockFactory =>
 
   def mockTwoPlusOneTasks(
     name: String, 
-    coordinator: Coordinator, 
+    coordinator: Manager, 
     expectedCreate1: Long,
     duration1: Long, 
     expectedEnd1: Long, 
@@ -639,7 +639,7 @@ trait MockSimulations { self: MockFactory =>
 
   def mockAbort(
     name: String,
-    coordinator: Coordinator,
+    coordinator: Manager,
     resource: Option[TaskResource]
   ): Simulation = {
     val sim: Simulation = mock[Simulation]
@@ -686,7 +686,7 @@ trait MockSimulations { self: MockFactory =>
 
   def mockAborted(
     name: String,
-    coordinator: Coordinator,
+    coordinator: Manager,
     duration: Long
   ): Simulation = {
     val sim: Simulation = mock[Simulation]
