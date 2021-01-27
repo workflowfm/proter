@@ -78,7 +78,7 @@ class CoordinatorActor(
     case CoordinatorActor.AddSim(t, s) => coordinator.addSimulation(t, s)
     case CoordinatorActor.AddSims(l) => coordinator.addSimulations(l)
     case CoordinatorActor.AddSimNow(s) => coordinator.addSimulationNow(s)
-    case CoordinatorActor.AddSimsNow(l) => coordinator.addSimulationsNow(l: _*)
+    case CoordinatorActor.AddSimsNow(l) => coordinator.addSimulationsNow(l)
 
     case CoordinatorActor.AddResource(r) => coordinator.addResource(r)
     case CoordinatorActor.AddResources(r) => r foreach coordinator.addResource

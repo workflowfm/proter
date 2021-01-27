@@ -8,7 +8,6 @@ import akka.actor.{ ActorSystem, Actor, ActorRef, Props }
 
 import com.workflowfm.proter._
 
-
 case class AkkaSimulationRef(simName: String, simulation: ActorRef) extends SimulationRef {
 
   override def name: String = simName

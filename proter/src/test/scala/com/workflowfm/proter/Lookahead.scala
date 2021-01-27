@@ -101,14 +101,14 @@ trait LookaheadTester {
   def getCoordinator(): Coordinator = {
     val coordinator = new Coordinator(new LookaheadScheduler())
 
-    coordinator.addResources(
+    coordinator.addResources(Seq(
       new TaskResource("r1", 0),
       new TaskResource("r2", 0),
       new TaskResource("r3", 0),
       new TaskResource("r4", 0),
       new TaskResource("r5", 0),
       new TaskResource("r6", 0),
-    )   
+    ))
 
     coordinator
   }

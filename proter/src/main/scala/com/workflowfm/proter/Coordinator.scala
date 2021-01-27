@@ -115,7 +115,7 @@ class Coordinator(
     * @group resources
     * @param r The sequence of [[TaskResource]]s to be added.
     */
-  def addResources(r: TaskResource*): Unit = r foreach addResource
+  def addResources(r: Seq[TaskResource]): Unit = r foreach addResource
 
   /**
     * Extract all [[DiscreteEvent]]s in the queue that need to be processed in a given timestamp.
@@ -320,7 +320,7 @@ class Coordinator(
     * @group simulations
     * @param sims A sequence of [[Simulation]]s.
     */
-  def addSimulationsNow(sims: SimulationRef*): Unit = addSimulations(sims.map((time, _)))
+  def addSimulationsNow(sims: Seq[SimulationRef]): Unit = addSimulations(sims.map((time, _)))
 
   /**
     * Start a [[Simulation]].
@@ -617,17 +617,19 @@ class Coordinator(
     scheduler.setLookahead(simulation, lookahead)
   }
 
-  def simResponse(response: SimResponse): Unit = this.synchronized { if (!promise.isCompleted) {
-    response match {
-      case SimReady(sim, tasks, abort, lookahead) => {
-        addTask(sim, tasks)
-        abortTask(abort)
-        setLookahead(sim, lookahead)
-        ready(sim)
+  def simResponse(response: SimResponse): Unit = this.synchronized {
+    if (!promise.isCompleted) {
+      response match {
+        case SimReady(sim, tasks, abort, lookahead) => {
+          addTask(sim, tasks)
+          abortTask(abort)
+          setLookahead(sim, lookahead)
+          ready(sim)
+        }
+        case SimDone(sim, result) => simDone(sim, result)
       }
-      case SimDone(sim, result) => simDone(sim, result)
     }
-  }}
+  }
 
   /**
     * Starts the entire simulation scenario.

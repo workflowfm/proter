@@ -394,7 +394,7 @@ class FlowsTester
     val smh = new PromiseHandler(new SimMetricsHandler)
     coordinator.subscribe(smh)
 
-    coordinator.addResources(resources: _*)
+    coordinator.addResources(resources)
     coordinator.addSimulation(
       0L,
       new FlowSimulation(simName, coordinator, flow)
