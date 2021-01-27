@@ -617,7 +617,7 @@ class Coordinator(
     scheduler.setLookahead(simulation, lookahead)
   }
 
-  def simResponse(response: SimResponse): Unit = if (!promise.isCompleted) {
+  def simResponse(response: SimResponse): Unit = this.synchronized { if (!promise.isCompleted) {
     response match {
       case SimReady(sim, tasks, abort, lookahead) => {
         addTask(sim, tasks)
@@ -627,7 +627,7 @@ class Coordinator(
       }
       case SimDone(sim, result) => simDone(sim, result)
     }
-  }
+  }}
 
   /**
     * Starts the entire simulation scenario.
