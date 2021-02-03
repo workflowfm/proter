@@ -60,7 +60,7 @@ case class StartingSim(override val time: Long, simulation: SimulationRef) exten
   * @param time The timestamp of the event
   */
 case class TimeLimit(override val time: Long) extends DiscreteEvent {
-  override val classOrder: Short = 1
+  override val classOrder: Short = Short.MaxValue
 
   override def sameClassCompare(that: DiscreteEvent): Int = 0
 }
