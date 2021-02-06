@@ -30,11 +30,11 @@ object MainTest {
 
         coordinator.addResources(Seq(r1,r2,r3))
 
-        // val task1 = new FlowTask(Task("task1",2L).withResources(Seq("r1")))
-        // val task2 = new FlowTask(Task("task2",2L).withResources(Seq("r2")))
-        // val task3 = new FlowTask(Task("task3",2L).withResources(Seq("r3")))
+        val task1 = new FlowTask(Task("task1",2L).withResources(Seq("r1")))
+        val task2 = new FlowTask(Task("task2",2L).withResources(Seq("r2")))
+        val task3 = new FlowTask(Task("task3",2L).withResources(Seq("r3")))
 
-        // val flow = task1 > task2 > task3
+        val flow = task1 > task2 > task3
 
         // val single_sim = new SingleTaskSimulation("singleSim",coordinator,Seq("r1","r2","r3"),ConstantGenerator(4L))
         // val flow_sim = new FlowSimulation("flowSim",coordinator,flow)
@@ -44,8 +44,8 @@ object MainTest {
 
 
         coordinator.limit(40L)
-        coordinator.addArrivalProcessNow(ConstantRate(5L),SingleTaskSimulationGenerator(Seq("r1","r2","r3"),ConstantGenerator(4L)))
-        //coordinator.addArrivalProcessNow(ConstantRate(5L),FlowSimulationGenerator())
+        coordinator.addArrivalProcessNow(NegativeExponentialRate(0.1),new SingleTaskSimulationGenerator("sim",Seq("r1","r2","r3"),ConstantGenerator(4L)))
+        //coordinator.addArrivalProcessNow(NegativeExponentialRate(0.17),new FlowSimulationGenerator("flowSim",flow))
 
         Await.result(coordinator.start(), 1.hour)
   }  
