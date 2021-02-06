@@ -270,7 +270,8 @@ class Coordinator(
 
       case ArrivalProcess(t, rate, simulationGenerator) => {
         events += ArrivalProcess(rate.next(t).toLong, rate, simulationGenerator) //replivate self
-        startSimulation(simulationGenerator.newSim(this))
+        //startSimulation(simulationGenerator.newSim(this))
+        addSimulationNow(simulationGenerator.newSim(this))
       }
 
       case _ => publish(EError(id, time, s"Failed to handle event: $event"))
