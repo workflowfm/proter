@@ -156,8 +156,10 @@ class Coordinator(
     */
   @tailrec
   final protected def tick(): Unit = {
+    println(time)
     // Are events pending?
     if (!events.isEmpty) {
+      println(events)
       // Grab the first event
       val firstEvent = events.head
 
@@ -258,6 +260,7 @@ class Coordinator(
   }
 
   protected def handleDiscreteEvent(event: DiscreteEvent): Unit = {
+    println("     Time: " + time.toString() + "; Event: "+ event.toString())
     //log.debug(s"[COORD:$time] Event!")
     event match {
       // A task is finished, but we handle this elsewhere
@@ -266,7 +269,14 @@ class Coordinator(
       // A simulation (workflow) is starting now
       case StartingSim(t, sim) if (t == time) => startSimulation(sim)
 
-      case TimeLimit(t) if (t == time) => stop()
+      case TimeLimit(t) => { //TODO if (t == time) see issue on github
+        stop()
+      }
+
+      case ArrivalProcess(t, rate, simulationGenerator) => {
+        events += ArrivalProcess(rate.next(t).toLong, rate, simulationGenerator) //replivate self
+        startSimulation(simulationGenerator.newSim(this))
+      }
 
       case _ => publish(EError(id, time, s"Failed to handle event: $event"))
     }
@@ -673,6 +683,27 @@ class Coordinator(
     * @param t The virtual timestamp to end the simulation.
     */
   def limit(t: Long): Unit = if (t >= time) events += TimeLimit(t)
+
+  /**
+    * Adds a new arrival process to the coordinator.
+    *
+    * @param t The virtual timestamp for hen the arrival process will begin.
+    * @param rate The arrival rate of the simulation instances.
+    * @param simulationGenerator The generator used to create new instances.
+    */
+  def addArrivalProcess(t: Long, rate: ArrivalRate, simulationGenerator: SimulationGenerator): Unit = {
+    if (t >= time) events += ArrivalProcess(t, rate, simulationGenerator)
+  }
+
+  /**
+    * Adds a new arrival process to the coordinator at the current virtual time.
+    *
+    * @param rate The arrival rate of the simulation instances.
+    * @param simulationGenerator The generator used to create new instances.
+    */
+  def addArrivalProcessNow(rate: ArrivalRate, simulationGenerator: SimulationGenerator): Unit = {
+    events += ArrivalProcess(time, rate, simulationGenerator)
+  }
 
   /**
     * Checks if a given [[com.workflowfm.proter.events.Event Event]] in the output stream is the final one.
