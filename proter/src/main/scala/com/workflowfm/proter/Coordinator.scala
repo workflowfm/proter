@@ -269,7 +269,7 @@ class Coordinator(
       case TimeLimit(t) if (t == time) => stop()
 
       case ArrivalProcess(t, rate, simulationGenerator) => {
-        events += ArrivalProcess(rate.next(t).toLong, rate, simulationGenerator) //replivate self
+        events += ArrivalProcess(rate.next(t).round, rate, simulationGenerator) //replivate self
         //startSimulation(simulationGenerator.newSim(this))
         addSimulationNow(simulationGenerator.newSim(this))
       }
