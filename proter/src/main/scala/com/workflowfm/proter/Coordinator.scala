@@ -156,10 +156,10 @@ class Coordinator(
     */
   @tailrec
   final protected def tick(): Unit = {
-    println(time)
-    // Are events pending?
-    if (!events.isEmpty) {
-      println(events)
+    if (!waiting.isEmpty) { // This should never happen, but we add it here as a safeguard for 
+                            // future extensions.
+      publish(EError(id, time, s"Called `tick()` even though I am still waiting for: $waiting"))
+    } else if (!events.isEmpty) {     // Are events pending?
       // Grab the first event
       val firstEvent = events.head
 
@@ -183,7 +183,7 @@ class Coordinator(
         eventsToHandle foreach handleDiscreteEvent
 
         // If we are not waiting for anything, continue
-        if (!doWait) tick()
+        if (!doWait && waiting.isEmpty) tick()
       }
 
     } else if (scheduler.noMoreTasks() && simulations.isEmpty && !promise.isCompleted) {
@@ -255,6 +255,11 @@ class Coordinator(
         true
       }
 
+      case TimeLimit(t) if (t == time) => {
+        waitFor("__TIME_LIMIT_REACHED__")
+        true
+      }
+
       case _ => false
     }
   }
@@ -269,7 +274,7 @@ class Coordinator(
       // A simulation (workflow) is starting now
       case StartingSim(t, sim) if (t == time) => startSimulation(sim)
 
-      case TimeLimit(t) => { //TODO if (t == time) see issue on github
+      case TimeLimit(t) if (t == time) => {
         stop()
       }
 

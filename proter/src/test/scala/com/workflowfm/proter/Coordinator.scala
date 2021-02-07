@@ -9,6 +9,7 @@ import scala.util.{ Failure, Success, Try }
 import org.scalatest.{ Matchers, WordSpecLike }
 
 import org.scalamock.scalatest.MockFactory
+import com.workflowfm.proter.events.PrintEventHandler
 
 class CoordinatorTests
     extends WordSpecLike
@@ -238,6 +239,23 @@ class CoordinatorTests
 
       Await.result(coordinator.start(), 3.seconds)
     }
+
+    "correctly work with a simulation starting at the time limit" in {
+      val coordinator = new Coordinator(new DefaultScheduler())
+      coordinator.subscribe(new PrintEventHandler)
+
+      val sim1: Simulation = mockSingleTask("sim1", coordinator, 0L, 3L, 3L)
+      val sim2: Simulation = mockAborted("sim2", coordinator, 10L)
+
+      coordinator.addSimulations(Seq(
+        (0L, sim1),
+        (4L, sim2)
+      ))
+
+      coordinator.limit(4L)
+
+      Await.result(coordinator.start(), 3.seconds)
+    }
   }
 
   "The single-threaded Coordinator" must {
@@ -458,6 +476,23 @@ class CoordinatorTests
       ))
 
       coordinator.limit(5L)
+
+      Await.result(coordinator.start(), 3.seconds)
+    }
+
+    "correctly work with a simulation starting at the time limit" in {
+      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      coordinator.subscribe(new PrintEventHandler)
+
+      val sim1: Simulation = mockSingleTask("sim1", coordinator, 0L, 3L, 3L)
+      val sim2: Simulation = mockAborted("sim2", coordinator, 10L)
+
+      coordinator.addSimulations(Seq(
+        (0L, sim1),
+        (4L, sim2)
+      ))
+
+      coordinator.limit(4L)
 
       Await.result(coordinator.start(), 3.seconds)
     }
@@ -691,6 +726,7 @@ trait MockSimulations { self: MockFactory =>
   ): Simulation = {
     val sim: Simulation = mock[Simulation]
     sim.name _ expects () returning name anyNumberOfTimes()
+    sim.completed _ expects(*, *) never()
 
     val id = UUID.randomUUID()
     val tg = Task("T", duration) withID id
