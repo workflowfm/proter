@@ -1,3 +1,4 @@
+
 package com.workflowfm.proter
 
 import java.util.UUID
@@ -242,8 +243,7 @@ class CoordinatorTests
 
     "correctly work with a simulation starting at the time limit" in {
       val coordinator = new Coordinator(new DefaultScheduler())
-      coordinator.subscribe(new PrintEventHandler)
-
+ 
       val sim1: Simulation = mockSingleTask("sim1", coordinator, 0L, 3L, 3L)
       val sim2: Simulation = mockAborted("sim2", coordinator, 10L)
 
@@ -482,7 +482,6 @@ class CoordinatorTests
 
     "correctly work with a simulation starting at the time limit" in {
       val coordinator = new Coordinator(new DefaultScheduler(), true)
-      coordinator.subscribe(new PrintEventHandler)
 
       val sim1: Simulation = mockSingleTask("sim1", coordinator, 0L, 3L, 3L)
       val sim2: Simulation = mockAborted("sim2", coordinator, 10L)
