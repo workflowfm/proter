@@ -1,11 +1,8 @@
 package com.workflowfm.proter
 
-import com.workflowfm.proter._
-import scala.concurrent.{ ExecutionContext, Future, Promise }
 import java.util.UUID
 
 import scala.collection.mutable.Map;
-import scala.util.Random
 import collection.JavaConverters._
 
 //import java.io._
@@ -13,10 +10,10 @@ import collection.JavaConverters._
 import org.camunda.bpm.model.bpmn.Bpmn
 import org.camunda.bpm.model.bpmn.instance._
 import org.camunda.bpm.model.xml.instance.ModelElementInstance
-import org.camunda.bpm.model.xml.Model
+//import org.camunda.bpm.model.xml.Model
 
 //import org.camunda.bpm.engine.impl.javax.el._
-import javax.el._
+//import javax.el._
 
 import spray.json._
 
@@ -34,8 +31,6 @@ import BpmnDataJsonProtocol._
 object BpmnDatasetJsonProtocol extends DefaultJsonProtocol {
     implicit val bpmnDatasetFormat = jsonFormat1(BpmnDataset) }
 import BpmnDatasetJsonProtocol._
-
-
 
 
 class BPMN(path: String, data: String) {
@@ -62,6 +57,8 @@ class BPMN(path: String, data: String) {
 
 }
 
+
+
 object BPMN {
     def fromPath(path: String): BPMN = new BPMN(path, "modelData.json")
 
@@ -71,27 +68,22 @@ object BPMN {
 }
 
 
-class BPMNSimulationActor(
+class BPMNSimulation(
     override val name: String,
     override protected val manager: Manager,
 ) extends Simulation {
-
-    override def stop(): Unit = Unit
-
 
     val bpmn: BPMN = BPMN.fromPath("process.bpmn")
     //Map from WFM Task ID to BPMN FlowNode ID
     var pendingTasks: Map[UUID,String] = Map()
     //val promise = Promise[Any]()
 
+    override def stop(): Unit = Unit
+
     override def run(): Unit = {
         val startEvent: StartEvent = bpmn.getStartEvent
         handleTasksAfter(startEvent)
-        //val taskGenerator: TaskGenerator = makeTask(startEvent)
-        //pendingTasks += (taskGenerator.id -> startEvent.getId())
-        //task(taskGenerator)
         ready()
-        //promise.future
     }
 
     override def complete(task: TaskInstance, time: Long): Unit = {
@@ -101,15 +93,15 @@ class BPMNSimulationActor(
         ack(Seq(task.id))
     }
 
-    def handleTasksAfter(node: String): Unit = handleTasksAfter(bpmn.getNode(node))
+    protected def handleTasksAfter(node: String): Unit = handleTasksAfter(bpmn.getNode(node))
 
-    def handleTasksAfter(node: ModelElementInstance): Unit = {
+    protected def handleTasksAfter(node: ModelElementInstance): Unit = {
         val nextEvents = BPMN.getNextEvents(node) 
-        if (nextEvents.filter(x => bpmn.isEndEvent(x)).length >= 1) { succeed(Unit) }//if (!promise.isCompleted) promise.success(Unit)
+        if (nextEvents.filter(x => bpmn.isEndEvent(x)).length >= 1) { succeed(Unit) }
         else nextEvents map (handleNode(_))
     }
 
-    def handleNode(node: FlowNode): Unit = {
+    protected def handleNode(node: FlowNode): Unit = {
         node.getElementType.getTypeName match {
             case y if List("userTask","scriptTask","serviceTask","undefinedTask") contains (y) =>
                 {
@@ -121,52 +113,8 @@ class BPMNSimulationActor(
 
             case "exclusiveGateway" =>
                 {   
-                    val outgoing = node.getOutgoing().asScala
-                    if (outgoing.size>1) {
-                        // println(node.getOutgoing().asScala.head.getTextContent())
-                        // println(node.getOutgoing().asScala.head.getConditionExpression().getTextContent())
-                        // //val em = ExpressionManager()
-                        // //val ve = em.createValueExpression(node.getOutgoing().asScala.head.getTextContent())
-
-
-                        // the ExpressionFactory implementation is de.odysseus.el.ExpressionFactoryImpl
-                        val factory: ExpressionFactory = new de.odysseus.el.ExpressionFactoryImpl();
-                        // package de.odysseus.el.util provides a ready-to-use subclass of ELContext
-                        val context: de.odysseus.el.util.SimpleContext = new de.odysseus.el.util.SimpleContext();
-                        // // map function math:max(int, int) to java.lang.Math.max(int, int)
-                        // context.setFunction("math", "max", classOf[Math].getMethod("max", classOf[Int], classOf[Int]));
-                        // // map variable foo to 0
-                        // context.setVariable("foo", factory.createValueExpression(0, classOf[Int]));
-                        // // parse our expression
-                        // val e: ValueExpression = factory.createValueExpression(context, "${math:max(foo,bar)}", classOf[Int]);
-                        // // set value for top-level property "bar" to 1
-                        // factory.createValueExpression(context, "${bar}", classOf[Int]).setValue(context, 1);
-                        // // get value for our expression
-                        // System.out.println(e.getValue(context)); // --> 1
-
-
-                        context.setVariable("foo", factory.createValueExpression("barr", classOf[String]))
-
-                        val theOne = outgoing.find{ x=>
-                            val e: ValueExpression = factory.createValueExpression(context, x.getConditionExpression().getTextContent(), classOf[Boolean])
-                            val result: Boolean = e.getValue(context).asInstanceOf[Boolean]
-                            result
-                        }
-                    
-                        theOne match {
-                            case None => println("ERROR: non-exhaustive or non-boolean conditions in gateway")
-                            case Some(one) => handleNode(one.getTarget())
-                        }
-                    }
-                    else {
-                        handleNode(BPMN.getNextEvents(node).head)
-                    }
-                    
-
-                    //ConditionExpression conditionExpression = (ConditionExpression) flow4.getUniqueChildElementByType(ConditionExpression.class);
-
-                    //val rnd = new util.Random().nextInt(node.getOutgoing().size())
-                    //handleNode(BPMN.getNextEvents(node)(rnd))
+                    val rnd = new util.Random().nextInt(node.getOutgoing().size())
+                    handleNode(BPMN.getNextEvents(node)(rnd))
                 }
 
             case "parallelGateway" =>
@@ -183,7 +131,7 @@ class BPMNSimulationActor(
         println(node.getElementType().getTypeName())
         val nodeId = node.getId()
         println(nodeId)
-        val bpmnData: BpmnData = bpmn.bpmnDataset.data.find(b => b.id == nodeId).getOrElse(BpmnData("notFound",5,0,List()))
+        val bpmnData: BpmnData = bpmn.bpmnDataset.data.find(b => b.id == nodeId).getOrElse(BpmnData("notFound",5,0,List())) //Throw an error properly
         Task(node.getName(),None,ConstantGenerator(bpmnData.duration),ConstantGenerator(bpmnData.cost)).withResources(bpmnData.resources)
     }
 

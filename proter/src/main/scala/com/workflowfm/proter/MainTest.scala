@@ -21,7 +21,7 @@ object MainTest {
         )
 
         // Subscribe the metrics actor
-        coordinator.subscribe(new SimSubrunHandler(handler, 5, 100L))
+        coordinator.subscribe(new SimSubrunHandler(handler, 5, 200L))
 
 
         val r1 = new TaskResource("r1",0)
@@ -41,12 +41,13 @@ object MainTest {
 
         // coordinator.addSimulationNow(single_sim)
         // coordinator.addSimulationNow(flow_sim)
-        coordinator.addSimulation(0L,new BPMNSimulationActor("sim1",coordinator))
+        //coordinator.addSimulation(0L,new BPMNSimulation("sim1",coordinator))
 
 
-        //coordinator.limit(100L)
+        coordinator.limit(200L)
         //coordinator.addArrivalProcessNow(NegativeExponentialRate(0.9),new SingleTaskSimulationGenerator("sim",Seq("r1","r2","r3"),ConstantGenerator(1L)))
         //coordinator.addArrivalProcessNow(NegativeExponentialRate(0.17),new FlowSimulationGenerator("flowSim",flow))
+        coordinator.addArrivalProcessNow(NegativeExponentialRate(0.09),new BPMNSimulationGenerator("BPMNSim"))
 
 
         Await.result(coordinator.start(), 1.hour)
