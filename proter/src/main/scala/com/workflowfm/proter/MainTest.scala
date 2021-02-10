@@ -41,11 +41,13 @@ object MainTest {
 
         // coordinator.addSimulationNow(single_sim)
         // coordinator.addSimulationNow(flow_sim)
+        coordinator.addSimulation(0L,new BPMNSimulationActor("sim1",coordinator))
 
 
-        coordinator.limit(100L)
+        //coordinator.limit(100L)
         //coordinator.addArrivalProcessNow(NegativeExponentialRate(0.9),new SingleTaskSimulationGenerator("sim",Seq("r1","r2","r3"),ConstantGenerator(1L)))
-        coordinator.addArrivalProcessNow(NegativeExponentialRate(0.17),new FlowSimulationGenerator("flowSim",flow))
+        //coordinator.addArrivalProcessNow(NegativeExponentialRate(0.17),new FlowSimulationGenerator("flowSim",flow))
+
 
         Await.result(coordinator.start(), 1.hour)
   }  

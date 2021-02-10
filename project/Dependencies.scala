@@ -21,6 +21,12 @@ object Dependencies {
 
   val sortImports = "com.nequissimus" %% "sort-imports" % "0.5.4"
 
+  val camundaModel = "org.camunda.bpm.model" % "camunda-bpmn-model" % "7.14.0"
+  val camundaEngine = "org.camunda.bpm" % "camunda-engine" % "7.14.0" % "provided"
+  val juelApi = "de.odysseus.juel" % "juel-api" % "2.2.7"
+  val juelImpl = "de.odysseus.juel" % "juel-impl" % "2.2.7"
+  val sprayJson = "io.spray" %%  "spray-json" % "1.3.6"
+
   val common: Seq[ModuleID] = Seq(
     apache
   )
@@ -38,6 +44,14 @@ object Dependencies {
     subakka,
     akkaTestkit,
     subakkaTests,
+  )
+
+  val camunda: Seq[ModuleID] = Seq(
+    camundaModel,
+    camundaEngine,
+    juelApi,
+    juelImpl,
+    sprayJson
   )
 }
 

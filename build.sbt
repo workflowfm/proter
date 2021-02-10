@@ -40,6 +40,8 @@ lazy val proter = Project(id = "proter", base = file("proter"))
   .settings(commonSettings)
   .settings(libraryDependencies ++= Dependencies.common)
   .settings(libraryDependencies ++= Dependencies.testAll)
+  .settings(libraryDependencies ++= Dependencies.camunda)
 
 lazy val proterAkka = proterModule("proter-akka")
   .settings(libraryDependencies ++= Dependencies.akka)
+
