@@ -21,7 +21,7 @@ object MainTest {
         )
 
         // Subscribe the metrics actor
-        coordinator.subscribe(new SimOutputHandler(handler))
+        coordinator.subscribe(new SimSubrunHandler(handler, 5, 100L))
 
 
         val r1 = new TaskResource("r1",0)
@@ -30,7 +30,7 @@ object MainTest {
 
         coordinator.addResources(Seq(r1,r2,r3))
 
-        val task1 = new FlowTask(Task("task1",2L).withResources(Seq("r1")))
+        val task1 = new FlowTask(Task("task1",2L).withResources(Seq("r1")).withCost(1L))
         val task2 = new FlowTask(Task("task2",2L).withResources(Seq("r2")))
         val task3 = new FlowTask(Task("task3",2L).withResources(Seq("r3")))
 
@@ -43,7 +43,7 @@ object MainTest {
         // coordinator.addSimulationNow(flow_sim)
 
 
-        coordinator.limit(20L)
+        coordinator.limit(100L)
         //coordinator.addArrivalProcessNow(NegativeExponentialRate(0.9),new SingleTaskSimulationGenerator("sim",Seq("r1","r2","r3"),ConstantGenerator(1L)))
         coordinator.addArrivalProcessNow(NegativeExponentialRate(0.17),new FlowSimulationGenerator("flowSim",flow))
 

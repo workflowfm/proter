@@ -158,3 +158,78 @@ object ResourceMetrics {
   def apply(name: String, costPerTick: Int): ResourceMetrics =
     ResourceMetrics(name, costPerTick, 0L, 0L, 0L, 0, 0L)
 }
+
+
+case class BasicStats[T](
+  avg: T,
+  variance: T
+)
+
+
+trait MetaMetrics{
+  def calcBasicStats(list: List[Long]): BasicStats[Double] = {
+    val avg = list.sum.toDouble / list.size
+    val variance = ( (list map (_ - avg)) map { x=> Math.pow(x,2)} ).sum.toDouble / (list.size-1)
+    BasicStats(avg,variance)
+  }
+}
+
+case class MetaTaskMetrics(
+  delay: BasicStats[Double],
+  duration: BasicStats[Double],
+  cost: BasicStats[Double]  
+) extends MetaMetrics
+
+object MetaTaskMetrics extends MetaMetrics {
+  def apply(tasks: Seq[TaskMetrics]): MetaTaskMetrics = {
+    val delays = tasks map (_.delay)
+    val durations = tasks map (_.duration)
+    val costs = tasks map (_.cost)
+    MetaTaskMetrics(
+      calcBasicStats(delays.toList),
+      calcBasicStats(durations.toList),
+      calcBasicStats(costs.toList)
+    )
+  }
+}
+
+case class MetaSimMetrics(
+  duration: BasicStats[Double],
+  delay: BasicStats[Double],
+  tasks: BasicStats[Double],
+  cost: BasicStats[Double]
+) extends MetaMetrics
+
+object MetaSimMetrics extends MetaMetrics {
+  def apply(sims: Seq[SimulationMetrics]): MetaSimMetrics = {
+    val durations = sims map (_.duration)
+    val delays = sims map (_.delay)
+    val tasks = (sims map (_.tasks)) map (_.toLong)
+    val costs = sims map (_.cost)
+    MetaSimMetrics(
+      calcBasicStats(durations.toList),
+      calcBasicStats(delays.toList),
+      calcBasicStats(tasks.toList),
+      calcBasicStats(costs.toList)
+    )
+  }
+}
+
+case class MetaResourceMetrics(
+  busy: BasicStats[Double],
+  idle: BasicStats[Double],
+  tasks: BasicStats[Double]
+) extends MetaMetrics
+
+object MetaResourceMetrics extends MetaMetrics {
+  def apply(resources: Seq[ResourceMetrics]): MetaResourceMetrics = {
+    val busys = resources map (_.busyTime)
+    val idles = resources map (_.idleTime)
+    val tasks = (resources map (_.tasks)) map (_.toLong)
+    MetaResourceMetrics(
+      calcBasicStats(busys.toList),
+      calcBasicStats(idles.toList),
+      calcBasicStats(tasks.toList)
+    )
+  }
+}
