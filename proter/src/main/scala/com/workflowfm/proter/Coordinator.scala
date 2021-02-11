@@ -37,6 +37,8 @@ class Coordinator(
 
   val promise: Promise[Unit] = Promise[Unit]()
 
+  var processing: Boolean = false
+
   /**
     * Map of the available [[TaskResource]]s
     * @group resources
@@ -160,6 +162,8 @@ class Coordinator(
                             // future extensions.
       publish(EError(id, time, s"Called `tick()` even though I am still waiting for: $waiting"))
     } else if (!events.isEmpty) {     // Are events pending?
+      processing = true
+
       // Grab the first event
       val firstEvent = events.head
 
@@ -173,17 +177,17 @@ class Coordinator(
         // Dequeue all the events that need to happen now
         val eventsToHandle = dequeueEvents(firstEvent.time)
 
-        // Set up waiting list
-        val doWait = eventsToHandle map waitForSimOfEvent exists identity
-
-        // Release all resources from finished tasks before you notify anyone
         eventsToHandle flatMap filterFinishingTasks groupBy (_.simulation) foreach stopTasks
 
         // Handle the event
         eventsToHandle foreach handleDiscreteEvent
 
+        processing = false
         // If we are not waiting for anything, continue
-        if (!doWait && waiting.isEmpty) tick()
+        if (waiting.isEmpty) {
+          allocateTasks()
+          tick()
+        }
       }
 
     } else if (scheduler.noMoreTasks() && simulations.isEmpty && !promise.isCompleted) {
@@ -230,6 +234,7 @@ class Coordinator(
           abortedTasks -= task.id
           None
         } else {
+          waitFor(task.simulation)
           // Unbind the resources
           task.taskResources(resourceMap).foreach(detach)
           Some(task)
@@ -238,7 +243,7 @@ class Coordinator(
       case _ => None
     }
   }
-
+/*
   protected def waitForSimOfEvent(event: DiscreteEvent): Boolean = {
     //log.debug(s"[COORD:$time] Event!")
     event match {
@@ -263,7 +268,7 @@ class Coordinator(
       case _ => false
     }
   }
-
+ */
   protected def handleDiscreteEvent(event: DiscreteEvent): Unit = {
     //log.debug(s"[COORD:$time] Event!")
     event match {
@@ -341,6 +346,7 @@ class Coordinator(
     * @param simulation The [[Simulation]] to start.
     */
   protected def startSimulation(simulation: SimulationRef): Unit = {
+    waitFor(simulation.name)
     publish(ESimStart(id, time, simulation.name))
     simulations += simulation.name -> simulation
     simulation.run()
@@ -614,7 +620,7 @@ class Coordinator(
     */
   protected def ready(name: String): Unit = {
     waiting -= name
-    if (waiting.isEmpty) {
+    if (waiting.isEmpty && !processing) {
       allocateTasks()
       tick()
     }

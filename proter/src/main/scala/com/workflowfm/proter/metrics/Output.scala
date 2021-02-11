@@ -255,8 +255,7 @@ Duration: ${SimMetricsOutput.formatDuration(aggregator.start, aggregator.end, du
   * @param path path to directory where the files will be placed
   * @param name file name prefix
   */
-class SimCSVFileOutput(path: String, name: String) extends SimMetricsStringOutput with FileOutput {import java.io._
-
+class SimCSVFileOutput(path: String, name: String) extends SimMetricsStringOutput with FileOutput {
   val separator = ","
   val lineSep = "\n"
 
@@ -293,7 +292,7 @@ class SimCSVFileOutput(path: String, name: String) extends SimMetricsStringOutpu
   */
 class SimD3Timeline(path: String, file: String, tick: Int = 1)
     extends SimMetricsOutput
-    with FileOutput {import java.io._
+    with FileOutput {
 
   override def apply(totalTicks: Long, aggregator: SimMetricsAggregator): Unit = {
     val result = build(aggregator, System.currentTimeMillis())
@@ -304,7 +303,7 @@ class SimD3Timeline(path: String, file: String, tick: Int = 1)
 
   /** Helps build the output with a static system time. */
   def build(aggregator: SimMetricsAggregator, now: Long): String = {
-    var buf: StringBuilder = StringBuilder.newBuilder
+    val buf: StringBuilder = StringBuilder.newBuilder
     buf.append("var tasks = [\n")
     for (p <- (collection.immutable.SortedSet[String]() ++ aggregator.taskSet))
       buf.append(s"""\t"$p",\n""")
@@ -319,24 +318,26 @@ class SimD3Timeline(path: String, file: String, tick: Int = 1)
   }
 
   def simulationEntry(s: SimulationMetrics, agg: SimMetricsAggregator): String = {
-    val times = agg.taskMetricsOf(s).map(taskEntry).mkString(",\n")
+    val times = agg.taskMetricsOf(s).flatMap(taskEntry).mkString(",\n")
     s"""{label: "${s.name}", times: [
 $times
 ]},"""
   }
 
   def resourceEntry(res: ResourceMetrics, agg: SimMetricsAggregator): String = {
-    val times = agg.taskMetricsOf(res).map(taskEntry).mkString(",\n")
+    val times = agg.taskMetricsOf(res).flatMap(taskEntry).mkString(",\n")
     s"""{label: "${res.name}", times: [
 $times
 ]},"""
   }
 
-  def taskEntry(m: TaskMetrics): String = {
-    // we don't want it to be 0 because D3 doesn't deal with it well
-    val start = m.started.getOrElse(1L) * tick
-    val finish = (m.started.getOrElse(1L) + m.duration) * tick
-    val delay = m.delay * tick
-    s"""\t{"label":"${m.fullName}", task: "${m.task}", "id":"${m.id}", "starting_time": $start, "ending_time": $finish, delay: $delay, cost: ${m.cost}}"""
+  def taskEntry(m: TaskMetrics): Option[String] = m.started match {
+    case None => None
+    case Some(tstart) => {
+      val start = tstart * tick
+      val finish = (tstart + m.duration) * tick
+      val delay = m.delay * tick
+      Some(s"""\t{"label":"${m.fullName}", task: "${m.task}", "id":"${m.id}", "starting_time": $start, "ending_time": $finish, delay: $delay, cost: ${m.cost}}""")
+    }
   }
 }
