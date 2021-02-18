@@ -77,6 +77,7 @@ class BPMNSimulation(
     //Map from WFM Task ID to BPMN FlowNode ID
     var pendingTasks: Map[UUID,String] = Map()
     //val promise = Promise[Any]()
+    var parallelGateways = Map[String, ParallelGateway]()
 
     override def stop(): Unit = Unit
 
@@ -98,10 +99,14 @@ class BPMNSimulation(
     protected def handleTasksAfter(node: ModelElementInstance): Unit = {
         val nextEvents = BPMN.getNextEvents(node) 
         if (nextEvents.filter(x => bpmn.isEndEvent(x)).length >= 1) { succeed(Unit) }
-        else nextEvents map (handleNode(_))
+        else {
+            val t = node.asInstanceOf[FlowNode].getOutgoing()
+            t.asScala map {x=> handleNode(x.getTarget(),x.getId())}
+            //nextEvents map (handleNode(_))
+        }
     }
 
-    protected def handleNode(node: FlowNode): Unit = {
+    protected def handleNode(node: FlowNode, incomingID: String): Unit = {
         node.getElementType.getTypeName match {
             case y if List("userTask","scriptTask","serviceTask","undefinedTask") contains (y) =>
                 {
@@ -114,12 +119,25 @@ class BPMNSimulation(
             case "exclusiveGateway" =>
                 {   
                     val rnd = new util.Random().nextInt(node.getOutgoing().size())
-                    handleNode(BPMN.getNextEvents(node)(rnd))
+                    val t = node.asInstanceOf[FlowNode].getOutgoing().asScala
+                    val connector = t.toSeq(rnd)
+                    handleNode(connector.getTarget(),connector.getId)
                 }
 
-            case "parallelGateway" =>
+            case "parallelGeteway" =>
                 {
-                    handleTasksAfter(node.getId())
+                    val incomingSize = node.getIncoming.size()
+                    if (incomingSize==1) handleTasksAfter(node.getId())
+                    else {
+                        var gateway: ParallelGateway = null
+                        if (parallelGateways.contains(node.getId())) gateway = parallelGateways.get(node.getId()).get
+                        else {
+                            gateway = new ParallelGateway(node.getId(), incomingSize)
+                            parallelGateways += (node.getId() -> gateway)
+                        }
+                        gateway.addToken(incomingID)
+                        if (gateway.tryToProgress()) handleTasksAfter(node)
+                    }
                 }
 
             case y => println("ERROR: unhandled node type: " + y ) 
@@ -135,4 +153,26 @@ class BPMNSimulation(
         Task(node.getName(),None,ConstantGenerator(bpmnData.duration),ConstantGenerator(bpmnData.cost)).withResources(bpmnData.resources)
     }
 
+}
+
+class ParallelGateway(id: String, inputs: Int) {
+    var inputTokens = Map[String, Int]()
+    def addToken(input: String): Unit = {
+        if (inputTokens.contains(input)) {
+            val old = inputTokens(input)
+            inputTokens.update(input, old+1)
+        }
+        else {
+            inputTokens += (input -> 1)
+        }
+    }
+    def tryToProgress(): Boolean = {
+        if ( inputTokens.values.count(_>=1)==inputs ) {
+            inputTokens map { x=>
+                inputTokens.update(x._1, x._2-1)
+            }
+            true
+        }
+        else false
+    } 
 }
