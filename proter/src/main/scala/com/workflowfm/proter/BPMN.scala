@@ -71,9 +71,10 @@ object BPMN {
 class BPMNSimulation(
     override val name: String,
     override protected val manager: Manager,
+    val src: String
 ) extends Simulation {
 
-    val bpmn: BPMN = BPMN.fromPath("process.bpmn")
+    val bpmn: BPMN = BPMN.fromPath(src)
     //Map from WFM Task ID to BPMN FlowNode ID
     var pendingTasks: Map[UUID,String] = Map()
     //val promise = Promise[Any]()
@@ -108,7 +109,7 @@ class BPMNSimulation(
 
     protected def handleNode(node: FlowNode, incomingID: String): Unit = {
         node.getElementType.getTypeName match {
-            case y if List("userTask","scriptTask","serviceTask","undefinedTask") contains (y) =>
+            case y if List("userTask","scriptTask","serviceTask","undefinedTask","task") contains (y) =>
                 {
                     val theTask = makeTask(node)
                     val newID = UUID.randomUUID()
