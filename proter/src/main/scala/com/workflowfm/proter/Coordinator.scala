@@ -3,7 +3,7 @@ package com.workflowfm.proter
 import java.util.UUID
 
 import scala.annotation.tailrec
-import scala.collection.mutable.{ HashSet, Map, PriorityQueue, Queue, SortedSet }
+import scala.collection.mutable.{ HashSet, Map, PriorityQueue }
 import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.util.{ Try, Success, Failure }
 
