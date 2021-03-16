@@ -26,13 +26,9 @@ sealed trait Event {
 
 /**
   * The entire simulation started.
-  *
-  * The timestamp parameter does not really matter here as it is always `0L`.
-  *
-  * @param source
   */
-case class EStart(override val source: String) extends Event {
-  override val time: Long = 0L
+case class EStart(override val source: String, override val time: Long) extends Event {
+  
 }
 
 /**
@@ -200,7 +196,7 @@ object Event {
     * @return The string representation.
     */
   def asString(e: Event): String = e match {
-    case EStart(src) => s"[$src] === Simulation started! ==="
+    case EStart(src, t) => s"[$t $src] === Simulation started! ==="
     case EDone(src, t) => s"[$t $src] === Simulation complete! ==="
     case EResourceAdd(src, t, n, c) => s"[$t $src] Added resource: $n (CPT:$c)"
     case ESimAdd(src, t, a, s) => s"[$t $src] Added simulation actor [$a] to be run at: $s"

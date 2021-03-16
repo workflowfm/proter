@@ -708,7 +708,7 @@ class Coordinator(
     */
   def start(): Future[Any] = {
     Future {
-      publish(EStart(id))
+      publish(EStart(id, time))
       tick()
     }.flatMap(_ => promise.future)
   }
