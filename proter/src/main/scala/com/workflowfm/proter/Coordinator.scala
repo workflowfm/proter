@@ -9,9 +9,24 @@ import scala.util.{ Try, Success, Failure }
 
 import com.workflowfm.proter.events._
 
+/**
+  * Abstract simulation manager.
+  */
 trait Manager {
+  /**
+    * Adds a simulation to the waiting list.
+    *
+    * The manager needs to wait for that simulation to send a [[SimResponse]].
+    *
+    * @param simulation The name of the [[SimulationRef]] we need to wait for.
+    */
   def waitFor(simulation: String): Unit
-  def simResponse(response: SimResponse): Unit
+
+  /**
+    * Handles a [[SimResponse]] from a simulation.
+    *
+    * @param response The [[SimResponse]] to handle.
+    */  def simResponse(response: SimResponse): Unit
 }
 
 /**
@@ -518,12 +533,9 @@ class Coordinator(
   }
 
   /**
-    * Adds a simulation to the waiting list.
-    *
-    * We will wait for that simulation to send a [[SimResponse]].
+    * @inheritdoc
     *
     * @group simulations
-    * @param actor The name of the [[SimulationRef]] we need to wait for.
     */
   override def waitFor(simulation: String): Unit = this.synchronized {
     waiting += simulation
@@ -669,12 +681,11 @@ class Coordinator(
   }
 
   /**
-    * Handles a [[SimResponse]] from a simulation.
+    * @inheritdoc
     *
     * @group simulations
-    * @param response The [[SimResponse]] to handle.
     */
-  def simResponse(response: SimResponse): Unit = this.synchronized {
+  override def simResponse(response: SimResponse): Unit = this.synchronized {
     if (!promise.isCompleted) {
       response match {
         case SimReady(sim, tasks, abort, lookahead) => {
