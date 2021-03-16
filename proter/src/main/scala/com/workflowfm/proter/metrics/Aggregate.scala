@@ -220,7 +220,7 @@ class SimMetricsAggregator {
 }
 
 /**
-  * A [[ResultHandler]] that collects simulation metrics to a [[SimMetricsAggregator]].
+  * A [[com.workflowfm.proter.events.ResultHandler ResultHandler]] that collects simulation metrics to a [[SimMetricsAggregator]].
   *
   * Returns the [[SimMetricsAggregator]] with all the data as a result when done.
   */

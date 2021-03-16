@@ -165,7 +165,7 @@ trait Simulation extends SimulationRef {
     *
     * @group act
     *
-    * @param ids The `UUID`s of the [[TaskInstances]]s.
+    * @param ids The `UUID`s of the [[TaskInstance]]s.
     */
   def abort(ids: UUID*): Unit = this.synchronized {
     abort ++= ids
@@ -329,7 +329,7 @@ class SingleTaskSimulation(
   /**
     * @inheritdoc
     *
-    * Completes immediately w8th [[success]].
+    * Completes immediately with [[succeed]].
     */
   override def complete(task: TaskInstance, time: Long): Unit = succeed((task, time))
 

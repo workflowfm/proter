@@ -7,7 +7,8 @@ import java.util.UUID
   *
   * A [[TaskResource]], or simply "resource", corresponds to a persistent resource.
   * Typical examples are human actors or persistent machinery.
-  * Each [[TaskGenerator]] may require a different combination of resources.
+  * 
+  * Each [[Task]] may require a different combination of resources.
   *
   * Each [[TaskResource]] is assumed to have a unique name and a `costPerTick`, i.e. the
   * cost (if any) of using the resource per unit of time.
@@ -40,9 +41,11 @@ class TaskResource(val name: String, val costPerTick: Int) {
 
   /**
     * Detaches the current [[TaskInstance]] (if any) if it has completed.
+    * 
     * Checks to ensure the task is completed with respect to the current time and the task duration.
     *
-    * Does not actually do anything to the task itself. It merely detaches it and becomes idle.
+    * Does not do anything to the task itself. It merely detaches it and becomes idle.
+    * 
     * @param currentTime The current (virtual) time.
     * @return The [[TaskInstance]] that was detached, if any.
     */
@@ -58,7 +61,8 @@ class TaskResource(val name: String, val costPerTick: Int) {
   /**
     * Aborts the current [[TaskInstance]] if it matches a given `UUID`.
     *
-    * Does not actually do anything to the task itself. It merely detaches it and becomes idle.
+    * Does not do anything to the task itself. It merely detaches it and becomes idle.
+    * 
     * @param id The `UUID` of the [[TaskInstance]] to abort.
     * @return The starting time and [[TaskInstance]] if it was aborted successfully or [[scala.None None]] in any other case.
     */
@@ -75,7 +79,8 @@ class TaskResource(val name: String, val costPerTick: Int) {
   /**
     * Aborts the current [[TaskInstance]] if it belongs to the given simulation.
     *
-    * Does not actually do anything to the task itself. It merely detaches it and becomes idle.
+    * Does not do anything to the task itself. It merely detaches it and becomes idle.
+    * 
     * @param simulation The name of the simulation whose tasks to abort.
     * @return The starting time and [[TaskInstance]] if it was aborted successfully or [[scala.None None]] in any other case.
     */
@@ -117,11 +122,12 @@ class TaskResource(val name: String, val costPerTick: Int) {
     *
     * Lets the [[Scheduler]] (via [[TaskInstance.nextPossibleStart]]) know an
     * '''estimate''' of when we expect to have this resource available again.
-    * This is based off of [[TaskInstance.estimatedDuration]] so may not be the correct, but is more
+    * 
+    * This is based off of [[TaskInstance.estimatedDuration]] so may not be the accurate, but is more
     * realistic in terms of what we know at a specific given point in time.
     *
     * @param currentTime
-    * @return
+    * @return the estimated earliest time the resource will become available
     */
   def nextAvailableTimestamp(currentTime: Long): Long = currentTask match {
     case None => currentTime
