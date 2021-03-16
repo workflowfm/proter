@@ -19,7 +19,7 @@ sealed trait DiscreteEvent extends Ordered[DiscreteEvent] {
     * 
     * Orders based on timestamp first (earlier first), 
     * class order second (lower first),
-    * and finally using [[sameClassCompafe]].
+    * and finally using [[sameClassCompare]].
     *
     * @param that Another event to compare to.
     * @return The relative order of the events: lower means this event comes first
