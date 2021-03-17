@@ -87,6 +87,14 @@ object SimMetricsOutputs {
   )
 }
 
+/**
+  * A [[SimMetricsOutput]] that does nothing.
+  */
+object SimNoOutput extends SimMetricsOutput {
+  def apply(totalTicks: Long, aggregator: SimMetricsAggregator): Unit = Unit
+}
+
+
 /** Generates a string representation of the metrics using a generalized CSV format. */
 trait SimMetricsStringOutput extends SimMetricsOutput {
   /** A string representing null values. */
