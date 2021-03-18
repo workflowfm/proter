@@ -28,7 +28,9 @@ def proterModule(name: String): Project =
     .dependsOn(proter % "compile->compile;test->test")
 
 lazy val root = Project(id = "proter-root", base = file("."))
+  .settings(commonSettings)
   .aggregate(aggregatedProjects: _*)
+  .enablePlugins(ScalaUnidocPlugin)
 
 lazy val proter = Project(id = "proter", base = file("proter"))
   .settings(commonSettings)
