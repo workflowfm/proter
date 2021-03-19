@@ -12,6 +12,14 @@ import akka.util.Timeout
 
 import com.workflowfm.proter._
 
+/**
+  * Akka-based [[com.workflowfm.proter.Manager Manager]] implementation.
+  *
+  * Delegates all interaction to an actor via messaging.
+  * 
+  * @param manager The `ActorRef` of the actor.
+  * @param timeout A timeout for all `ask` operations.
+  */
 case class AkkaManager(manager: ActorRef, timeout: Timeout = Timeout(1, TimeUnit.MINUTES))
     extends Manager {
 
@@ -56,12 +64,9 @@ object AkkaManager {
 }
 
 /**
-  * Provides coordination for discrete event simulation of multiple asynchronous simulations.
+  * Actor wrapper for [[com.workflowfm.proter.Coordinator Coordinator]].
   *
-  * @groupname tasks Managing tasks
-  * @groupname simulations Managing simulations
-  * @groupname resources Managing resources
-  * @groupname toplevel Top level
+  * Provides access to all functionality via messaging.
   *
   * @param scheduler The [[Scheduler]] responsible for task allocation at any given time.
   * @param startingTime The starting timestamp of the entire simulation.
@@ -100,7 +105,7 @@ class CoordinatorActor(
 }
 
 /**
-  * Companion object for [[Coordinator]].
+  * Companion object for [[CoordinatorActor]].
   *
   * Includes some of the actor messages that can be received and sent.
   *
