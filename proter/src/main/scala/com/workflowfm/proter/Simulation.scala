@@ -121,7 +121,7 @@ trait Simulation extends SimulationRef {
 
   protected val tasksToAdd: Queue[Task] = Queue[Task]()
 
-  protected val abort: HashSet[UUID] = HashSet[UUID]()
+  protected val aborted: HashSet[UUID] = HashSet[UUID]()
 
   protected def manager: Manager
 
@@ -168,7 +168,7 @@ trait Simulation extends SimulationRef {
     * @param ids The `UUID`s of the [[TaskInstance]]s.
     */
   def abort(ids: UUID*): Unit = this.synchronized {
-    abort ++= ids
+    aborted ++= ids
   }
 
   /**
@@ -215,7 +215,7 @@ trait Simulation extends SimulationRef {
   def ack(taskIDs: Seq[UUID]): Unit = this.synchronized {
     waiting --= taskIDs
     if (waiting.isEmpty) {
-      val response = SimReady(name, tasksToAdd.clone.toSeq, abort.clone.toSeq, getLookahead())
+      val response = SimReady(name, tasksToAdd.clone.toSeq, aborted.clone.toSeq, getLookahead())
       clear()
       manager.simResponse(response)
     }
@@ -228,7 +228,7 @@ trait Simulation extends SimulationRef {
     * @group act
     */
   def ready(): Unit = {
-    val response = SimReady(name, tasksToAdd.clone.toSeq, abort.clone.toSeq, getLookahead())
+    val response = SimReady(name, tasksToAdd.clone.toSeq, aborted.clone.toSeq, getLookahead())
     clear()
     manager.simResponse(response)
   }
@@ -266,7 +266,7 @@ trait Simulation extends SimulationRef {
   protected def clear(): Unit = {
     waiting.clear()
     tasksToAdd.clear()
-    abort.clear()
+    aborted.clear()
   }
 }
 

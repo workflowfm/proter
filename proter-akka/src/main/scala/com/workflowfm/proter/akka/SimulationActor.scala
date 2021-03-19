@@ -9,7 +9,7 @@ import akka.actor.{ ActorSystem, Actor, ActorRef, Props }
 import com.workflowfm.proter._
 
 /**
-  * Akka-based [[com.workflowfm.proterSimulationRef SimulationRef]] implementation.
+  * Akka-based [[com.workflowfm.proter.SimulationRef SimulationRef]] implementation.
   *
   * Delegates all interaction to an actor via messaging.
   *
@@ -80,9 +80,9 @@ object SimulationActor {
   case object Ready
 
   /**
-    * Produces a new [[TaskGenerator]] for simulation.
+    * Adds new [[Task]]s to the simulation.
     *
-    * @see [[Simulation.task(t* task(t, resources)]]
+    * @see [[Simulation.task]]
     * @group process
     *
     * @param t The [[TaskGenerator]] to generate the [[Task]].
