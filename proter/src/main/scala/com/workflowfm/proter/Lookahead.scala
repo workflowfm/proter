@@ -22,7 +22,9 @@ trait Lookahead {
   def -(id: UUID): Lookahead
 
   /**
-    * Adds an entry to the strucutre, comprised of a function that describes the
+    * Adds an entry to the structure
+    * 
+    * An entry is comprised of a function that describes the
     * prerequisites and resultant starting time of a set of tasks, and a list
     * of [[Task]]s that should start if this
     * function returns `Some(value)`.

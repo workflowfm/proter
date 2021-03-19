@@ -1,15 +1,29 @@
 package com.workflowfm.proter
 
 /**
-  * Discrete Events that need to be handled.
+  * Discrete Events that need to be handled by the [[Coordinator]]..
   */
 sealed trait DiscreteEvent extends Ordered[DiscreteEvent] {
-  /** The timestamp of the event */
+  /** The virtual timestamp of the event */
   def time: Long
 
+  /**
+    * A value to allow ordering of [[DiscreteEvent]] subclasses.
+    * 
+    * A lower class order means all events of that subclass will be handled before 
+    * those of a subclass with higher class order.
+    */
   val classOrder: Short
 
-  /** Events need to be ordered based on their timestamp. */
+  /** Comparison method to order [[DiscreteEvent]]s
+    * 
+    * Orders based on timestamp first (earlier first), 
+    * class order second (lower first),
+    * and finally using [[sameClassCompare]].
+    *
+    * @param that Another event to compare to.
+    * @return The relative order of the events: lower means this event comes first
+    */
   def compare(that: DiscreteEvent): Int = {
     lazy val tOrder = this.time.compare(that.time)
     lazy val cOrder = this.classOrder.compare(that.classOrder)
@@ -21,7 +35,13 @@ sealed trait DiscreteEvent extends Ordered[DiscreteEvent] {
     else this.hashCode().compare(that.hashCode())
   }
 
-  def sameClassCompare(that: DiscreteEvent): Int
+  /**
+    * A method to compare events of the same subclass of [[DiscreteEvent]]s.
+    * 
+    * @param that Another event to compare to, assumed to be of the same subclass.
+    * @return The relative order of the events: lower means this event comes first
+    */
+  protected def sameClassCompare(that: DiscreteEvent): Int
 }
 
 /**
@@ -33,7 +53,7 @@ sealed trait DiscreteEvent extends Ordered[DiscreteEvent] {
 case class FinishingTask(override val time: Long, task: TaskInstance) extends DiscreteEvent {
   override val classOrder: Short = 5
 
-  override def sameClassCompare(that: DiscreteEvent): Int = that match {
+  override protected def sameClassCompare(that: DiscreteEvent): Int = that match {
     case FinishingTask(_, t) => task.compare(t)
     case _ => 0
   }
