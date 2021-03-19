@@ -19,7 +19,7 @@ class CoordinatorActorTests
     with WordSpecLike
     with Matchers
     with BeforeAndAfterAll {
-/* implicit val executionContext: ExecutionContext = this.system.dispatcher
+  /* implicit val executionContext: ExecutionContext = this.system.dispatcher
    * //system.dispatchers.lookup("akka.my-dispatcher") */
 
   override def afterAll: Unit = {

@@ -8,7 +8,7 @@ import scala.concurrent.Promise
 
 /**
   * A handler of [[Event]]s.
-  * 
+  *
   * Handles a stream of events from a [[Publisher]].
   */
 trait EventHandler {
@@ -61,7 +61,7 @@ trait PoolEventHandler extends EventHandler {
 
   /**
     * @inheritdoc
-    * 
+    *
     * Adds the publisher to [[publishers]].
     */
   override def onInit(publisher: Publisher): Unit = {
@@ -70,7 +70,7 @@ trait PoolEventHandler extends EventHandler {
 
   /**
     * @inheritdoc
-    * 
+    *
     * Closes the event stream by removing the publisher from [[publishers]].
     */
   override def onDone(publisher: Publisher): Unit = {
@@ -126,21 +126,21 @@ class CounterHandler extends ResultHandler[Int] {
 
   /**
     * @inheritdoc
-    * 
+    *
     * Resets the counter to 0.
     */
   override def onInit(publisher: Publisher): Unit = count = 0
 
   /**
     * @inheritdoc
-    * 
+    *
     * Increases the counter by one.
     */
   override def onEvent(e: Event): Unit = count = count + 1
 
   /**
     * @inheritdoc
-    * 
+    *
     * Simply returns the counter.
     */
   override def result = count
@@ -148,7 +148,7 @@ class CounterHandler extends ResultHandler[Int] {
 
 /**
   * A wrapper for a [[ResultHandler]] that fulfills a [[scala.concurrent.Promise Promise]] with the result.
-  * 
+  *
   * This is also itself a [[ResultHandler]].
   *
   * @param handler The [[ResultHandler]] that calculates the result.
@@ -229,7 +229,7 @@ class SimulationResultHandler(name: String, callback: String => Unit = { _ => Un
 
   /**
     * The [[Publisher]] of the stream.
-    * 
+    *
     * We assume to be subscribed to a single publisher. We then keep track of it so we can unsubscribe
     * as soon as we get our result.
     */
@@ -250,7 +250,7 @@ class SimulationResultHandler(name: String, callback: String => Unit = { _ => Un
   /**
     * @inheritdoc
     *
-    * If the event is [[ESimEnd]] and the simulation name matches then 
+    * If the event is [[ESimEnd]] and the simulation name matches then
     * we record the simulation result in [[simResult]], unsubscribe, and call the callback function.
     */
   override def onEvent(evt: Event): Unit = evt match {

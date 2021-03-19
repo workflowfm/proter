@@ -94,7 +94,6 @@ object SimNoOutput extends SimMetricsOutput {
   def apply(totalTicks: Long, aggregator: SimMetricsAggregator): Unit = Unit
 }
 
-
 /** Generates a string representation of the metrics using a generalized CSV format. */
 trait SimMetricsStringOutput extends SimMetricsOutput {
   /** A string representing null values. */
@@ -345,7 +344,9 @@ $times
       val start = tstart * tick
       val finish = (tstart + m.duration) * tick
       val delay = m.delay * tick
-      Some(s"""\t{"label":"${m.fullName}", task: "${m.task}", "id":"${m.id}", "starting_time": $start, "ending_time": $finish, delay: $delay, cost: ${m.cost}}""")
+      Some(
+        s"""\t{"label":"${m.fullName}", task: "${m.task}", "id":"${m.id}", "starting_time": $start, "ending_time": $finish, delay: $delay, cost: ${m.cost}}"""
+      )
     }
   }
 }

@@ -27,9 +27,7 @@ sealed trait Event {
 /**
   * The entire simulation started.
   */
-case class EStart(override val source: String, override val time: Long) extends Event {
-  
-}
+case class EStart(override val source: String, override val time: Long) extends Event {}
 
 /**
   * A [[TaskResource]] was added.
@@ -46,7 +44,7 @@ case class EResourceAdd(
 
 /**
   * A simulation was added.
-  * 
+  *
   * @param name The name of the simulation.
   * @param start The timestamp when this simulation is scheduled to start.
   */

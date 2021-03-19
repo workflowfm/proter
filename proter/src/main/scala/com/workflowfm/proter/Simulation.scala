@@ -10,7 +10,7 @@ import scala.util.{ Try, Success, Failure }
   * Captures the potential responses of a simulation case to an event.
   *
   * A simulation is notified by its [[Manager]] when relevant events have taken place,
-  * such as one of its tasks completing. 
+  * such as one of its tasks completing.
   * The simulation can use subclasses of this trait to respond to such notification.
   * The [[Manager]] will wait for such a response before it resumes the virtual time.
   */
@@ -48,7 +48,7 @@ case class SimDone(override val simulation: String, result: Try[Any]) extends Si
 
 /**
   * An abstract reference to simulation logic.
-  * 
+  *
   * Includes the basic interface that we expect from a simulation case:
   *   1. Starting the simulation.
   *   1. Notifying when tasks complete.
@@ -91,16 +91,16 @@ trait SimulationRef {
   * = Basic Interaction Flow =
   * The interaction flow with the [[Coordinator]] is expected as follows:
   *   1. The simulation logic starts executing via [[run]].
-  *   1. Tasks are added via [[task]]. 
+  *   1. Tasks are added via [[task]].
   *   1. When the simulation logic finishes producing tasks, it should call [[ready]].
   *   1. Eventually, one of the tasks completes and [[complete]] is called.
   *      The simulation logic resumes execution.
-  *   1. The simulation may now produce further tasks in reaction to the completed one(s). 
+  *   1. The simulation may now produce further tasks in reaction to the completed one(s).
   *      It can either handle and acknowledge each completed task individually using [[ack]]
   *      or use [[ready]] in one go as above.
   *   1. When the simulation logic completes, it can use [[succeed]] (instead of [[ack]] or [[ready]])
   *      to notify the [[Coordinator]] of its result.
- 
+  *
   *  = Additional Functions =
   *  The simulation may also:
   *   1. React to things happening to other simulations. It can send a
@@ -250,7 +250,7 @@ trait Simulation extends SimulationRef {
 
   /**
     * Calculates an optional [[Lookahead]] structure for tasks that are expected in the future.
-    * 
+    *
     * This is called via [[ready]].
     *
     * @group act
@@ -260,7 +260,7 @@ trait Simulation extends SimulationRef {
 
   /**
     * Clears structures to initiate a new reaction.
-    * 
+    *
     * @group internal
     */
   protected def clear(): Unit = {

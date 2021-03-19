@@ -23,7 +23,7 @@ trait Lookahead {
 
   /**
     * Adds an entry to the structure
-    * 
+    *
     * An entry is comprised of a function that describes the
     * prerequisites and resultant starting time of a set of tasks, and a list
     * of [[Task]]s that should start if this

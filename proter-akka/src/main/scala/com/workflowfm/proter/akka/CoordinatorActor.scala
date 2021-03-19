@@ -16,7 +16,7 @@ import com.workflowfm.proter._
   * Akka-based [[com.workflowfm.proter.Manager Manager]] implementation.
   *
   * Delegates all interaction to an actor via messaging.
-  * 
+  *
   * @param manager The `ActorRef` of the actor.
   * @param timeout A timeout for all `ask` operations.
   */

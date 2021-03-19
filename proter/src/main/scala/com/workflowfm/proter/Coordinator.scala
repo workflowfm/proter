@@ -26,20 +26,21 @@ trait Manager {
     * Handles a [[SimResponse]] from a simulation.
     *
     * @param response The [[SimResponse]] to handle.
-    */  def simResponse(response: SimResponse): Unit
+    */
+  def simResponse(response: SimResponse): Unit
 }
 
 /**
   * Provides coordination for discrete event simulation of multiple asynchronous simulations.
   *
   * Default implementation of [[Manager]].
-  * 
-  * It can run in a single thread or multi-threaded depending on the `singleThread` 
-  * constructor parameter. In the multi-threaded setting, task completions are 
-  * reported to the simulations asynchronously through a new thread (`Future`) 
+  *
+  * It can run in a single thread or multi-threaded depending on the `singleThread`
+  * constructor parameter. In the multi-threaded setting, task completions are
+  * reported to the simulations asynchronously through a new thread (`Future`)
   * each time. This allows simulations to run things concurrently, with the added overhead
   * of thread spawning.
-  * 
+  *
   * @groupname tasks Managing tasks
   * @groupname simulations Managing simulations
   * @groupname resources Managing resources
@@ -59,14 +60,14 @@ class Coordinator(
 
   /**
     * A unique id/name for logging purposes.
-    * 
+    *
     * @group toplevel
     */
   val id: String = this.toString()
 
   /**
     * A promise to fulfil when the simulation is complete.
-    * 
+    *
     * @group toplevel
     */
   protected val promise: Promise[Unit] = Promise[Unit]()
@@ -74,14 +75,14 @@ class Coordinator(
   /**
     * Flag to prevent continuing the virtual time before we have notified
     * all simulations about completed tasks in the current time.
-    * 
+    *
     * @group toplevel
     */
   protected var processing: Boolean = false
 
   /**
     * Map of the available [[TaskResource]]s
-    * 
+    *
     * @group resources
     */
   val resourceMap: Map[String, TaskResource] = Map[String, TaskResource]()
@@ -105,7 +106,7 @@ class Coordinator(
   /**
     * Priority queue of [[DiscreteEvent]]s to be processed,
     * ordered by (future) timestamp.
-    * 
+    *
     * @group toplevel
     */
   protected val events: PriorityQueue[DiscreteEvent] =
@@ -184,7 +185,7 @@ class Coordinator(
     *
     *  - First, [[filterFinishingTasks]] releases all resources that are no longer in use.
     *   It is useful to do this before notifying task completion to ensure all simulations can know the
-    *   correct state of the resources if they need to. 
+    *   correct state of the resources if they need to.
     *   It also adds the simulations to the waiting list to ensure we will wait for all of them.
     *  - We then handle finishing tasks, grouped by simulation, with [[stopTasks]].
     *  - All other events are then handled via [[handleDiscreteEvent]].
@@ -198,10 +199,10 @@ class Coordinator(
     */
   @tailrec
   final protected def tick(): Unit = {
-    if (!waiting.isEmpty) { // This should never happen, but we add it here as a safeguard for 
-                            // future extensions.
+    if (!waiting.isEmpty) { // This should never happen, but we add it here as a safeguard for
+      // future extensions.
       publish(EError(id, time, s"Called `tick()` even though I am still waiting for: $waiting"))
-    } else if (!events.isEmpty) {     // Are events pending?
+    } else if (!events.isEmpty) { // Are events pending?
       processing = true
 
       // Grab the first event
@@ -261,7 +262,7 @@ class Coordinator(
     * and adds simulations to the waiting list.
     *
     * If the provided event is a [[FinishingTask]] event, i.e. a [[TaskInstance]] just finished,
-    * this means the resources used by that [[TaskInstance]] can now be released and 
+    * this means the resources used by that [[TaskInstance]] can now be released and
     * that we should wait for a response from their respective simulations.
     *
     * Other [[DiscreteEvent]]s are just ignored.
@@ -310,7 +311,7 @@ class Coordinator(
     * Add a new simulation to be run.
     *
     * Publishes a [[com.workflowfm.proter.events.ESimAdd ESimAdd]].
-    * 
+    *
     * @group simulations
     * @param t The timestamp when the simulation needs to start. Must be greater or equal to the current
     *          time.
@@ -325,7 +326,7 @@ class Coordinator(
     * Add a new simulation to be run in the current virtual time.
     *
     * Publishes a [[com.workflowfm.proter.events.ESimAdd ESimAdd]] for each simulation.
-    * 
+    *
     * @group simulations
     * @param simulation The [[Simulation]] to run.
     */
@@ -542,12 +543,11 @@ class Coordinator(
     //log.debug(s"[COORD:$time] Wait requested: $simulation")
   }
 
-
   /**
     * Handles a [[SimDone]] response from a simulation, indicating that it has completed.
     *
     * Calls [[stopSimulation]] according to the reported success or failure result.
-    * 
+    *
     * @group simulations
     * @param simulation The name of the simulation
     * @param result The result of completion
@@ -583,10 +583,10 @@ class Coordinator(
     * Handles a group of [[TaskInstance]]s of the same simulation that has just finished.
     *
     * Assumes all instances belong to the same simulation.
-    * 
+    *
     *  - Notifies the [[Scheduler]] about each task comleting.
     *  - Publishes a [[com.workflowfm.proter.events.ETaskDone ETaskDone]].
-    *  - Notifies the [[Simulation]] that its [[TaskInstance]]s have finished. 
+    *  - Notifies the [[Simulation]] that its [[TaskInstance]]s have finished.
     *    This happens in the same thread if `singleThread` is `true` or using a `Future` otherwise.
     *
     * Note that resources are detached before this in [[tick]] using [[filterFinishingTasks]].
@@ -651,10 +651,10 @@ class Coordinator(
     * Reacts to the fact that we no longer need to wait for a simulation.
     *
     * This can happen when the simulation has responded and we finished handling the response.
-    * We remove it from the waiting queue and then check if the waiting queue is empty and if we 
+    * We remove it from the waiting queue and then check if the waiting queue is empty and if we
     * have finished processing events.
-    * If so, we can progress time. 
-
+    * If so, we can progress time.
+    *
     * First, we allocate new tasks, because some of them
     * may be able to start immediately. We then progress time with [[tick]].
     *
@@ -701,9 +701,9 @@ class Coordinator(
 
   /**
     * Starts the entire simulation scenario.
-    * 
+    *
     * Publishes a [[com.workflowfm.proter.events.EStart EStart]].
-    * 
+    *
     * @group toplevel
     */
   def start(): Future[Any] = {
@@ -717,9 +717,9 @@ class Coordinator(
     * Shuts down the entire simulation and shuts down the actor.
     *
     * Publishes a [[com.workflowfm.proter.events.EDone EDone]].
-    * 
+    *
     * Fulfils the completion [[promise]].
-    * 
+    *
     * @group toplevel
     */
   protected def finish(): Unit = {

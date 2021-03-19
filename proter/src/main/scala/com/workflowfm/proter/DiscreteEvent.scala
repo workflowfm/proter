@@ -9,15 +9,15 @@ sealed trait DiscreteEvent extends Ordered[DiscreteEvent] {
 
   /**
     * A value to allow ordering of [[DiscreteEvent]] subclasses.
-    * 
-    * A lower class order means all events of that subclass will be handled before 
+    *
+    * A lower class order means all events of that subclass will be handled before
     * those of a subclass with higher class order.
     */
   val classOrder: Short
 
   /** Comparison method to order [[DiscreteEvent]]s
-    * 
-    * Orders based on timestamp first (earlier first), 
+    *
+    * Orders based on timestamp first (earlier first),
     * class order second (lower first),
     * and finally using [[sameClassCompare]].
     *
@@ -37,7 +37,7 @@ sealed trait DiscreteEvent extends Ordered[DiscreteEvent] {
 
   /**
     * A method to compare events of the same subclass of [[DiscreteEvent]]s.
-    * 
+    *
     * @param that Another event to compare to, assumed to be of the same subclass.
     * @return The relative order of the events: lower means this event comes first
     */
