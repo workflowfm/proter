@@ -24,11 +24,11 @@ class FlowSimulationGenerator(baseName: String, flow: Flow) extends SimulationGe
     }
 }
 
-class BPMNSimulationGenerator(baseName: String, src: String) extends SimulationGenerator {
+class BPMNSimulationGenerator(baseName: String, src: String, json: String) extends SimulationGenerator {
         var count = 0
     override def newSim(coordinator: Manager): SimulationRef = {
         val name = baseName + count.toString()
         count += 1
-        new BPMNSimulation(name,coordinator,src)
+        new BPMNSimulation(name,coordinator,src, json)
     }
 }

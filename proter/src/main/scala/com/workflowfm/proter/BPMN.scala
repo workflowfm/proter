@@ -17,20 +17,24 @@ import org.camunda.bpm.model.xml.instance.ModelElementInstance
 
 import spray.json._
 
-case class BpmnData(
-    id: String,
-    duration: Int,
-    cost: Int,
-    resources: List[String]
-)
 
 case class BpmnDataset(data: List[BpmnData])
+
+/**
+  * So this chunk of code is particularly nasty but it's necessary to
+  * make an object and import it like so so that the json protocol can be 
+  * used throughout.
+  * 
+  * BpmnDataJsonProtocol e
+  */
 object BpmnDataJsonProtocol extends DefaultJsonProtocol {
-    implicit val bpmnFormat = jsonFormat4(BpmnData) }
+    implicit val ValueGeneratorProtocol = ValueGeneratorFormat
+    implicit val PriorityProtocol = PriorityFormat
+    implicit val bpmnFormat = jsonFormat5(BpmnData)
+    implicit val bpmnDatasetFormat = jsonFormat1(BpmnDataset)
+    
+}
 import BpmnDataJsonProtocol._
-object BpmnDatasetJsonProtocol extends DefaultJsonProtocol {
-    implicit val bpmnDatasetFormat = jsonFormat1(BpmnDataset) }
-import BpmnDatasetJsonProtocol._
 
 
 class BPMN(path: String, data: String) {
@@ -58,9 +62,8 @@ class BPMN(path: String, data: String) {
 }
 
 
-
 object BPMN {
-    def fromPath(path: String): BPMN = new BPMN(path, "modelData.json")
+    def fromPath(path: String, json: String): BPMN = new BPMN(path, json)
 
     def getNextEvents(i: ModelElementInstance): List[FlowNode] = {
         i.asInstanceOf[FlowNode].getSucceedingNodes().list().asScala.toList
@@ -71,10 +74,11 @@ object BPMN {
 class BPMNSimulation(
     override val name: String,
     override protected val manager: Manager,
-    val src: String
+    val src: String,
+    val json: String
 ) extends Simulation {
 
-    val bpmn: BPMN = BPMN.fromPath(src)
+    val bpmn: BPMN = BPMN.fromPath(src, json)
     //Map from WFM Task ID to BPMN FlowNode ID
     var pendingTasks: Map[UUID,String] = Map()
     //val promise = Promise[Any]()
@@ -150,8 +154,8 @@ class BPMNSimulation(
         println(node.getElementType().getTypeName())
         val nodeId = node.getId()
         println(nodeId)
-        val bpmnData: BpmnData = bpmn.bpmnDataset.data.find(b => b.id == nodeId).getOrElse(BpmnData("notFound",5,0,List())) //Throw an error properly
-        Task(node.getName(),None,ConstantGenerator(bpmnData.duration),ConstantGenerator(bpmnData.cost)).withResources(bpmnData.resources)
+        val bpmnData: BpmnData = bpmn.bpmnDataset.data.find(b => b.id == nodeId).getOrElse(BpmnData("notFound",ConstantGenerator(5),0,Task.Low,List())) //Throw an error properly
+        Task(node.getName(),None,bpmnData.duration,ConstantGenerator(bpmnData.cost)).withResources(bpmnData.resources)
     }
 
 }
