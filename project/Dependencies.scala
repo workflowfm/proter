@@ -16,9 +16,6 @@ object Dependencies {
 
   val apache = "org.apache.commons" % "commons-lang3" % "3.3.2"
 
-  val subakka = "uk.ac.ed.inf" %% "subakka" % "1.0.0"
-  val subakkaTests = "uk.ac.ed.inf" %% "subakka" % "1.0.0" % Test classifier "tests"
-
   val sortImports = "com.nequissimus" %% "sort-imports" % "0.5.4"
 
   val common: Seq[ModuleID] = Seq(
@@ -35,9 +32,7 @@ object Dependencies {
   val akka: Seq[ModuleID] = Seq (
     akkaActor,
     akkaTestkit,
-    subakka,
     akkaTestkit,
-    subakkaTests,
   )
 }
 
