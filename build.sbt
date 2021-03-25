@@ -1,7 +1,41 @@
 import com.workflowfm.proter.Dependencies
 
-lazy val commonSettings = Seq(
+inThisBuild(List(
   organization := "com.workflowfm",
+  organizationName := "WorkflowFM",
+  organizationHomepage := Some(url("http://www.workflowfm.com/")),
+  homepage := Some(url("http://www.workflowfm.com/proter/")),
+  description := "A discrete event simulator for asynchronous prioritized processes",
+  licenses := Seq("APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
+
+  developers := List(
+    Developer(
+      id = "PetrosPapapa",
+      name = "Petros Papapanagiotou",
+      email = "petros@workflowfm.com",
+      url = url("https://homepages.inf.ed.ac.uk/ppapapan/")
+    )
+  ),
+  scmInfo := Some(
+    ScmInfo(
+      url("https://github.com/workflowfm/Proter"),
+      "scm:git@github.com:workflowfm/Proter.git"
+    )
+  ),
+  dynverSonatypeSnapshots := true,
+
+  scalafixDependencies += Dependencies.sortImports,
+))
+
+
+publishTo in ThisBuild := sonatypePublishToBundle.value
+pomIncludeRepository := { _ => false }
+publishMavenStyle := true
+sonatypeCredentialHost := "s01.oss.sonatype.org"
+sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
+
+
+lazy val commonSettings = Seq(
   scalaVersion := Dependencies.scalaVer,
 
   semanticdbEnabled := true,
@@ -13,7 +47,7 @@ lazy val commonSettings = Seq(
 
 )
 
-ThisBuild / scalafixDependencies += Dependencies.sortImports
+
 
 lazy val aggregatedProjects: Seq[ProjectReference] = List[ProjectReference](
   proter,
@@ -28,7 +62,9 @@ def proterModule(name: String): Project =
     .dependsOn(proter % "compile->compile;test->test")
 
 lazy val root = Project(id = "proter-root", base = file("."))
-  .settings(commonSettings)
+  .settings(commonSettings, Seq(  
+    publishArtifact := false
+  ))
   .aggregate(aggregatedProjects: _*)
   .enablePlugins(ScalaUnidocPlugin)
 

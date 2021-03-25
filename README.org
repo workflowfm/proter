@@ -35,7 +35,7 @@ libraryDependencies += "com.workflowfm" %% "proter" % "0.6"
 
 ** Maintainer
 
-   [[https://github.com/PetrosPapapa][Petros Papapanagiotou]] - pe.p@ed.ac.uk - [[https://twitter.com/petrospapapa][@PetrosPapapa]]
+   [[https://github.com/PetrosPapapa][Petros Papapanagiotou]] - petros@workflowfm.com - [[https://twitter.com/petrospapapa][@PetrosPapapa]]
 
 ** Contributors
 
