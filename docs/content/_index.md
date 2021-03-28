@@ -15,7 +15,7 @@ A [discrete event simulator](https://en.wikipedia.org/wiki/Discrete-event_simula
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
 
 
-{{< button "docs/" "Read the Docs" >}}{{< button "api/" "ScalaDocs" >}}{{< button "https://github.com/workflowfm/Proter" "Source" >}}
+{{< button "docs/" "Read the Docs" >}}{{< button "api/com/workflowfm/proter/" "ScalaDocs" >}}{{< button "https://github.com/workflowfm/Proter" "Source" >}}
 
 
 <a id="authors"></a>
