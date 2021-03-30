@@ -18,13 +18,14 @@ A [discrete event simulator](https://en.wikipedia.org/wiki/Discrete-event_simula
 {{< button "docs/" "Read the Docs" >}}{{< button "api/com/workflowfm/proter/" "ScalaDocs" >}}{{< button "https://github.com/workflowfm/Proter" "Source" >}}
 
 
+
 <a id="authors"></a>
 
 # Authors
 
 ## Maintainer
 
-[Petros Papapanagiotou](https://homepages.inf.ed.ac.uk/ppapapan/) - petros@workflowfm.com - [@PetrosPapapa](https://twitter.com/petrospapapa)
+Petros Papapanagiotou - [{{< image "images/web.svg" "Home page" "icon nomargin">}}](https://homepages.inf.ed.ac.uk/ppapapan/) - [{{< image "images/email.svg" "Email" "icon nomargin">}}](mailto:petros@workflowfm.com?subject=Proter) - [{{< image "images/twitter.svg" "Twitter" "icon nomargin">}}](https://twitter.com/petrospapapa)
 
 ## Contributors
 

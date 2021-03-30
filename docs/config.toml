@@ -55,6 +55,8 @@ disableKinds = ["taxonomy", "taxonomyTerm"]
   # disable showing line numbers by default. Switch to `true` if you'd rather have them on.
   codeLineNumbers = false
 
+  customCSS = ["css/workflowfm.css"]
+
   # Site logo
   [params.logo]
     lightMode = "images/Proter.png"
