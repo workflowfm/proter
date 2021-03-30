@@ -5,7 +5,7 @@ lastmod: 2021-03-28T10:17:36+00:00
 draft: false
 ---
 
-[![img](https://img.shields.io/badge/version-0.6.1-brightgreen.svg)](../../releases/latest)
+[![img](https://img.shields.io/badge/version-{{< version >}}-brightgreen.svg)](../../releases/latest)
 [![img](https://img.shields.io/badge/license-Apache%202.0-yellowgreen.svg)](https://opensource.org/licenses/Apache-2.0)
 
 {{< tip >}}
@@ -15,8 +15,7 @@ A [discrete event simulator](https://en.wikipedia.org/wiki/Discrete-event_simula
 <table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
 
 
-{{< button "docs/" "Read the Docs" >}}{{< button "api/com/workflowfm/proter/" "ScalaDocs" >}}{{< button "https://github.com/workflowfm/Proter" "Source" >}}
-
+{{< button "docs/" "Read the Docs" >}}{{< button "api/com/workflowfm/proter/" "API Documentation" >}}{{< button "https://github.com/workflowfm/Proter" "Source" >}}
 
 
 <a id="authors"></a>

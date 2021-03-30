@@ -12,11 +12,11 @@ disableKinds = ["taxonomy", "taxonomyTerm"]
 [outputs]
   home = ["HTML", "RSS", "JSON"]
 
-#  menu items
+# menu items
 [[menu.main]]
-  name = "Docs"
-  weight = 2
-  url = "docs/"
+  name = "API"
+  weight = 1000
+  url = "api/com/workflowfm/proter/"
 
 [markup]
   [markup.goldmark]
@@ -44,6 +44,7 @@ disableKinds = ["taxonomy", "taxonomyTerm"]
 [params]
 
   repo = "https://github.com/workflowfm/Proter"
+  version = "0.6.1"
 
   time_format_blog = "Monday, 02 January 2006"
   time_format_default = "2 January 2006"
