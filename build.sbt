@@ -1,5 +1,10 @@
 import com.workflowfm.proter.Dependencies
 
+enablePlugins(HugoPlugin)
+enablePlugins(SiteScaladocPlugin)
+enablePlugins(GhpagesPlugin)
+
+
 inThisBuild(List(
   organization := "com.workflowfm",
   organizationName := "WorkflowFM",
@@ -19,12 +24,13 @@ inThisBuild(List(
   scmInfo := Some(
     ScmInfo(
       url("https://github.com/workflowfm/Proter"),
-      "scm:git@github.com:workflowfm/Proter.git"
+      "scm:git:git@github.com:workflowfm/Proter.git"
     )
   ),
   dynverSonatypeSnapshots := true,
 
   scalafixDependencies += Dependencies.sortImports,
+  git.remoteRepo := scmInfo.value.get.connection.replace("scm:git:", "")
 ))
 
 // Publish to Sonatype / Maven Central
@@ -38,12 +44,13 @@ sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
 
 // Website generation with sbt-site
 
-enablePlugins(HugoPlugin)
-enablePlugins(SiteScaladocPlugin)
+
 Hugo / sourceDirectory := file("docs")
-//baseURL in Hugo := uri("http://docs.workflowfm.com/proter")
-baseURL in Hugo := uri("./")
+baseURL in Hugo := uri("http://docs.workflowfm.com/proter")
+//baseURL in Hugo := uri("./")
 includeFilter in Hugo := ("*")
+
+ghpagesNoJekyll := true
 
 
 lazy val commonSettings = Seq(
