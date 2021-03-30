@@ -21,20 +21,20 @@ A [discrete event simulator](https://en.wikipedia.org/wiki/Discrete-event_simula
 
 <a id="authors"></a>
 
-# Authors
+## Authors
 
-## Maintainer
+### Maintainer
 
-Petros Papapanagiotou - [{{< image "images/web.svg" "Home page" "icon nomargin">}}](https://homepages.inf.ed.ac.uk/ppapapan/) - [{{< image "images/email.svg" "Email" "icon nomargin">}}](mailto:petros@workflowfm.com?subject=Proter) - [{{< image "images/twitter.svg" "Twitter" "icon nomargin">}}](https://twitter.com/petrospapapa)
+[Petros Papapanagiotou](https://github.com/PetrosPapapa) - [{{< image "images/web.svg" "Home page" "icon nomargin">}}](https://homepages.inf.ed.ac.uk/ppapapan/) - [{{< image "images/email.svg" "Email" "icon nomargin">}}](mailto:petros@workflowfm.com?subject=Proter) - [{{< image "images/twitter.svg" "Twitter" "icon nomargin">}}](https://twitter.com/petrospapapa)
 
-## Contributors
+### Contributors
 
 A big thank you to the following contributors in order of appearance:
 
 -   [Michal Baczun](https://github.com/MBaczun)
 
 
-## Groups & Organizations
+### Groups & Organizations
 
 <tbody>
 <tr>
@@ -54,7 +54,7 @@ A big thank you to the following contributors in order of appearance:
 </table>
 
 
-# License
+## License
 
 Distributed under the Apache 2.0 license. See [LICENSE](https://github.com/workflowfm/Proter/blob/master/LICENSE) for more information.
 
