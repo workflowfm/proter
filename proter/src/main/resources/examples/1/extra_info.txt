@@ -1,0 +1,6 @@
+r1 0
+
+===
+2000 instances
+20 time between instances - constant
+=> total time 1000

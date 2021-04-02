@@ -1,0 +1,5 @@
+ID,Task,Simulation,Created,Start,Delay,Duration,Cost,Aborted,Resources
+0c5f8043-f18f-43e9-ba89-24f4f850c3c6,Task1,Sim0,0,0,0,2,0,false,r3
+0799a830-284a-4eea-a52f-8d2790664682,Task2,Sim0,2,2,0,2,0,false,r1
+5db576eb-3399-4399-8384-05cd124fc55d,Task4,Sim0,2,2,0,4,0,false,r2
+7b688dbe-0033-4077-92e4-7603b5e96b1e,Task3,Sim0,4,6,2,4,0,false,r2

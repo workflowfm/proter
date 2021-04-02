@@ -1,0 +1,7 @@
+{
+  "data": [
+  {"id": "ServiceTask_1", "duration":{"type":"ConstantGenerator", "value":5}, "cost":0, "priority":"Medium", "resources":["r1"]},
+  {"id": "UserTask_1", "duration":{"type":"ConstantGenerator", "value":5}, "cost":0, "priority":"Medium", "resources":["r2"]},
+  {"id": "ServiceTask_2", "duration":{"type":"ConstantGenerator", "value":5}, "cost":0, "priority":"Medium", "resources":["r1"]}
+  ]
+}

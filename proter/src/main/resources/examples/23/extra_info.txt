@@ -1,0 +1,8 @@
+r1 0
+r2 0
+r3 0
+
+===
+100 instances
+15 time between instances
+=> 1500 time total

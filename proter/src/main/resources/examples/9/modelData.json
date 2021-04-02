@@ -1,0 +1,10 @@
+{
+  "data": [
+  {"id": "TASKID1a", "duration":5, "cost":0, "resources":["r1"]},
+  {"id": "TASKID1b", "duration":5, "cost":0, "resources":["r2"]},
+  {"id": "TASKID1c", "duration":5, "cost":0, "resources":["r3"]},
+  {"id": "TASKID2a", "duration":5, "cost":0, "resources":["r2"]},
+  {"id": "TASKID2b", "duration":5, "cost":0, "resources":["r3"]},
+  {"id": "TASKID2c", "duration":5, "cost":0, "resources":["r1"]}
+  ]
+}

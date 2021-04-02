@@ -1,0 +1,7 @@
+{
+  "data": [
+  {"id": "Calculate", "duration":5, "cost":0, "resources":["r1"]},
+  {"id": "Manually", "duration":5, "cost":0, "resources":["r2"]},
+  {"id": "Process", "duration":5, "cost":0, "resources":["r1"]}
+  ]
+}

@@ -1,0 +1,8 @@
+{
+  "data": [
+  {"id": "Task_1a9adlo", "duration":{"type":"ConstantGenerator", "value":5}, "cost":0, "priority":"Medium", "resources":["r1"]},
+  {"id": "Task_01363n3", "duration":{"type":"ConstantGenerator", "value":5}, "cost":0, "priority":"Medium", "resources":["r2"]},
+  {"id": "Task_1otws6s", "duration":{"type":"ConstantGenerator", "value":5}, "cost":0, "priority":"Medium", "resources":["r2"]},
+  {"id": "Task_1fbt88z", "duration":{"type":"ConstantGenerator", "value":5}, "cost":0, "priority":"Medium", "resources":["r2"]}
+  ]
+}

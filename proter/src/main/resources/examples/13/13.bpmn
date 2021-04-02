@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="Definitions_1ahmh05" targetNamespace="http://bpmn.io/schema/bpmn" exporter="bpmn-js (https://demo.bpmn.io)" exporterVersion="8.2.1">
+  <bpmn:process id="Process_0fkkssj" isExecutable="false">
+    <bpmn:startEvent id="StartEvent_1uylo5m" name="Start">
+      <bpmn:outgoing>Flow_15ytolx</bpmn:outgoing>
+    </bpmn:startEvent>
+    <bpmn:exclusiveGateway id="Gateway_10qsd8v">
+      <bpmn:incoming>Flow_15ytolx</bpmn:incoming>
+      <bpmn:incoming>Flow_188ptan</bpmn:incoming>
+      <bpmn:outgoing>Flow_0frt6ag</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_15ytolx" sourceRef="StartEvent_1uylo5m" targetRef="Gateway_10qsd8v" />
+    <bpmn:sequenceFlow id="Flow_0frt6ag" sourceRef="Gateway_10qsd8v" targetRef="Activity_0ijh0v8" />
+    <bpmn:exclusiveGateway id="Gateway_0o4ems0">
+      <bpmn:incoming>Flow_0rnh2rd</bpmn:incoming>
+      <bpmn:outgoing>Flow_0tkfrro</bpmn:outgoing>
+      <bpmn:outgoing>Flow_188ptan</bpmn:outgoing>
+    </bpmn:exclusiveGateway>
+    <bpmn:sequenceFlow id="Flow_0rnh2rd" sourceRef="Activity_0ijh0v8" targetRef="Gateway_0o4ems0" />
+    <bpmn:endEvent id="Event_1qmeeaa" name="End">
+      <bpmn:incoming>Flow_0tkfrro</bpmn:incoming>
+    </bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_0tkfrro" sourceRef="Gateway_0o4ems0" targetRef="Event_1qmeeaa" />
+    <bpmn:sequenceFlow id="Flow_188ptan" sourceRef="Gateway_0o4ems0" targetRef="Gateway_10qsd8v" />
+    <bpmn:serviceTask id="Activity_0ijh0v8" name="Task1">
+      <bpmn:incoming>Flow_0frt6ag</bpmn:incoming>
+      <bpmn:outgoing>Flow_0rnh2rd</bpmn:outgoing>
+    </bpmn:serviceTask>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_0fkkssj">
+      <bpmndi:BPMNEdge id="Flow_15ytolx_di" bpmnElement="Flow_15ytolx">
+        <di:waypoint x="198" y="120" />
+        <di:waypoint x="255" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0frt6ag_di" bpmnElement="Flow_0frt6ag">
+        <di:waypoint x="305" y="120" />
+        <di:waypoint x="370" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0rnh2rd_di" bpmnElement="Flow_0rnh2rd">
+        <di:waypoint x="470" y="120" />
+        <di:waypoint x="535" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0tkfrro_di" bpmnElement="Flow_0tkfrro">
+        <di:waypoint x="585" y="120" />
+        <di:waypoint x="652" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_188ptan_di" bpmnElement="Flow_188ptan">
+        <di:waypoint x="560" y="145" />
+        <di:waypoint x="560" y="210" />
+        <di:waypoint x="280" y="210" />
+        <di:waypoint x="280" y="145" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="_BPMNShape_StartEvent_2" bpmnElement="StartEvent_1uylo5m">
+        <dc:Bounds x="162" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="168" y="145" width="25" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_10qsd8v_di" bpmnElement="Gateway_10qsd8v" isMarkerVisible="true">
+        <dc:Bounds x="255" y="95" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0o4ems0_di" bpmnElement="Gateway_0o4ems0" isMarkerVisible="true">
+        <dc:Bounds x="535" y="95" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_1qmeeaa_di" bpmnElement="Event_1qmeeaa">
+        <dc:Bounds x="652" y="102" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="660" y="145" width="20" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1ilcn6t_di" bpmnElement="Activity_0ijh0v8">
+        <dc:Bounds x="370" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

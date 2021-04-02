@@ -1,0 +1,251 @@
+ID,Task,Simulation,Created,Start,Delay,Duration,Cost,Aborted,Resources
+4a9c28eb-374a-42b5-8944-303dd4909319,Calculate Rating,Sim0,0,0,0,5,0,false,r1
+d2d538e6-4e96-4226-a614-8c57b888c271,Process Rating,Sim0,5,5,0,5,0,false,r1
+5c62957e-cae3-4412-89d5-ee424005b7aa,Calculate Rating,Sim1,40,40,0,5,0,false,r1
+697676ff-1f9f-44fd-9d2d-a4a3dbb1ade0,Calculate Rating Manually,Sim1,45,45,0,5,0,false,r2
+18f26aec-f1ba-49e8-b71a-cf02b2b4889e,Process Rating,Sim1,50,50,0,5,0,false,r1
+ed785ffc-498e-474d-a210-4306baa9d1fd,Calculate Rating,Sim2,80,80,0,5,0,false,r1
+9a72d273-8fe5-4c5e-be1e-8495dae60a35,Calculate Rating Manually,Sim2,85,85,0,5,0,false,r2
+bed74714-ea7e-41d9-983d-23cd64bbc525,Process Rating,Sim2,90,90,0,5,0,false,r1
+fb54ac2f-c65a-4f70-8776-1ef3b45361ad,Calculate Rating,Sim3,120,120,0,5,0,false,r1
+4f16e4be-2ef3-43c7-93bd-221aa56b2077,Process Rating,Sim3,125,125,0,5,0,false,r1
+ad152378-aa49-4bc4-9159-6c9b9afe3258,Calculate Rating,Sim4,160,160,0,5,0,false,r1
+cf595afd-ec9a-4018-88ca-3c69d5da7ea1,Calculate Rating Manually,Sim4,165,165,0,5,0,false,r2
+b9cfa507-0cf3-4bfd-9cf2-643d7c7fc132,Process Rating,Sim4,170,170,0,5,0,false,r1
+7a4bd310-889f-4aba-ae7b-200685e06213,Calculate Rating,Sim5,200,200,0,5,0,false,r1
+ca5d5092-bfe7-4b3a-a610-eb8d46c5e70b,Process Rating,Sim5,205,205,0,5,0,false,r1
+2fbccda1-53e7-4848-a4a9-5d9c762caf6e,Calculate Rating,Sim6,240,240,0,5,0,false,r1
+00a9ff66-8138-4566-a1bd-1f9aba58ebb6,Process Rating,Sim6,245,245,0,5,0,false,r1
+939e49b1-17c3-48a0-a10f-4c8cb68c50ef,Calculate Rating,Sim7,280,280,0,5,0,false,r1
+491aa45b-17c6-489d-9035-2ee0e900bbe6,Calculate Rating Manually,Sim7,285,285,0,5,0,false,r2
+e824765d-c56c-4874-b6fd-8533df089df7,Process Rating,Sim7,290,290,0,5,0,false,r1
+a726636d-d854-4d2b-b324-fad03adf9ed1,Calculate Rating,Sim8,320,320,0,5,0,false,r1
+880b8f88-5033-413a-aaef-e90243e69226,Process Rating,Sim8,325,325,0,5,0,false,r1
+6c933218-cf4d-4ff9-8dcf-a798614171ab,Calculate Rating,Sim9,360,360,0,5,0,false,r1
+6050de2d-ee90-4cbe-be31-454838fe5e12,Calculate Rating Manually,Sim9,365,365,0,5,0,false,r2
+c88ac256-8bab-4217-a12c-6b0da8eaff5a,Process Rating,Sim9,370,370,0,5,0,false,r1
+636f7ed9-79bb-4169-9529-3ee6e6974969,Calculate Rating,Sim10,400,400,0,5,0,false,r1
+ef12b8de-80bf-4646-abcc-825bbbf0f7e2,Process Rating,Sim10,405,405,0,5,0,false,r1
+79324154-95cb-4318-8dea-f64ebc5ec3a3,Calculate Rating,Sim11,440,440,0,5,0,false,r1
+13a1882e-2a8b-462c-b484-607ecb9a42ff,Process Rating,Sim11,445,445,0,5,0,false,r1
+9fe557ac-8604-474a-a4d8-33eaa782368e,Calculate Rating,Sim12,480,480,0,5,0,false,r1
+abf0bddb-d00c-4aed-b370-284b9f5f6e9b,Process Rating,Sim12,485,485,0,5,0,false,r1
+c7c8de74-d7bf-48be-ba51-cac041ead318,Calculate Rating,Sim13,520,520,0,5,0,false,r1
+21e0b170-096a-4299-b9ca-6ad1ae9a2d45,Calculate Rating Manually,Sim13,525,525,0,5,0,false,r2
+6325335c-b457-4ddc-8288-44d6218a795b,Process Rating,Sim13,530,530,0,5,0,false,r1
+dd2332be-dd5c-4532-a8ff-8a935cb954fe,Calculate Rating,Sim14,560,560,0,5,0,false,r1
+d40cd54c-82f5-42e0-9f4a-2ad8fccb8b45,Process Rating,Sim14,565,565,0,5,0,false,r1
+aad7187c-6356-4ad5-8e67-b467b3d89b70,Calculate Rating,Sim15,600,600,0,5,0,false,r1
+b994499a-f863-4955-97c5-184decf8e64e,Process Rating,Sim15,605,605,0,5,0,false,r1
+a9f3ca6b-e8f5-4f31-b44c-6a08fcc1f85c,Calculate Rating,Sim16,640,640,0,5,0,false,r1
+458140ab-27bd-4df4-9538-8473850af7b0,Process Rating,Sim16,645,645,0,5,0,false,r1
+9a9eec26-f80d-45d9-96b0-c935642b52a1,Calculate Rating,Sim17,680,680,0,5,0,false,r1
+65bc4797-ed87-4380-8032-3415eb2c42bc,Process Rating,Sim17,685,685,0,5,0,false,r1
+b5ef88fa-7b1a-4e05-b1d2-8f984cfa614d,Calculate Rating,Sim18,720,720,0,5,0,false,r1
+753dca36-7422-4a5d-a605-7e5e5fc1158b,Process Rating,Sim18,725,725,0,5,0,false,r1
+870455ee-8370-40dc-bece-445ef4d55b69,Calculate Rating,Sim19,760,760,0,5,0,false,r1
+2d2d55f2-85eb-4c7c-8387-e0f8aa1c697e,Process Rating,Sim19,765,765,0,5,0,false,r1
+94103fde-7159-434b-9dbf-21a4df832663,Calculate Rating,Sim20,800,800,0,5,0,false,r1
+78d194ba-f239-48a0-9c09-030da81bf0ec,Calculate Rating Manually,Sim20,805,805,0,5,0,false,r2
+ebbd548d-d62a-4527-a7bc-b8baa859587e,Process Rating,Sim20,810,810,0,5,0,false,r1
+d6dd50f0-cc18-4ab3-bb75-6606bf2144ad,Calculate Rating,Sim21,840,840,0,5,0,false,r1
+e3d5dd19-5eca-4bc6-b128-b497afac47e4,Process Rating,Sim21,845,845,0,5,0,false,r1
+dc3e646f-b0f5-4c36-8a08-2b92d89f2088,Calculate Rating,Sim22,880,880,0,5,0,false,r1
+70dd5aa4-ffb6-42d6-9155-38abcfb1978d,Process Rating,Sim22,885,885,0,5,0,false,r1
+7548ba63-1ee8-4065-bee9-7ce991cf6f01,Calculate Rating,Sim23,920,920,0,5,0,false,r1
+1cc8de9a-388b-49f0-b50c-f0fb0ae2aade,Process Rating,Sim23,925,925,0,5,0,false,r1
+e707c55e-48d7-413b-b78a-29600f70be4e,Calculate Rating,Sim24,960,960,0,5,0,false,r1
+6f19c668-e4d4-4425-a905-45ccb8e7a234,Calculate Rating Manually,Sim24,965,965,0,5,0,false,r2
+abaf1919-db99-4286-9248-1fb518de1db4,Process Rating,Sim24,970,970,0,5,0,false,r1
+8d6348c0-2dbe-4e4f-95d7-8fe6d32be03d,Calculate Rating,Sim25,1000,1000,0,5,0,false,r1
+49e517af-2a2a-433b-940b-bc8584a568e4,Calculate Rating Manually,Sim25,1005,1005,0,5,0,false,r2
+75c1507f-df72-4ea9-bbb9-79e51e59be6a,Process Rating,Sim25,1010,1010,0,5,0,false,r1
+7f2f056b-4a77-4241-a94b-f54f9227be64,Calculate Rating,Sim26,1040,1040,0,5,0,false,r1
+01ee3717-e26f-4ddd-8e7a-127c87c8cf87,Process Rating,Sim26,1045,1045,0,5,0,false,r1
+26cb41dc-bc5b-413a-ac89-9fea69d1745b,Calculate Rating,Sim27,1080,1080,0,5,0,false,r1
+ab0fcad6-201e-451c-8bce-f12e654931dc,Process Rating,Sim27,1085,1085,0,5,0,false,r1
+982ce78c-684c-4248-a876-abbf003171ae,Calculate Rating,Sim28,1120,1120,0,5,0,false,r1
+b7623fa9-cc31-46a9-9281-cdd5b870f5ef,Process Rating,Sim28,1125,1125,0,5,0,false,r1
+a68463ec-46aa-47c2-930b-ec7fd4fa8808,Calculate Rating,Sim29,1160,1160,0,5,0,false,r1
+c0213049-4766-4166-81cc-deaa2dea4664,Calculate Rating Manually,Sim29,1165,1165,0,5,0,false,r2
+5c4471c0-3fb0-402c-a746-00925d5e06ea,Process Rating,Sim29,1170,1170,0,5,0,false,r1
+b379a394-fb04-4564-8090-52628c09aee1,Calculate Rating,Sim30,1200,1200,0,5,0,false,r1
+99ed138e-f868-422c-9272-dda9282ddcd2,Calculate Rating Manually,Sim30,1205,1205,0,5,0,false,r2
+9b3d1179-12b2-4bed-8eb4-8734bb5f4f36,Process Rating,Sim30,1210,1210,0,5,0,false,r1
+abe65871-e029-44c8-8ca4-adad8fb9ae36,Calculate Rating,Sim31,1240,1240,0,5,0,false,r1
+b0b2bbf5-17bf-4ed6-86e3-efa322516aca,Process Rating,Sim31,1245,1245,0,5,0,false,r1
+0f6c5452-4135-4d78-a966-5256746f5aa2,Calculate Rating,Sim32,1280,1280,0,5,0,false,r1
+71d4da8b-940d-46e5-81fa-86cb1caf0614,Process Rating,Sim32,1285,1285,0,5,0,false,r1
+c515b963-45b4-416d-abd0-251fb5978f13,Calculate Rating,Sim33,1320,1320,0,5,0,false,r1
+08789fc3-a7b9-407b-b76f-fc2367ed132b,Process Rating,Sim33,1325,1325,0,5,0,false,r1
+a86631ad-4b33-436d-ae6f-dfebd92e28d3,Calculate Rating,Sim34,1360,1360,0,5,0,false,r1
+f7a19fd6-8b5f-47d9-8c53-5b70bffcb357,Calculate Rating Manually,Sim34,1365,1365,0,5,0,false,r2
+88dd87db-26f7-4efe-9f82-588a80339e5c,Process Rating,Sim34,1370,1370,0,5,0,false,r1
+8b6d84a8-f668-4d28-b14a-c0b566c2b336,Calculate Rating,Sim35,1400,1400,0,5,0,false,r1
+f713d51a-c573-4c00-b0f9-fd2f22c6d7b4,Calculate Rating Manually,Sim35,1405,1405,0,5,0,false,r2
+44e3e603-4eaf-44b4-b790-fe7e063ec8d5,Process Rating,Sim35,1410,1410,0,5,0,false,r1
+8bb75cbf-2e08-42cb-b282-044bcb5b9a01,Calculate Rating,Sim36,1440,1440,0,5,0,false,r1
+fef4e5f9-580c-43f3-a3f9-fc6ab3c61275,Process Rating,Sim36,1445,1445,0,5,0,false,r1
+be05cbb1-e4e3-4596-a741-b4616264b174,Calculate Rating,Sim37,1480,1480,0,5,0,false,r1
+80481a7e-816a-4564-916b-00120eda17c1,Process Rating,Sim37,1485,1485,0,5,0,false,r1
+0df99a97-24e6-4dca-a9e8-0f777121f327,Calculate Rating,Sim38,1520,1520,0,5,0,false,r1
+0274cbae-1578-4323-85ca-e8773012f17d,Calculate Rating Manually,Sim38,1525,1525,0,5,0,false,r2
+027e69ba-5258-4558-ad37-37247d8747d4,Process Rating,Sim38,1530,1530,0,5,0,false,r1
+80749d61-958b-4556-b5c7-9c1b0e54bb8b,Calculate Rating,Sim39,1560,1560,0,5,0,false,r1
+d9b30875-8fb1-46d9-83cc-ce28e13bab71,Process Rating,Sim39,1565,1565,0,5,0,false,r1
+20c96cf6-2b8e-4781-a262-a9aac077694b,Calculate Rating,Sim40,1600,1600,0,5,0,false,r1
+57813a96-9a0d-4c2b-aa63-bb7c666728dd,Calculate Rating Manually,Sim40,1605,1605,0,5,0,false,r2
+9e34244e-852d-4cee-b93a-f0f9fac2a784,Process Rating,Sim40,1610,1610,0,5,0,false,r1
+56d03c32-dece-42be-9b12-b712067c38a0,Calculate Rating,Sim41,1640,1640,0,5,0,false,r1
+636d1a8d-e30e-4ae4-8416-d68081d43c53,Calculate Rating Manually,Sim41,1645,1645,0,5,0,false,r2
+e014d9f5-2d76-4ade-bd43-868cc8fd426a,Process Rating,Sim41,1650,1650,0,5,0,false,r1
+5a0e4c51-6d5f-4978-b64e-6773596f8741,Calculate Rating,Sim42,1680,1680,0,5,0,false,r1
+b81c4a27-a6fa-43cd-8c52-9087903ec07d,Calculate Rating Manually,Sim42,1685,1685,0,5,0,false,r2
+db5ae1a2-1fe5-4386-865a-51a4dd0b6468,Process Rating,Sim42,1690,1690,0,5,0,false,r1
+f93a77db-8fdb-462d-ba6a-bc116e9d1fd8,Calculate Rating,Sim43,1720,1720,0,5,0,false,r1
+f571e90a-043d-4e3d-ace6-73df7d4d4aed,Process Rating,Sim43,1725,1725,0,5,0,false,r1
+e8759369-7d3f-4dbc-a94f-d232aad0e78d,Calculate Rating,Sim44,1760,1760,0,5,0,false,r1
+eb868421-0cc4-4af0-831f-d938c6e2f48d,Process Rating,Sim44,1765,1765,0,5,0,false,r1
+a3e09a27-a2c0-48d1-bb60-301b84607935,Calculate Rating,Sim45,1800,1800,0,5,0,false,r1
+c4baf3a7-f620-436b-a4a0-f2f1cadfa97f,Calculate Rating Manually,Sim45,1805,1805,0,5,0,false,r2
+f53083aa-b12b-4c83-9a17-fa7f77855042,Process Rating,Sim45,1810,1810,0,5,0,false,r1
+2051401f-3722-4038-a2b3-f37991b1cd93,Calculate Rating,Sim46,1840,1840,0,5,0,false,r1
+bbd5af2d-b3bb-4f5f-abc9-586681b53d40,Process Rating,Sim46,1845,1845,0,5,0,false,r1
+1da8027e-e806-404b-9730-06ba0d837e70,Calculate Rating,Sim47,1880,1880,0,5,0,false,r1
+463a40fc-1ce8-4a99-bbf3-67a334d503c3,Calculate Rating Manually,Sim47,1885,1885,0,5,0,false,r2
+7105fd3d-558f-4f34-adea-a664805a6511,Process Rating,Sim47,1890,1890,0,5,0,false,r1
+5d8b4521-3f2b-47c0-902e-2da535461ff3,Calculate Rating,Sim48,1920,1920,0,5,0,false,r1
+b6a221f9-ee48-4bbf-a980-75ba340f51d5,Process Rating,Sim48,1925,1925,0,5,0,false,r1
+082308b1-6e1c-4bef-b104-e97f97e1d190,Calculate Rating,Sim49,1960,1960,0,5,0,false,r1
+6dda29aa-a2e9-4886-9056-a5b3b00d445c,Calculate Rating Manually,Sim49,1965,1965,0,5,0,false,r2
+09a9f7d8-cfdf-48ce-9553-8b3e140e5cf4,Process Rating,Sim49,1970,1970,0,5,0,false,r1
+951f1651-b888-46e2-bd48-254ece8469ec,Calculate Rating,Sim50,2000,2000,0,5,0,false,r1
+3d520bc1-3c70-49eb-a628-74673d84630c,Calculate Rating Manually,Sim50,2005,2005,0,5,0,false,r2
+2a90e65e-0bc0-40be-9081-a868b3ab80ed,Process Rating,Sim50,2010,2010,0,5,0,false,r1
+5ae500bc-aac4-4c5f-b194-fcee817674e8,Calculate Rating,Sim51,2040,2040,0,5,0,false,r1
+85b9cdd2-4e0d-4616-9e16-bc32c2b9b6d6,Process Rating,Sim51,2045,2045,0,5,0,false,r1
+28dca75b-ce63-4881-87eb-26f6f47076fa,Calculate Rating,Sim52,2080,2080,0,5,0,false,r1
+62fa629d-1d9a-4ce8-9a31-9497d92ccc38,Calculate Rating Manually,Sim52,2085,2085,0,5,0,false,r2
+b1e96738-7b7e-4927-8b49-4d86fdf50196,Process Rating,Sim52,2090,2090,0,5,0,false,r1
+5fd2e260-744e-44a5-b937-c7fd492f965b,Calculate Rating,Sim53,2120,2120,0,5,0,false,r1
+6eccfdc8-c525-47fb-bf9e-284a92a63043,Process Rating,Sim53,2125,2125,0,5,0,false,r1
+2120e81e-c7a2-4d2a-85e0-b449741cab06,Calculate Rating,Sim54,2160,2160,0,5,0,false,r1
+77fc8e48-2114-41eb-885e-8c3af0e6d411,Process Rating,Sim54,2165,2165,0,5,0,false,r1
+dd8543c4-bf8e-4c3c-a1fc-0bc121395230,Calculate Rating,Sim55,2200,2200,0,5,0,false,r1
+9a1fb8ab-60d7-4006-85c0-45a48cf5a9b2,Calculate Rating Manually,Sim55,2205,2205,0,5,0,false,r2
+d8f75e84-98c8-4cd8-87c2-24de9c64322d,Process Rating,Sim55,2210,2210,0,5,0,false,r1
+d54a296e-a6ce-449f-bb19-0fa7bd9e960b,Calculate Rating,Sim56,2240,2240,0,5,0,false,r1
+b28c2452-f058-4aef-9b5d-99dbb08d002a,Calculate Rating Manually,Sim56,2245,2245,0,5,0,false,r2
+e5028c46-e7d4-4b70-b215-9449e395e82c,Process Rating,Sim56,2250,2250,0,5,0,false,r1
+bff07c7b-0197-4871-8a8f-68c0e21a0982,Calculate Rating,Sim57,2280,2280,0,5,0,false,r1
+28492a6a-e00f-495f-8c86-1a426735b67c,Calculate Rating Manually,Sim57,2285,2285,0,5,0,false,r2
+66db395d-0335-45a4-a0e6-2fcbc7c3ab51,Process Rating,Sim57,2290,2290,0,5,0,false,r1
+80fc022d-ba8a-4a30-9db8-0565f976b33b,Calculate Rating,Sim58,2320,2320,0,5,0,false,r1
+8287c909-28be-4090-a60f-c83b2d12a811,Calculate Rating Manually,Sim58,2325,2325,0,5,0,false,r2
+4d3ed267-bea7-446c-ad42-3d9243313fc1,Process Rating,Sim58,2330,2330,0,5,0,false,r1
+debdad1f-aa08-4a66-b269-67a4bf4ae2c5,Calculate Rating,Sim59,2360,2360,0,5,0,false,r1
+8c927b06-1364-450b-9743-6991567d44e6,Process Rating,Sim59,2365,2365,0,5,0,false,r1
+9c9ff04f-5257-4c31-9e40-09163116130b,Calculate Rating,Sim60,2400,2400,0,5,0,false,r1
+71ed4879-c403-43d9-8d84-58811781d1b0,Process Rating,Sim60,2405,2405,0,5,0,false,r1
+5a366c28-98e1-404e-bda4-81d75ce30086,Calculate Rating,Sim61,2440,2440,0,5,0,false,r1
+9749588f-dce7-4388-bb76-416bc6810a25,Process Rating,Sim61,2445,2445,0,5,0,false,r1
+05f0f335-e3c7-4095-9a49-68eb550b4061,Calculate Rating,Sim62,2480,2480,0,5,0,false,r1
+0fb0f1bf-14c4-4602-8e1f-b497284a1a45,Process Rating,Sim62,2485,2485,0,5,0,false,r1
+622a16ee-e483-4dd2-a4f1-ecc4a339f0f7,Calculate Rating,Sim63,2520,2520,0,5,0,false,r1
+17b94251-c3a6-447e-82db-4fa8537bb8f3,Process Rating,Sim63,2525,2525,0,5,0,false,r1
+63bad6fa-d3f8-427b-b07d-7c6f4ebdbfee,Calculate Rating,Sim64,2560,2560,0,5,0,false,r1
+0e3da255-1dda-4e20-86d1-2c57b2bc3f91,Calculate Rating Manually,Sim64,2565,2565,0,5,0,false,r2
+d2e0b4c7-2c7e-4347-9b95-49d85f6f456b,Process Rating,Sim64,2570,2570,0,5,0,false,r1
+dd103f28-0ce1-45f9-bdbc-593af13baaac,Calculate Rating,Sim65,2600,2600,0,5,0,false,r1
+45874f69-fef6-4d3b-af67-26485821894a,Calculate Rating Manually,Sim65,2605,2605,0,5,0,false,r2
+12dc8306-6ddd-4e22-8410-65c322e1e822,Process Rating,Sim65,2610,2610,0,5,0,false,r1
+9889a6e4-66d0-4113-83a9-f2d46371da39,Calculate Rating,Sim66,2640,2640,0,5,0,false,r1
+007773a7-37b0-4b5e-b39c-65fae3237b12,Calculate Rating Manually,Sim66,2645,2645,0,5,0,false,r2
+b063dd7f-a26f-4076-9544-9d2789ff4352,Process Rating,Sim66,2650,2650,0,5,0,false,r1
+f6e1f9af-800d-479d-ae05-6a8d9172a593,Calculate Rating,Sim67,2680,2680,0,5,0,false,r1
+9aed863f-a222-4869-a0f8-73a1f3bf712d,Process Rating,Sim67,2685,2685,0,5,0,false,r1
+47ad15e6-c75a-41c9-ad7b-8de161bf42c4,Calculate Rating,Sim68,2720,2720,0,5,0,false,r1
+2ae35e75-50ec-4acf-957d-7e3fef5a3c0d,Calculate Rating Manually,Sim68,2725,2725,0,5,0,false,r2
+0506d990-8cdf-4b4b-b72d-b50688949a7f,Process Rating,Sim68,2730,2730,0,5,0,false,r1
+64ec0b19-ad8a-4372-b45f-88105ad9fc2a,Calculate Rating,Sim69,2760,2760,0,5,0,false,r1
+45e7978d-a2ef-4f2a-bc5a-f3d0dd78f04b,Calculate Rating Manually,Sim69,2765,2765,0,5,0,false,r2
+309fb201-fdb6-44dd-9233-09cdbd7fc061,Process Rating,Sim69,2770,2770,0,5,0,false,r1
+cca17725-188a-48ce-ab33-a7b1ecd04689,Calculate Rating,Sim70,2800,2800,0,5,0,false,r1
+1d5e4e7b-377a-4872-9ff4-ffb3adfb7ea3,Calculate Rating Manually,Sim70,2805,2805,0,5,0,false,r2
+e993d84b-c2e8-45f1-88a6-bfd32e81eb3e,Process Rating,Sim70,2810,2810,0,5,0,false,r1
+7c0fe881-13b6-4c26-af6f-6154b5fa2c9c,Calculate Rating,Sim71,2840,2840,0,5,0,false,r1
+33623b0a-1c50-40a2-ad8d-b980cfcf442c,Calculate Rating Manually,Sim71,2845,2845,0,5,0,false,r2
+8d3102d3-039a-487f-b3d3-5608aa0a5313,Process Rating,Sim71,2850,2850,0,5,0,false,r1
+788466d2-0bc8-4ff2-bc46-715e578dc210,Calculate Rating,Sim72,2880,2880,0,5,0,false,r1
+0f478660-a43e-4d13-9eef-3a109e6115c7,Calculate Rating Manually,Sim72,2885,2885,0,5,0,false,r2
+ccd6a666-cbe4-4956-b9dd-e1dd1c7dff0e,Process Rating,Sim72,2890,2890,0,5,0,false,r1
+ec7df998-bbae-4e76-bf34-91e1704e5ba7,Calculate Rating,Sim73,2920,2920,0,5,0,false,r1
+38569864-0c72-4319-89fc-fd94c8769232,Calculate Rating Manually,Sim73,2925,2925,0,5,0,false,r2
+0f341345-adec-4857-ba4c-141154fe49f4,Process Rating,Sim73,2930,2930,0,5,0,false,r1
+a5163f8e-f0e2-4597-9a9e-65deecd1d818,Calculate Rating,Sim74,2960,2960,0,5,0,false,r1
+7d2ea18b-b85d-4e01-81bf-60ddd91c2236,Calculate Rating Manually,Sim74,2965,2965,0,5,0,false,r2
+875edb0e-05b9-469e-9b7b-1e764c195f79,Process Rating,Sim74,2970,2970,0,5,0,false,r1
+2c74bce0-96ff-4c7c-8f53-7908cca32fc9,Calculate Rating,Sim75,3000,3000,0,5,0,false,r1
+0f105135-5a5e-42f3-bad8-92a21a5c6369,Calculate Rating Manually,Sim75,3005,3005,0,5,0,false,r2
+549f5a16-8407-40e5-b47e-fb3c0e719f29,Process Rating,Sim75,3010,3010,0,5,0,false,r1
+cfaed5e4-80f8-49a3-9857-174f93a74cf2,Calculate Rating,Sim76,3040,3040,0,5,0,false,r1
+5760c947-8a64-4730-8656-f57dbd7ecf0c,Calculate Rating Manually,Sim76,3045,3045,0,5,0,false,r2
+72d3ebd1-89af-4dd8-8e60-ef4d2741c902,Process Rating,Sim76,3050,3050,0,5,0,false,r1
+dac4c358-ffb5-49b9-a3b0-30a41f0e9ccf,Calculate Rating,Sim77,3080,3080,0,5,0,false,r1
+0f02b89a-857a-4d09-acd5-9075751e4877,Calculate Rating Manually,Sim77,3085,3085,0,5,0,false,r2
+799a018c-e50f-4da7-84bb-ecf595537cf3,Process Rating,Sim77,3090,3090,0,5,0,false,r1
+85586341-77eb-41e1-824d-8eb6b148b354,Calculate Rating,Sim78,3120,3120,0,5,0,false,r1
+7b838c9f-1900-4b9c-b80b-56a6a87b82aa,Process Rating,Sim78,3125,3125,0,5,0,false,r1
+dea461d0-1400-46d9-bc92-7d374b647d00,Calculate Rating,Sim79,3160,3160,0,5,0,false,r1
+090bd9a8-f15a-43db-891e-b90a0f21b621,Process Rating,Sim79,3165,3165,0,5,0,false,r1
+6a23bfa5-01a8-4881-a64d-bdcdbbf26333,Calculate Rating,Sim80,3200,3200,0,5,0,false,r1
+ca083d83-713f-47b2-9adc-f513a21e93bf,Process Rating,Sim80,3205,3205,0,5,0,false,r1
+2b710371-c10c-476f-a0c6-3b795cc24aaf,Calculate Rating,Sim81,3240,3240,0,5,0,false,r1
+ad00cf91-11b2-4590-a7eb-06dc203c797a,Calculate Rating Manually,Sim81,3245,3245,0,5,0,false,r2
+b6a223a3-0d82-49f8-9859-787b7290a615,Process Rating,Sim81,3250,3250,0,5,0,false,r1
+20d6cc3b-ec8f-458a-8837-9569c64d2b39,Calculate Rating,Sim82,3280,3280,0,5,0,false,r1
+0737544b-fed1-4001-9e17-2f3074b486bf,Process Rating,Sim82,3285,3285,0,5,0,false,r1
+622b20b2-7f9b-4913-9c53-d052660c6352,Calculate Rating,Sim83,3320,3320,0,5,0,false,r1
+ca2195d8-214d-4e0c-ad7b-2925f7b91756,Calculate Rating Manually,Sim83,3325,3325,0,5,0,false,r2
+1d6cf63c-933e-44c6-b8e1-03637caa017c,Process Rating,Sim83,3330,3330,0,5,0,false,r1
+10e5c840-258c-4655-9f00-ef56c9651983,Calculate Rating,Sim84,3360,3360,0,5,0,false,r1
+17643dba-d058-40f3-8497-355736361266,Calculate Rating Manually,Sim84,3365,3365,0,5,0,false,r2
+7fcb0225-86e7-4ba1-ae86-1a56118a094d,Process Rating,Sim84,3370,3370,0,5,0,false,r1
+168639f5-ff1b-4822-b21d-f43f8c3db336,Calculate Rating,Sim85,3400,3400,0,5,0,false,r1
+9104cf5e-7724-4c90-b2e8-2ee5ecd30355,Calculate Rating Manually,Sim85,3405,3405,0,5,0,false,r2
+bc3c1bc5-04ae-461c-827c-a4dc91409993,Process Rating,Sim85,3410,3410,0,5,0,false,r1
+8109e237-5e71-4316-9676-764608b18b32,Calculate Rating,Sim86,3440,3440,0,5,0,false,r1
+4398e410-8a79-4253-9ee3-6640b5960250,Process Rating,Sim86,3445,3445,0,5,0,false,r1
+b698b80e-dfd9-419b-aa9c-3a0efe819e3e,Calculate Rating,Sim87,3480,3480,0,5,0,false,r1
+1b445e95-95e1-4d6d-8e12-31af017498b0,Process Rating,Sim87,3485,3485,0,5,0,false,r1
+519a776e-a4e3-4e17-928e-4c197cd47d18,Calculate Rating,Sim88,3520,3520,0,5,0,false,r1
+66bd5fba-5834-40dc-bf5f-fca9a0c96d9e,Process Rating,Sim88,3525,3525,0,5,0,false,r1
+474cb738-09dc-49f7-9c28-8482114c837c,Calculate Rating,Sim89,3560,3560,0,5,0,false,r1
+9be137bf-4458-4879-9313-a4775c67ce27,Calculate Rating Manually,Sim89,3565,3565,0,5,0,false,r2
+4223ee6c-6d7b-4129-8b09-7d043674925a,Process Rating,Sim89,3570,3570,0,5,0,false,r1
+a91e98cb-dbbf-46ae-a835-0546c31d9043,Calculate Rating,Sim90,3600,3600,0,5,0,false,r1
+795d94fc-d8fa-42b1-ad2e-047749074f0f,Process Rating,Sim90,3605,3605,0,5,0,false,r1
+2f160e02-1f9e-4a8c-9d86-2d618ade144c,Calculate Rating,Sim91,3640,3640,0,5,0,false,r1
+f939be19-42cc-4f7c-9dc5-bbe9553053c7,Calculate Rating Manually,Sim91,3645,3645,0,5,0,false,r2
+eb1a532c-011e-4b09-9894-543a6a81a466,Process Rating,Sim91,3650,3650,0,5,0,false,r1
+eb864faa-0b3b-4b99-8634-95f9d5cd6e54,Calculate Rating,Sim92,3680,3680,0,5,0,false,r1
+840830c2-6c04-4ce1-95b1-2bf63fef9023,Calculate Rating Manually,Sim92,3685,3685,0,5,0,false,r2
+ee4d34ae-64ae-4040-b542-1f6b0180cb8c,Process Rating,Sim92,3690,3690,0,5,0,false,r1
+e6b4895e-67e8-48c9-aa42-e50492c7bdc8,Calculate Rating,Sim93,3720,3720,0,5,0,false,r1
+605c815b-4c0d-4784-8314-7396ecb0413d,Process Rating,Sim93,3725,3725,0,5,0,false,r1
+659f5929-885b-4001-8e26-ac1283c7ffb0,Calculate Rating,Sim94,3760,3760,0,5,0,false,r1
+42232b75-70ed-45cd-b9d9-0755a80e988c,Calculate Rating Manually,Sim94,3765,3765,0,5,0,false,r2
+526aa4ee-315e-44d8-aa3e-a4304ea7c58d,Process Rating,Sim94,3770,3770,0,5,0,false,r1
+c1df70e3-df67-4d1d-a448-3c1d0a440f21,Calculate Rating,Sim95,3800,3800,0,5,0,false,r1
+9c3e13c2-63fb-43f3-a2d4-af80b60a7ef9,Calculate Rating Manually,Sim95,3805,3805,0,5,0,false,r2
+6b596eae-6756-4eeb-b6c5-6247a056c364,Process Rating,Sim95,3810,3810,0,5,0,false,r1
+4fa8fdaa-eb50-4748-bcac-7ae306e297c4,Calculate Rating,Sim96,3840,3840,0,5,0,false,r1
+d8c63a69-3150-498b-bc33-35911169cf5f,Process Rating,Sim96,3845,3845,0,5,0,false,r1
+0a0b566b-be74-4ff0-9de8-b526437f7bf3,Calculate Rating,Sim97,3880,3880,0,5,0,false,r1
+e344c1d2-0124-4ad0-85c5-6f718fe36dc6,Process Rating,Sim97,3885,3885,0,5,0,false,r1
+21b1885e-f13e-48af-8a35-ae93488d650a,Calculate Rating,Sim98,3920,3920,0,5,0,false,r1
+44aae2a7-a625-44cf-b006-0f3207763638,Calculate Rating Manually,Sim98,3925,3925,0,5,0,false,r2
+1f84860b-54f8-4d45-b7c0-3ed25e5dc655,Process Rating,Sim98,3930,3930,0,5,0,false,r1
+97982a07-9004-4c59-973c-fe291ece5ec5,Calculate Rating,Sim99,3960,3960,0,5,0,false,r1
+26581c48-d895-4fa1-9fd5-a1e86a7a62c1,Calculate Rating Manually,Sim99,3965,3965,0,5,0,false,r2
+6cdc7b5b-25a9-401b-9213-820d070d772c,Process Rating,Sim99,3970,3970,0,5,0,false,r1

@@ -1,0 +1,7 @@
+{
+  "data": [
+  {"id": "TASKID1", "duration":2, "cost":0, "resources":["r3"]}, HIGH
+  {"id": "TASKID2", "duration":2, "cost":0, "resources":["r1"]}, HIGH
+  {"id": "TASKID3", "duration":4, "cost":0, "resources":["r2"]}, HIGH
+  {"id": "TASKID4", "duration":4, "cost":0, "resources":["r2"]} LOW
+}

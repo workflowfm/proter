@@ -1,0 +1,5 @@
+{
+  "data": [
+  {"id": "Activity_0ijh0v8", "duration":{"type":"ConstantGenerator", "value":5}, "cost":0, "priority":"Medium", "resources":["r1"]}
+  ]
+}

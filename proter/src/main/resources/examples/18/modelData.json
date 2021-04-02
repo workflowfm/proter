@@ -1,0 +1,8 @@
+{
+  "data": [
+  {"id": "Approve", "duration":5, "cost":0, "resources":["r1"]},
+  {"id": "Send Rejection", "duration":5, "cost":0, "resources":["r2"]},
+  {"id": "Prepare Statement", "duration":5, "cost":0, "resources":["r2"]},
+  {"id": "Archive Invoice", "duration":5, "cost":0, "resources":["r2"]}
+  ]
+}

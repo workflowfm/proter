@@ -1,0 +1,8 @@
+{
+  "data": [
+  {"id": "serviceTask", "duration":{"type":"ConstantGenerator", "value":5}, "cost":0, "priority":"Medium", "resources":["r1"]},
+  {"id": "userTaskA", "duration":{"type":"ConstantGenerator", "value":5}, "cost":0, "priority":"Medium", "resources":["r2"]},
+  {"id": "userTaskB", "duration":{"type":"ConstantGenerator", "value":5}, "cost":0, "priority":"Medium", "resources":["r3"]},
+  {"id": "scriptTask", "duration":{"type":"ConstantGenerator", "value":5}, "cost":0, "priority":"Medium", "resources":["r4"]}
+  ]
+}

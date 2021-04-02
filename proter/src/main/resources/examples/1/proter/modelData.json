@@ -1,0 +1,10 @@
+{
+  "data": [
+  {"id": "Activity_0exzj6n", "duration":{"type":"ConstantGenerator", "value":5}, 
+  "cost":0, "priority":"Medium", "resources":["r1"]},
+  {"id": "Activity_0voyuqn", "duration":{"type":"ConstantGenerator", "value":5}, 
+  "cost":0, "priority":"Medium", "resources":["r1"]},
+  {"id": "Activity_1jd7a2m", "duration":{"type":"ConstantGenerator", "value":5}, 
+  "cost":0, "priority":"Medium", "resources":["r1"]}
+  ]
+}

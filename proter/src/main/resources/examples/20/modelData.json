@@ -1,0 +1,9 @@
+{
+  "data": [
+  {"id": "A", "duration":5, "cost":0, "resources":["r1"]},
+  {"id": "B", "duration":5, "cost":0, "resources":["r2"]},
+  {"id": "C1", "duration":5, "cost":0, "resources":["r3"]},
+  {"id": "C2", "duration":5, "cost":0, "resources":["r4"]},
+  {"id": "D", "duration":5, "cost":0, "resources":["r1"]}
+  ]
+}

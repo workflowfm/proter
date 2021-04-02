@@ -1,0 +1,5 @@
+{
+  "data": [
+  {"id": "TASKID1", "duration":5, "cost":0, "resources":["r1"]}
+  ]
+}

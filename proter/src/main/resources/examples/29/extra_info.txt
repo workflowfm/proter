@@ -1,0 +1,6 @@
+r1 0
+r2 0
+r3 0
+
+//task1 > ( ( (task2+task3+task4) > task5) + task6)
+not possible to make BPMN model??

@@ -1,0 +1,8 @@
+{
+  "data": [
+  {"id": "UserTask_1", "duration":{"type":"ConstantGenerator", "value":5}, "cost":0, "priority":"Medium", "resources":["r1"]},
+  {"id": "Task_0n2pfas", "duration":{"type":"ConstantGenerator", "value":5}, "cost":0, "priority":"Medium", "resources":["r2"]},
+  {"id": "UserTask_2", "duration":{"type":"ConstantGenerator", "value":5}, "cost":0, "priority":"Medium", "resources":["r1"]},
+  {"id": "UserTask_3", "duration":{"type":"ConstantGenerator", "value":5}, "cost":0, "priority":"Medium", "resources":["r1"]}
+  ]
+}

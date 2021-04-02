@@ -1,0 +1,8 @@
+{
+  "data": [
+  {"id": "Activity_1tajcy3", "duration":{"type":"ConstantGenerator", "value":2}, "cost":0, "priority":"High", "resources":["r3"]},
+  {"id": "Activity_1oonsb0", "duration":{"type":"ConstantGenerator", "value":2}, "cost":0, "priority":"High", "resources":["r1"]},
+  {"id": "Activity_0srcix9", "duration":{"type":"ConstantGenerator", "value":4}, "cost":0, "priority":"High", "resources":["r2"]},
+  {"id": "Activity_0ftahag", "duration":{"type":"ConstantGenerator", "value":4}, "cost":0, "priority":"Low", "resources":["r2"]}
+  ]
+}

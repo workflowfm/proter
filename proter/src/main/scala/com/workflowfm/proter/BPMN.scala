@@ -129,8 +129,8 @@ class BPMNSimulation(
                     handleNode(connector.getTarget(),connector.getId)
                 }
 
-            case "parallelGeteway" =>
-                {
+            case "parallelGateway" =>
+                {   
                     val incomingSize = node.getIncoming.size()
                     if (incomingSize==1) handleTasksAfter(node.getId())
                     else {

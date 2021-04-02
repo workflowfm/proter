@@ -1,0 +1,41 @@
+1. (Basic Flow) Sequence, all one resource
+2. (Basic Flow) Parallelism, all one resource
+3. (Basic Flow) Parallelism, all different resource
+4. (Basic Flow) Parallelism, one confilcting resource
+5. (Basic Flow) Branching, all one resource
+6. (Basic Flow) Branching, all different resource
+7. (Basic Flow) Branching, one conflicting resource, tight timing
+
+8. Long Parallelism, pairwise conflicting resources
+9. Long Parallelism, Staggered resources
+10. Long Parallelism, varying durations, semi-conflicting resources (staggered but time overlap)
+11. Long Parallelism, same as (8) but short time (not enough time)
+12. Long Parallelism, same as (9) but short time (should be perfect amount)
+
+13. Simple loop
+14. Long loop (multiple tasks, closely packed time)
+
+15. Large branching of two parallelisms
+16. Large parallelsim of two branchings
+
+17. "validate customer" - from Camunda examples
+18. "invoice approval" - from Camunda examples
+19. "calcualte rating" - from Camunda examples
+20. "parallel" - from Scylla examples ---- Might need to be modified
+
+21. Basic model, random arrival rate
+22. Basic model, random task durations (uniform)
+23. Basic model, random arrival rate + random task durations
+
+===
+
+24. Priorities 1 - all same priority
+25. Priorities 1 - low and high parallel
+26. Priorities 1 - low offsets high due to timing
+
+27. Lookahead example 1
+28. Lookahead example 2
+29. Lookahead example 3 TODO
+
+Multiple resources
+More priorities examples

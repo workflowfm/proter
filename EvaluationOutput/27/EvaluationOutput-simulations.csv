@@ -1,0 +1,2 @@
+Name,Start,Duration,Delay,Tasks,Cost,Result
+Sim0,0,10,2,4,0,Some(object scala.Unit)

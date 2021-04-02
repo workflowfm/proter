@@ -1,0 +1,6 @@
+{
+  "data": [
+  {"id": "TASKID1", "duration":5, "cost":0, "resources":["r1"]},
+  {"id": "TASKID2", "duration":5, "cost":0, "resources":["r2"]},
+  {"id": "TASKID3", "duration":5, "cost":0, "resources":["r3"]}
+}

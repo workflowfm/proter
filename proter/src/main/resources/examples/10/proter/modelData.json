@@ -1,0 +1,10 @@
+{
+  "data": [
+  {"id": "Activity_0sz1581", "duration":{"type":"ConstantGenerator", "value":3}, "cost":0, "priority":"Medium", "resources":["r1"]},
+  {"id": "Activity_0rajslv", "duration":{"type":"ConstantGenerator", "value":5}, "cost":0, "priority":"Medium", "resources":["r2"]},
+  {"id": "Activity_0eq37zk", "duration":{"type":"ConstantGenerator", "value":4}, "cost":0, "priority":"Medium", "resources":["r3"]},
+  {"id": "Activity_0d5nkwt", "duration":{"type":"ConstantGenerator", "value":5}, "cost":0, "priority":"Medium", "resources":["r2"]},
+  {"id": "Activity_05vfjik", "duration":{"type":"ConstantGenerator", "value":7}, "cost":0, "priority":"Medium", "resources":["r3"]},
+  {"id": "Activity_0oq0w7v", "duration":{"type":"ConstantGenerator", "value":2}, "cost":0, "priority":"Medium", "resources":["r1"]}
+  ]
+}

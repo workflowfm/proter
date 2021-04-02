@@ -1,0 +1,14 @@
+{
+  "data": [
+  {"id": "TASKID1", "duration":5, "cost":0, "resources":["r3"]},
+  {"id": "TASKID2", "duration":5, "cost":0, "resources":["r1"]},
+  {"id": "TASKID3", "duration":5, "cost":0, "resources":["r2"]},
+  {"id": "TASKID4", "duration":5, "cost":0, "resources":["r3"]},
+  {"id": "TASKID5", "duration":5, "cost":0, "resources":["r1"]},
+  {"id": "TASKID6", "duration":5, "cost":0, "resources":["r1"]},
+  {"id": "TASKID7", "duration":5, "cost":0, "resources":["r2"]},
+  {"id": "TASKID8", "duration":5, "cost":0, "resources":["r3"]},
+  {"id": "TASKID9", "duration":5, "cost":0, "resources":["r1"]},
+  {"id": "TASKID10", "duration":5, "cost":0, "resources":["r2"]}
+  ]
+}

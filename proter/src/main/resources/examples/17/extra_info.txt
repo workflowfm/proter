@@ -1,0 +1,7 @@
+r1 0
+r2 0
+
+===
+100 instances
+40 time between instances
+=> total time 4000
