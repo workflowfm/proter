@@ -101,8 +101,8 @@ case class Arrival(
     rate: ValueGenerator[Double],
     simulationGenerator: SimulationGenerator,
     count: Int = 0
-) extends DiscreteEvent { //TODO simGenerator
-  override val classOrder: Short = 7
+) extends DiscreteEvent { 
+  override val classOrder: Short = 11
 
   override def sameClassCompare(that: DiscreteEvent): Int = that match {
     //case Arrival(_, r) => rate.compareTo(r) TODO Need to figure out a way to sort arrivals!
