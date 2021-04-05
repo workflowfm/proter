@@ -9,16 +9,26 @@
 <link rel="mask-icon" href='http://docs.workflowfm.com/proter/favicons/safari-pinned-tab.svg'  color="#004750">
 <link rel="shortcut icon" href='http://docs.workflowfm.com/proter/favicons/favicon.ico'>
 <meta name="msapplication-config" content='http://docs.workflowfm.com/proter/favicons/browserconfig.xml'>
-<title>Reference | Proter</title><meta property="og:title" content="Reference" />
-<meta property="og:description" content="" />
-<meta property="og:type" content="website" />
-<meta property="og:url" content="http://docs.workflowfm.com/proter/docs/" />
-<meta property="og:updated_time" content="2021-04-05T11:14:14+01:00" />
-<meta itemprop="name" content="Reference">
-<meta itemprop="description" content="">
+<title>Value Generators | Proter</title><meta property="og:title" content="Value Generators" />
+<meta property="og:description" content="A ValueGenerator represents a function that can generate a value for some simulation parameters (typically duration and cost). This can be a constant value or a sample from a probability distribution.
+Value generators also implement an estimate method (such as the median of the distribution) that provides an estimate of the generated values. This can help create an environment of imperfect knowledge. For example, the Scheduler does not know the actual durations of tasks, which can vary from the expected estimate for various reasons." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="http://docs.workflowfm.com/proter/docs/elements/generators/" />
+<meta property="article:published_time" content="2021-04-05T10:39:40+01:00" />
+<meta property="article:modified_time" content="2021-04-05T10:39:40+01:00" />
+<meta itemprop="name" content="Value Generators">
+<meta itemprop="description" content="A ValueGenerator represents a function that can generate a value for some simulation parameters (typically duration and cost). This can be a constant value or a sample from a probability distribution.
+Value generators also implement an estimate method (such as the median of the distribution) that provides an estimate of the generated values. This can help create an environment of imperfect knowledge. For example, the Scheduler does not know the actual durations of tasks, which can vary from the expected estimate for various reasons.">
+<meta itemprop="dateModified" content="2021-04-05T10:39:40+01:00" />
+<meta itemprop="wordCount" content="123">
+
+
+
+<meta itemprop="keywords" content="" />
 <meta name="twitter:card" content="summary"/>
-<meta name="twitter:title" content="Reference"/>
-<meta name="twitter:description" content=""/>
+<meta name="twitter:title" content="Value Generators"/>
+<meta name="twitter:description" content="A ValueGenerator represents a function that can generate a value for some simulation parameters (typically duration and cost). This can be a constant value or a sample from a probability distribution.
+Value generators also implement an estimate method (such as the median of the distribution) that provides an estimate of the generated values. This can help create an environment of imperfect knowledge. For example, the Scheduler does not know the actual durations of tasks, which can vary from the expected estimate for various reasons."/>
 
 
 <link rel="stylesheet" href="http://docs.workflowfm.com/proter/css/styles.28706ec5549cc3256dd9525177b51db882e4e1c7f8c7480de5bac2d85a9fc757bd21c46e4997fdc09817d101741d90097d4727b94168b29b237bf660debb00c3.css" integrity="sha512-KHBuxVScwyVt2VJRd7UduILk4cf4x0gN5brC2Fqfx1e9IcRuSZf9wJgX0QF0HZAJfUcnuUFospsje/Zg3rsAww=="><link rel="stylesheet" href="css/workflowfm.css">
@@ -26,12 +36,15 @@
 
 
 
+  <meta name="description" content="A ValueGenerator represents a function that can generate a value for some simulation parameters (typically duration and cost). This can be a constant value or a sample from a probability distribution.
+Value generators also implement an estimate method (such as the median of the distribution) that provides an estimate of the generated values. This can help create an environment of imperfect knowledge. For example, the Scheduler does not know the actual durations of tasks, which can vary from the expected estimate for various reasons.">
+
 
 </head>
   
     
   
-<body class="page-section"data-code="7" data-lines="false" >
+<body class="page-page"data-code="7" data-lines="false" >
   <header class="nav_header">
 <nav class="wrap nav menu">
 	<a href="http://docs.workflowfm.com/proter" class="nav_brand">
@@ -104,20 +117,54 @@
 </svg></label>
   </div>
   <section class="section aside_inner">
-    <h2 class="section_title active"><a  href="http://docs.workflowfm.com/proter/docs/" class="group">Reference</a></h2>
+    <h2 class="section_title"><a  href="http://docs.workflowfm.com/proter/docs/" class="group">Reference</a></h2>
       <section class="" id="docs-reference">
         <h3 class="section_link"><a id="docs-getting-started" href="http://docs.workflowfm.com/proter/docs/getting-started/">Getting Started</a></h3><nav id="TableOfContents"></nav>
+  <section class="section aside_inner">
+    <h2 class="section_title"><a  href="http://docs.workflowfm.com/proter/docs/elements/" class="group">Elements</a></h2>
+      <section class="" id="docs-elements">
+        <h3 class="section_link active"><a id="docs-value-generators" href="http://docs.workflowfm.com/proter/docs/elements/generators/">Value Generators</a></h3><nav id="TableOfContents">
+  <ul>
+    <li><a href="#constant-generators">Constant Generators</a></li>
+    <li><a href="#uniform-generators">Uniform Generators</a></li>
+  </ul>
+</nav>
+      </section>
+  </section>
       </section>
   </section>
 </aside>
 
   <main class="content">
-    <h1>Reference</h1><p>Welcome to the Proter documentation. This guide shows you how to get started creating creating simulations using Proter and the key concepts involved.</p>
-<a href="./getting-started/" class="button">Get started</a>
+    <h1>Value Generators</h1><p>A <a href="../../../api/com/workflowfm/proter/ValueGenerator.html"><code>ValueGenerator</code></a> represents a function that can generate a value for some simulation parameters (typically duration and cost). This can be a constant value or a sample from a probability distribution.</p>
+<p>Value generators also implement an estimate method (such as the median of the distribution) that provides an estimate of the generated values. This can help create an environment of imperfect knowledge. For example, the <code>Scheduler</code> does not know the actual durations of tasks, which can vary from the expected estimate for various reasons.</p>
+<h2 id="constant-generators">Constant Generators</h2>
+<p>A <a href="../../../api/com/workflowfm/proter/ConstantGenerator.html"><code>ConstantGenerator</code></a> always produces the same value, and its estimate is the value itself.</p>
+<div class="highlight"><pre class="chroma"><code class="language-scala" data-lang="scala"><span class="ln">1</span><span class="o">{</span>
+<span class="ln">2</span>  <span class="k">val</span> <span class="n">constantGen</span> <span class="k">=</span> <span class="nc">ConstantGenerator</span><span class="o">(</span><span class="mi">6</span><span class="o">)</span>
+<span class="ln">3</span>  <span class="n">println</span><span class="o">(</span><span class="s">s&#34;Value: </span><span class="si">${</span><span class="n">constantGen</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s"> - Estimate: </span><span class="si">${</span><span class="n">constantGen</span><span class="o">.</span><span class="n">estimate</span><span class="si">}</span><span class="s">&#34;</span><span class="o">)</span>
+<span class="ln">4</span><span class="o">}</span>
+</code></pre></div><div class="highlight"><pre class="chroma"><code class="language-text" data-lang="text"><span class="ln">1</span>Value: 6 - Estimate: 6
+</code></pre></div><h2 id="uniform-generators">Uniform Generators</h2>
+<p>Value generators are cool</p>
 
-    <div class="pager pager_lean">
+    <div class="pager">
+  
+  <div class="pager_item prev">
+    
+    <a href="http://docs.workflowfm.com/proter/docs/getting-started/" class="pager_link button" title="Getting Started">
+      <span class="pager_label">Getting Started</span>
+    </a>
+  </div>
   
 
+  
+  <div class="pager_item next">
+    
+    <a href="http://docs.workflowfm.com/proter/search/" class="pager_link button" title="Search">
+      <span class="pager_label">Search</span>
+    </a>
+  </div>
   
 </div>
 <svg width="0" height="0" class="hidden">

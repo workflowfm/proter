@@ -1,9 +1,20 @@
 <?xml version="1.0" encoding="utf-8" standalone="yes"?>
 <rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
   <channel>
-    <title>Compose Docs on Proter</title>
+    <title>Reference on Proter</title>
     <link>http://docs.workflowfm.com/proter/docs/</link>
-    <description>Recent content in Compose Docs on Proter</description>
-    <generator>Hugo -- gohugo.io</generator><atom:link href="http://docs.workflowfm.com/proter/docs/index.xml" rel="self" type="application/rss+xml" />
+    <description>Recent content in Reference on Proter</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <lastBuildDate>Mon, 05 Apr 2021 11:14:14 +0100</lastBuildDate><atom:link href="http://docs.workflowfm.com/proter/docs/index.xml" rel="self" type="application/rss+xml" />
+    <item>
+      <title>Getting Started</title>
+      <link>http://docs.workflowfm.com/proter/docs/getting-started/</link>
+      <pubDate>Mon, 05 Apr 2021 11:14:14 +0100</pubDate>
+      
+      <guid>http://docs.workflowfm.com/proter/docs/getting-started/</guid>
+      <description>Proter is available as a library from Maven Central, so you can add it as a dependency in your project. For example, in sbt:
+1libraryDependencies += &amp;#34;com.workflowfm&amp;#34; %% &amp;#34;proter&amp;#34; % &amp;#34;0.6.1&amp;#34; Proter is currently only available in Scala 2.12.12.</description>
+    </item>
+    
   </channel>
 </rss>
