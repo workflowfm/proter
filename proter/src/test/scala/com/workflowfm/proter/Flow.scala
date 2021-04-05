@@ -308,7 +308,6 @@ class FlowTests extends FlowsTester {
       val smh = new PromiseHandler(new SimMetricsHandler)
       coordinator.subscribe(smh)
 
-
       val task1 = new FlowTask(
         Task("task1", 1L)
       )
@@ -378,15 +377,12 @@ class FlowTests extends FlowsTester {
   }
 }
 
-class FlowsTester
-    extends WordSpecLike
-    with Matchers
-    with OptionValues {
+class FlowsTester extends WordSpecLike with Matchers with OptionValues {
 
   def singleFlowTest(
-    flow: Flow,
-    resources: List[TaskResource] = List(),
-    simName: String = "sim1"
+      flow: Flow,
+      resources: List[TaskResource] = List(),
+      simName: String = "sim1"
   ): Map[String, Option[Long]] = {
 
     val coordinator = new Coordinator(new DefaultScheduler())

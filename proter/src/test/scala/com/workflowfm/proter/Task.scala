@@ -68,9 +68,7 @@ class TaskTests extends TaskTester {
   }
 }
 
-class TaskTester
-    extends WordSpecLike
-    with Matchers {
+class TaskTester extends WordSpecLike with Matchers {
   implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
   implicit val timeout: FiniteDuration = 10.seconds
 

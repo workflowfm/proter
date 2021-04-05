@@ -8,36 +8,34 @@ import scala.util.Success
 
 import akka.actor.ActorSystem
 import akka.testkit.TestKit
-import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
-
 import org.scalamock.scalatest.MockFactory
+import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
 
 import com.workflowfm.proter._
 
 class MockSimulationActorTests
-    extends  TestKit(
+    extends TestKit(
       ActorSystem("MockSimulationActorTests")
     )
     with WordSpecLike
     with Matchers
     with MockFactory
-    with MockSimulations 
+    with MockSimulations
     with BeforeAndAfterAll {
 
- override def afterAll: Unit = {
+  override def afterAll: Unit = {
     TestKit.shutdownActorSystem(system)
   }
-
 
   "The simulation actors" must {
 
     "interact correctly with no tasks" in {
       val coordinator = AkkaManager.build(new DefaultScheduler())
       val sim: Simulation = mock[Simulation]
-      
-      sim.name _ expects () returning "sim" anyNumberOfTimes()
 
-      sim.run _ expects () onCall( _ => coordinator.simResponse(SimDone("sim", Success(Unit))) ) once
+      sim.name _ expects () returning "sim" anyNumberOfTimes ()
+
+      sim.run _ expects () onCall (_ => coordinator.simResponse(SimDone("sim", Success(Unit)))) once
 
       val simRef = AkkaSimulationRef.of(sim)
       coordinator.addSimulation(0L, simRef)
@@ -60,7 +58,7 @@ class MockSimulationActorTests
       val simRef = AkkaSimulationRef.of(sim)
       coordinator.addSimulation(0L, simRef)
       Await.result(coordinator.start(), 3.seconds)
-  }
+    }
 
     "interact correctly with ten tasks in sequence" in {
       val coordinator = AkkaManager.build(new DefaultScheduler())
@@ -125,14 +123,14 @@ class MockSimulationActorTests
       for (i <- 1 to 100) {
         val start = i % 10
         val sim: Simulation = mockTwoPlusOneTasks(
-          "sim" + i + "(" + start + ")", 
-          coordinator, 
-          start, 
-          2L, 
-          start + 2L, 
-          2L, 
-          start + 2L, 
-          3L, 
+          "sim" + i + "(" + start + ")",
+          coordinator,
+          start,
+          2L,
+          start + 2L,
+          2L,
+          start + 2L,
+          3L,
           start + 5L
         )
         val simRef = AkkaSimulationRef.of(sim)
@@ -150,8 +148,8 @@ class MockSimulationActorTests
       for (i <- 1 to 100) {
         val start = i % 10
         val sim: Simulation = mockRepeater(
-          "sim" + i + "(" + start + ")", 
-          coordinator, 
+          "sim" + i + "(" + start + ")",
+          coordinator,
           start,
           2L,
           10
@@ -167,9 +165,9 @@ class MockSimulationActorTests
       val coordinator = AkkaManager.build(new DefaultScheduler())
 
       val sim1: Simulation = mock[Simulation]
-      sim1.name _ expects () returning "sim1" anyNumberOfTimes()
+      sim1.name _ expects () returning "sim1" anyNumberOfTimes ()
       val sim2: Simulation = mock[Simulation]
-      sim2.name _ expects () returning "sim2" anyNumberOfTimes()
+      sim2.name _ expects () returning "sim2" anyNumberOfTimes ()
 
       val id1a = UUID.randomUUID()
       val tg1a = Task("T1a", 10) withID id1a
@@ -184,36 +182,46 @@ class MockSimulationActorTests
       val expected2 = tg2.create("sim2", 1L)
 
       inSequence {
-        sim1.run _ expects () onCall ( _ => {
+        sim1.run _ expects () onCall (_ => {
           coordinator.simResponse(SimReady("sim1", Seq(tg1a)))
-        }) once()
+        }) once ()
 
-        sim2.run _ expects () onCall ( _ => {
+        sim2.run _ expects () onCall (_ => {
           coordinator.simResponse(SimReady("sim2", Seq(tg2)))
-        }) once()
-        
-        sim2.completed _ expects (
-          where { (time, tasks) => {
-            tasks.size == 1 && containsTask(tasks, expected2) && time == 2L
-          }}
-        ) onCall { (_, _) => {
-          coordinator.waitFor("sim1")
-          coordinator.simResponse(SimDone("sim2", Success(Unit)))
-          Thread.sleep(500)
-          coordinator.simResponse(SimReady("sim1", Seq(tg1b)))
-        }} once()
+        }) once ()
 
-       sim1.completed _ expects (
-          where { (time, tasks) => {
-            tasks.size == 1 && containsTask(tasks, expected1b) && time == 5L
-          }}
-        ) onCall { (_, _) => {
-          coordinator.simResponse(SimReady("sim1", Seq()))
-        }} once()
+        sim2.completed _ expects (
+          where { (time, tasks) =>
+            {
+              tasks.size == 1 && containsTask(tasks, expected2) && time == 2L
+            }
+          }
+        ) onCall { (_, _) =>
+          {
+            coordinator.waitFor("sim1")
+            coordinator.simResponse(SimDone("sim2", Success(Unit)))
+            Thread.sleep(500)
+            coordinator.simResponse(SimReady("sim1", Seq(tg1b)))
+          }
+        } once ()
 
         sim1.completed _ expects (
-          where { (time, tasks) => tasks.size == 1 && containsTask(tasks, expected1a) && time == 10L }
-        ) onCall ( _ => coordinator.simResponse(SimDone("sim1", Success(Unit))) ) once()
+          where { (time, tasks) =>
+            {
+              tasks.size == 1 && containsTask(tasks, expected1b) && time == 5L
+            }
+          }
+        ) onCall { (_, _) =>
+          {
+            coordinator.simResponse(SimReady("sim1", Seq()))
+          }
+        } once ()
+
+        sim1.completed _ expects (
+          where { (time, tasks) =>
+            tasks.size == 1 && containsTask(tasks, expected1a) && time == 10L
+          }
+        ) onCall (_ => coordinator.simResponse(SimDone("sim1", Success(Unit)))) once ()
 
       }
 
@@ -224,7 +232,7 @@ class MockSimulationActorTests
 
       Await.result(coordinator.start(), 3.seconds)
     }
-    
+
     "interact correctly with a simulation aborting a task without resources" in {
       val coordinator = AkkaManager.build(new DefaultScheduler())
 
@@ -261,18 +269,20 @@ class MockSimulationActorTests
       val simRef2 = AkkaSimulationRef.of(sim2)
       val simRef3 = AkkaSimulationRef.of(sim3)
 
-      coordinator.addSimulations(Seq(
-        (0L, simRef1),
-        (0L, simRef2),
-        (4L, simRef3)
-      ))
+      coordinator.addSimulations(
+        Seq(
+          (0L, simRef1),
+          (0L, simRef2),
+          (4L, simRef3)
+        )
+      )
 
       coordinator.limit(5L)
 
       Await.result(coordinator.start(), 3.seconds)
-      Thread.sleep(500) // The coordinator finishes before all sims are 
-                        // confirmed stopped, so we shutdown the actor system
-                        // and lose the calls to stop().
+      Thread.sleep(500) // The coordinator finishes before all sims are
+      // confirmed stopped, so we shutdown the actor system
+      // and lose the calls to stop().
     }
   }
 }

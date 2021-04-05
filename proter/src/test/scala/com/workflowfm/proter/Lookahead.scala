@@ -15,12 +15,7 @@ import com.workflowfm.proter.flows._
 import com.workflowfm.proter.metrics._
 
 @RunWith(classOf[JUnitRunner])
-class LookaheadTests
-    extends LookaheadTester
-    with WordSpecLike
-    with Matchers
-    with OptionValues {
-
+class LookaheadTests extends LookaheadTester with WordSpecLike with Matchers with OptionValues {
 
   "Lookahead systems" should {
 
@@ -101,19 +96,24 @@ trait LookaheadTester {
   def getCoordinator(): Coordinator = {
     val coordinator = new Coordinator(new LookaheadScheduler())
 
-    coordinator.addResources(Seq(
-      new TaskResource("r1", 0),
-      new TaskResource("r2", 0),
-      new TaskResource("r3", 0),
-      new TaskResource("r4", 0),
-      new TaskResource("r5", 0),
-      new TaskResource("r6", 0),
-    ))
+    coordinator.addResources(
+      Seq(
+        new TaskResource("r1", 0),
+        new TaskResource("r2", 0),
+        new TaskResource("r3", 0),
+        new TaskResource("r4", 0),
+        new TaskResource("r5", 0),
+        new TaskResource("r6", 0)
+      )
+    )
 
     coordinator
   }
 
-  def singleSimulationTest(coordinator: Coordinator, sim: Simulation with LookingAhead): Map[String, Option[Long]] = {
+  def singleSimulationTest(
+      coordinator: Coordinator,
+      sim: Simulation with LookingAhead
+  ): Map[String, Option[Long]] = {
     val smh = new PromiseHandler(new SimMetricsHandler)
     coordinator.subscribe(smh)
 
@@ -124,10 +124,11 @@ trait LookaheadTester {
   }
 }
 
-abstract class DummyLookaheadSim (
-  override val name: String,
-  override protected val manager: Manager
-) extends AsyncSimulation with LookingAhead
+abstract class DummyLookaheadSim(
+    override val name: String,
+    override protected val manager: Manager
+) extends AsyncSimulation
+    with LookingAhead
 
 class DummySim(coordinator: Manager) extends DummyLookaheadSim("sim1", coordinator) {
   var tick = false
@@ -406,10 +407,11 @@ class DummySim3(coordinator: Manager) extends DummyLookaheadSim("sim1", coordina
   }
 }
 
-
-class FlowDummySim(coordinator: Manager) extends FlowLookahead("sim1", coordinator, FlowDummySim.flow)
+class FlowDummySim(coordinator: Manager)
+    extends FlowLookahead("sim1", coordinator, FlowDummySim.flow)
 
 object FlowDummySim {
+
   // Define tasks
   val task1: FlowTask = new FlowTask(
     Task("task1", 2L) withResources (Seq(
@@ -438,7 +440,8 @@ object FlowDummySim {
 
 }
 
-class FlowDummySim2(coordinator: Manager) extends FlowLookahead("sim1", coordinator, FlowDummySim2.flow)
+class FlowDummySim2(coordinator: Manager)
+    extends FlowLookahead("sim1", coordinator, FlowDummySim2.flow)
 
 object FlowDummySim2 {
 
@@ -476,9 +479,11 @@ object FlowDummySim2 {
 
 }
 
-class FlowDummySim3(coordinator: Manager) extends FlowLookahead("sim1", coordinator, FlowDummySim3.flow)
+class FlowDummySim3(coordinator: Manager)
+    extends FlowLookahead("sim1", coordinator, FlowDummySim3.flow)
 
 object FlowDummySim3 {
+
   // Define tasks
   val task1: FlowTask = new FlowTask(
     Task("task1", 2L) withResources (Seq(
@@ -518,4 +523,3 @@ object FlowDummySim3 {
   val flow: Then = task1 > (((task2 + task3 + task4) > task5) + task6)
 
 }
-

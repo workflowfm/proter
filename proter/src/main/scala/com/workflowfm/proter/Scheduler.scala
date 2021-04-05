@@ -137,8 +137,8 @@ class DefaultScheduler(initialTasks: TaskInstance*) extends SortedSetScheduler {
   /**
     * @inheritdoc
     *
-    * Uses [[DefaultScheduler.findNextTasks]].
-    * @see [[DefaultScheduler.findNextTasks]]
+    * Uses [[findNextTasks]].
+    * @see [[findNextTasks]]
     *
     * @param tasks The queue of [[TaskInstance]]s waiting to be started.
     * @param currentTime The current timestamp.
@@ -172,7 +172,7 @@ class DefaultScheduler(initialTasks: TaskInstance*) extends SortedSetScheduler {
     * @return The sequence of [[TaskInstance]]s to start now.
     */
   @tailrec
-  private def findNextTasks(
+  final protected def findNextTasks(
       currentTime: Long,
       resourceMap: Map[String, TaskResource],
       schedules: Map[String, Schedule],
@@ -241,8 +241,8 @@ class LookaheadScheduler(initialTasks: TaskInstance*) extends SortedSetScheduler
   /**
     * @inheritdoc
     *
-    * Uses [[LookaheadScheduler.findNextTasks]].
-    * @see [[LookaheadScheduler.findNextTasks]]
+    * Uses [[findNextTasks]].
+    * @see [[findNextTasks]]
     *
     * Finds currently running tasks by using the resourceMap and also considers these
     * for scheduling.
@@ -319,7 +319,7 @@ class LookaheadScheduler(initialTasks: TaskInstance*) extends SortedSetScheduler
     * @return The sequence of [[TaskInstance]]s to start now.
     */
   @tailrec
-  private def findNextTasks(
+  final protected def findNextTasks(
       currentTime: Long,
       resourceMap: Map[String, TaskResource],
       schedules: Map[String, Schedule],

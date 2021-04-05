@@ -8,6 +8,14 @@ import akka.actor.{ ActorSystem, Actor, ActorRef, Props }
 
 import com.workflowfm.proter._
 
+/**
+  * Akka-based [[com.workflowfm.proter.SimulationRef SimulationRef]] implementation.
+  *
+  * Delegates all interaction to an actor via messaging.
+  *
+  * @param simName The name of the simulation.
+  * @param simulation The `ActorRef` of the actor.
+  */
 case class AkkaSimulationRef(simName: String, simulation: ActorRef) extends SimulationRef {
 
   override def name: String = simName
@@ -25,6 +33,13 @@ object AkkaSimulationRef {
   }
 }
 
+/**
+  * Actor wrapper for a given [[com.workflowfm.proter.Simulation Simulation]].
+  *
+  * Provides access to all functionality via messaging.
+  *
+  * @param simulation The simulation to wrap inside an actor.
+  */
 class SimulationActor(final val simulation: Simulation) extends Actor {
 
   def receive: Receive = {
@@ -44,7 +59,7 @@ class SimulationActor(final val simulation: Simulation) extends Actor {
 }
 
 /**
-  * Defines the messages a [[Simulation]] can receive by default.
+  * Defines the messages a [[SimulationActor]] can receive by default.
   *
   * @groupname coordinator Sent by Coordinator
   * @groupname process Sent by SimulatedProcess
@@ -65,9 +80,9 @@ object SimulationActor {
   case object Ready
 
   /**
-    * Produces a new [[TaskGenerator]] for simulation.
+    * Adds new [[Task]]s to the simulation.
     *
-    * @see [[Simulation.task(t* task(t, resources)]]
+    * @see [[Simulation.task]]
     * @group process
     *
     * @param t The [[TaskGenerator]] to generate the [[Task]].

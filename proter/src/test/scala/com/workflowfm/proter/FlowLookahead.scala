@@ -77,10 +77,7 @@ class FlowLookaheadTests extends FlowLookaheadTester {
   }
 }
 
-class FlowLookaheadTester
-    extends WordSpecLike
-    with Matchers
-    with OptionValues {
+class FlowLookaheadTester extends WordSpecLike with Matchers with OptionValues {
 
   type IDFunction = Map[UUID, Long] => Option[Long]
 
@@ -92,7 +89,8 @@ class FlowLookaheadTester
     new FlowLookaheadTest().parseFlow(flow, extraFunction, structure)
 }
 
-class FlowLookaheadTest extends FlowLookahead("testFlow", new Coordinator(new DefaultScheduler), new NoTask()) {
+class FlowLookaheadTest
+    extends FlowLookahead("testFlow", new Coordinator(new DefaultScheduler), new NoTask()) {
 
   override def parseFlow(
       flow: Flow,
@@ -102,4 +100,3 @@ class FlowLookaheadTest extends FlowLookahead("testFlow", new Coordinator(new De
     super.parseFlow(flow, extraFunction, structure)
   }
 }
-

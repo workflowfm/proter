@@ -223,15 +223,21 @@ class SimMetricsAggregator {
   * A [[ResultHandler]] that collects simulation metrics to a [[SimMetricsAggregator]].
   *
   * Returns the [[SimMetricsAggregator]] with all the data as a result when done.
+  *
+  * Outputs the result using an (optional) [[SimMetricsOutput]].
+  *
+  * @param output The [[SimMetricsOutput]] to use, if any.
   */
-class SimMetricsHandler extends ResultHandler[SimMetricsAggregator] {
+class SimMetricsHandler(output: SimMetricsOutput = SimNoOutput)
+    extends ResultHandler[SimMetricsAggregator] {
   val metrics = new SimMetricsAggregator()
 
   override def onEvent(evt: Event): Unit = evt match {
-    case EStart(src) => metrics.started
+    case EStart(src, t) => metrics.started
     case EDone(src, t) => {
       metrics.allResources(_.idle(t))
       metrics.ended
+      output(t, metrics)
     }
     case EResourceAdd(src, t, n, c) => metrics.addResource(n, c)
     case ESimAdd(src, t, a, s) => Unit
