@@ -1,5 +1,10 @@
 import com.workflowfm.proter.Dependencies
 
+enablePlugins(HugoPlugin)
+enablePlugins(SiteScaladocPlugin)
+enablePlugins(GhpagesPlugin)
+
+
 inThisBuild(List(
   organization := "com.workflowfm",
   organizationName := "WorkflowFM",
@@ -19,20 +24,33 @@ inThisBuild(List(
   scmInfo := Some(
     ScmInfo(
       url("https://github.com/workflowfm/Proter"),
-      "scm:git@github.com:workflowfm/Proter.git"
+      "scm:git:git@github.com:workflowfm/Proter.git"
     )
   ),
   dynverSonatypeSnapshots := true,
 
   scalafixDependencies += Dependencies.sortImports,
+  git.remoteRepo := scmInfo.value.get.connection.replace("scm:git:", "")
 ))
 
+// Publish to Sonatype / Maven Central
 
 publishTo in ThisBuild := sonatypePublishToBundle.value
 pomIncludeRepository := { _ => false }
 publishMavenStyle := true
 sonatypeCredentialHost := "s01.oss.sonatype.org"
 sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
+
+
+// Website generation with sbt-site
+
+Hugo / sourceDirectory := file("docs")
+baseURL in Hugo := uri("http://docs.workflowfm.com/proter")
+//baseURL in Hugo := uri("./")
+includeFilter in Hugo := ("*")
+
+ghpagesNoJekyll := true
+previewFixedPort := Some(9999)
 
 
 lazy val commonSettings = Seq(
@@ -62,9 +80,12 @@ def proterModule(name: String): Project =
     .dependsOn(proter % "compile->compile;test->test")
 
 lazy val root = Project(id = "proter-root", base = file("."))
-  .settings(commonSettings, Seq(  
-    publishArtifact := false
-  ))
+  .settings(commonSettings)
+  .settings( 
+    publishArtifact := false,
+    siteSubdirName in ScalaUnidoc := "api",
+    addMappingsToSiteDir(mappings in (ScalaUnidoc, packageDoc), siteSubdirName in ScalaUnidoc)
+  )
   .aggregate(aggregatedProjects: _*)
   .enablePlugins(ScalaUnidocPlugin)
 
@@ -75,3 +96,6 @@ lazy val proter = Project(id = "proter", base = file("proter"))
 
 lazy val proterAkka = proterModule("proter-akka")
   .settings(libraryDependencies ++= Dependencies.akka)
+
+
+

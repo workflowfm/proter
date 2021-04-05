@@ -1,0 +1,80 @@
+#+TITLE: Documentation
+#+AUTHOR: Petros Papapanagiotou
+#+EMAIL: petros@workflowfm.com
+#+OPTIONS: toc:nil email:t
+#+EXCLUDE_TAGS: noexport
+#+PROPERTY: header-args :results output drawer :session proter :exports both :eval no-export :dir ../../
+#+HUGO_AUTO_SET_LASTMOD: t
+
+#+HUGO_BASE_DIR: ../
+#+HUGO_SECTION: docs
+
+* Setup Amm :noexport:
+#+BEGIN_SRC amm
+import $ivy.`com.workflowfm:proter_2.12:0.6.1`, com.workflowfm.proter._
+#+END_SRC
+
+* Reference
+  :PROPERTIES:
+  :EXPORT_FILE_NAME: _index
+  :EXPORT_HUGO_MENU: :menu "main" :weight 100
+  :END:
+
+Welcome to the Proter documentation. This guide shows you how to get started creating creating simulations using Proter and the key concepts involved.
+
+{{< button "./getting-started/" "Get started" >}}
+* Getting Started
+  :PROPERTIES:
+  :EXPORT_FILE_NAME: getting-started
+  :EXPORT_HUGO_WEIGHT: 100
+  :END:
+
+Proter is available as a library from Maven Central, so you can add it as a dependency in your project. For example, in sbt:
+
+#+BEGIN_SRC scala :eval no
+libraryDependencies += "com.workflowfm" %% "proter" % "{{< version >}}"
+#+END_SRC
+
+Proter is currently only available in *Scala 2.12.12*.
+
+* Elements
+  :PROPERTIES:
+  :EXPORT_HUGO_WEIGHT: 200
+  :EXPORT_HUGO_SECTION*: elements
+  :END:
+
+  Basic elements are covered here.
+
+** TODO Elements
+  :PROPERTIES:
+  :EXPORT_FILE_NAME: _index
+  :END:
+
+  In this section, we cover some of the basic elements and building blocks of Proter simulations.
+
+
+** TODO Value Generators
+   :PROPERTIES:
+   :EXPORT_FILE_NAME: generators
+   :EXPORT_HUGO_WEIGHT: 210
+   :END:
+
+   A [[../../../api/com/workflowfm/proter/ValueGenerator.html][~ValueGenerator~]] represents a function that can generate a value for some simulation parameters (typically duration and cost). This can be a constant value or a sample from a probability distribution.
+
+   Value generators also implement an estimate method (such as the median of the distribution) that provides an estimate of the generated values. This can help create an environment of imperfect knowledge. For example, the ~Scheduler~ does not know the actual durations of tasks, which can vary from the expected estimate for various reasons.
+
+*** Constant Generators
+  A [[../../../api/com/workflowfm/proter/ConstantGenerator.html][~ConstantGenerator~]] always produces the same value, and its estimate is the value itself. 
+
+#+BEGIN_SRC scala
+  {
+    val constantGen = ConstantGenerator(6)
+    println(s"Value: ${constantGen.value} - Estimate: ${constantGen.estimate}")
+  }
+#+END_SRC    
+
+#+RESULTS:
+: Value: 6 - Estimate: 6
+
+*** Uniform Generators
+    Value generators are cool

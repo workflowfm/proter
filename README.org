@@ -42,6 +42,6 @@ libraryDependencies += "com.workflowfm" %% "proter" % "0.6.1"
 
 * License
 
-Distributed under the Apache 2.0 license. See [[LICENSE]] for more information.
+Distributed under the Apache 2.0 license. See [[./LICENSE][LICENSE]] for more information.
 
 Copyright \copy 2019-2021 [[https://www.ed.ac.uk/][The University of Edinburgh]] and [[#authors][contributors]]
