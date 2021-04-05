@@ -86,7 +86,7 @@ case class TimeLimit(override val time: Long) extends DiscreteEvent {
 }
 
 /**
-  * Event used to model a repeating process 
+  * Event used to model a repeating process.
   * 
   * An arrival rate is used to indicate
   * when new instances of a simulation should be added to the coordinator.
