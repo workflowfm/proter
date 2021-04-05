@@ -1,6 +1,9 @@
 #+TITLE: Proter
 #+AUTHOR: Petros Papapanagiotou
 
+#+ATTR_ORG: :width 100
+[[https://raw.githubusercontent.com/workflowfm/proter/master/docs/static/images/Proter.png]]
+
 [[../../releases/latest][https://img.shields.io/badge/version-0.6.1-brightgreen.svg]]
 [[https://opensource.org/licenses/Apache-2.0][https://img.shields.io/badge/license-Apache%202.0-yellowgreen.svg]]
 
@@ -11,13 +14,15 @@ A [[https://en.wikipedia.org/wiki/Discrete-event_simulation][discrete event simu
 | [[https://web.inf.ed.ac.uk/aiai][Artificial Intelligence and its Applications Institute]] |
 | [[https://www.ed.ac.uk/informatics/][School of Informatics, University of Edinburgh]] |
 
+[[http://docs.workflowfm.com/proter][More info and documentation can be found in the main webpage.]]
+
 * Install
 
 Requirements:
 - Java 8, Scala 2.12.12
 - [[https://www.scala-sbt.org/][sbt]] v1.4.3 or higher
 
-You can then add Proter as a dependency from Maven.
+You can then add Proter as [[https://search.maven.org/artifact/com.workflowfm/proter_2.12][a dependency from Maven]].
 
 e.g. in sbt: 
 #+BEGIN_SRC scala
