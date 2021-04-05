@@ -42,6 +42,6 @@
 {{ end }}
 
 <script type="text/javascript">
-  const baseURL = '{{ .Site.BaseURL }}';
+  const baseURL = '{{ .Site.BaseURL }}/';
 </script>
 {{- partialCached "hooks/head" . }}
