@@ -33,7 +33,7 @@ trait SimulationGenerator {
   * @param baseName The base string (prefix) to use in the name.
   * @param manager The [[Manager]] of the simulations.
   * @param resources The resources required by the task.
-  * @param duration The duration of the task.
+  * @param duration The duration distribution of the task.
   * @param cost The cost of the task.
   * @param interrupt 
   * @param priority The priority to be given to the task.
@@ -42,8 +42,8 @@ class SingleTaskSimulationGenerator(
     baseName: String,
     override protected val manager: Manager,
     resources: Seq[String],
-    duration: ValueGenerator[Long],
-    cost: ValueGenerator[Long] = new ConstantGenerator(0L),
+    duration: Distribution,
+    cost: Distribution = Constant(0L),
     interrupt: Int = (-1),
     priority: Task.Priority = Task.Medium
 ) extends SimulationGenerator {

@@ -34,7 +34,7 @@ class TaskInstance(
     val resources: Seq[String],
     val duration: Long,
     val estimatedDuration: Long,
-    val cost: Long,
+    val cost: Double,
     val interrupt: Int = Int.MaxValue,
     val priority: Task.Priority = Task.Medium
 ) extends Ordered[TaskInstance] {
@@ -145,8 +145,8 @@ class TaskInstance(
 case class Task(
     name: String,
     id: Option[UUID],
-    duration: ValueGenerator[Long],
-    cost: ValueGenerator[Long] = ConstantGenerator(0L),
+    duration: Distribution,
+    cost: Distribution = Constant(0L),
     minStartTime: Long = 0L,
     resources: Seq[String] = Seq(),
     interrupt: Int = (-1),
@@ -172,8 +172,8 @@ case class Task(
       creation,
       minStartTime,
       resources,
-      duration.get,
-      duration.estimate,
+      duration.getLong,
+      duration.estimate.round,
       cost.get,
       interrupt,
       priority
@@ -213,28 +213,28 @@ case class Task(
   def withInterrupt(int: Int): Task = copy(interrupt = int)
 
   /**
-    * Update the duration [[ValueGenerator]] to use.
+    * Update the duration distribution to use.
     *
-    * @param dur The new duration generator.
+    * @param dur The new duration distribution.
     * @return An updated [[Task]].
     */
-  def withDurationGenerator(dur: ValueGenerator[Long]): Task = copy(duration = dur)
+  def withDurationGenerator(dur: Distribution): Task = copy(duration = dur)
 
   /**
-    * Update the duration [[ValueGenerator]] to a constant value.
+    * Update the duration distribution to a constant value.
     *
     * @param dur The constant duration value.
     * @return An updated [[Task]].
     */
-  def withDuration(dur: Long): Task = copy(duration = ConstantGenerator(dur))
+  def withDuration(dur: Double): Task = copy(duration = Constant(dur))
 
   /**
-    * Update the cost [[ValueGenerator]] to use.
+    * Update the cost distribution to use.
     *
-    * @param cost The new cost generator.
+    * @param cost The new cost distribution.
     * @return An updated [[Task]].
     */
-  def withCostGenerator(cost: ValueGenerator[Long]): Task = copy(cost = cost)
+  def withCostGenerator(cost: Distribution): Task = copy(cost = cost)
 
   /**
     * Update the cost [[ValueGenerator]] to a constant value.
@@ -242,7 +242,7 @@ case class Task(
     * @param cost The constant cost value.
     * @return An updated [[Task]].
     */
-  def withCost(cost: Long): Task = copy(cost = ConstantGenerator(cost))
+  def withCost(cost: Double): Task = copy(cost = Constant(cost))
 
   /**
     * Update the task name to use.
@@ -283,7 +283,7 @@ object Task {
     */
   def apply(
       name: String,
-      duration: ValueGenerator[Long]
+      duration: Distribution
   ): Task =
     Task(name, None, duration)
 
@@ -298,9 +298,9 @@ object Task {
     */
   def apply(
       name: String,
-      duration: Long
+      duration: Double
   ): Task =
-    Task(name, None, ConstantGenerator(duration))
+    Task(name, None, Constant(duration))
 
   /**
     * An alternative constructor of a [[Task]].
@@ -314,9 +314,9 @@ object Task {
   def apply(
       name: String,
       id: UUID,
-      duration: Long
+      duration: Double
   ): Task =
-    Task(name, Some(id), ConstantGenerator(duration))
+    Task(name, Some(id), Constant(duration))
 
   /**
     * Explicit task priority values.

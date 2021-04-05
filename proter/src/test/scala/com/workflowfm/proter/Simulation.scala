@@ -25,7 +25,7 @@ class SimulationTests extends SimulationTester with MockFactory {
 
     "interact correctly having one task" in {
       val mockinator: Coordinator = mock[Coordinator]
-      val sim = new SingleTaskSimulation("sim", mockinator, Seq("r1"), ConstantGenerator(2L))
+      val sim = new SingleTaskSimulation("sim", mockinator, Seq("r1"), Constant(2L))
 
       val ti1 = sim.theTask.create("sim", 0L)
 
@@ -356,9 +356,9 @@ trait SimulationTester extends WordSpecLike with Matchers with BeforeAndAfterAll
   //         val id1 = java.util.UUID.randomUUID
   //         val id2 = java.util.UUID.randomUUID
   //         val id3 = java.util.UUID.randomUUID
-  /* val generator1 = TaskGenerator("task1","sim",ConstantGenerator(2L),ConstantGenerator(0L)) */
-  /* val generator2 = TaskGenerator("task2","sim",ConstantGenerator(2L),ConstantGenerator(0L)) */
-  /* val generator3 = TaskGenerator("task3","sim",ConstantGenerator(2L),ConstantGenerator(0L)) */
+  /* val generator1 = TaskGenerator("task1","sim",Constant(2L),Constant(0L)) */
+  /* val generator2 = TaskGenerator("task2","sim",Constant(2L),Constant(0L)) */
+  /* val generator3 = TaskGenerator("task3","sim",Constant(2L),Constant(0L)) */
   //         val resources = Seq("r1")
 
   //         add1To1Lookahead(id1,id2,generator2,resources)

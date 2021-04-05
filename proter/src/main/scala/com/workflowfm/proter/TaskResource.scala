@@ -26,7 +26,7 @@ import java.util.UUID
   * @param name The name of the resource.
   * @param costPerTick The cost of using the resource per unit of time.
   */
-class TaskResource(val name: String, val costPerTick: Int) {
+class TaskResource(val name: String, val costPerTick: Double) {
   /**
     * Some [[TaskInstance]] currently attached to the resource, or [[scala.None]] if idle.
     */

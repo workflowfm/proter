@@ -43,7 +43,7 @@ class SimulationActorTests
       val coordinator: AkkaManager = new AkkaManager(probe.ref)
 
       val sim = AkkaSimulationRef.of(
-        new SingleTaskSimulation("sim", coordinator, Seq("r1"), ConstantGenerator(2L))
+        new SingleTaskSimulation("sim", coordinator, Seq("r1"), Constant(2L))
       )
 
       sim.run()

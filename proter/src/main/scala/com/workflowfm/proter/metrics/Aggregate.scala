@@ -101,7 +101,7 @@ class SimMetricsAggregator {
     * Initializes and adds a new [[ResourceMetrics]] instance given a new [[TaskResource]].
     * @group Set
     */
-  def addResource(r: String, costPerTick: Int): ResourceMetrics =
+  def addResource(r: String, costPerTick: Double): ResourceMetrics =
     this += ResourceMetrics(r, costPerTick)
 
   // Update

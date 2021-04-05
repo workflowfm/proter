@@ -22,7 +22,7 @@ case class TaskMetrics(
     created: Long,
     started: Option[Long],
     duration: Long,
-    cost: Long,
+    cost: Double,
     resources: Seq[String],
     aborted: Boolean
 ) {
@@ -46,7 +46,7 @@ case class TaskMetrics(
     * @param addedCost The extra cost to add.
     * @return The updated [[TaskMetrics]].
     */
-  def addCost(addedCost: Long): TaskMetrics =
+  def addCost(addedCost: Double): TaskMetrics =
     copy(cost = cost + addedCost)
 
   /** Calculates the task delay as the difference of the creation and starting times. */
@@ -94,13 +94,13 @@ case class SimulationMetrics(
     duration: Long,
     delay: Long,
     tasks: Int,
-    cost: Long,
+    cost: Double,
     result: Option[String]
 ) {
   /** Adds some time to the total duration. */
   def addDuration(d: Long): SimulationMetrics = copy(duration = duration + d)
   /** Adds some cost to the total cost. */
-  def addCost(c: Long): SimulationMetrics = copy(cost = cost + c)
+  def addCost(c: Double): SimulationMetrics = copy(cost = cost + c)
   /** Adds some delay to the total delay. */
   def addDelay(d: Long): SimulationMetrics = copy(delay = delay + d)
   /** Updates the metrics given a new [[TaskInstance]] that is created as part of the simulation. */
@@ -131,12 +131,12 @@ object SimulationMetrics {
   */
 case class ResourceMetrics(
     name: String,
-    costPerTick: Int,
+    costPerTick: Double,
     idleUpdate: Long,
     busyTime: Long,
     idleTime: Long,
     tasks: Int,
-    cost: Long
+    cost: Double
 ) {
 
   /** Adds some idle time to the total. */
@@ -155,6 +155,6 @@ case class ResourceMetrics(
 object ResourceMetrics {
 
   /** Initialize metrics given the name of a [[TaskResource]]. */
-  def apply(name: String, costPerTick: Int): ResourceMetrics =
-    ResourceMetrics(name, costPerTick, 0L, 0L, 0L, 0, 0L)
+  def apply(name: String, costPerTick: Double): ResourceMetrics =
+    ResourceMetrics(name, costPerTick, 0L, 0L, 0L, 0, 0)
 }
