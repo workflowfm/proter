@@ -3,11 +3,16 @@
 #+EMAIL: petros@workflowfm.com
 #+OPTIONS: toc:nil email:t
 #+EXCLUDE_TAGS: noexport
-#+PROPERTY: header-args :results output :session *Scala* :exports both :eval no-export :dir ../../
+#+PROPERTY: header-args :results output drawer :session proter :exports both :eval no-export :dir ../../
 #+HUGO_AUTO_SET_LASTMOD: t
 
 #+HUGO_BASE_DIR: ../
 #+HUGO_SECTION: docs
+
+* Setup Amm :noexport:
+#+BEGIN_SRC amm
+import $ivy.`com.workflowfm:proter_2.12:0.6.1`, com.workflowfm.proter._
+#+END_SRC
 
 * Reference
   :PROPERTIES:
@@ -18,7 +23,6 @@
 Welcome to the Proter documentation. This guide shows you how to get started creating creating simulations using Proter and the key concepts involved.
 
 {{< button "./getting-started/" "Get started" >}}
-
 * Getting Started
   :PROPERTIES:
   :EXPORT_FILE_NAME: getting-started
@@ -62,10 +66,15 @@ Proter is currently only available in *Scala 2.12.12*.
 *** Constant Generators
   A [[../../../api/com/workflowfm/proter/ConstantGenerator.html][~ConstantGenerator~]] always produces the same value, and its estimate is the value itself. 
 
-#+BEGIN_SRC scala
-val constantGen = ConstantGenerator(5)
-println(s"Value: ${constantGen.value} - Estimate: ${constantGen.estimate}")
+#+BEGIN_SRC amm
+  {
+    val constantGen = ConstantGenerator(6)
+    println(s"Value: ${constantGen.value} - Estimate: ${constantGen.estimate}")
+  }
 #+END_SRC    
+
+#+RESULTS:
+: Value: 6 - Estimate: 6
 
 *** Uniform Generators
     Value generators are cool
