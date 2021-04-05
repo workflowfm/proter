@@ -303,10 +303,9 @@ class Coordinator(
 
       case TimeLimit(t) if (t == time) => stop()
 
-      case ArrivalProcess(t, rate, simulationGenerator) => {
-        events += ArrivalProcess(rate.next(t).round, rate, simulationGenerator) //replivate self
-        //startSimulation(simulationGenerator.newSim(this))
-        addSimulationNow(simulationGenerator.newSim(this))
+      case arrival @ Arrival(t, _, simulationGenerator, count) if (t == time) => {
+        events += arrival.next() //replicate self
+        startSimulation(simulationGenerator.get(count))
       }
 
       case _ => publish(EError(id, time, s"Failed to handle event: $event"))
@@ -762,8 +761,8 @@ class Coordinator(
     * @param rate The arrival rate of the simulation instances.
     * @param simulationGenerator The generator used to create new instances.
     */
-  def addArrivalProcess(t: Long, rate: ArrivalRate, simulationGenerator: SimulationGenerator): Unit = {
-    if (t >= time) events += ArrivalProcess(t, rate, simulationGenerator)
+  def addArrival(t: Long, rate: ValueGenerator[Double], simulationGenerator: SimulationGenerator): Unit = {
+    if (t >= time) events += Arrival(t, rate, simulationGenerator, 0)
   }
 
   /**
@@ -772,8 +771,18 @@ class Coordinator(
     * @param rate The arrival rate of the simulation instances.
     * @param simulationGenerator The generator used to create new instances.
     */
-  def addArrivalProcessNow(rate: ArrivalRate, simulationGenerator: SimulationGenerator): Unit = {
-    events += ArrivalProcess(time, rate, simulationGenerator)
+  def addArrivalNow(rate: ValueGenerator[Double], simulationGenerator: SimulationGenerator): Unit = {
+    events += Arrival(time, rate, simulationGenerator)
+  }
+
+  /**
+    * Adds a new arrival process to the coordinator at the next arrival time.
+    *
+    * @param rate The arrival rate of the simulation instances.
+    * @param simulationGenerator The generator used to create new instances.
+    */
+  def addArrivalNext(rate: ValueGenerator[Double], simulationGenerator: SimulationGenerator): Unit = {
+    events += Arrival(time + rate.get.round, rate, simulationGenerator)
   }
 
   /**

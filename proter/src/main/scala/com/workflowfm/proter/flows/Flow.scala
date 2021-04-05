@@ -283,3 +283,12 @@ class FlowLookahead(
     }
   }
 }
+
+class FlowSimulationGenerator(baseName: String, override protected val manager: Manager, flow: Flow)
+    extends SimulationGenerator {
+
+  override def get(count: Int): SimulationRef = {
+    val name = baseName + count.toString()
+    new FlowSimulation(name, manager, flow.copy())
+  }
+}

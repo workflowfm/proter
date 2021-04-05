@@ -85,19 +85,35 @@ case class TimeLimit(override val time: Long) extends DiscreteEvent {
   override def sameClassCompare(that: DiscreteEvent): Int = 0
 }
 
-
 /**
-  * Event used to model an arrival process whereby some arrival rate is used to indicate
+  * Event used to model a repeating process 
+  * 
+  * An arrival rate is used to indicate
   * when new instances of a simulation should be added to the coordinator.
   *
   * @param time The timestamp of the event
-  * @param rate The [[ArivalRate]] of the simulation.
-  * @param simulationGenerator  The simulation generator for getting new instances of a simulation.
+  * @param rate The arrival rate of the simulation
+  * @param simulationGenerator The simulation generator for getting new instances of a simulation
+  * @param count A counter of the next simulation instance that will be generated
   */
-case class ArrivalProcess(override val time: Long, rate: ArrivalRate, simulationGenerator: SimulationGenerator) extends DiscreteEvent { //TODO simGenerator
+case class Arrival(
+    override val time: Long,
+    rate: ValueGenerator[Double],
+    simulationGenerator: SimulationGenerator,
+    count: Int = 0
+) extends DiscreteEvent { //TODO simGenerator
   override val classOrder: Short = 7
+
   override def sameClassCompare(that: DiscreteEvent): Int = that match {
-    //case ArrivalProcess(_, r) => rate.compareTo(r)
+    //case Arrival(_, r) => rate.compareTo(r) TODO Need to figure out a way to sort arrivals!
     case _ => 0
   }
+
+  /**
+    * Generates the next arrival event to be queued.
+    *
+    * @return The next arrival event.
+    */
+  def next(): Arrival = copy(time = time + rate.get.round, count = count + 1)
+
 }

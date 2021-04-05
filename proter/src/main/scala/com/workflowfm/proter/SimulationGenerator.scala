@@ -1,25 +1,24 @@
 package com.workflowfm.proter
 
-import com.workflowfm.proter.flows._
-
 trait SimulationGenerator {
-    def newSim(coordinator: Manager): SimulationRef
+  protected def manager: Manager
+
+  def get(count: Int): SimulationRef
 }
 
-class SingleTaskSimulationGenerator(baseName: String, resources: Seq[String], duration: ValueGenerator[Long]) extends SimulationGenerator {
-    var count = 0
-    override def newSim(coordinator: Manager): SimulationRef = {
-        val name = baseName + count.toString()
-        count += 1
-        new SingleTaskSimulation(name,coordinator,resources,duration)
-    }
+class SingleTaskSimulationGenerator(
+    baseName: String,
+    override protected val manager: Manager,
+    resources: Seq[String],
+    duration: ValueGenerator[Long],
+    cost: ValueGenerator[Long] = new ConstantGenerator(0L),
+    interrupt: Int = (-1),
+    priority: Task.Priority = Task.Medium
+) extends SimulationGenerator {
+
+  override def get(count: Int): SimulationRef = {
+    val name = baseName + count.toString()
+    new SingleTaskSimulation(name, manager, resources, duration, cost, interrupt, priority)
+  }
 }
 
-class FlowSimulationGenerator(baseName: String, flow: Flow) extends SimulationGenerator {
-    var count = 0
-    override def newSim(coordinator: Manager): SimulationRef = {
-        val name = baseName + count.toString()
-        count += 1
-        new FlowSimulation(name,coordinator,flow.copy())
-    }
-}

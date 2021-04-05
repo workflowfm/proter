@@ -68,7 +68,7 @@ case class IntUniformGenerator(min: Int, max: Int) extends ValueGenerator[Int] {
     *
     * @return The random value.
     */
-  def get: Int = new util.Random().nextInt(max - min) + min
+  override def get: Int = new util.Random().nextInt(max - min) + min
 
   /**
     * Provides an estimate of the values that can be generated.
@@ -76,7 +76,7 @@ case class IntUniformGenerator(min: Int, max: Int) extends ValueGenerator[Int] {
     *
     * @return The median as an estimate of the values that can be generated.
     */
-  def estimate: Int = (max + min) / 2
+  override def estimate: Int = (max + min) / 2
 }
 
 /**
@@ -92,12 +92,47 @@ case class UniformGenerator(min: Long, max: Long) extends ValueGenerator[Long] {
     *
     * @return The random value.
     */
-  def get: Long = (new util.Random().nextDouble * (max - min) + min).toLong
+  override def get: Long = (new util.Random().nextDouble * (max - min) + min).toLong
   /**
     * Provides an estimate of the values that can be generated.
     * Uses the median of the uniform distribution.
     *
     * @return The median as an estimate of the values that can be generated.
     */
-  def estimate: Long = (max + min) / 2
+  override def estimate: Long = (max + min) / 2
+}
+
+
+case class ExponentialGenerator(mean: Double) extends ValueGenerator[Double] {
+  import scala.math.log
+
+  /**
+    * Provides a random value exponentially sampled with a [[mean]] value (lambda).
+    *
+    * @return The random value.
+    */
+  override def get: Double = {
+    val rand = new util.Random().nextDouble
+    /*
+     * Density function:
+     *  fx(t) = le^(-lt) , where l is lambda, t is time
+     *  
+     * Cumulative distribution:
+     * Fx(t) = 1-e(-lt)
+     * 
+     * given a random number r, let
+     * r = Fx(t)
+     * => t = -ln(1-r)/l
+     * => t = -ln(r)/l , since r is random between 0 and 1 we can use r and 1-r interchangably.
+     */
+    -(log(rand)/mean)
+  }
+
+  /**
+    * Provides an estimate of the values that can be generated.
+    * Uses the mean of the exponential distribution.
+    *
+    * @return The mean as an estimate of the values that can be generated.
+    */
+  override def estimate: Double = mean
 }
