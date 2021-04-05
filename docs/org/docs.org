@@ -45,7 +45,7 @@ Proter is currently only available in *Scala 2.12.12*.
 
   Basic elements are covered here.
 
-** Elements
+** TODO Elements
   :PROPERTIES:
   :EXPORT_FILE_NAME: _index
   :END:
@@ -53,7 +53,7 @@ Proter is currently only available in *Scala 2.12.12*.
   In this section, we cover some of the basic elements and building blocks of Proter simulations.
 
 
-** Value Generators
+** TODO Value Generators
    :PROPERTIES:
    :EXPORT_FILE_NAME: generators
    :EXPORT_HUGO_WEIGHT: 210
@@ -66,7 +66,7 @@ Proter is currently only available in *Scala 2.12.12*.
 *** Constant Generators
   A [[../../../api/com/workflowfm/proter/ConstantGenerator.html][~ConstantGenerator~]] always produces the same value, and its estimate is the value itself. 
 
-#+BEGIN_SRC amm
+#+BEGIN_SRC scala
   {
     val constantGen = ConstantGenerator(6)
     println(s"Value: ${constantGen.value} - Estimate: ${constantGen.estimate}")

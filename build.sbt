@@ -44,13 +44,13 @@ sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
 
 // Website generation with sbt-site
 
-
 Hugo / sourceDirectory := file("docs")
 baseURL in Hugo := uri("http://docs.workflowfm.com/proter")
 //baseURL in Hugo := uri("./")
 includeFilter in Hugo := ("*")
 
 ghpagesNoJekyll := true
+previewFixedPort := Some(9999)
 
 
 lazy val commonSettings = Seq(

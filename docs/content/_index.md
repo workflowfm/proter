@@ -12,7 +12,8 @@ draft: false
 A [discrete event simulator](https://en.wikipedia.org/wiki/Discrete-event_simulation) for asynchronous prioritized processes written in Scala.
 {{< /tip >}}
 
-<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
+
+Proter is named after the first half of the Greek word *προτεραιότητα* (`pɾo.te.ɾeˈo.ti.ta`), meaning "priority".
 
 
 {{< button "docs/" "Read the Docs" >}}{{< button "api/com/workflowfm/proter/" "API Documentation" >}}{{< button "https://github.com/workflowfm/Proter" "Source" >}}
@@ -35,6 +36,8 @@ A big thank you to the following contributors in order of appearance:
 
 ### Groups & Organizations
 
+
+<table border="2" cellspacing="0" cellpadding="6" rules="groups" frame="hsides">
 <tbody>
 <tr>
 <td class="org-left"><a href="https://aiml.inf.ed.ac.uk/">Artificial Intelligence Modelling Lab</a></td>
