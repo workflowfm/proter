@@ -172,3 +172,35 @@ object SimulationActor {
   case object Stop
 
 }
+
+/**
+  * Wrapper for [[SimulationGenerator]] such that produces [[AkkaSimulationRef]].
+  *
+  * @param gen The underlying [[SimulationGenerator]] to use.
+  */
+class AkkaSimulationGenerator(gen: SimulationGenerator)(implicit system: ActorSystem)
+    extends SimulationRefGenerator {
+
+  /**
+    * @inheritdoc
+    *
+    * Creates an [[AkkaSimulationRef]].
+    *
+    * Encapsulation is safe here since the simulation is being constructed now.
+    *
+    * @param manager The [[Manager]] of generated [[SimulationRef]].
+    * @param count An integer counter to help construct unique names.
+    * @return A new [[SimulationRef]] instance.
+    */
+  override def build(manager: Manager, count: Int): SimulationRef =
+    AkkaSimulationRef.of(gen.build(manager, count))
+}
+
+object AkkaSimulationGenerator {
+
+  def of(gen: SimulationRefGenerator)(implicit system: ActorSystem): SimulationRefGenerator =
+    gen match {
+      case simGen: SimulationGenerator => new AkkaSimulationGenerator(simGen)
+      case _ => gen
+    }
+}

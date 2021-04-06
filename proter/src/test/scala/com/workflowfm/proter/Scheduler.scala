@@ -190,8 +190,8 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       m.lookahead = NoLookahead +> (id(1L), Task(
               "t2",
               Some(id(2L)),
-              ConstantGenerator(2L),
-              ConstantGenerator(2L)
+              Constant(2L),
+              Constant(2L)
             ))
       m.l(t(1L, Seq("A"))) should be(Seq(1L))
     }
@@ -200,8 +200,8 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       m.lookahead = NoLookahead +> (id(1L), Task(
               "t2",
               Some(id(2L)),
-              ConstantGenerator(5L),
-              ConstantGenerator(5L)
+              Constant(5L),
+              Constant(5L)
             ).withPriority(Task.High).withResources(Seq("B")))
       m.l(
         t(1L, Seq("A"), Task.High),
@@ -213,8 +213,8 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       m.lookahead = NoLookahead +> (id(1L), Task(
               "t2",
               Some(id(2L)),
-              ConstantGenerator(5L),
-              ConstantGenerator(5L)
+              Constant(5L),
+              Constant(5L)
             ).withPriority(Task.Low).withResources(Seq("B")))
       m.l(
         t(1L, Seq("A"), Task.High),
@@ -226,14 +226,14 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       m.lookahead = NoLookahead +> (id(1L), Task(
               "t2",
               Some(id(2L)),
-              ConstantGenerator(2L),
-              ConstantGenerator(2L)
+              Constant(2L),
+              Constant(2L)
             ).withPriority(Task.High).withResources(Seq("A")))
       m.lookahead = m.lookahead +> (id(2L), Task(
               "t3",
               Some(id(3L)),
-              ConstantGenerator(5L),
-              ConstantGenerator(5L)
+              Constant(5L),
+              Constant(5L)
             ).withPriority(Task.High).withResources(Seq("B")))
       m.l(
         t(1L, Seq("A"), Task.High),
@@ -245,8 +245,8 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       m.lookahead = NoLookahead +> (id(1L), Task(
               "t2",
               Some(id(2L)),
-              ConstantGenerator(5L),
-              ConstantGenerator(5L)
+              Constant(5L),
+              Constant(5L)
             ).withPriority(Task.Low).withResources(Seq("B")))
       m.m.get("A").map { _.startTask(t(1L, Seq("A"), Task.High, 0L, 5L), 0L) }
       m.l(t(1L, Seq("A"))) should be(Seq())

@@ -39,7 +39,7 @@ case class EResourceAdd(
     override val source: String,
     override val time: Long,
     name: String,
-    costPerTick: Int
+    costPerTick: Double
 ) extends Event
 
 /**
@@ -123,7 +123,7 @@ case class ETaskDetach(
     override val time: Long,
     task: TaskInstance,
     resource: String,
-    cost: Long
+    cost: Double
 ) extends Event
 
 /**

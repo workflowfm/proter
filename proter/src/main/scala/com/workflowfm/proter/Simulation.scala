@@ -295,8 +295,8 @@ object Simulation {
   * @param name The simulation name.
   * @param manager The [[Manager]] of the simulation.
   * @param resources The names of the [[TaskResource]]s the [[Task]] will require.
-  * @param duration A [[ValueGenerator]] for the duration of the [[Task]].
-  * @param cost A [[ValueGenerator]] for the cost of the [[Task]].
+  * @param duration A [[Distribution]] for the duration of the [[Task]].
+  * @param cost A [[Distribution]] for the cost of the [[Task]].
   * @param interrupt The [[Task.interrupt]] parameter.
   * @param priority The explicit priority of the [[Task]].
   */
@@ -304,8 +304,8 @@ class SingleTaskSimulation(
     override val name: String,
     override protected val manager: Manager,
     resources: Seq[String],
-    duration: ValueGenerator[Long],
-    cost: ValueGenerator[Long] = new ConstantGenerator(0L),
+    duration: Distribution,
+    cost: Distribution = Constant(0),
     interrupt: Int = (-1),
     priority: Task.Priority = Task.Medium
 ) extends Simulation {

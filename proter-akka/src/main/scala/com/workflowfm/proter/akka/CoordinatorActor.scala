@@ -41,6 +41,40 @@ case class AkkaManager(manager: ActorRef, timeout: Timeout = Timeout(1, TimeUnit
   def addSimulations(sims: Seq[(Long, SimulationRef)]): Unit =
     manager ! CoordinatorActor.AddSims(sims)
   def addSimulationsNow(sims: SimulationRef*): Unit = manager ! CoordinatorActor.AddSimsNow(sims)
+
+  def addInfiniteArrival(
+      t: Long,
+      rate: Distribution,
+      simulationGenerator: SimulationRefGenerator
+  ): Unit = manager ! CoordinatorActor.AddInfiniteArrival(t, rate, simulationGenerator)
+
+  def addInfiniteArrivalNow(rate: Distribution, simulationGenerator: SimulationRefGenerator): Unit =
+    manager ! CoordinatorActor.AddInfiniteArrivalNow(rate, simulationGenerator)
+
+  def addInfiniteArrivalNext(
+      rate: Distribution,
+      simulationGenerator: SimulationRefGenerator
+  ): Unit = manager ! CoordinatorActor.AddInfiniteArrivalNext(rate, simulationGenerator)
+
+  def addArrival(
+      t: Long,
+      limit: Int,
+      rate: Distribution,
+      simulationGenerator: SimulationRefGenerator
+  ): Unit = manager ! CoordinatorActor.AddArrival(t, limit, rate, simulationGenerator)
+
+  def addArrivalNow(
+      limit: Int,
+      rate: Distribution,
+      simulationGenerator: SimulationRefGenerator
+  ): Unit = manager ! CoordinatorActor.AddArrivalNow(limit, rate, simulationGenerator)
+
+  def addArrivalNext(
+      limit: Int,
+      rate: Distribution,
+      simulationGenerator: SimulationRefGenerator
+  ): Unit = manager ! CoordinatorActor.AddArrivalNext(limit, rate, simulationGenerator)
+
   def start(): Future[Any] = (manager ? CoordinatorActor.Start)(timeout)
   def stop(): Unit = manager ! CoordinatorActor.Stop
   def limit(t: Long): Unit = manager ! CoordinatorActor.LimitTime(t)
@@ -57,7 +91,7 @@ object AkkaManager {
       timeout: Timeout = Timeout(1, TimeUnit.MINUTES)
   )(implicit system: ActorSystem): AkkaManager = {
     AkkaManager(
-      system.actorOf(CoordinatorActor.props(scheduler, startingTime)(system.dispatcher)),
+      system.actorOf(CoordinatorActor.props(scheduler, startingTime)(system)),
       timeout
     )
   }
@@ -74,8 +108,10 @@ object AkkaManager {
 class CoordinatorActor(
     scheduler: Scheduler,
     startingTime: Long
-)(implicit executionContext: ExecutionContext)
+)(implicit actorSystem: ActorSystem)
     extends Actor {
+
+  implicit val executionContext: ExecutionContext = actorSystem.dispatcher
 
   val coordinator: Coordinator = new Coordinator(scheduler, true, startingTime)
 
@@ -84,6 +120,19 @@ class CoordinatorActor(
     case CoordinatorActor.AddSims(l) => coordinator.addSimulations(l)
     case CoordinatorActor.AddSimNow(s) => coordinator.addSimulationNow(s)
     case CoordinatorActor.AddSimsNow(l) => coordinator.addSimulationsNow(l)
+
+    case CoordinatorActor.AddInfiniteArrival(t, r, g) =>
+      coordinator.addInfiniteArrival(t, r, AkkaSimulationGenerator.of(g))
+    case CoordinatorActor.AddInfiniteArrivalNow(r, g) =>
+      coordinator.addInfiniteArrivalNow(r, AkkaSimulationGenerator.of(g))
+    case CoordinatorActor.AddInfiniteArrivalNext(r, g) =>
+      coordinator.addInfiniteArrivalNext(r, AkkaSimulationGenerator.of(g))
+    case CoordinatorActor.AddArrival(t, l, r, g) =>
+      coordinator.addArrival(t, l, r, AkkaSimulationGenerator.of(g))
+    case CoordinatorActor.AddArrivalNow(l, r, g) =>
+      coordinator.addArrivalNow(l, r, AkkaSimulationGenerator.of(g))
+    case CoordinatorActor.AddArrivalNext(l, r, g) =>
+      coordinator.addArrivalNext(l, r, AkkaSimulationGenerator.of(g))
 
     case CoordinatorActor.AddResource(r) => coordinator.addResource(r)
     case CoordinatorActor.AddResources(r) => r foreach coordinator.addResource
@@ -158,6 +207,57 @@ object CoordinatorActor {
   case class AddSimsNow(l: Seq[SimulationRef])
 
   /**
+    * Message to add an infinite arrival process.
+    * @group toplevel
+    */
+  case class AddInfiniteArrival(
+      t: Long,
+      rate: Distribution,
+      simulationGenerator: SimulationRefGenerator
+  )
+  /**
+    * Message to add an infinite arrival process due to start right now.
+    * @group toplevel
+    */
+  case class AddInfiniteArrivalNow(rate: Distribution, simulationGenerator: SimulationRefGenerator)
+  /**
+    * Message to add an infinite arrival process starting at the next arrival time.
+    * @group toplevel
+    */
+  case class AddInfiniteArrivalNext(rate: Distribution, simulationGenerator: SimulationRefGenerator)
+
+  /**
+    * Message to add an arrival process.
+    * @group toplevel
+    */
+  case class AddArrival(
+      t: Long,
+      limit: Int,
+      rate: Distribution,
+      simulationGenerator: SimulationRefGenerator
+  )
+
+  /**
+    * Message to add an arrival process due to start right now.
+    * @group toplevel
+    */
+  case class AddArrivalNow(
+      limit: Int,
+      rate: Distribution,
+      simulationGenerator: SimulationRefGenerator
+  )
+
+  /**
+    * Message to add an arrival process starting at the next arrival time.
+    * @group toplevel
+    */
+  case class AddArrivalNext(
+      limit: Int,
+      rate: Distribution,
+      simulationGenerator: SimulationRefGenerator
+  )
+
+  /**
     * Message to add a [[TaskResource]].
     * @group toplevel
     */
@@ -196,7 +296,7 @@ object CoordinatorActor {
   def props(
       scheduler: Scheduler,
       startingTime: Long = 0L
-  )(implicit executionContext: ExecutionContext): Props = Props(
+  )(implicit system: ActorSystem): Props = Props(
     new CoordinatorActor(scheduler, startingTime)
   )
 }
