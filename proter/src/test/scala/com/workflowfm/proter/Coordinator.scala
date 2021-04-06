@@ -917,16 +917,15 @@ trait MockSimulations { self: MockFactory =>
     sim
   }
 
-
   def mockSingleTaskGenerator(
-    name: String,
-    start: Long,
-    interval: Long,
-    duration: Long,
-    limit: Int
+      name: String,
+      start: Long,
+      interval: Long,
+      duration: Long,
+      limit: Int
   ): SimulationGenerator = {
     val gen: SimulationGenerator = mock[SimulationGenerator]
-      (gen.build _) expects(*, *) onCall({ (manager: Manager, count: Int) =>
+    (gen.build _) expects (*, *) onCall ({ (manager: Manager, count: Int) =>
       mockSingleTask(
         name + ":" + count,
         manager,
@@ -934,7 +933,7 @@ trait MockSimulations { self: MockFactory =>
         duration,
         start + interval * count + duration
       )
-    }) repeat(limit)
+    }) repeat (limit)
     gen
   }
 

@@ -121,12 +121,18 @@ class CoordinatorActor(
     case CoordinatorActor.AddSimNow(s) => coordinator.addSimulationNow(s)
     case CoordinatorActor.AddSimsNow(l) => coordinator.addSimulationsNow(l)
 
-    case CoordinatorActor.AddInfiniteArrival(t, r, g)=> coordinator.addInfiniteArrival(t, r, AkkaSimulationGenerator.of(g))
-    case CoordinatorActor.AddInfiniteArrivalNow(r, g)=> coordinator.addInfiniteArrivalNow(r, AkkaSimulationGenerator.of(g))
-    case CoordinatorActor.AddInfiniteArrivalNext(r, g)=> coordinator.addInfiniteArrivalNext(r, AkkaSimulationGenerator.of(g))
-    case CoordinatorActor.AddArrival(t, l, r, g)=> coordinator.addArrival(t, l, r, AkkaSimulationGenerator.of(g))
-    case CoordinatorActor.AddArrivalNow(l, r, g)=> coordinator.addArrivalNow(l, r, AkkaSimulationGenerator.of(g))
-    case CoordinatorActor.AddArrivalNext(l, r, g)=> coordinator.addArrivalNext(l, r, AkkaSimulationGenerator.of(g))
+    case CoordinatorActor.AddInfiniteArrival(t, r, g) =>
+      coordinator.addInfiniteArrival(t, r, AkkaSimulationGenerator.of(g))
+    case CoordinatorActor.AddInfiniteArrivalNow(r, g) =>
+      coordinator.addInfiniteArrivalNow(r, AkkaSimulationGenerator.of(g))
+    case CoordinatorActor.AddInfiniteArrivalNext(r, g) =>
+      coordinator.addInfiniteArrivalNext(r, AkkaSimulationGenerator.of(g))
+    case CoordinatorActor.AddArrival(t, l, r, g) =>
+      coordinator.addArrival(t, l, r, AkkaSimulationGenerator.of(g))
+    case CoordinatorActor.AddArrivalNow(l, r, g) =>
+      coordinator.addArrivalNow(l, r, AkkaSimulationGenerator.of(g))
+    case CoordinatorActor.AddArrivalNext(l, r, g) =>
+      coordinator.addArrivalNext(l, r, AkkaSimulationGenerator.of(g))
 
     case CoordinatorActor.AddResource(r) => coordinator.addResource(r)
     case CoordinatorActor.AddResources(r) => r foreach coordinator.addResource
@@ -230,11 +236,16 @@ object CoordinatorActor {
       rate: Distribution,
       simulationGenerator: SimulationRefGenerator
   )
+
   /**
     * Message to add an arrival process due to start right now.
     * @group toplevel
     */
-  case class AddArrivalNow(limit: Int, rate: Distribution, simulationGenerator: SimulationRefGenerator)
+  case class AddArrivalNow(
+      limit: Int,
+      rate: Distribution,
+      simulationGenerator: SimulationRefGenerator
+  )
 
   /**
     * Message to add an arrival process starting at the next arrival time.

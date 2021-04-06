@@ -757,7 +757,7 @@ class Coordinator(
 
   /**
     * Adds a new infinite arrival process to the coordinator.
-    * 
+    *
     * @note This will generate new simulations infinitely. The [[Coordinator]] will not terminate
     *       unless you add a [[TimeLimit]] event via [[limit]].
     *
@@ -765,33 +765,43 @@ class Coordinator(
     * @param rate The arrival rate of the simulation instances.
     * @param simulationGenerator The generator used to create new instances.
     */
-  def addInfiniteArrival(t: Long, rate: Distribution, simulationGenerator: SimulationRefGenerator): Unit = {
+  def addInfiniteArrival(
+      t: Long,
+      rate: Distribution,
+      simulationGenerator: SimulationRefGenerator
+  ): Unit = {
     if (t >= time) events += Arrival(t, rate, simulationGenerator)
   }
 
   /**
     * Adds a new infinite arrival process to the coordinator at the current virtual time.
-    * 
+    *
     * @note This will generate new simulations infinitely. The [[Coordinator]] will not terminate
     *       unless you add a [[TimeLimit]] event via [[limit]].
     *
     * @param rate The arrival rate of the simulation instances.
     * @param simulationGenerator The generator used to create new instances.
     */
-  def addInfiniteArrivalNow(rate: Distribution, simulationGenerator: SimulationRefGenerator): Unit = {
+  def addInfiniteArrivalNow(
+      rate: Distribution,
+      simulationGenerator: SimulationRefGenerator
+  ): Unit = {
     events += Arrival(time, rate, simulationGenerator)
   }
 
   /**
     * Adds a new infinite arrival process to the coordinator at the next arrival time.
-    * 
+    *
     * @note This will generate new simulations infinitely. The [[Coordinator]] will not terminate
     *       unless you add a [[TimeLimit]] event via [[limit]].
     *
     * @param rate The arrival rate of the simulation instances.
     * @param simulationGenerator The generator used to create new instances.
     */
-  def addInfiniteArrivalNext(rate: Distribution, simulationGenerator: SimulationRefGenerator): Unit = {
+  def addInfiniteArrivalNext(
+      rate: Distribution,
+      simulationGenerator: SimulationRefGenerator
+  ): Unit = {
     events += Arrival(time + rate.get.round, rate, simulationGenerator)
   }
 
@@ -803,7 +813,12 @@ class Coordinator(
     * @param rate The arrival rate of the simulation instances.
     * @param simulationGenerator The generator used to create new instances.
     */
-  def addArrival(t: Long, limit: Int, rate: Distribution, simulationGenerator: SimulationRefGenerator): Unit = {
+  def addArrival(
+      t: Long,
+      limit: Int,
+      rate: Distribution,
+      simulationGenerator: SimulationRefGenerator
+  ): Unit = {
     if (t >= time) events += Arrival(t, rate, simulationGenerator, Some(limit))
   }
 
@@ -814,7 +829,11 @@ class Coordinator(
     * @param rate The arrival rate of the simulation instances.
     * @param simulationGenerator The generator used to create new instances.
     */
-  def addArrivalNow(limit: Int, rate: Distribution, simulationGenerator: SimulationRefGenerator): Unit = {
+  def addArrivalNow(
+      limit: Int,
+      rate: Distribution,
+      simulationGenerator: SimulationRefGenerator
+  ): Unit = {
     events += Arrival(time, rate, simulationGenerator, Some(limit))
   }
 
@@ -825,10 +844,13 @@ class Coordinator(
     * @param rate The arrival rate of the simulation instances.
     * @param simulationGenerator The generator used to create new instances.
     */
-  def addArrivalNext(limit: Int, rate: Distribution, simulationGenerator: SimulationRefGenerator): Unit = {
+  def addArrivalNext(
+      limit: Int,
+      rate: Distribution,
+      simulationGenerator: SimulationRefGenerator
+  ): Unit = {
     events += Arrival(time + rate.get.round, rate, simulationGenerator, Some(limit))
   }
-
 
   /**
     * Checks if a given [[com.workflowfm.proter.events.Event Event]] in the output stream is the final one.
