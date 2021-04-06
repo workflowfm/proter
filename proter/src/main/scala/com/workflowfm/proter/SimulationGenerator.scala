@@ -11,19 +11,13 @@ package com.workflowfm.proter
   */
 trait SimulationGenerator {
   /**
-    * The common [[Manager]] of all generated [[SimulationRef]]s.
-    *
-    * @return the common [[Manager]] of all generated [[SimulationRef]]s.
-    */
-  protected def manager: Manager 
-
-  /**
     * Generates a new [[SimulationRef]].
     *
+    * @param manager The [[Manager]] of generated [[SimulationRef]].
     * @param count An integer counter to help construct unique names.
     * @return A new [[SimulationRef]] instance.
     */
-  def get(count: Int): SimulationRef
+  def build(manager: Manager, count: Int): SimulationRef
 }
 
 
@@ -31,7 +25,6 @@ trait SimulationGenerator {
   * A [[SimulationGenerator]] for [[SingleTaskSimulation]] instances.
   *
   * @param baseName The base string (prefix) to use in the name.
-  * @param manager The [[Manager]] of the simulations.
   * @param resources The resources required by the task.
   * @param duration The duration distribution of the task.
   * @param cost The cost of the task.
@@ -40,7 +33,6 @@ trait SimulationGenerator {
   */
 class SingleTaskSimulationGenerator(
     baseName: String,
-    override protected val manager: Manager,
     resources: Seq[String],
     duration: Distribution,
     cost: Distribution = Constant(0L),
@@ -51,7 +43,7 @@ class SingleTaskSimulationGenerator(
   /**
     * @inheritdoc
     */
-  override def get(count: Int): SimulationRef = {
+  override def build(manager: Manager, count: Int): SimulationRef = {
     val name = baseName + count.toString()
     new SingleTaskSimulation(name, manager, resources, duration, cost, interrupt, priority)
   }

@@ -305,7 +305,7 @@ class Coordinator(
 
       case arrival @ Arrival(t, _, simulationGenerator, count) if (t == time) => {
         events += arrival.next() //replicate self
-        startSimulation(simulationGenerator.get(count))
+        startSimulation(simulationGenerator.build(this, count))
       }
 
       case _ => publish(EError(id, time, s"Failed to handle event: $event"))
