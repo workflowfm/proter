@@ -99,7 +99,7 @@ case class TimeLimit(override val time: Long) extends DiscreteEvent {
 case class Arrival(
     override val time: Long,
     rate: Distribution,
-    simulationGenerator: SimulationGenerator,
+    simulationGenerator: SimulationRefGenerator,
     limit: Option[Int] = None,
     count: Int = 0
 ) extends DiscreteEvent {

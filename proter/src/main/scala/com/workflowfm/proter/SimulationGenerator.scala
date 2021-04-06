@@ -9,7 +9,7 @@ package com.workflowfm.proter
   * from all other copies. An integer counter is provided as an argument for that purpose, though it is not necessary
   * to use that.
   */
-trait SimulationGenerator {
+trait SimulationRefGenerator {
   /**
     * Generates a new [[SimulationRef]].
     *
@@ -18,6 +18,26 @@ trait SimulationGenerator {
     * @return A new [[SimulationRef]] instance.
     */
   def build(manager: Manager, count: Int): SimulationRef
+}
+
+/**
+  * A generator of simulation instances.
+  * 
+  * This is used to model repeating processes, for instance with a given arrival rate.
+  * 
+  * It generates copies of a [[SimulationRef]]. It must ensure that each copy has a unique name and is independent
+  * from all other copies. An integer counter is provided as an argument for that purpose, though it is not necessary
+  * to use that.
+  */
+trait SimulationGenerator extends SimulationRefGenerator{
+  /**
+    * Generates a new [[SimulationRef]].
+    *
+    * @param manager The [[Manager]] of generated [[SimulationRef]].
+    * @param count An integer counter to help construct unique names.
+    * @return A new [[SimulationRef]] instance.
+    */
+  override def build(manager: Manager, count: Int): Simulation
 }
 
 
@@ -43,7 +63,7 @@ class SingleTaskSimulationGenerator(
   /**
     * @inheritdoc
     */
-  override def build(manager: Manager, count: Int): SimulationRef = {
+  override def build(manager: Manager, count: Int): Simulation = {
     val name = baseName + count.toString()
     new SingleTaskSimulation(name, manager, resources, duration, cost, interrupt, priority)
   }

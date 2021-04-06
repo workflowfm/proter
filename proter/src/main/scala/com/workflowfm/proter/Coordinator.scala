@@ -765,7 +765,7 @@ class Coordinator(
     * @param rate The arrival rate of the simulation instances.
     * @param simulationGenerator The generator used to create new instances.
     */
-  def addInfiniteArrival(t: Long, rate: Distribution, simulationGenerator: SimulationGenerator): Unit = {
+  def addInfiniteArrival(t: Long, rate: Distribution, simulationGenerator: SimulationRefGenerator): Unit = {
     if (t >= time) events += Arrival(t, rate, simulationGenerator)
   }
 
@@ -778,7 +778,7 @@ class Coordinator(
     * @param rate The arrival rate of the simulation instances.
     * @param simulationGenerator The generator used to create new instances.
     */
-  def addInfiniteArrivalNow(rate: Distribution, simulationGenerator: SimulationGenerator): Unit = {
+  def addInfiniteArrivalNow(rate: Distribution, simulationGenerator: SimulationRefGenerator): Unit = {
     events += Arrival(time, rate, simulationGenerator)
   }
 
@@ -791,7 +791,7 @@ class Coordinator(
     * @param rate The arrival rate of the simulation instances.
     * @param simulationGenerator The generator used to create new instances.
     */
-  def addInfiniteArrivalNext(rate: Distribution, simulationGenerator: SimulationGenerator): Unit = {
+  def addInfiniteArrivalNext(rate: Distribution, simulationGenerator: SimulationRefGenerator): Unit = {
     events += Arrival(time + rate.get.round, rate, simulationGenerator)
   }
 
@@ -803,7 +803,7 @@ class Coordinator(
     * @param rate The arrival rate of the simulation instances.
     * @param simulationGenerator The generator used to create new instances.
     */
-  def addArrival(t: Long, limit: Int, rate: Distribution, simulationGenerator: SimulationGenerator): Unit = {
+  def addArrival(t: Long, limit: Int, rate: Distribution, simulationGenerator: SimulationRefGenerator): Unit = {
     if (t >= time) events += Arrival(t, rate, simulationGenerator, Some(limit))
   }
 
@@ -814,7 +814,7 @@ class Coordinator(
     * @param rate The arrival rate of the simulation instances.
     * @param simulationGenerator The generator used to create new instances.
     */
-  def addArrivalNow(limit: Int, rate: Distribution, simulationGenerator: SimulationGenerator): Unit = {
+  def addArrivalNow(limit: Int, rate: Distribution, simulationGenerator: SimulationRefGenerator): Unit = {
     events += Arrival(time, rate, simulationGenerator, Some(limit))
   }
 
@@ -825,7 +825,7 @@ class Coordinator(
     * @param rate The arrival rate of the simulation instances.
     * @param simulationGenerator The generator used to create new instances.
     */
-  def addArrivalNext(limit: Int, rate: Distribution, simulationGenerator: SimulationGenerator): Unit = {
+  def addArrivalNext(limit: Int, rate: Distribution, simulationGenerator: SimulationRefGenerator): Unit = {
     events += Arrival(time + rate.get.round, rate, simulationGenerator, Some(limit))
   }
 
