@@ -265,6 +265,64 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
 
       Await.result(coordinator.start(), 3.seconds)
     }
+
+    "interact correctly with a simulation generator" in {
+      val coordinator = new Coordinator(new DefaultScheduler())
+      val gen: SimulationGenerator = mockSingleTaskGenerator("sim", 0L, 3L, 2L, 5)
+
+      coordinator.addArrivalNow(5, Constant(3), gen)
+
+      Await.result(coordinator.start(), 3.seconds)
+      coordinator.getTime() should be(15L) // Last task finishes at 14L but the next arrival is still queued.
+    }
+
+    "interact correctly with two simulation generators" in {
+      val coordinator = new Coordinator(new DefaultScheduler())
+      val gen1: SimulationGenerator = mockSingleTaskGenerator("sim1", 0L, 3L, 2L, 5)
+      val gen2: SimulationGenerator = mockSingleTaskGenerator("sim2", 1L, 3L, 2L, 4)
+
+      coordinator.addArrivalNow(5, Constant(3), gen1)
+      coordinator.addArrival(1, 4, Constant(3), gen2)
+
+      Await.result(coordinator.start(), 3.seconds)
+      coordinator.getTime() should be(15L)
+    }
+
+    "interact correctly with two simulation generators using addArrivalNext" in {
+      val coordinator = new Coordinator(new DefaultScheduler())
+      val gen1: SimulationGenerator = mockSingleTaskGenerator("sim1", 3L, 3L, 2L, 4)
+      val gen2: SimulationGenerator = mockSingleTaskGenerator("sim2", 2L, 2L, 2L, 3)
+
+      coordinator.addArrivalNext(4, Constant(3), gen1)
+      coordinator.addArrivalNext(3, Constant(2), gen2)
+
+      Await.result(coordinator.start(), 3.seconds)
+      coordinator.getTime() should be(15L)
+    }
+
+    "interact correctly with an infinite simulation generator" in {
+      val coordinator = new Coordinator(new DefaultScheduler())
+      val gen: SimulationGenerator = mockSingleTaskGenerator("sim", 0L, 3L, 1L, 5)
+
+      coordinator.addInfiniteArrivalNow(Constant(3), gen)
+      coordinator.limit(14L)
+
+      Await.result(coordinator.start(), 3.seconds)
+      coordinator.getTime() should be(14L)
+    }
+
+    "interact correctly with two infinite simulation generators" in {
+      val coordinator = new Coordinator(new DefaultScheduler())
+      val gen1: SimulationGenerator = mockSingleTaskGenerator("sim1", 0L, 3L, 1L, 5)
+      val gen2: SimulationGenerator = mockSingleTaskGenerator("sim2", 3L, 4L, 1L, 3)
+
+      coordinator.addInfiniteArrivalNow(Constant(3), gen1)
+      coordinator.addInfiniteArrival(3L, Constant(4), gen2)
+      coordinator.limit(14L)
+
+      Await.result(coordinator.start(), 3.seconds)
+      coordinator.getTime() should be(14L)
+    }
   }
 
   "The single-threaded Coordinator" must {
@@ -517,6 +575,64 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
       coordinator.limit(4L)
 
       Await.result(coordinator.start(), 3.seconds)
+    }
+
+    "interact correctly with a simulation generator" in {
+      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val gen: SimulationGenerator = mockSingleTaskGenerator("sim", 0L, 3L, 2L, 5)
+
+      coordinator.addArrivalNow(5, Constant(3), gen)
+
+      Await.result(coordinator.start(), 3.seconds)
+      coordinator.getTime() should be(15L) // Last task finishes at 14L but the next arrival is still queued.
+    }
+
+    "interact correctly with two simulation generators" in {
+      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val gen1: SimulationGenerator = mockSingleTaskGenerator("sim1", 0L, 3L, 2L, 5)
+      val gen2: SimulationGenerator = mockSingleTaskGenerator("sim2", 1L, 3L, 2L, 4)
+
+      coordinator.addArrivalNow(5, Constant(3), gen1)
+      coordinator.addArrival(1, 4, Constant(3), gen2)
+
+      Await.result(coordinator.start(), 3.seconds)
+      coordinator.getTime() should be(15L)
+    }
+
+    "interact correctly with two simulation generators using addArrivalNext" in {
+      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val gen1: SimulationGenerator = mockSingleTaskGenerator("sim1", 3L, 3L, 2L, 4)
+      val gen2: SimulationGenerator = mockSingleTaskGenerator("sim2", 2L, 2L, 2L, 3)
+
+      coordinator.addArrivalNext(4, Constant(3), gen1)
+      coordinator.addArrivalNext(3, Constant(2), gen2)
+
+      Await.result(coordinator.start(), 3.seconds)
+      coordinator.getTime() should be(15L)
+    }
+
+    "interact correctly with an infinite simulation generator" in {
+      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val gen: SimulationGenerator = mockSingleTaskGenerator("sim", 0L, 3L, 1L, 5)
+
+      coordinator.addInfiniteArrivalNow(Constant(3), gen)
+      coordinator.limit(14L)
+
+      Await.result(coordinator.start(), 3.seconds)
+      coordinator.getTime() should be(14L)
+    }
+
+    "interact correctly with two infinite simulation generators" in {
+      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val gen1: SimulationGenerator = mockSingleTaskGenerator("sim1", 0L, 3L, 1L, 5)
+      val gen2: SimulationGenerator = mockSingleTaskGenerator("sim2", 3L, 4L, 1L, 3)
+
+      coordinator.addInfiniteArrivalNow(Constant(3), gen1)
+      coordinator.addInfiniteArrival(3L, Constant(4), gen2)
+      coordinator.limit(14L)
+
+      Await.result(coordinator.start(), 3.seconds)
+      coordinator.getTime() should be(14L)
     }
   }
 }
@@ -799,6 +915,27 @@ trait MockSimulations { self: MockFactory =>
     }
 
     sim
+  }
+
+
+  def mockSingleTaskGenerator(
+    name: String,
+    start: Long,
+    interval: Long,
+    duration: Long,
+    limit: Int
+  ): SimulationGenerator = {
+    val gen: SimulationGenerator = mock[SimulationGenerator]
+      (gen.build _) expects(*, *) onCall({ (manager: Manager, count: Int) =>
+      mockSingleTask(
+        name + ":" + count,
+        manager,
+        start + interval * count,
+        duration,
+        start + interval * count + duration
+      )
+    }) repeat(limit)
+    gen
   }
 
   def containsTask(tasks: Seq[TaskInstance], t: TaskInstance): Boolean =
