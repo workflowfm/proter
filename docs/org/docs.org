@@ -11,7 +11,7 @@
 
 * Setup Amm :noexport:
 #+BEGIN_SRC amm
-import $ivy.`com.workflowfm:proter_2.12:0.6.1`, com.workflowfm.proter._
+import $ivy.`com.workflowfm:proter_2.12:0.7`, com.workflowfm.proter._
 #+END_SRC
 
 * Reference
