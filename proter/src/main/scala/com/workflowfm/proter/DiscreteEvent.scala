@@ -87,7 +87,7 @@ case class TimeLimit(override val time: Long) extends DiscreteEvent {
 
 /**
   * Event used to model a repeating process.
-  * 
+  *
   * An arrival rate is used to indicate
   * when new instances of a simulation should be added to the coordinator.
   *
@@ -100,8 +100,9 @@ case class Arrival(
     override val time: Long,
     rate: Distribution,
     simulationGenerator: SimulationGenerator,
+    limit: Option[Int] = None,
     count: Int = 0
-) extends DiscreteEvent { 
+) extends DiscreteEvent {
   override val classOrder: Short = 11
 
   override def sameClassCompare(that: DiscreteEvent): Int = that match {

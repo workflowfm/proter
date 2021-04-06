@@ -107,7 +107,7 @@ trait Lookahead {
   def and(that: Lookahead): Lookahead = {
     that match {
       case NoLookahead => this
-      case Lookaheads(lookaheads) => that and this
+      case Lookaheads(_) => that and this
       case _ => Lookaheads(this, that)
     }
   }
