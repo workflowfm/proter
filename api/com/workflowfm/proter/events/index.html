@@ -273,6 +273,22 @@
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../index.html" class="extype" name="com.workflowfm.proter">proter</a></dd></dl></div>
+    </li><li name="com.workflowfm.proter.schedule" visbl="pub" class="indented4 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="schedule"></a><a id="schedule:schedule"></a>
+      <span class="permalink">
+      <a href="../../../../com/workflowfm/proter/schedule/index.html" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">package</span>
+      </span>
+      <span class="symbol">
+        <a title="" href="../schedule/index.html"><span class="name">schedule</span></a>
+      </span>
+      
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../index.html" class="extype" name="com.workflowfm.proter">proter</a></dd></dl></div>
     </li>
               </ul>
             </div>
@@ -407,11 +423,11 @@
         <span class="kind">case class</span>
       </span>
       <span class="symbol">
-        <a title="A TaskResource was added." href="EResourceAdd.html"><span class="name">EResourceAdd</span></a><span class="params">(<span name="source">source: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="time">time: <a href="https://www.scala-lang.org/api/2.12.12/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>, <span name="name">name: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="costPerTick">costPerTick: <a href="https://www.scala-lang.org/api/2.12.12/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>)</span><span class="result"> extends <a href="Event.html" class="extype" name="com.workflowfm.proter.events.Event">Event</a> with <a href="https://www.scala-lang.org/api/2.12.12/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="https://www.scala-lang.org/api/2.12.12/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+        <a title="A TaskResource was added." href="EResourceAdd.html"><span class="name">EResourceAdd</span></a><span class="params">(<span name="source">source: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="time">time: <a href="https://www.scala-lang.org/api/2.12.12/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>, <span name="name">name: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="costPerTick">costPerTick: <a href="https://www.scala-lang.org/api/2.12.12/scala/Double.html#scala.Double" class="extype" name="scala.Double">Double</a></span>)</span><span class="result"> extends <a href="Event.html" class="extype" name="com.workflowfm.proter.events.Event">Event</a> with <a href="https://www.scala-lang.org/api/2.12.12/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="https://www.scala-lang.org/api/2.12.12/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
       </span>
       
       <p class="shortcomment cmt">A <a href="../TaskResource.html" class="extype" name="com.workflowfm.proter.TaskResource">TaskResource</a> was added.</p><div class="fullcomment"><div class="comment cmt"><p>A <a href="../TaskResource.html" class="extype" name="com.workflowfm.proter.TaskResource">TaskResource</a> was added.
-</p></div><dl class="paramcmts block"><dt class="param">name</dt><dd class="cmt"><p>The name of the resource.</p></dd><dt class="param">costPerTick</dt><dd class="cmt"><p>The <a href="../TaskResource.html#costPerTick:Int" class="extmbr" name="com.workflowfm.proter.TaskResource#costPerTick">TaskResource.costPerTick</a> of the resource.</p></dd></dl></div>
+</p></div><dl class="paramcmts block"><dt class="param">name</dt><dd class="cmt"><p>The name of the resource.</p></dd><dt class="param">costPerTick</dt><dd class="cmt"><p>The <a href="../TaskResource.html#costPerTick:Double" class="extmbr" name="com.workflowfm.proter.TaskResource#costPerTick">TaskResource.costPerTick</a> of the resource.</p></dd></dl></div>
     </li><li name="com.workflowfm.proter.events.ESimAdd" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="ESimAddextendsEventwithProductwithSerializable"></a><a id="ESimAdd:ESimAdd"></a>
       <span class="permalink">
@@ -542,7 +558,7 @@
         <span class="kind">case class</span>
       </span>
       <span class="symbol">
-        <a title="A TaskInstance was detached from a TaskResource as it finished." href="ETaskDetach.html"><span class="name">ETaskDetach</span></a><span class="params">(<span name="source">source: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="time">time: <a href="https://www.scala-lang.org/api/2.12.12/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>, <span name="task">task: <a href="../TaskInstance.html" class="extype" name="com.workflowfm.proter.TaskInstance">TaskInstance</a></span>, <span name="resource">resource: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="cost">cost: <a href="https://www.scala-lang.org/api/2.12.12/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>)</span><span class="result"> extends <a href="Event.html" class="extype" name="com.workflowfm.proter.events.Event">Event</a> with <a href="https://www.scala-lang.org/api/2.12.12/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="https://www.scala-lang.org/api/2.12.12/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+        <a title="A TaskInstance was detached from a TaskResource as it finished." href="ETaskDetach.html"><span class="name">ETaskDetach</span></a><span class="params">(<span name="source">source: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="time">time: <a href="https://www.scala-lang.org/api/2.12.12/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>, <span name="task">task: <a href="../TaskInstance.html" class="extype" name="com.workflowfm.proter.TaskInstance">TaskInstance</a></span>, <span name="resource">resource: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="cost">cost: <a href="https://www.scala-lang.org/api/2.12.12/scala/Double.html#scala.Double" class="extype" name="scala.Double">Double</a></span>)</span><span class="result"> extends <a href="Event.html" class="extype" name="com.workflowfm.proter.events.Event">Event</a> with <a href="https://www.scala-lang.org/api/2.12.12/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="https://www.scala-lang.org/api/2.12.12/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
       </span>
       
       <p class="shortcomment cmt">A <a href="../TaskInstance.html" class="extype" name="com.workflowfm.proter.TaskInstance">TaskInstance</a> was detached from a <a href="../TaskResource.html" class="extype" name="com.workflowfm.proter.TaskResource">TaskResource</a> as it finished.</p><div class="fullcomment"><div class="comment cmt"><p>A <a href="../TaskInstance.html" class="extype" name="com.workflowfm.proter.TaskInstance">TaskInstance</a> was detached from a <a href="../TaskResource.html" class="extype" name="com.workflowfm.proter.TaskResource">TaskResource</a> as it finished.

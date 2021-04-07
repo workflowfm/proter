@@ -138,6 +138,10 @@
                         <a class="class" href="AkkaManager.html" title="Akka-based Manager implementation."></a>
                         <a href="AkkaManager.html" title="Akka-based Manager implementation.">AkkaManager</a>
                       </li><li class="current-entities indented4">
+                        <a class="object" href="AkkaSimulationGenerator$.html" title=""></a>
+                        <a class="class" href="AkkaSimulationGenerator.html" title="Wrapper for SimulationGenerator such that produces AkkaSimulationRef."></a>
+                        <a href="AkkaSimulationGenerator.html" title="Wrapper for SimulationGenerator such that produces AkkaSimulationRef.">AkkaSimulationGenerator</a>
+                      </li><li class="current-entities indented4">
                         <a class="object" href="AkkaSimulationRef$.html" title=""></a>
                         <a class="class" href="AkkaSimulationRef.html" title="Akka-based SimulationRef implementation."></a>
                         <a href="AkkaSimulationRef.html" title="Akka-based SimulationRef implementation.">AkkaSimulationRef</a>
@@ -232,7 +236,103 @@
 
         <div id="types" class="types members">
               <h3>Type Members</h3>
-              <ol><li name="com.workflowfm.proter.akka.CoordinatorActor.AddResource" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="toplevel">
+              <ol><li name="com.workflowfm.proter.akka.CoordinatorActor.AddArrival" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="toplevel">
+      <a id="AddArrivalextendsProductwithSerializable"></a><a id="AddArrival:AddArrival"></a>
+      <span class="permalink">
+      <a href="../../../../com/workflowfm/proter/akka/CoordinatorActor$$AddArrival.html" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">case class</span>
+      </span>
+      <span class="symbol">
+        <a title="Message to add an arrival process." href="CoordinatorActor$$AddArrival.html"><span class="name">AddArrival</span></a><span class="params">(<span name="t">t: <a href="https://www.scala-lang.org/api/2.12.12/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>, <span name="limit">limit: <a href="https://www.scala-lang.org/api/2.12.12/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>, <span name="rate">rate: <a href="../Distribution.html" class="extype" name="com.workflowfm.proter.Distribution">Distribution</a></span>, <span name="simulationGenerator">simulationGenerator: <a href="../SimulationRefGenerator.html" class="extype" name="com.workflowfm.proter.SimulationRefGenerator">SimulationRefGenerator</a></span>)</span><span class="result"> extends <a href="https://www.scala-lang.org/api/2.12.12/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="https://www.scala-lang.org/api/2.12.12/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+      </span>
+      
+      <p class="shortcomment cmt">Message to add an arrival process.</p>
+    </li><li name="com.workflowfm.proter.akka.CoordinatorActor.AddArrivalNext" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="toplevel">
+      <a id="AddArrivalNextextendsProductwithSerializable"></a><a id="AddArrivalNext:AddArrivalNext"></a>
+      <span class="permalink">
+      <a href="../../../../com/workflowfm/proter/akka/CoordinatorActor$$AddArrivalNext.html" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">case class</span>
+      </span>
+      <span class="symbol">
+        <a title="Message to add an arrival process starting at the next arrival time." href="CoordinatorActor$$AddArrivalNext.html"><span class="name">AddArrivalNext</span></a><span class="params">(<span name="limit">limit: <a href="https://www.scala-lang.org/api/2.12.12/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>, <span name="rate">rate: <a href="../Distribution.html" class="extype" name="com.workflowfm.proter.Distribution">Distribution</a></span>, <span name="simulationGenerator">simulationGenerator: <a href="../SimulationRefGenerator.html" class="extype" name="com.workflowfm.proter.SimulationRefGenerator">SimulationRefGenerator</a></span>)</span><span class="result"> extends <a href="https://www.scala-lang.org/api/2.12.12/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="https://www.scala-lang.org/api/2.12.12/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+      </span>
+      
+      <p class="shortcomment cmt">Message to add an arrival process starting at the next arrival time.</p>
+    </li><li name="com.workflowfm.proter.akka.CoordinatorActor.AddArrivalNow" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="toplevel">
+      <a id="AddArrivalNowextendsProductwithSerializable"></a><a id="AddArrivalNow:AddArrivalNow"></a>
+      <span class="permalink">
+      <a href="../../../../com/workflowfm/proter/akka/CoordinatorActor$$AddArrivalNow.html" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">case class</span>
+      </span>
+      <span class="symbol">
+        <a title="Message to add an arrival process due to start right now." href="CoordinatorActor$$AddArrivalNow.html"><span class="name">AddArrivalNow</span></a><span class="params">(<span name="limit">limit: <a href="https://www.scala-lang.org/api/2.12.12/scala/Int.html#scala.Int" class="extype" name="scala.Int">Int</a></span>, <span name="rate">rate: <a href="../Distribution.html" class="extype" name="com.workflowfm.proter.Distribution">Distribution</a></span>, <span name="simulationGenerator">simulationGenerator: <a href="../SimulationRefGenerator.html" class="extype" name="com.workflowfm.proter.SimulationRefGenerator">SimulationRefGenerator</a></span>)</span><span class="result"> extends <a href="https://www.scala-lang.org/api/2.12.12/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="https://www.scala-lang.org/api/2.12.12/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+      </span>
+      
+      <p class="shortcomment cmt">Message to add an arrival process due to start right now.</p>
+    </li><li name="com.workflowfm.proter.akka.CoordinatorActor.AddInfiniteArrival" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="toplevel">
+      <a id="AddInfiniteArrivalextendsProductwithSerializable"></a><a id="AddInfiniteArrival:AddInfiniteArrival"></a>
+      <span class="permalink">
+      <a href="../../../../com/workflowfm/proter/akka/CoordinatorActor$$AddInfiniteArrival.html" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">case class</span>
+      </span>
+      <span class="symbol">
+        <a title="Message to add an infinite arrival process." href="CoordinatorActor$$AddInfiniteArrival.html"><span class="name">AddInfiniteArrival</span></a><span class="params">(<span name="t">t: <a href="https://www.scala-lang.org/api/2.12.12/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>, <span name="rate">rate: <a href="../Distribution.html" class="extype" name="com.workflowfm.proter.Distribution">Distribution</a></span>, <span name="simulationGenerator">simulationGenerator: <a href="../SimulationRefGenerator.html" class="extype" name="com.workflowfm.proter.SimulationRefGenerator">SimulationRefGenerator</a></span>)</span><span class="result"> extends <a href="https://www.scala-lang.org/api/2.12.12/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="https://www.scala-lang.org/api/2.12.12/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+      </span>
+      
+      <p class="shortcomment cmt">Message to add an infinite arrival process.</p>
+    </li><li name="com.workflowfm.proter.akka.CoordinatorActor.AddInfiniteArrivalNext" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="toplevel">
+      <a id="AddInfiniteArrivalNextextendsProductwithSerializable"></a><a id="AddInfiniteArrivalNext:AddInfiniteArrivalNext"></a>
+      <span class="permalink">
+      <a href="../../../../com/workflowfm/proter/akka/CoordinatorActor$$AddInfiniteArrivalNext.html" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">case class</span>
+      </span>
+      <span class="symbol">
+        <a title="Message to add an infinite arrival process starting at the next arrival time." href="CoordinatorActor$$AddInfiniteArrivalNext.html"><span class="name">AddInfiniteArrivalNext</span></a><span class="params">(<span name="rate">rate: <a href="../Distribution.html" class="extype" name="com.workflowfm.proter.Distribution">Distribution</a></span>, <span name="simulationGenerator">simulationGenerator: <a href="../SimulationRefGenerator.html" class="extype" name="com.workflowfm.proter.SimulationRefGenerator">SimulationRefGenerator</a></span>)</span><span class="result"> extends <a href="https://www.scala-lang.org/api/2.12.12/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="https://www.scala-lang.org/api/2.12.12/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+      </span>
+      
+      <p class="shortcomment cmt">Message to add an infinite arrival process starting at the next arrival time.</p>
+    </li><li name="com.workflowfm.proter.akka.CoordinatorActor.AddInfiniteArrivalNow" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="toplevel">
+      <a id="AddInfiniteArrivalNowextendsProductwithSerializable"></a><a id="AddInfiniteArrivalNow:AddInfiniteArrivalNow"></a>
+      <span class="permalink">
+      <a href="../../../../com/workflowfm/proter/akka/CoordinatorActor$$AddInfiniteArrivalNow.html" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">case class</span>
+      </span>
+      <span class="symbol">
+        <a title="Message to add an infinite arrival process due to start right now." href="CoordinatorActor$$AddInfiniteArrivalNow.html"><span class="name">AddInfiniteArrivalNow</span></a><span class="params">(<span name="rate">rate: <a href="../Distribution.html" class="extype" name="com.workflowfm.proter.Distribution">Distribution</a></span>, <span name="simulationGenerator">simulationGenerator: <a href="../SimulationRefGenerator.html" class="extype" name="com.workflowfm.proter.SimulationRefGenerator">SimulationRefGenerator</a></span>)</span><span class="result"> extends <a href="https://www.scala-lang.org/api/2.12.12/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="https://www.scala-lang.org/api/2.12.12/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+      </span>
+      
+      <p class="shortcomment cmt">Message to add an infinite arrival process due to start right now.</p>
+    </li><li name="com.workflowfm.proter.akka.CoordinatorActor.AddResource" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="toplevel">
       <a id="AddResourceextendsProductwithSerializable"></a><a id="AddResource:AddResource"></a>
       <span class="permalink">
       <a href="../../../../com/workflowfm/proter/akka/CoordinatorActor$$AddResource.html" title="Permalink">
@@ -651,9 +751,9 @@
               
         </dd></dl></div>
     </li><li name="com.workflowfm.proter.akka.CoordinatorActor#props" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="props(scheduler:com.workflowfm.proter.Scheduler,startingTime:Long)(implicitexecutionContext:scala.concurrent.ExecutionContext):akka.actor.Props"></a><a id="props(Scheduler,Long)(ExecutionContext):Props"></a>
+      <a id="props(scheduler:com.workflowfm.proter.schedule.Scheduler,startingTime:Long)(implicitsystem:akka.actor.ActorSystem):akka.actor.Props"></a><a id="props(Scheduler,Long)(ActorSystem):Props"></a>
       <span class="permalink">
-      <a href="../../../../com/workflowfm/proter/akka/CoordinatorActor$.html#props(scheduler:com.workflowfm.proter.Scheduler,startingTime:Long)(implicitexecutionContext:scala.concurrent.ExecutionContext):akka.actor.Props" title="Permalink">
+      <a href="../../../../com/workflowfm/proter/akka/CoordinatorActor$.html#props(scheduler:com.workflowfm.proter.schedule.Scheduler,startingTime:Long)(implicitsystem:akka.actor.ActorSystem):akka.actor.Props" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -662,11 +762,11 @@
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">props</span><span class="params">(<span name="scheduler">scheduler: <a href="../Scheduler.html" class="extype" name="com.workflowfm.proter.Scheduler">Scheduler</a></span>, <span name="startingTime">startingTime: <a href="https://www.scala-lang.org/api/2.12.12/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a> = <span class="symbol">0L</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="executionContext">executionContext: <a href="https://www.scala-lang.org/api/2.12.12/scala/concurrent/ExecutionContext.html#scala.concurrent.ExecutionContext" class="extype" name="scala.concurrent.ExecutionContext">ExecutionContext</a></span>)</span><span class="result">: <a href="https://doc.akka.io/api/akka/2.6.1/akka/actor/Props.html#akka.actor.Props" class="extype" name="akka.actor.Props">Props</a></span>
+        <span class="name">props</span><span class="params">(<span name="scheduler">scheduler: <a href="../schedule/Scheduler.html" class="extype" name="com.workflowfm.proter.schedule.Scheduler">Scheduler</a></span>, <span name="startingTime">startingTime: <a href="https://www.scala-lang.org/api/2.12.12/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a> = <span class="symbol">0L</span></span>)</span><span class="params">(<span class="implicit">implicit </span><span name="system">system: <a href="https://doc.akka.io/api/akka/2.6.1/akka/actor/ActorSystem.html#akka.actor.ActorSystem" class="extype" name="akka.actor.ActorSystem">ActorSystem</a></span>)</span><span class="result">: <a href="https://doc.akka.io/api/akka/2.6.1/akka/actor/Props.html#akka.actor.Props" class="extype" name="akka.actor.Props">Props</a></span>
       </span>
       
       <p class="shortcomment cmt">Creates properties for a <a href="../Coordinator.html" class="extype" name="com.workflowfm.proter.Coordinator">Coordinator</a> actor.</p><div class="fullcomment"><div class="comment cmt"><p>Creates properties for a <a href="../Coordinator.html" class="extype" name="com.workflowfm.proter.Coordinator">Coordinator</a> actor.
-</p></div><dl class="paramcmts block"><dt class="param">scheduler</dt><dd class="cmt"><p>The <a href="../Scheduler.html" class="extype" name="com.workflowfm.proter.Scheduler">Scheduler</a> to be used.</p></dd><dt class="param">startingTime</dt><dd class="cmt"><p>The starting time of the entire simulation.</p></dd></dl></div>
+</p></div><dl class="paramcmts block"><dt class="param">scheduler</dt><dd class="cmt"><p>The <a href="../schedule/Scheduler.html" class="extype" name="com.workflowfm.proter.schedule.Scheduler">Scheduler</a> to be used.</p></dd><dt class="param">startingTime</dt><dd class="cmt"><p>The starting time of the entire simulation.</p></dd></dl></div>
     </li><li name="scala.AnyRef#synchronized" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="synchronized[T0](x$1:=&gt;T0):T0"></a><a id="synchronized[T0](⇒T0):T0"></a>
       <span class="permalink">

@@ -248,7 +248,7 @@
         <span class="kind">case class</span>
       </span>
       <span class="symbol">
-        <span class="name">ETaskDetach</span><span class="params">(<span name="source">source: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="time">time: <a href="https://www.scala-lang.org/api/2.12.12/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>, <span name="task">task: <a href="../TaskInstance.html" class="extype" name="com.workflowfm.proter.TaskInstance">TaskInstance</a></span>, <span name="resource">resource: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="cost">cost: <a href="https://www.scala-lang.org/api/2.12.12/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>)</span><span class="result"> extends <a href="Event.html" class="extype" name="com.workflowfm.proter.events.Event">Event</a> with <a href="https://www.scala-lang.org/api/2.12.12/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="https://www.scala-lang.org/api/2.12.12/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
+        <span class="name">ETaskDetach</span><span class="params">(<span name="source">source: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="time">time: <a href="https://www.scala-lang.org/api/2.12.12/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>, <span name="task">task: <a href="../TaskInstance.html" class="extype" name="com.workflowfm.proter.TaskInstance">TaskInstance</a></span>, <span name="resource">resource: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="cost">cost: <a href="https://www.scala-lang.org/api/2.12.12/scala/Double.html#scala.Double" class="extype" name="scala.Double">Double</a></span>)</span><span class="result"> extends <a href="Event.html" class="extype" name="com.workflowfm.proter.events.Event">Event</a> with <a href="https://www.scala-lang.org/api/2.12.12/scala/Product.html#scala.Product" class="extype" name="scala.Product">Product</a> with <a href="https://www.scala-lang.org/api/2.12.12/scala/Serializable.html#scala.Serializable" class="extype" name="scala.Serializable">Serializable</a></span>
       </span>
       </h4>
 
@@ -320,9 +320,9 @@
         <div id="constructors" class="members">
               <h3>Instance Constructors</h3>
               <ol><li name="com.workflowfm.proter.events.ETaskDetach#&lt;init&gt;" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="&lt;init&gt;(source:String,time:Long,task:com.workflowfm.proter.TaskInstance,resource:String,cost:Long):com.workflowfm.proter.events.ETaskDetach"></a><a id="&lt;init&gt;:ETaskDetach"></a>
+      <a id="&lt;init&gt;(source:String,time:Long,task:com.workflowfm.proter.TaskInstance,resource:String,cost:Double):com.workflowfm.proter.events.ETaskDetach"></a><a id="&lt;init&gt;:ETaskDetach"></a>
       <span class="permalink">
-      <a href="../../../../com/workflowfm/proter/events/ETaskDetach.html#&lt;init&gt;(source:String,time:Long,task:com.workflowfm.proter.TaskInstance,resource:String,cost:Long):com.workflowfm.proter.events.ETaskDetach" title="Permalink">
+      <a href="../../../../com/workflowfm/proter/events/ETaskDetach.html#&lt;init&gt;(source:String,time:Long,task:com.workflowfm.proter.TaskInstance,resource:String,cost:Double):com.workflowfm.proter.events.ETaskDetach" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -331,7 +331,7 @@
         <span class="kind">new</span>
       </span>
       <span class="symbol">
-        <span class="name">ETaskDetach</span><span class="params">(<span name="source">source: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="time">time: <a href="https://www.scala-lang.org/api/2.12.12/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>, <span name="task">task: <a href="../TaskInstance.html" class="extype" name="com.workflowfm.proter.TaskInstance">TaskInstance</a></span>, <span name="resource">resource: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="cost">cost: <a href="https://www.scala-lang.org/api/2.12.12/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>)</span>
+        <span class="name">ETaskDetach</span><span class="params">(<span name="source">source: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="time">time: <a href="https://www.scala-lang.org/api/2.12.12/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>, <span name="task">task: <a href="../TaskInstance.html" class="extype" name="com.workflowfm.proter.TaskInstance">TaskInstance</a></span>, <span name="resource">resource: <span class="extype" name="scala.Predef.String">String</span></span>, <span name="cost">cost: <a href="https://www.scala-lang.org/api/2.12.12/scala/Double.html#scala.Double" class="extype" name="scala.Double">Double</a></span>)</span>
       </span>
       
       <p class="shortcomment cmt"></p><div class="fullcomment"><div class="comment cmt"></div><dl class="paramcmts block"><dt class="param">task</dt><dd class="cmt"><p>The <a href="../TaskInstance.html" class="extype" name="com.workflowfm.proter.TaskInstance">TaskInstance</a> that was detached.</p></dd><dt class="param">resource</dt><dd class="cmt"><p>The involved <a href="../TaskResource.html" class="extype" name="com.workflowfm.proter.TaskResource">TaskResource</a>.</p></dd><dt class="param">cost</dt><dd class="cmt"><p>The resource cost associated with this task and resource.</p></dd></dl></div>
@@ -477,9 +477,9 @@
               
         </dd></dl></div>
     </li><li name="com.workflowfm.proter.events.ETaskDetach#cost" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="cost:Long"></a>
+      <a id="cost:Double"></a>
       <span class="permalink">
-      <a href="../../../../com/workflowfm/proter/events/ETaskDetach.html#cost:Long" title="Permalink">
+      <a href="../../../../com/workflowfm/proter/events/ETaskDetach.html#cost:Double" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -488,7 +488,7 @@
         <span class="kind">val</span>
       </span>
       <span class="symbol">
-        <span class="name">cost</span><span class="result">: <a href="https://www.scala-lang.org/api/2.12.12/scala/Long.html#scala.Long" class="extype" name="scala.Long">Long</a></span>
+        <span class="name">cost</span><span class="result">: <a href="https://www.scala-lang.org/api/2.12.12/scala/Double.html#scala.Double" class="extype" name="scala.Double">Double</a></span>
       </span>
       
       
