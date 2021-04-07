@@ -1,6 +1,8 @@
-package com.workflowfm.proter
+package com.workflowfm.proter.schedule
 
 import scala.annotation.tailrec
+
+import com.workflowfm.proter.{ TaskInstance, TaskResource }
 
 /**
   * A list of time intervals during which a [[TaskResource]] is scheduled to be busy.

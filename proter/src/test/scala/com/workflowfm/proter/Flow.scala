@@ -12,6 +12,7 @@ import com.workflowfm.proter._
 import com.workflowfm.proter.events.{ PrintEventHandler, PromiseHandler }
 import com.workflowfm.proter.flows._
 import com.workflowfm.proter.metrics._
+import com.workflowfm.proter.schedule.ProterScheduler
 
 @RunWith(classOf[JUnitRunner])
 class FlowTests extends FlowsTester {

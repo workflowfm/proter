@@ -10,6 +10,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.{ Matchers, WordSpecLike }
 
 import com.workflowfm.proter.events.PrintEventHandler
+import com.workflowfm.proter.schedule.ProterScheduler
 
 class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with MockSimulations {
   implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global //system.dispatchers.lookup("akka.my-dispatcher")

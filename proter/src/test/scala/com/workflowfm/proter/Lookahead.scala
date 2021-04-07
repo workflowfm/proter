@@ -13,6 +13,7 @@ import org.scalatest.junit.JUnitRunner
 import com.workflowfm.proter.events.PromiseHandler
 import com.workflowfm.proter.flows._
 import com.workflowfm.proter.metrics._
+import com.workflowfm.proter.schedule.LookaheadScheduler
 
 @RunWith(classOf[JUnitRunner])
 class LookaheadTests extends LookaheadTester with WordSpecLike with Matchers with OptionValues {

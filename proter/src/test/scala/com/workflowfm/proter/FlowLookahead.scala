@@ -7,6 +7,7 @@ import org.scalatest._
 import org.scalatest.junit.JUnitRunner
 
 import com.workflowfm.proter.flows._
+import com.workflowfm.proter.schedule.ProterScheduler
 
 @RunWith(classOf[JUnitRunner])
 class FlowLookaheadTests extends FlowLookaheadTester {

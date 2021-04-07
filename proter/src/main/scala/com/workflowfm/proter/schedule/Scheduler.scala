@@ -1,10 +1,12 @@
-package com.workflowfm.proter
+package com.workflowfm.proter.schedule
 
 import java.util.UUID
 
 import scala.annotation.tailrec
 import scala.collection.Map
 import scala.collection.mutable.SortedSet
+
+import com.workflowfm.proter.{ TaskInstance, TaskResource, Lookahead, NoLookahead }
 
 /**
   * A scheduler selects the next [[TaskInstance]]s to be started by the [[Coordinator]] at a given time.
@@ -62,7 +64,6 @@ trait Scheduler {
     * @return A LookaheadStructure with this (ID,time) pair added to the list of completed tasks
     */
   def complete(task: TaskInstance, time: Long): Unit = Unit
-
 
   /**
     * Retrieves an iterable collection of queued [[TaskInstance]]s.
@@ -137,14 +138,13 @@ trait QueueScheduler extends Scheduler {
 
 }
 
-
 /**
   * A [[Scheduler]] trait that uses a `SortedSet`.
-  * 
+  *
   * Forms the basis for priority-based schedulers.
   */
 abstract class PriorityScheduler(implicit ordering: Ordering[TaskInstance]) extends Scheduler {
-  
+
   /**
     * A sorted queue of tasks that need to be run.
     */
@@ -180,12 +180,11 @@ abstract class PriorityScheduler(implicit ordering: Ordering[TaskInstance]) exte
 
 /**
   * A greedy [[Scheduler]].
-  * 
+  *
   * Starts all tasks whose resources are currently idle, in the given order/priority.
-  * 
+  *
   * This means a lower priority task may start now and block a higher priority
   * task which is currently blocked, but could have started soon.
-  *
   */
 trait GreedyScheduler extends Scheduler {
   import scala.collection.immutable.Queue
@@ -202,7 +201,7 @@ trait GreedyScheduler extends Scheduler {
     *
     * Goes through the priority list of tasks and returns those whose resources are
     * idle (even after starting higher priority tasks).
-    * 
+    *
     * @param idleResources The map of idle [[TaskResource]]s.
     * @param tasks The set of [[TaskInstance]]s that need to start.
     * @param result The accumulated [[TaskInstance]]s so far (for tail recursion).
@@ -225,10 +224,10 @@ trait GreedyScheduler extends Scheduler {
 
 /**
   * A strict [[Scheduler]].
-  * 
+  *
   * Starts all tasks whose resources are currently idle, in the given order/priority.
-  * 
-  * Does not consider resources of higher priority tasks. This means that idle 
+  *
+  * Does not consider resources of higher priority tasks. This means that idle
   * resources may be blocked by queued high priority tasks that cannot start yet.
   */
 trait StrictScheduler extends Scheduler {
@@ -246,7 +245,7 @@ trait StrictScheduler extends Scheduler {
     *
     * Goes through the priority list of tasks and returns those whose resources are
     * idle (even after any queued higher priority task).
-    * 
+    *
     * @param idleResources The map of idle [[TaskResource]]s.
     * @param tasks The set of [[TaskInstance]]s that need to start.
     * @param result The accumulated [[TaskInstance]]s so far (for tail recursion).
@@ -267,17 +266,16 @@ trait StrictScheduler extends Scheduler {
     }
 }
 
-
 /**
   * A greedy First-Come-First-Served [[Scheduler]].
-  * 
+  *
   * Starts all tasks whose resources are currently idle, in order of arrival in the queue.
-  * 
+  *
   * This means a task that arrived later may start now and block an earlier
   * task which is currently blocked, but could have started soon.
   *
   * Ignores creation time. Only cares about order in the queue.
-  * 
+  *
   * @param initialTasks Initial [[TaskInstance]]s in the queue, if any.
   */
 class GreedyFCFSScheduler(initialTasks: TaskInstance*) extends QueueScheduler with GreedyScheduler {
@@ -286,10 +284,10 @@ class GreedyFCFSScheduler(initialTasks: TaskInstance*) extends QueueScheduler wi
 
 /**
   * A strict First-Come-First-Served [[Scheduler]].
-  * 
+  *
   * Starts all tasks whose resources are currently idle, in order of arrival in the queue.
-  * 
-  * Considers resources of earlier tasks as busy even if they are not. This means that idle 
+  *
+  * Considers resources of earlier tasks as busy even if they are not. This means that idle
   * resources may be blocked by tasks earlier in the queue that cannot start yet.
   *
   * Ignores creation time. Only cares about order in the queue.
@@ -302,38 +300,41 @@ class StrictFCFSScheduler(initialTasks: TaskInstance*) extends QueueScheduler wi
 
 /**
   * A greedy priority [[Scheduler]].
-  * 
+  *
   * Starts all tasks whose resources are currently idle, in order of priority.
-  * 
+  *
   * This means a lower priority task may start now and block a higher priority
   * task which is currently blocked, but could have started soon.
   *
   * @param initialTasks Initial [[TaskInstance]]s in the queue, if any.
   */
-class GreedyPriorityScheduler(initialTasks: TaskInstance*) extends PriorityScheduler with GreedyScheduler {
+class GreedyPriorityScheduler(initialTasks: TaskInstance*)
+    extends PriorityScheduler
+    with GreedyScheduler {
   tasks ++= initialTasks
 }
 
 /**
   * A strict priority [[Scheduler]].
-  * 
+  *
   * Starts all tasks whose resources are currently idle, in order of priority.
-  * 
-  * Considers resources of higher priority tasks as busy even if they are not. This means that idle 
+  *
+  * Considers resources of higher priority tasks as busy even if they are not. This means that idle
   * resources may be blocked by queued high priority tasks that cannot start yet.
   *
   * @param initialTasks Initial [[TaskInstance]]s in the queue, if any.
   */
-class StrictPriorityScheduler(initialTasks: TaskInstance*) extends PriorityScheduler with StrictScheduler {
+class StrictPriorityScheduler(initialTasks: TaskInstance*)
+    extends PriorityScheduler
+    with StrictScheduler {
   tasks ++= initialTasks
 }
-
 
 /**
   * The default priority based [[Scheduler]].
   *
   * Relies on the use of [[Schedule]]s for each [[TaskResource]].
-  * 
+  *
   * Avoids scheduling lower priority tasks that might cause delays/waiting times to
   * higher priority ones.
   *

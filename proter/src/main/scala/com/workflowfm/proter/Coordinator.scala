@@ -8,6 +8,7 @@ import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.util.{ Try, Success, Failure }
 
 import com.workflowfm.proter.events._
+import com.workflowfm.proter.schedule.Scheduler
 
 /**
   * Abstract simulation manager.
