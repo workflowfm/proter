@@ -170,6 +170,53 @@ class GreedyScheduler(initialTasks: TaskInstance*) extends SortedSetScheduler {
     }
 }
 
+/**
+  * A strict priority [[Scheduler]].
+  * 
+  * Starts all tasks whose resources are currently idle, in order of priority.
+  * 
+  * Does not consider resources of higher priority tasks. This means that idle 
+  * resources may be blocked by queued high priority tasks that cannot start yet.
+  *
+  * @param initialTasks
+  */
+class StrictScheduler(initialTasks: TaskInstance*) extends SortedSetScheduler {
+  import scala.collection.immutable.Queue
+
+  tasks ++= initialTasks
+
+  override def getNextTasks(
+      currentTime: Long,
+      resourceMap: Map[String, TaskResource]
+  ): Seq[TaskInstance] = {
+    findNextTasks(resourceMap.filter(_._2.isIdle), tasks, Queue())
+  }
+
+  /**
+    * Finds the [[Task]]s that can be started now.
+    *
+    * Goes through the priority list of tasks and returns those whose resources are
+    * idle (even after any queued higher priority task).
+    * 
+    * @param idleResources The map of idle [[TaskResource]]s.
+    * @param tasks The set of [[TaskInstance]]s that need to start.
+    * @param result The accumulated [[TaskInstance]]s so far (for tail recursion).
+    * @return The sequence of [[TaskInstance]]s to start now.
+    */
+  @tailrec
+  final protected def findNextTasks(
+      idleResources: Map[String, TaskResource],
+      tasks: SortedSet[TaskInstance],
+      result: Queue[TaskInstance]
+  ): Seq[TaskInstance] =
+    if (tasks.isEmpty) result
+    else {
+      val t = tasks.head
+      if (t.resources.forall(idleResources.contains))
+        findNextTasks(idleResources -- t.resources, tasks.tail, result :+ t)
+      else findNextTasks(idleResources -- t.resources, tasks.tail, result)
+    }
+}
 
 
 /**
