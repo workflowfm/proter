@@ -851,12 +851,12 @@ trait MockSimulations { self: MockFactory =>
 
     // T1 0..3 - to be aborted at 2
     val id1 = UUID.randomUUID()
-    val tg1 = Task("T1", 3) withID id1 withResources (resource map (_.name) toSeq)
+    val tg1 = Task("T1", 3) withID id1 withResources (resource map (_.name) toSeq) withPriority (Task.Medium)
     //val expected1 = tg1.create(name, 0)
 
     // T2 0..2
     val id2 = UUID.randomUUID()
-    val tg2 = Task("T2", 2) withID id2
+    val tg2 = Task("T2", 2) withID id2 withPriority (Task.Medium)
     val expected2 = tg2.create(name, 0)
 
     // T3 0..5
@@ -885,8 +885,9 @@ trait MockSimulations { self: MockFactory =>
       } once ()
 
       sim.completed _ expects (
-        where { (time, tasks) =>
+        where { (time, tasks) => {
           tasks.size == 1 && containsTask(tasks, expected3) && time == expectedTime
+        }
         }
       ) onCall (_ => coordinator.simResponse(SimDone(name, Success(Unit)))) once ()
 

@@ -307,7 +307,7 @@ class SingleTaskSimulation(
     duration: Distribution,
     cost: Distribution = Constant(0),
     interrupt: Int = (-1),
-    priority: Task.Priority = Task.Medium
+    priority: Int = 0
 ) extends Simulation {
 
   lazy val theTask: Task = Task(s"${name}Task", duration)

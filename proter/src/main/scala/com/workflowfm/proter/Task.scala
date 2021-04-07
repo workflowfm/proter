@@ -36,7 +36,7 @@ class TaskInstance(
     val estimatedDuration: Long,
     val cost: Double,
     val interrupt: Int = Int.MaxValue,
-    val priority: Task.Priority = Task.Medium
+    val priority: Int = 0
 ) extends Ordered[TaskInstance] {
 
   /**
@@ -81,7 +81,7 @@ class TaskInstance(
     * Uses the following criteria, in order:
     *
     *   1. '''Priority''': Putting this parameter first makes it a very strong influencer of priority.
-    *   A task with higher explicit Priority will always be executed before any other task with lower
+    *   A task with higher explicit priority will always be executed before any other task with lower
     *   priority, even if, for example, the latter has been queueing for a long time.
     *   1. '''Age''': Tasks who were created earlier take priority, in an attempt to minimize waiting times.
     *   1. '''Resources''': Tasks that involve a higher number of resources take priority.
@@ -150,7 +150,7 @@ case class Task(
     minStartTime: Long = 0L,
     resources: Seq[String] = Seq(),
     interrupt: Int = (-1),
-    priority: Task.Priority = Task.Medium,
+    priority: Int = 0,
     createTime: Long = (-1)
 ) {
 
@@ -202,7 +202,7 @@ case class Task(
     * @param p The new priority.
     * @return An updated [[Task]].
     */
-  def withPriority(p: Task.Priority): Task = copy(priority = p)
+  def withPriority(p: Int): Task = copy(priority = p)
 
   /**
     * Update the interrupt to use.
@@ -318,28 +318,9 @@ object Task {
   ): Task =
     Task(name, Some(id), Constant(duration))
 
-  /**
-    * Explicit task priority values.
-    * Uses integers for ordering priorities.
-    *
-    * 5 priority levels are provided: [[VeryLow]], [[Low]], [[Medium]], [[High]], and [[Highest]].
-    */
-  sealed trait Priority extends Ordered[Priority] {
-    /**
-      * The integer value of the priority.
-      */
-    def value: Int
-    /**
-      * Compares priorities based on their integer value.
-      *
-      * @param that Priority to compare to.
-      * @return The relative comparison value.
-      */
-    def compare(that: Priority): Int = this.value - that.value
-  }
-  case object Highest extends Priority { val value = 5 }
-  case object High extends Priority { val value = 4 }
-  case object Medium extends Priority { val value = 3 }
-  case object Low extends Priority { val value = 2 }
-  case object VeryLow extends Priority { val value = 1 }
+  val Highest: Int = 5
+  val High: Int = 4
+  val Medium: Int = 3
+  val Low: Int = 2
+  val VeryLow: Int = 1
 }

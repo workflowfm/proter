@@ -56,7 +56,7 @@ class SingleTaskSimulationGenerator(
     duration: Distribution,
     cost: Distribution = Constant(0L),
     interrupt: Int = (-1),
-    priority: Task.Priority = Task.Medium
+    priority: Int = 0
 ) extends SimulationGenerator {
 
   /**

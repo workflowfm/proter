@@ -75,7 +75,7 @@ class TaskTester extends WordSpecLike with Matchers {
   def t(
       id: Long,
       resources: Seq[String],
-      priority: Task.Priority = Task.Medium,
+      priority: Int = Task.Medium,
       created: Long = 0L,
       duration: Long = 1L,
       interrupt: Int = 0,
