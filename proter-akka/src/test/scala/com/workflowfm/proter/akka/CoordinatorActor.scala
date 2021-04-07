@@ -32,7 +32,7 @@ class CoordinatorActorTests
   "The Coordinator Actor" must {
 
     "interact correctly with a simulation with no tasks" in {
-      val coordinator = AkkaManager.build(new DefaultScheduler())
+      val coordinator = AkkaManager.build(new ProterScheduler())
 
       val probe = TestProbe()
       val sim = new AkkaSimulationRef("sim", probe.ref)
@@ -45,7 +45,7 @@ class CoordinatorActorTests
     }
 
     "interact correctly with a simulation with just a ping" in {
-      val coordinator = AkkaManager.build(new DefaultScheduler())
+      val coordinator = AkkaManager.build(new ProterScheduler())
 
       val probe = TestProbe()
       val sim = new AkkaSimulationRef("sim", probe.ref)
@@ -61,7 +61,7 @@ class CoordinatorActorTests
     }
 
     "interact correctly with a simulation with one task" in {
-      val coordinator = AkkaManager.build(new DefaultScheduler())
+      val coordinator = AkkaManager.build(new ProterScheduler())
 
       val probe = TestProbe()
       val sim = new AkkaSimulationRef("sim", probe.ref)
@@ -85,7 +85,7 @@ class CoordinatorActorTests
     }
 
     "interact correctly with a simulation with two tasks in sequence" in {
-      val coordinator = AkkaManager.build(new DefaultScheduler())
+      val coordinator = AkkaManager.build(new ProterScheduler())
 
       val probe = TestProbe()
       val sim = new AkkaSimulationRef("sim", probe.ref)
@@ -114,7 +114,7 @@ class CoordinatorActorTests
     }
 
     "interact correctly with two single-task simulations in parallel" in {
-      val coordinator = AkkaManager.build(new DefaultScheduler())
+      val coordinator = AkkaManager.build(new ProterScheduler())
 
       val probe1 = TestProbe()
       val sim1 = new AkkaSimulationRef("sim1", probe1.ref)
@@ -160,7 +160,7 @@ class CoordinatorActorTests
     }
 
     "interact correctly with two two-task simulations in parallel" in {
-      val coordinator = AkkaManager.build(new DefaultScheduler())
+      val coordinator = AkkaManager.build(new ProterScheduler())
 
       val probe1 = TestProbe()
       val sim1 = new AkkaSimulationRef("sim1", probe1.ref)
@@ -232,7 +232,7 @@ class CoordinatorActorTests
     }
 
     "interact correctly with a simulation reacting to another" in {
-      val coordinator = AkkaManager.build(new DefaultScheduler())
+      val coordinator = AkkaManager.build(new ProterScheduler())
 
       val probe1 = TestProbe()
       val sim1 = new AkkaSimulationRef("sim1", probe1.ref)
@@ -300,7 +300,7 @@ class CoordinatorActorTests
     }
 
     "interact correctly with a simulation aborting a task without resources" in {
-      val coordinator = AkkaManager.build(new DefaultScheduler())
+      val coordinator = AkkaManager.build(new ProterScheduler())
 
       val probe1 = TestProbe()
       val sim1 = new AkkaSimulationRef("sim1", probe1.ref)
@@ -339,7 +339,7 @@ class CoordinatorActorTests
     }
 
     "interact correctly with a simulation aborting a task with resources" in {
-      val coordinator = AkkaManager.build(new DefaultScheduler())
+      val coordinator = AkkaManager.build(new ProterScheduler())
 
       val probe1 = TestProbe()
       val sim1 = new AkkaSimulationRef("sim1", probe1.ref)
@@ -381,7 +381,7 @@ class CoordinatorActorTests
     }
 
     "abort 2 simulations when the time limit is hit" in {
-      val coordinator = AkkaManager.build(new DefaultScheduler())
+      val coordinator = AkkaManager.build(new ProterScheduler())
 
       val probe1 = TestProbe()
       val sim1 = new AkkaSimulationRef("sim1", probe1.ref)

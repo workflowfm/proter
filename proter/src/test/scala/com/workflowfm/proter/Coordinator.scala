@@ -17,7 +17,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
   "The Coordinator" must {
 
     "interact correctly with a simulation with no tasks" in {
-      val coordinator = new Coordinator(new DefaultScheduler())
+      val coordinator = new Coordinator(new ProterScheduler())
       val sim: Simulation = mock[Simulation]
 
       sim.name _ expects () returning "sim" anyNumberOfTimes ()
@@ -29,7 +29,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with a simulation with just one task" in {
-      val coordinator = new Coordinator(new DefaultScheduler())
+      val coordinator = new Coordinator(new ProterScheduler())
       val sim: Simulation = mockSingleTask("sim", coordinator, 1L, 2L, 3L)
 
       coordinator.addSimulation(1L, sim)
@@ -37,7 +37,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with a simulation with just two tasks in sequence" in {
-      val coordinator = new Coordinator(new DefaultScheduler())
+      val coordinator = new Coordinator(new ProterScheduler())
       val sim: Simulation = mockTwoTasks("sim", coordinator, 0L, 2L, 2L, 3L, 5L)
 
       coordinator.addSimulation(0L, sim)
@@ -45,7 +45,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with a simulation with ten tasks in sequence" in {
-      val coordinator = new Coordinator(new DefaultScheduler())
+      val coordinator = new Coordinator(new ProterScheduler())
       val sim: Simulation = mockRepeater("sim", coordinator, 0L, 2L, 10)
 
       coordinator.addSimulation(0L, sim)
@@ -53,7 +53,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with a simulation with two tasks in parallel, then one more" in {
-      val coordinator = new Coordinator(new DefaultScheduler())
+      val coordinator = new Coordinator(new ProterScheduler())
       val sim: Simulation = mockTwoPlusOneTasks("sim", coordinator, 0L, 2L, 2L, 2L, 2L, 3L, 5L)
 
       coordinator.addSimulation(0L, sim)
@@ -61,7 +61,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with two interleaved single-task simulations" in {
-      val coordinator = new Coordinator(new DefaultScheduler())
+      val coordinator = new Coordinator(new ProterScheduler())
       val sim1: Simulation = mockSingleTask("sim1", coordinator, 0L, 2L, 2L)
       val sim2: Simulation = mockSingleTask("sim2", coordinator, 1L, 1L, 2L)
 
@@ -71,7 +71,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with two parallel single-task simulations, a short within a long one" in {
-      val coordinator = new Coordinator(new DefaultScheduler())
+      val coordinator = new Coordinator(new ProterScheduler())
       val sim1: Simulation = mockSingleTask("sim1", coordinator, 0L, 10L, 10L)
       val sim2: Simulation = mockSingleTask("sim2", coordinator, 1L, 1L, 2L)
 
@@ -81,7 +81,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with two 2plus1 simulations" in {
-      val coordinator = new Coordinator(new DefaultScheduler())
+      val coordinator = new Coordinator(new ProterScheduler())
 
       val sim1: Simulation = mockTwoPlusOneTasks("sim1", coordinator, 0L, 2L, 2L, 2L, 2L, 3L, 5L)
       val sim2: Simulation = mockTwoPlusOneTasks("sim2", coordinator, 1L, 1L, 2L, 1L, 2L, 3L, 5L)
@@ -92,7 +92,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with 100 2plus1 simulations" in {
-      val coordinator = new Coordinator(new DefaultScheduler())
+      val coordinator = new Coordinator(new ProterScheduler())
 
 //      val handler = new com.workflowfm.proter.events.PrintEventHandler
 //      coordinator.subscribe(handler)
@@ -116,7 +116,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with 100x10 task simulations" in {
-      val coordinator = new Coordinator(new DefaultScheduler())
+      val coordinator = new Coordinator(new ProterScheduler())
 
 //      val handler = new com.workflowfm.proter.events.PrintEventHandler
 //      coordinator.subscribe(handler)
@@ -136,7 +136,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with a simulation reacting to another" in {
-      val coordinator = new Coordinator(new DefaultScheduler())
+      val coordinator = new Coordinator(new ProterScheduler())
 
       val sim1: Simulation = mock[Simulation]
       sim1.name _ expects () returning "sim1" anyNumberOfTimes ()
@@ -206,7 +206,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with a simulation aborting a task without resources" in {
-      val coordinator = new Coordinator(new DefaultScheduler())
+      val coordinator = new Coordinator(new ProterScheduler())
 
       val sim: Simulation = mockAbort("sim", coordinator, None)
 
@@ -216,7 +216,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with a simulation aborting a task with resources" in {
-      val coordinator = new Coordinator(new DefaultScheduler())
+      val coordinator = new Coordinator(new ProterScheduler())
 
       val res = new TaskResource("R", 0)
       coordinator.addResource(res)
@@ -229,7 +229,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "abort 2 simulations when the time limit is hit" in {
-      val coordinator = new Coordinator(new DefaultScheduler())
+      val coordinator = new Coordinator(new ProterScheduler())
 
       val sim1: Simulation = mockSingleTask("sim1", coordinator, 0L, 3L, 3L)
       val sim2: Simulation = mockAborted("sim2", coordinator, 10L)
@@ -249,7 +249,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "correctly work with a simulation starting at the time limit" in {
-      val coordinator = new Coordinator(new DefaultScheduler())
+      val coordinator = new Coordinator(new ProterScheduler())
 
       val sim1: Simulation = mockSingleTask("sim1", coordinator, 0L, 3L, 3L)
       val sim2: Simulation = mockAborted("sim2", coordinator, 10L)
@@ -267,7 +267,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with a simulation generator" in {
-      val coordinator = new Coordinator(new DefaultScheduler())
+      val coordinator = new Coordinator(new ProterScheduler())
       val gen: SimulationGenerator = mockSingleTaskGenerator("sim", 0L, 3L, 2L, 5)
 
       coordinator.addArrivalNow(5, Constant(3), gen)
@@ -277,7 +277,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with two simulation generators" in {
-      val coordinator = new Coordinator(new DefaultScheduler())
+      val coordinator = new Coordinator(new ProterScheduler())
       val gen1: SimulationGenerator = mockSingleTaskGenerator("sim1", 0L, 3L, 2L, 5)
       val gen2: SimulationGenerator = mockSingleTaskGenerator("sim2", 1L, 3L, 2L, 4)
 
@@ -289,7 +289,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with two simulation generators using addArrivalNext" in {
-      val coordinator = new Coordinator(new DefaultScheduler())
+      val coordinator = new Coordinator(new ProterScheduler())
       val gen1: SimulationGenerator = mockSingleTaskGenerator("sim1", 3L, 3L, 2L, 4)
       val gen2: SimulationGenerator = mockSingleTaskGenerator("sim2", 2L, 2L, 2L, 3)
 
@@ -301,7 +301,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with an infinite simulation generator" in {
-      val coordinator = new Coordinator(new DefaultScheduler())
+      val coordinator = new Coordinator(new ProterScheduler())
       val gen: SimulationGenerator = mockSingleTaskGenerator("sim", 0L, 3L, 1L, 5)
 
       coordinator.addInfiniteArrivalNow(Constant(3), gen)
@@ -312,7 +312,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with two infinite simulation generators" in {
-      val coordinator = new Coordinator(new DefaultScheduler())
+      val coordinator = new Coordinator(new ProterScheduler())
       val gen1: SimulationGenerator = mockSingleTaskGenerator("sim1", 0L, 3L, 1L, 5)
       val gen2: SimulationGenerator = mockSingleTaskGenerator("sim2", 3L, 4L, 1L, 3)
 
@@ -328,7 +328,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
   "The single-threaded Coordinator" must {
 
     "interact correctly with a simulation with no tasks" in {
-      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val coordinator = new Coordinator(new ProterScheduler(), true)
       val sim: Simulation = mock[Simulation]
 
       sim.name _ expects () returning "sim" anyNumberOfTimes ()
@@ -340,7 +340,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with a simulation with just one task" in {
-      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val coordinator = new Coordinator(new ProterScheduler(), true)
       val sim: Simulation = mockSingleTask("sim", coordinator, 1L, 2L, 3L)
 
       coordinator.addSimulation(1L, sim)
@@ -348,7 +348,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with a simulation with just two tasks in sequence" in {
-      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val coordinator = new Coordinator(new ProterScheduler(), true)
       val sim: Simulation = mockTwoTasks("sim", coordinator, 0L, 2L, 2L, 3L, 5L)
 
       coordinator.addSimulation(0L, sim)
@@ -356,7 +356,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with a simulation with ten tasks in sequence" in {
-      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val coordinator = new Coordinator(new ProterScheduler(), true)
       val sim: Simulation = mockRepeater("sim", coordinator, 0L, 2L, 10)
 
       coordinator.addSimulation(0L, sim)
@@ -364,7 +364,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with a simulation with two tasks in parallel, then one more" in {
-      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val coordinator = new Coordinator(new ProterScheduler(), true)
       val sim: Simulation = mockTwoPlusOneTasks("sim", coordinator, 0L, 2L, 2L, 2L, 2L, 3L, 5L)
 
       coordinator.addSimulation(0L, sim)
@@ -372,7 +372,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with two interleaved single-task simulations" in {
-      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val coordinator = new Coordinator(new ProterScheduler(), true)
       val sim1: Simulation = mockSingleTask("sim1", coordinator, 0L, 2L, 2L)
       val sim2: Simulation = mockSingleTask("sim2", coordinator, 1L, 1L, 2L)
 
@@ -382,7 +382,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with two parallel single-task simulations, a short within a long one" in {
-      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val coordinator = new Coordinator(new ProterScheduler(), true)
       val sim1: Simulation = mockSingleTask("sim1", coordinator, 0L, 10L, 10L)
       val sim2: Simulation = mockSingleTask("sim2", coordinator, 1L, 1L, 2L)
 
@@ -392,7 +392,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with two 2plus1 simulations" in {
-      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val coordinator = new Coordinator(new ProterScheduler(), true)
 
       val sim1: Simulation = mockTwoPlusOneTasks("sim1", coordinator, 0L, 2L, 2L, 2L, 2L, 3L, 5L)
       val sim2: Simulation = mockTwoPlusOneTasks("sim2", coordinator, 1L, 1L, 2L, 1L, 2L, 3L, 5L)
@@ -403,7 +403,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with 100 2plus1 simulations" in {
-      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val coordinator = new Coordinator(new ProterScheduler(), true)
 
 //      val handler = new com.workflowfm.proter.events.PrintEventHandler
 //      coordinator.subscribe(handler)
@@ -427,7 +427,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with 100x10 task simulations" in {
-      val coordinator = new Coordinator(new DefaultScheduler())
+      val coordinator = new Coordinator(new ProterScheduler())
 
 //      val handler = new com.workflowfm.proter.events.PrintEventHandler
 //      coordinator.subscribe(handler)
@@ -447,7 +447,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with a simulation reacting to another" in {
-      val coordinator = new Coordinator(new DefaultScheduler())
+      val coordinator = new Coordinator(new ProterScheduler())
 
       val sim1: Simulation = mock[Simulation]
       sim1.name _ expects () returning "sim1" anyNumberOfTimes ()
@@ -517,7 +517,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with a simulation aborting a task without resources" in {
-      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val coordinator = new Coordinator(new ProterScheduler(), true)
 
       val sim: Simulation = mockAbort("sim", coordinator, None)
 
@@ -527,7 +527,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with a simulation aborting a task with resources" in {
-      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val coordinator = new Coordinator(new ProterScheduler(), true)
 
       val res = new TaskResource("R", 0)
       coordinator.addResource(res)
@@ -540,7 +540,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "abort 2 simulations when the time limit is hit" in {
-      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val coordinator = new Coordinator(new ProterScheduler(), true)
 
       val sim1: Simulation = mockSingleTask("sim1", coordinator, 0L, 3L, 3L)
       val sim2: Simulation = mockAborted("sim2", coordinator, 10L)
@@ -560,7 +560,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "correctly work with a simulation starting at the time limit" in {
-      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val coordinator = new Coordinator(new ProterScheduler(), true)
 
       val sim1: Simulation = mockSingleTask("sim1", coordinator, 0L, 3L, 3L)
       val sim2: Simulation = mockAborted("sim2", coordinator, 10L)
@@ -578,7 +578,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with a simulation generator" in {
-      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val coordinator = new Coordinator(new ProterScheduler(), true)
       val gen: SimulationGenerator = mockSingleTaskGenerator("sim", 0L, 3L, 2L, 5)
 
       coordinator.addArrivalNow(5, Constant(3), gen)
@@ -588,7 +588,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with two simulation generators" in {
-      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val coordinator = new Coordinator(new ProterScheduler(), true)
       val gen1: SimulationGenerator = mockSingleTaskGenerator("sim1", 0L, 3L, 2L, 5)
       val gen2: SimulationGenerator = mockSingleTaskGenerator("sim2", 1L, 3L, 2L, 4)
 
@@ -600,7 +600,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with two simulation generators using addArrivalNext" in {
-      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val coordinator = new Coordinator(new ProterScheduler(), true)
       val gen1: SimulationGenerator = mockSingleTaskGenerator("sim1", 3L, 3L, 2L, 4)
       val gen2: SimulationGenerator = mockSingleTaskGenerator("sim2", 2L, 2L, 2L, 3)
 
@@ -612,7 +612,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with an infinite simulation generator" in {
-      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val coordinator = new Coordinator(new ProterScheduler(), true)
       val gen: SimulationGenerator = mockSingleTaskGenerator("sim", 0L, 3L, 1L, 5)
 
       coordinator.addInfiniteArrivalNow(Constant(3), gen)
@@ -623,7 +623,7 @@ class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with 
     }
 
     "interact correctly with two infinite simulation generators" in {
-      val coordinator = new Coordinator(new DefaultScheduler(), true)
+      val coordinator = new Coordinator(new ProterScheduler(), true)
       val gen1: SimulationGenerator = mockSingleTaskGenerator("sim1", 0L, 3L, 1L, 5)
       val gen2: SimulationGenerator = mockSingleTaskGenerator("sim2", 3L, 4L, 1L, 3)
 

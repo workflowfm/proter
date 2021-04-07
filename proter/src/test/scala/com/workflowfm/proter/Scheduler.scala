@@ -98,7 +98,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
     }
   }
 
-  "The DefaultScheduler" must {
+  "ProterScheduler" must {
 
     "select a single task" in {
       val m = new TestResourceMap("A")
@@ -130,7 +130,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
 
     "not block higher priority tasks" in {
       val m = new TestResourceMap("A", "B") + ("B", 1L)
-      /* DefaultScheduler.nextEstimatedTaskStart(t(1L,Seq("A","B"),Task.Highest), 0L, m.m,Seq(
+      /* ProterScheduler.nextEstimatedTaskStart(t(1L,Seq("A","B"),Task.Highest), 0L, m.m,Seq(
        * t(1L,Seq("A","B"),Task.Highest),t(2L,Seq("A"),Task.VeryLow,0L,100L))) should be (1L) */
       m.s(t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("A"), Task.VeryLow, 0L, 100L)) should be(
         Nil
@@ -271,9 +271,9 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       this
     }
 
-    // test DefaultScheduler
+    // test ProterScheduler
     def s(tasks: TaskInstance*): Seq[Long] =
-      new DefaultScheduler(tasks: _*).getNextTasks(0L, m) map (_.id
+      new ProterScheduler(tasks: _*).getNextTasks(0L, m) map (_.id
             .getMostSignificantBits())
 
     // test LookaheadScheduler

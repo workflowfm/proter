@@ -30,7 +30,7 @@ class MockSimulationActorTests
   "The simulation actors" must {
 
     "interact correctly with no tasks" in {
-      val coordinator = AkkaManager.build(new DefaultScheduler())
+      val coordinator = AkkaManager.build(new ProterScheduler())
       val sim: Simulation = mock[Simulation]
 
       sim.name _ expects () returning "sim" anyNumberOfTimes ()
@@ -43,7 +43,7 @@ class MockSimulationActorTests
     }
 
     "interact correctly with just one task" in {
-      val coordinator = AkkaManager.build(new DefaultScheduler())
+      val coordinator = AkkaManager.build(new ProterScheduler())
       val sim: Simulation = mockSingleTask("sim", coordinator, 1L, 2L, 3L)
 
       val simRef = AkkaSimulationRef.of(sim)
@@ -52,7 +52,7 @@ class MockSimulationActorTests
     }
 
     "interact correctly with just two tasks in sequence" in {
-      val coordinator = AkkaManager.build(new DefaultScheduler())
+      val coordinator = AkkaManager.build(new ProterScheduler())
       val sim: Simulation = mockTwoTasks("sim", coordinator, 0L, 2L, 2L, 3L, 5L)
 
       val simRef = AkkaSimulationRef.of(sim)
@@ -61,7 +61,7 @@ class MockSimulationActorTests
     }
 
     "interact correctly with ten tasks in sequence" in {
-      val coordinator = AkkaManager.build(new DefaultScheduler())
+      val coordinator = AkkaManager.build(new ProterScheduler())
       val sim: Simulation = mockRepeater("sim", coordinator, 0L, 2L, 10)
 
       val simRef = AkkaSimulationRef.of(sim)
@@ -70,7 +70,7 @@ class MockSimulationActorTests
     }
 
     "interact correctly with a simulation with two tasks in parallel, then one more" in {
-      val coordinator = AkkaManager.build(new DefaultScheduler())
+      val coordinator = AkkaManager.build(new ProterScheduler())
       val sim: Simulation = mockTwoPlusOneTasks("sim", coordinator, 0L, 2L, 2L, 2L, 2L, 3L, 5L)
 
       val simRef = AkkaSimulationRef.of(sim)
@@ -79,7 +79,7 @@ class MockSimulationActorTests
     }
 
     "interact correctly with two interleaved single-task simulations" in {
-      val coordinator = AkkaManager.build(new DefaultScheduler())
+      val coordinator = AkkaManager.build(new ProterScheduler())
       val sim1: Simulation = mockSingleTask("sim1", coordinator, 0L, 2L, 2L)
       val sim2: Simulation = mockSingleTask("sim2", coordinator, 1L, 1L, 2L)
 
@@ -91,7 +91,7 @@ class MockSimulationActorTests
     }
 
     "interact correctly with two parallel single-task simulations, a short within a long one" in {
-      val coordinator = AkkaManager.build(new DefaultScheduler())
+      val coordinator = AkkaManager.build(new ProterScheduler())
       val sim1: Simulation = mockSingleTask("sim1", coordinator, 0L, 10L, 10L)
       val sim2: Simulation = mockSingleTask("sim2", coordinator, 1L, 1L, 2L)
 
@@ -103,7 +103,7 @@ class MockSimulationActorTests
     }
 
     "interact correctly with two 2plus1 simulations" in {
-      val coordinator = AkkaManager.build(new DefaultScheduler())
+      val coordinator = AkkaManager.build(new ProterScheduler())
 
       val sim1: Simulation = mockTwoPlusOneTasks("sim1", coordinator, 0L, 2L, 2L, 2L, 2L, 3L, 5L)
       val sim2: Simulation = mockTwoPlusOneTasks("sim2", coordinator, 1L, 1L, 2L, 1L, 2L, 3L, 5L)
@@ -116,7 +116,7 @@ class MockSimulationActorTests
     }
 
     "interact correctly with 100 2plus1 simulations" in {
-      val coordinator = AkkaManager.build(new DefaultScheduler())
+      val coordinator = AkkaManager.build(new ProterScheduler())
 
 //      val handler = new com.workflowfm.proter.events.PrintEventHandler
 //      coordinator.subscribe(handler)
@@ -141,7 +141,7 @@ class MockSimulationActorTests
     }
 
     "interact correctly with 100x10 task simulations" in {
-      val coordinator = AkkaManager.build(new DefaultScheduler())
+      val coordinator = AkkaManager.build(new ProterScheduler())
 
 //      val handler = new com.workflowfm.proter.events.PrintEventHandler
 //      coordinator.subscribe(handler)
@@ -162,7 +162,7 @@ class MockSimulationActorTests
     }
 
     "interact correctly with a simulation reacting to another" in {
-      val coordinator = AkkaManager.build(new DefaultScheduler())
+      val coordinator = AkkaManager.build(new ProterScheduler())
 
       val sim1: Simulation = mock[Simulation]
       sim1.name _ expects () returning "sim1" anyNumberOfTimes ()
@@ -234,7 +234,7 @@ class MockSimulationActorTests
     }
 
     "interact correctly with a simulation aborting a task without resources" in {
-      val coordinator = AkkaManager.build(new DefaultScheduler())
+      val coordinator = AkkaManager.build(new ProterScheduler())
 
       val sim: Simulation = mockAbort("sim", coordinator, None)
 
@@ -245,7 +245,7 @@ class MockSimulationActorTests
     }
 
     "interact correctly with a simulation aborting a task with resources" in {
-      val coordinator = AkkaManager.build(new DefaultScheduler())
+      val coordinator = AkkaManager.build(new ProterScheduler())
 
       val res = new TaskResource("R", 0)
       coordinator.addResource(res)
@@ -259,7 +259,7 @@ class MockSimulationActorTests
     }
 
     "abort 2 simulations when the time limit is hit" in {
-      val coordinator = AkkaManager.build(new DefaultScheduler())
+      val coordinator = AkkaManager.build(new ProterScheduler())
 
       val sim1: Simulation = mockSingleTask("sim1", coordinator, 0L, 3L, 3L)
       val sim2: Simulation = mockAborted("sim2", coordinator, 10L)

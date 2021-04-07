@@ -303,7 +303,7 @@ class FlowTests extends FlowsTester {
     }
 
     "execute two simulations which use different tasks" in {
-      val coordinator = new Coordinator(new DefaultScheduler())
+      val coordinator = new Coordinator(new ProterScheduler())
 
       val smh = new PromiseHandler(new SimMetricsHandler)
       coordinator.subscribe(smh)
@@ -341,7 +341,7 @@ class FlowTests extends FlowsTester {
     }
 
     "execute two simulations which use the same tasks" in {
-      val coordinator = new Coordinator(new DefaultScheduler())
+      val coordinator = new Coordinator(new ProterScheduler())
 
       val smh = new PromiseHandler(new SimMetricsHandler)
       coordinator.subscribe(smh)
@@ -385,7 +385,7 @@ class FlowsTester extends WordSpecLike with Matchers with OptionValues {
       simName: String = "sim1"
   ): Map[String, Option[Long]] = {
 
-    val coordinator = new Coordinator(new DefaultScheduler())
+    val coordinator = new Coordinator(new ProterScheduler())
 
     val smh = new PromiseHandler(new SimMetricsHandler)
     coordinator.subscribe(smh)

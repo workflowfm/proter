@@ -90,7 +90,7 @@ class FlowLookaheadTester extends WordSpecLike with Matchers with OptionValues {
 }
 
 class FlowLookaheadTest
-    extends FlowLookahead("testFlow", new Coordinator(new DefaultScheduler), new NoTask()) {
+    extends FlowLookahead("testFlow", new Coordinator(new ProterScheduler), new NoTask()) {
 
   override def parseFlow(
       flow: Flow,

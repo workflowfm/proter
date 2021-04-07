@@ -129,7 +129,7 @@ trait SortedSetScheduler extends Scheduler {
   *
   * @param initialTasks Initial [[TaskInstance]]s in the queue, if any.
   */
-class DefaultScheduler(initialTasks: TaskInstance*) extends SortedSetScheduler {
+class ProterScheduler(initialTasks: TaskInstance*) extends SortedSetScheduler {
   import scala.collection.immutable.Queue
 
   tasks ++= initialTasks
