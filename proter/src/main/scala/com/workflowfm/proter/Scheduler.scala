@@ -63,6 +63,14 @@ trait Scheduler {
     */
   def complete(task: TaskInstance, time: Long): Unit = Unit
 
+
+  /**
+    * Retrieves an iterable collection of queued [[TaskInstance]]s.
+    *
+    * @return The [[TaskInstance]]s in the scheduling queue.
+    */
+  def getTasks(): Iterable[TaskInstance]
+
   /**
     * Adds a [[TaskInstance]] to be scheduled.
     *
@@ -93,11 +101,59 @@ trait Scheduler {
 
 }
 
-trait SortedSetScheduler extends Scheduler {
+trait QueueScheduler extends Scheduler {
+  import scala.collection.mutable.Queue
+
+  /**
+    * A queue of tasks that need to be run.
+    */
+  val tasks: Queue[TaskInstance] = Queue()
+
+  /**
+    * @inheritdoc
+    */
+  override def getTasks(): Iterable[TaskInstance] = tasks
+
+  /**
+    * @inheritdoc
+    */
+  override def addTask(task: TaskInstance): Unit = tasks += task
+
+  /**
+    * @inheritdoc
+    */
+  override def removeTask(task: TaskInstance): Unit = tasks.dequeueFirst(_.id.equals(task.id))
+
+  /**
+    * @inheritdoc
+    */
+  override def removeSimulation(simulation: String): Unit =
+    tasks.dequeueAll(_.simulation == simulation)
+
+  /**
+    * @inheritdoc
+    */
+  override def noMoreTasks(): Boolean = tasks.isEmpty
+
+}
+
+
+/**
+  * A [[Scheduler]] trait that uses a `SortedSet`.
+  * 
+  * Forms the basis for priority-based schedulers.
+  */
+abstract class PriorityScheduler(implicit ordering: Ordering[TaskInstance]) extends Scheduler {
+  
   /**
     * A sorted queue of tasks that need to be run.
     */
-  val tasks: SortedSet[TaskInstance] = SortedSet()
+  val tasks: SortedSet[TaskInstance] = SortedSet()(ordering)
+
+  /**
+    * @inheritdoc
+    */
+  override def getTasks(): Iterable[TaskInstance] = tasks
 
   /**
     * @inheritdoc
@@ -123,25 +179,22 @@ trait SortedSetScheduler extends Scheduler {
 }
 
 /**
-  * A greedy priority [[Scheduler]].
+  * A greedy [[Scheduler]].
   * 
-  * Starts all tasks whose resources are currently idle, in order of priority.
+  * Starts all tasks whose resources are currently idle, in the given order/priority.
   * 
   * This means a lower priority task may start now and block a higher priority
   * task which is currently blocked, but could have started soon.
   *
-  * @param initialTasks
   */
-class GreedyScheduler(initialTasks: TaskInstance*) extends SortedSetScheduler {
+trait GreedyScheduler extends Scheduler {
   import scala.collection.immutable.Queue
-
-  tasks ++= initialTasks
 
   override def getNextTasks(
       currentTime: Long,
       resourceMap: Map[String, TaskResource]
   ): Seq[TaskInstance] = {
-    findNextTasks(resourceMap.filter(_._2.isIdle), tasks, Queue())
+    findNextTasks(resourceMap.filter(_._2.isIdle), getTasks(), Queue())
   }
 
   /**
@@ -158,7 +211,7 @@ class GreedyScheduler(initialTasks: TaskInstance*) extends SortedSetScheduler {
   @tailrec
   final protected def findNextTasks(
       idleResources: Map[String, TaskResource],
-      tasks: SortedSet[TaskInstance],
+      tasks: Iterable[TaskInstance],
       result: Queue[TaskInstance]
   ): Seq[TaskInstance] =
     if (tasks.isEmpty) result
@@ -171,25 +224,21 @@ class GreedyScheduler(initialTasks: TaskInstance*) extends SortedSetScheduler {
 }
 
 /**
-  * A strict priority [[Scheduler]].
+  * A strict [[Scheduler]].
   * 
-  * Starts all tasks whose resources are currently idle, in order of priority.
+  * Starts all tasks whose resources are currently idle, in the given order/priority.
   * 
   * Does not consider resources of higher priority tasks. This means that idle 
   * resources may be blocked by queued high priority tasks that cannot start yet.
-  *
-  * @param initialTasks
   */
-class StrictScheduler(initialTasks: TaskInstance*) extends SortedSetScheduler {
+trait StrictScheduler extends Scheduler {
   import scala.collection.immutable.Queue
-
-  tasks ++= initialTasks
 
   override def getNextTasks(
       currentTime: Long,
       resourceMap: Map[String, TaskResource]
   ): Seq[TaskInstance] = {
-    findNextTasks(resourceMap.filter(_._2.isIdle), tasks, Queue())
+    findNextTasks(resourceMap.filter(_._2.isIdle), getTasks(), Queue())
   }
 
   /**
@@ -206,7 +255,7 @@ class StrictScheduler(initialTasks: TaskInstance*) extends SortedSetScheduler {
   @tailrec
   final protected def findNextTasks(
       idleResources: Map[String, TaskResource],
-      tasks: SortedSet[TaskInstance],
+      tasks: Iterable[TaskInstance],
       result: Queue[TaskInstance]
   ): Seq[TaskInstance] =
     if (tasks.isEmpty) result
@@ -220,6 +269,67 @@ class StrictScheduler(initialTasks: TaskInstance*) extends SortedSetScheduler {
 
 
 /**
+  * A greedy First-Come-First-Served [[Scheduler]].
+  * 
+  * Starts all tasks whose resources are currently idle, in order of arrival in the queue.
+  * 
+  * This means a task that arrived later may start now and block an earlier
+  * task which is currently blocked, but could have started soon.
+  *
+  * Ignores creation time. Only cares about order in the queue.
+  * 
+  * @param initialTasks Initial [[TaskInstance]]s in the queue, if any.
+  */
+class GreedyFCFSScheduler(initialTasks: TaskInstance*) extends QueueScheduler with GreedyScheduler {
+  tasks ++= initialTasks
+}
+
+/**
+  * A strict First-Come-First-Served [[Scheduler]].
+  * 
+  * Starts all tasks whose resources are currently idle, in order of arrival in the queue.
+  * 
+  * Considers resources of earlier tasks as busy even if they are not. This means that idle 
+  * resources may be blocked by tasks earlier in the queue that cannot start yet.
+  *
+  * Ignores creation time. Only cares about order in the queue.
+  *
+  * @param initialTasks Initial [[TaskInstance]]s in the queue, if any.
+  */
+class StrictFCFSScheduler(initialTasks: TaskInstance*) extends QueueScheduler with StrictScheduler {
+  tasks ++= initialTasks
+}
+
+/**
+  * A greedy priority [[Scheduler]].
+  * 
+  * Starts all tasks whose resources are currently idle, in order of priority.
+  * 
+  * This means a lower priority task may start now and block a higher priority
+  * task which is currently blocked, but could have started soon.
+  *
+  * @param initialTasks Initial [[TaskInstance]]s in the queue, if any.
+  */
+class GreedyPriorityScheduler(initialTasks: TaskInstance*) extends PriorityScheduler with GreedyScheduler {
+  tasks ++= initialTasks
+}
+
+/**
+  * A strict priority [[Scheduler]].
+  * 
+  * Starts all tasks whose resources are currently idle, in order of priority.
+  * 
+  * Considers resources of higher priority tasks as busy even if they are not. This means that idle 
+  * resources may be blocked by queued high priority tasks that cannot start yet.
+  *
+  * @param initialTasks Initial [[TaskInstance]]s in the queue, if any.
+  */
+class StrictPriorityScheduler(initialTasks: TaskInstance*) extends PriorityScheduler with StrictScheduler {
+  tasks ++= initialTasks
+}
+
+
+/**
   * The default priority based [[Scheduler]].
   *
   * Relies on the use of [[Schedule]]s for each [[TaskResource]].
@@ -229,7 +339,7 @@ class StrictScheduler(initialTasks: TaskInstance*) extends SortedSetScheduler {
   *
   * @param initialTasks Initial [[TaskInstance]]s in the queue, if any.
   */
-class ProterScheduler(initialTasks: TaskInstance*) extends SortedSetScheduler {
+class ProterScheduler(initialTasks: TaskInstance*) extends PriorityScheduler {
   import scala.collection.immutable.Queue
 
   tasks ++= initialTasks
@@ -300,7 +410,7 @@ class ProterScheduler(initialTasks: TaskInstance*) extends SortedSetScheduler {
   *
   * Relies on the use of [[Schedule]]s for each [[TaskResource]].
   */
-class LookaheadScheduler(initialTasks: TaskInstance*) extends SortedSetScheduler {
+class LookaheadScheduler(initialTasks: TaskInstance*) extends PriorityScheduler {
   import scala.collection.immutable.Queue
 
   tasks ++= initialTasks
