@@ -1,7 +1,4 @@
 package com.workflowfm.proter
-import scala.collection.mutable.SortedSet
-import scala.concurrent.{ Await, ExecutionContext, Future }
-import scala.concurrent.duration._
 
 import org.junit.runner.RunWith
 import org.scalatest.junit.JUnitRunner
@@ -98,6 +95,61 @@ class SchedulerTests extends TaskTester with ScheduleTester {
     }
   }
 
+  "GreedyScheduler" must {
+
+    "select a single task" in {
+      val m = new TestResourceMap("A")
+      m.g(t(1L, Seq("A"))) should be(Seq(1L))
+    }
+
+    "select multiple tasks" in {
+      val m = new TestResourceMap("A", "B")
+      m.g(
+        t(1L, Seq("A")),
+        t(2L, Seq("B"))
+      ) should be(Seq(1L, 2L))
+    }
+
+    "select an earlier task" in {
+      val m = new TestResourceMap("A")
+      m.g(t(1L, Seq("A"), Task.Medium, 2L), t(2L, Seq("A"), Task.Medium, 1L)) should be(Seq(2L))
+    }
+
+    "not select a blocked task" in {
+      val m = new TestResourceMap("A", "B") + ("B", 1L)
+      m.g(t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("B"), Task.VeryLow, 0L, 2L)) should be(Nil)
+    }
+
+    "select a lower priority task if the higher priority one is blocked" in {
+      val m = new TestResourceMap("A", "B") + ("B", 1L)
+      m.g(t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("A"), Task.VeryLow)) should be(List(2L))
+    }
+
+    "greedily block higher priority tasks" in {
+      val m = new TestResourceMap("A", "B") + ("B", 1L)
+      m.g(t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("A"), Task.VeryLow, 0L, 100L)) should be(
+        Seq(2L)
+      )
+    }
+
+    "consider all higher priority tasks for availability" in {
+      val m = new TestResourceMap("A", "B") + ("B", 1L)
+      m.g(
+        t(1L, Seq("B"), Task.Highest),
+        t(2L, Seq("A"), Task.Medium),
+        t(3L, Seq("A"), Task.VeryLow, 0L, 2L)
+      ) should be(List(2L))
+    }
+
+    "select higher priority tasks" in {
+      val m = new TestResourceMap("A", "B")
+      m.g(
+        t(2L, Seq("A", "B"), Task.Medium),
+        t(1L, Seq("A"), Task.Highest)
+      ) should be(List(1L))
+    }
+  }
+
   "ProterScheduler" must {
 
     "select a single task" in {
@@ -170,7 +222,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
   }
 
   "The LookaheadScheduler" must {
-    "select a single task without  alookahead structure" in {
+    "select a single task without a lookahead structure" in {
       val m = new TestResourceMap("A")
       m.l(t(1L, Seq("A"))) should be(Seq(1L))
     }
@@ -270,6 +322,11 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       m.get(r).map { _.startTask(t(0L, Seq(r), Task.Medium, 0L, duration), 0L) }
       this
     }
+
+    // test GreedyScheduler
+    def g(tasks: TaskInstance*): Seq[Long] =
+      new GreedyScheduler(tasks: _*).getNextTasks(0L, m) map (_.id
+            .getMostSignificantBits())
 
     // test ProterScheduler
     def s(tasks: TaskInstance*): Seq[Long] =

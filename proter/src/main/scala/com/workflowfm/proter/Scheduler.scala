@@ -123,9 +123,62 @@ trait SortedSetScheduler extends Scheduler {
 }
 
 /**
-  * A [[Scheduler]] to be used as the default.
+  * A greedy priority [[Scheduler]].
+  * 
+  * Starts all tasks whose resources are currently idle, in order of priority.
+  * 
+  * This means a lower priority task may start now and block a higher priority
+  * task which is currently blocked, but could have started soon.
+  *
+  * @param initialTasks
+  */
+class GreedyScheduler(initialTasks: TaskInstance*) extends SortedSetScheduler {
+  import scala.collection.immutable.Queue
+
+  tasks ++= initialTasks
+
+  override def getNextTasks(
+      currentTime: Long,
+      resourceMap: Map[String, TaskResource]
+  ): Seq[TaskInstance] = {
+    findNextTasks(resourceMap.filter(_._2.isIdle), tasks, Queue())
+  }
+
+  /**
+    * Finds the [[Task]]s that can be started now.
+    *
+    * Goes through the priority list of tasks and returns those whose resources are
+    * idle (even after starting higher priority tasks).
+    * 
+    * @param idleResources The map of idle [[TaskResource]]s.
+    * @param tasks The set of [[TaskInstance]]s that need to start.
+    * @param result The accumulated [[TaskInstance]]s so far (for tail recursion).
+    * @return The sequence of [[TaskInstance]]s to start now.
+    */
+  @tailrec
+  final protected def findNextTasks(
+      idleResources: Map[String, TaskResource],
+      tasks: SortedSet[TaskInstance],
+      result: Queue[TaskInstance]
+  ): Seq[TaskInstance] =
+    if (tasks.isEmpty) result
+    else {
+      val t = tasks.head
+      if (t.resources.forall(idleResources.contains))
+        findNextTasks(idleResources -- t.resources, tasks.tail, result :+ t)
+      else findNextTasks(idleResources, tasks.tail, result)
+    }
+}
+
+
+
+/**
+  * The default priority based [[Scheduler]].
   *
   * Relies on the use of [[Schedule]]s for each [[TaskResource]].
+  * 
+  * Avoids scheduling lower priority tasks that might cause delays/waiting times to
+  * higher priority ones.
   *
   * @param initialTasks Initial [[TaskInstance]]s in the queue, if any.
   */
