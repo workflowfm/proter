@@ -47,7 +47,7 @@ trait Manager {
   * @groupname resources Managing resources
   * @groupname toplevel Top level
   *
-  * @param scheduler The [[Scheduler]] responsible for task allocation at any given time.
+  * @param scheduler The [[schedule.Scheduler Scheduler]] responsible for task allocation at any given time.
   * @param singleThread Flag to run everything in a single thread or else use `Future`s.
   * @param startingTime The starting timestamp of the entire simulation.
   */
@@ -245,7 +245,7 @@ class Coordinator(
   /**
     * Allocates the tasks due to start next to their resources.
     *
-    * Asks the [[Scheduler]] to determine what tasks need to start next.
+    * Asks the [[schedule.Scheduler Scheduler]] to determine what tasks need to start next.
     * Removes each of them from the queue and runs them using [[startTask]].
     *
     * @group resources
@@ -390,7 +390,7 @@ class Coordinator(
     * Stops a simulation when it is done.
     *
     *  - Removes the simulation from the list of running simulations and the waiting list.
-    *  - Removes any [[Lookahead]] from the [[Scheduler]].
+    *  - Removes any [[Lookahead]] from the [[schedule.Scheduler Scheduler]].
     *  - Publishes a [[com.workflowfm.proter.events.ESimEnd ESimEnd]].
     *  - Calls [[ready]] to handle the fact that we no longer need to wait for this simulation.
     *
@@ -472,7 +472,7 @@ class Coordinator(
     *  - Uses [[Task.create]] to create a [[TaskInstance]], which will now have a fixed duration and cost.
     *  - Publishes a [[com.workflowfm.proter.events.ETaskAdd ETaskAdd]].
     *  - If the task does not require any resources, it is started immediately using [[startTask]].
-    * Otherwise, we add it to the [[Scheduler]].
+    * Otherwise, we add it to the [[schedule.Scheduler Scheduler]].
     *
     * @group tasks
     * @param simulation The name of the [[Simulation]] that owns the task(s).
@@ -504,14 +504,14 @@ class Coordinator(
   /**
     * Start a [[TaskInstance]] at the current timestamp.
     *
-    * A [[TaskInstance]] is started when scheduled by the [[Scheduler]].
+    * A [[TaskInstance]] is started when scheduled by the [[schedule.Scheduler Scheduler]].
     * This assumes all the [[TaskResource]]s it needs are available.
     *
     *  - Publishes a [[com.workflowfm.proter.events.ETaskAdd ETaskAdd]].
     *  - Calls [[TaskResource.startTask]] for each involved [[TaskResource]] to attach this [[TaskInstance]]
     *    to them. Publishes a [[com.workflowfm.proter.events.ETaskAttach ETaskAttach]] for each successful attachment.
     *    Otherwise publishes an appropriate [[com.workflowfm.proter.events.EError EError]]. The latter would
-    *    only happen if the [[Scheduler]] tried to schedule a [[Task]] to a busy [[TaskResource]].
+    *    only happen if the [[schedule.Scheduler Scheduler]] tried to schedule a [[Task]] to a busy [[TaskResource]].
     *  - Creates a [[FinishingTask]] event for this [[Task]] based on its duration, and adds it to
     *    the even queue.
     *
@@ -591,7 +591,7 @@ class Coordinator(
     *
     * Assumes all instances belong to the same simulation.
     *
-    *  - Notifies the [[Scheduler]] about each task comleting.
+    *  - Notifies the [[schedule.Scheduler Scheduler]] about each task comleting.
     *  - Publishes a [[com.workflowfm.proter.events.ETaskDone ETaskDone]].
     *  - Notifies the [[Simulation]] that its [[TaskInstance]]s have finished.
     *    This happens in the same thread if `singleThread` is `true` or using a `Future` otherwise.

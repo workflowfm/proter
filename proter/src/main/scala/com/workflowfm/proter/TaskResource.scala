@@ -120,7 +120,7 @@ class TaskResource(val name: String, val costPerTick: Double) {
   /**
     * Estimates the earliest time the resource will become available.
     *
-    * Lets the [[Scheduler]] (via [[TaskInstance.nextPossibleStart]]) know an
+    * Lets the [[schedule.Scheduler Scheduler]] (via [[TaskInstance.nextPossibleStart]]) know an
     * '''estimate''' of when we expect to have this resource available again.
     *
     * This is based off of [[TaskInstance.estimatedDuration]] so may not be the accurate, but is more

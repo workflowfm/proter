@@ -12,6 +12,7 @@ import org.scalamock.scalatest.MockFactory
 import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
 
 import com.workflowfm.proter._
+import com.workflowfm.proter.schedule.ProterScheduler
 
 class MockSimulationActorTests
     extends TestKit(

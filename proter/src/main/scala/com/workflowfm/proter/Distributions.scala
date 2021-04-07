@@ -10,7 +10,7 @@ package com.workflowfm.proter
   * Distributions must also provide an estimate of the generated values
   * such that can be used in an environment of imperfect knowledge.
   * For example, the
-  * [[Scheduler]] does not know the actual durations of tasks, which can vary from
+  * [[schedule.Scheduler Scheduler]] does not know the actual durations of tasks, which can vary from
   * the expected estimate for various reasons.
   */
 trait Distribution {
@@ -26,7 +26,7 @@ trait Distribution {
     * Provides an estimate of the values that can be generated.
     * This could be the mean of the distribution for instance.
     * It can help create an environment of imperfect knowledge. For example, the
-    * [[Scheduler]] does not know the actual durations of tasks, which can vary from
+    * [[schedule.Scheduler Scheduler]] does not know the actual durations of tasks, which can vary from
     * the expected estimate for various reasons.
     *
     * @return An estimate of the values that can be generated.

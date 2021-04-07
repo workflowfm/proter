@@ -470,7 +470,7 @@ trait FutureTasks { self: AsyncSimulation =>
 /**
   * A trait that adds Lookahead capabilities to a simulation.
   *
-  * Works in conjunction with [[LookaheadScheduler]].
+  * Works in conjunction with [[schedule.LookaheadScheduler LookaheadScheduler]].
   *
   * Provides a lookahead structure that can be built up by the simulation and then sent to the scheduler
   * for use in making schedules which look into the future to consider upcoming tasks in scheduling.

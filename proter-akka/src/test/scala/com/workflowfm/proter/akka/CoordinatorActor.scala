@@ -11,6 +11,7 @@ import akka.testkit.{ TestKit, TestProbe }
 import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
 
 import com.workflowfm.proter._
+import com.workflowfm.proter.schedule.ProterScheduler
 
 class CoordinatorActorTests
     extends TestKit(

@@ -11,6 +11,7 @@ import akka.pattern.{ ask, pipe }
 import akka.util.Timeout
 
 import com.workflowfm.proter._
+import com.workflowfm.proter.schedule.Scheduler
 
 /**
   * Akka-based [[com.workflowfm.proter.Manager Manager]] implementation.
@@ -102,7 +103,8 @@ object AkkaManager {
   *
   * Provides access to all functionality via messaging.
   *
-  * @param scheduler The [[Scheduler]] responsible for task allocation at any given time.
+  * @param scheduler The [[com.workflowfm.proter.schedule.Scheduler Scheduler]] responsible 
+  *                  for task allocation at any given time.
   * @param startingTime The starting timestamp of the entire simulation.
   */
 class CoordinatorActor(
@@ -289,7 +291,7 @@ object CoordinatorActor {
   /**
     * Creates properties for a [[Coordinator]] actor.
     *
-    * @param scheduler The [[Scheduler]] to be used.
+    * @param scheduler The [[com.workflowfm.proter.schedule.Scheduler Scheduler]] to be used.
     * @param startingTime The starting time of the entire simulation.
     * @return
     */
