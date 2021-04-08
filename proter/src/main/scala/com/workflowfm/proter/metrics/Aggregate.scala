@@ -250,7 +250,10 @@ class SimMetricsHandler(output: SimMetricsOutput = SimNoOutput)
       metrics.simulation(task.simulation)(_.task(task).addDelay(t - task.created))
     }
     case ETaskAttach(src, t, task, r) => metrics.resource(r)(_.task(t, task))
-    case ETaskDetach(src, t, task, r, c) => metrics.task(task)(_.addCost(c))
+    case ETaskDetach(src, t, task, r, c) => {
+      metrics.task(task)(_.addCost(c))
+      metrics.simulation(task.simulation)(_.addCost(c))
+    }
     case ETaskDone(src, t, task) => Unit
     case ETaskAbort(src, t, id) => metrics.task(id)(_.abort(t))
 
