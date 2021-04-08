@@ -111,7 +111,7 @@ case class Exponential(mean: Double) extends Distribution {
      * given a random number r, let r = Fx(t)
      * => t = -ln(1-r)/l
      * => t = -ln(r)/l , since r is random between 0 and 1 we can use r and 1-r interchangably. */
-    -(log(rand) / mean)
+    -(log(rand) * mean)
   }
 
   /**
