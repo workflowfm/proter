@@ -74,6 +74,11 @@ class Coordinator(
   protected val promise: Promise[Unit] = Promise[Unit]()
 
   /**
+    * Flag to prevent multiple starts.
+    */
+  protected var started: Boolean = false
+
+  /**
     * Flag to prevent continuing the virtual time before we have notified
     * all simulations about completed tasks in the current time.
     *
@@ -713,7 +718,8 @@ class Coordinator(
     *
     * @group toplevel
     */
-  def start(): Future[Any] = {
+  def start(): Future[Any] = if (started) promise.future else {
+    started = true
     Future {
       publish(EStart(id, time))
       tick()
