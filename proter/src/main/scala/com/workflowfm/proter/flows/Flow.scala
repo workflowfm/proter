@@ -9,14 +9,23 @@ import com.workflowfm.proter._
 sealed trait Flow {
   val id: UUID = UUID.randomUUID
 
-  def +(f: Flow): And = new And(this, f)
-  def >(f: Flow): Then = new Then(this, f)
-  def |(f: Flow): Or = new Or(this, f)
+  def +(f: Flow): Flow = f match {
+    case _: NoTask => this
+    case _ => new And(this, f)
+  }
+  def >(f: Flow): Flow = f match {
+    case _: NoTask => this
+    case _ => new Then(this, f)
+  }
+  def |(f: Flow): Flow = f match {
+    case _: NoTask => this
+    case _ => new Or(this, f)
+  }
   def *(i: Int): Flow = new All((for (_ <- 1 to i) yield this.copy()): _*)
 
-  def +(t: Task): And = this + new FlowTask(t)
-  def >(t: Task): Then = this > new FlowTask(t)
-  def |(t: Task): Or = this | new FlowTask(t)
+  def +(t: Task): Flow = this + new FlowTask(t)
+  def >(t: Task): Flow = this > new FlowTask(t)
+  def |(t: Task): Flow = this | new FlowTask(t)
 
   def copy(): Flow
 
@@ -27,6 +36,15 @@ sealed trait Flow {
 
 class NoTask() extends Flow { // this can't be a case class/object because of the id
   override def copy(): Flow = new NoTask()
+
+  override def +(f: Flow): Flow = f
+  override def >(f: Flow): Flow = f
+  override def |(f: Flow): Flow = f
+  override def *(i: Int): Flow = this
+
+  override def +(t: Task): Flow = new FlowTask(t)
+  override def >(t: Task): Flow = new FlowTask(t)
+  override def |(t: Task): Flow = new FlowTask(t)
 }
 
 class FlowTask(t: Task) extends Flow {
