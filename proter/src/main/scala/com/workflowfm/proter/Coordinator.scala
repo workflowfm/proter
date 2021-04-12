@@ -438,18 +438,20 @@ class Coordinator(
     val tasksToAbort = HashSet[UUID]()
 
     // Detach and abort tasks of this simulation
-    resourceMap.foreach {
-      case (name, resource) =>
-        resource.abortSimulation(name) match {
-          case None => Unit
-          case Some((start, task)) => {
+    events.foreach { _ match {
+      case FinishingTask(_, task) if task.simulation == name => {
+        task.taskResources(resourceMap).map { resource => resource.abortSimulation(name) match {
+          case None => Unit // TODO This should never happen! Should we publish an error?
+          case Some((start, t)) =>
             publish(
-              ETaskDetach(id, time, task, resource.name, resource.costPerTick * (time - start))
+              ETaskDetach(id, time, t, resource.name, resource.costPerTick * (time - start))
             )
-            tasksToAbort += task.id
-          }
-        }
-    }
+        } }
+        tasksToAbort += task.id
+      }
+      case _ => Unit
+    } }
+
     tasksToAbort.map { tid => publish(ETaskAbort(id, time, tid)) }
     abortedTasks ++= tasksToAbort
 
