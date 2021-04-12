@@ -437,7 +437,7 @@ object FlowDummySim {
           "r2"
         )) withPriority (Task.Low) withID UUID.randomUUID
   )
-  val flow: Then = task1 > ((task2 > task3) + task4)
+  val flow: Flow = task1 > ((task2 > task3) + task4)
 
 }
 
@@ -476,7 +476,7 @@ object FlowDummySim2 {
           "r2"
         )) withPriority (Task.Low) withID UUID.randomUUID
   )
-  val flow: Then = task1 > ((task2 > task3) + (task4 > task5))
+  val flow: Flow = task1 > ((task2 > task3) + (task4 > task5))
 
 }
 
@@ -521,6 +521,6 @@ object FlowDummySim3 {
           "r3"
         )) withPriority (Task.Low) withID UUID.randomUUID
   )
-  val flow: Then = task1 > (((task2 + task3 + task4) > task5) + task6)
+  val flow: Flow = task1 > (((task2 + task3 + task4) > task5) + task6)
 
 }
