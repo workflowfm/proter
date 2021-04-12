@@ -44,7 +44,7 @@ disableKinds = ["taxonomy", "taxonomyTerm"]
 [params]
 
   repo = "https://github.com/workflowfm/Proter"
-  version = "0.7.2"
+  version = "0.7.3"
 
   time_format_blog = "Monday, 02 January 2006"
   time_format_default = "2 January 2006"
