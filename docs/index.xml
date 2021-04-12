@@ -13,7 +13,7 @@
       
       <guid>http://docs.workflowfm.com/proter/docs/getting-started/</guid>
       <description>Proter is available as a library from Maven Central, so you can add it as a dependency in your project. For example, in sbt:
-1libraryDependencies += &amp;#34;com.workflowfm&amp;#34; %% &amp;#34;proter&amp;#34; % &amp;#34;0.7.2&amp;#34; Proter is currently only available in Scala 2.12.12.</description>
+1libraryDependencies += &amp;#34;com.workflowfm&amp;#34; %% &amp;#34;proter&amp;#34; % &amp;#34;0.7.3&amp;#34; Proter is currently only available in Scala 2.12.12.</description>
     </item>
     
   </channel>
