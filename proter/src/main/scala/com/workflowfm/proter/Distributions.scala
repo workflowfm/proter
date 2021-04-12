@@ -40,7 +40,7 @@ trait Distribution {
     *
     * @return A sample `Long` value.
     */
-  def getLong: Long = get.round
+  def getLong: Long = get.floor.round
 }
 
 /**
