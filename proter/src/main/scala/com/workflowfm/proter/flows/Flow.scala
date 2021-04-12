@@ -14,20 +14,32 @@ sealed trait Flow {
   def |(f: Flow): Or = new Or(this, f)
   def *(i: Int): Flow = new All((for (_ <- 1 to i) yield this.copy()): _*)
 
+  def +(t: Task): And = this + new FlowTask(t)
+  def >(t: Task): Then = this > new FlowTask(t)
+  def |(t: Task): Or = this | new FlowTask(t)
+
   def copy(): Flow
+
+  def simulation(name: String, manager: Manager): FlowSimulation = new FlowSimulation(name, manager, this)
+
+  def simGenerator(name: String): FlowSimulationGenerator = new FlowSimulationGenerator(name, this)
 }
 
-class NoTask() extends Flow {
+class NoTask() extends Flow { // this can't be a case class/object because of the id
   override def copy(): Flow = new NoTask()
 }
 
-class FlowTask(val task: Task) extends Flow {
-  override val id: UUID = task.id.getOrElse(UUID.randomUUID())
+class FlowTask(t: Task) extends Flow {
+  override val id: UUID = t.id.getOrElse(UUID.randomUUID)
+  val task: Task = t.withID(id) // make sure the task has an ID
+
   override def copy(): Flow = new FlowTask(task.withID(UUID.randomUUID))
 }
 
 class Then(val left: Flow, val right: Flow) extends Flow {
   override def copy(): Flow = new Then(left.copy(), right.copy())
+
+  override def >(f: Flow): Then = new Then(left, new Then(f, right)) // make > right associative
 }
 
 class And(val left: Flow, val right: Flow) extends Flow {
@@ -40,6 +52,14 @@ class All(val elements: Flow*) extends Flow {
 
 class Or(val left: Flow, val right: Flow) extends Flow {
   override def copy(): Flow = new Or(left.copy(), right.copy())
+}
+
+object Flow {
+  def apply(): NoTask = new NoTask()
+
+  def apply(t: Task): FlowTask = new FlowTask(t)
+
+  implicit def flowOfTask(t: Task): FlowTask = new FlowTask(t)
 }
 
 /**
