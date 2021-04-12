@@ -13,10 +13,12 @@ sealed trait Flow {
     case _: NoTask => this
     case _ => new And(this, f)
   }
+
   def >(f: Flow): Flow = f match {
     case _: NoTask => this
     case _ => new Then(this, f)
   }
+
   def |(f: Flow): Flow = f match {
     case _: NoTask => this
     case _ => new Or(this, f)
@@ -29,7 +31,8 @@ sealed trait Flow {
 
   def copy(): Flow
 
-  def simulation(name: String, manager: Manager): FlowSimulation = new FlowSimulation(name, manager, this)
+  def simulation(name: String, manager: Manager): FlowSimulation =
+    new FlowSimulation(name, manager, this)
 
   def simGenerator(name: String): FlowSimulationGenerator = new FlowSimulationGenerator(name, this)
 }

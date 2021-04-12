@@ -438,19 +438,23 @@ class Coordinator(
     val tasksToAbort = HashSet[UUID]()
 
     // Detach and abort tasks of this simulation
-    events.foreach { _ match {
-      case FinishingTask(_, task) if task.simulation == name => {
-        task.taskResources(resourceMap).map { resource => resource.abortSimulation(name) match {
-          case None => Unit // TODO This should never happen! Should we publish an error?
-          case Some((start, t)) =>
-            publish(
-              ETaskDetach(id, time, t, resource.name, resource.costPerTick * (time - start))
-            )
-        } }
-        tasksToAbort += task.id
+    events.foreach {
+      _ match {
+        case FinishingTask(_, task) if task.simulation == name => {
+          task.taskResources(resourceMap).map { resource =>
+            resource.abortSimulation(name) match {
+              case None => Unit // TODO This should never happen! Should we publish an error?
+              case Some((start, t)) =>
+                publish(
+                  ETaskDetach(id, time, t, resource.name, resource.costPerTick * (time - start))
+                )
+            }
+          }
+          tasksToAbort += task.id
+        }
+        case _ => Unit
       }
-      case _ => Unit
-    } }
+    }
 
     tasksToAbort.map { tid => publish(ETaskAbort(id, time, tid)) }
     abortedTasks ++= tasksToAbort
@@ -720,7 +724,8 @@ class Coordinator(
     *
     * @group toplevel
     */
-  def start(): Future[Any] = if (started) promise.future else {
+  def start(): Future[Any] = if (started) promise.future
+  else {
     started = true
     Future {
       publish(EStart(id, time))

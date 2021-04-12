@@ -103,7 +103,7 @@ object AkkaManager {
   *
   * Provides access to all functionality via messaging.
   *
-  * @param scheduler The [[com.workflowfm.proter.schedule.Scheduler Scheduler]] responsible 
+  * @param scheduler The [[com.workflowfm.proter.schedule.Scheduler Scheduler]] responsible
   *                  for task allocation at any given time.
   * @param startingTime The starting timestamp of the entire simulation.
   */
