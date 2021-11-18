@@ -60,7 +60,7 @@ class FlowTask(t: Task) extends Flow {
 class Then(val left: Flow, val right: Flow) extends Flow {
   override def copy(): Flow = new Then(left.copy(), right.copy())
 
-  override def >(f: Flow): Then = new Then(left, new Then(right, f)) // make > right associative
+  override def >(f: Flow): Then = new Then(left, right > f) // make > right associative
 }
 
 class And(val left: Flow, val right: Flow) extends Flow {
