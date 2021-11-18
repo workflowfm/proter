@@ -78,8 +78,24 @@ object Flow {
 
   implicit def flowOfTask(t: Task): FlowTask = new FlowTask(t)
 
+  /**
+    * Creates a sequence of a collection of [[Flow]]s.
+    *
+    * @see [[Then]]
+    * @example Flow.seq(Seq(t1,t2,t3)) = t1 > t2 > t3    
+    * @param l The collection of [[Flow]]s
+    * @return A [[Flow]] that executes the given collection in sequence
+    */
   def seq(l: Seq[Flow]): Flow = (l.foldRight[Flow](new NoTask()) { (l, r) => new Then(l, r) })
 
+  /**
+    * Creates a parallel [[Flow]] from a collection of [[Flow]]s.
+    *
+    * @see [[And]]
+    * @example Flow.par(Seq(t1,t2,t3)) = t1 | t2 | t3    
+    * @param l The collection of [[Flow]]s
+    * @return A [[Flow]] that executes the given collection in parallel
+    */
   def par(l: Seq[Flow]): Flow = (l.foldRight[Flow](new NoTask()) { (l, r) => new And(l, r) })
 }
 
