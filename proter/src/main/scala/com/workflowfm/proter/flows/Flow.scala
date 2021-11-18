@@ -72,9 +72,7 @@ class Or(val left: Flow, val right: Flow) extends Flow {
 }
 
 object Flow {
-  def apply(): NoTask = new NoTask()
-
-  def apply(t: Task): FlowTask = new FlowTask(t)
+  def apply(t: Task*): Flow = Flow.seq(t.map(new FlowTask(_)))
 
   implicit def flowOfTask(t: Task): FlowTask = new FlowTask(t)
 
