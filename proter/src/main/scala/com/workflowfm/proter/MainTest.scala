@@ -28,18 +28,23 @@ object MainTest {
         val r1 = new TaskResource("r1",0)
         val r2 = new TaskResource("r2",0)
         val r3 = new TaskResource("r3",0)
+        val r4 = new TaskResource("r4",0)
+        val r5 = new TaskResource("r5",0)
+      
+        val resources = Seq(r1,r2,r3,r4,r5)
+        coordinator.addResources(resources)
 
-        coordinator.addResources(Seq(r1,r2, r3))
+        // val task1 = new FlowTask(Task("task1",2L).withResources(Seq("r1")).withPriority(Task.High))
+        // val task2 = new FlowTask(Task("task2",3L).withResources(Seq("r3")).withPriority(Task.Medium))
+        // val task3 = new FlowTask(Task("task3",4L).withResources(Seq("r2")).withPriority(Task.High))
 
-        val task1 = new FlowTask(Task("task1",2L).withResources(Seq("r1")).withPriority(Task.High))
-        val task2 = new FlowTask(Task("task2",3L).withResources(Seq("r3")).withPriority(Task.Medium))
-        val task3 = new FlowTask(Task("task3",4L).withResources(Seq("r2")).withPriority(Task.High))
+        // val flow = (task1 > task2) > task3
+        //coordinator.addArrivalNow(10, Constant(10L), new FlowSimulationGenerator("flow", flow))
 
-        val flow = (task1 > task2) > task3
-
-        //val flow_sim = new FlowSimulation("sim",coordinator,flow)
-        //coordinator.addSimulationNow(flow_sim)
-        coordinator.addArrivalNow(10, Constant(10L), new FlowSimulationGenerator("flow", flow))
+        val flow = new RandomFlowFactory(0.5f, resources).withTasks(Uniform(1, 10)).withDurations(Uniform(1,10)).withNumResources(Uniform(1,3)).newFlow
+        print(flow)
+        val flow_sim = new FlowSimulation("sim",coordinator,flow)
+        coordinator.addSimulationNow(flow_sim)
 
          Await.result(coordinator.start(), 1.hour)
 
