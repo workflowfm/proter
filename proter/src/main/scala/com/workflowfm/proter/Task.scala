@@ -318,9 +318,9 @@ object Task {
   ): Task =
     Task(name, Some(id), Constant(duration))
 
-  val Highest: Int = 5
-  val High: Int = 4
-  val Medium: Int = 3
-  val Low: Int = 2
-  val VeryLow: Int = 1
+  val Highest: Int = 2
+  val High: Int = 1
+  val Medium: Int = 0
+  val Low: Int = -1
+  val VeryLow: Int = -2
 }
