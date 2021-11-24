@@ -107,6 +107,7 @@ trait SimMetricsStringOutput extends SimMetricsOutput {
       "ID",
       "Task",
       "Simulation",
+      "Priority",
       "Created",
       "Start",
       "Delay",
@@ -124,11 +125,12 @@ trait SimMetricsStringOutput extends SimMetricsOutput {
     * @param m the [[TaskMetrics]] instance to be handled
     */
   def taskCSV(separator: String, resSeparator: String)(m: TaskMetrics): String = m match {
-    case TaskMetrics(id, task, sim, ct, st, dur, cost, res, aborted) =>
+    case TaskMetrics(id, task, sim, priority, ct, st, dur, cost, res, aborted) =>
       Seq(
         id,
         task,
         sim,
+        priority,
         ct,
         SimMetricsOutput.formatOption(st, nullValue),
         m.delay,
@@ -345,7 +347,7 @@ $times
       val finish = (tstart + m.duration) * tick
       val delay = m.delay * tick
       Some(
-        s"""\t{"label":"${m.fullName}", task: "${m.task}", "id":"${m.id}", "starting_time": $start, "ending_time": $finish, delay: $delay, cost: ${m.cost}}"""
+        s"""\t{"label":"${m.fullName}", task: "${m.task}", "id":"${m.id}", "priority": ${m.priority}, "starting_time": $start, "ending_time": $finish, delay: $delay, cost: ${m.cost}}"""
       )
     }
   }

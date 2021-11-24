@@ -9,6 +9,7 @@ import com.workflowfm.proter._
   * @param id the unique ID of the [[TaskInstance]]
   * @param task the name of the [[TaskInstance]]
   * @param simulation the name of the simulation the [[TaskInstance]] belongs to
+  * @param priority the priority of the [[TaskInstance]]
   * @param created the virtual timestamp when the [[TaskInstance]] was created and entered the [[Coordinator]]
   * @param started the virtual timestamp when the [[TaskInstance]] started executing, or [[scala.None]] if it has not started yet
   * @param duration the virtual duration of the [[TaskInstance]]
@@ -19,6 +20,7 @@ case class TaskMetrics(
     id: UUID,
     task: String,
     simulation: String,
+    priority: Int,
     created: Long,
     started: Option[Long],
     duration: Long,
@@ -69,6 +71,7 @@ object TaskMetrics {
     task.id,
     task.name,
     task.simulation,
+    task.priority,
     task.created,
     None,
     task.duration,
