@@ -135,10 +135,6 @@
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../index.html" class="extype" name="com.workflowfm.proter">proter</a></dd></dl></div>
     </li><li class="current-entities indented4">
                         <span class="separator"></span>
-                        <a class="class" href="All.html" title=""></a>
-                        <a href="All.html" title="">All</a>
-                      </li><li class="current-entities indented4">
-                        <span class="separator"></span>
                         <a class="class" href="And.html" title=""></a>
                         <a href="And.html" title="">And</a>
                       </li><li class="current-entities indented4">
@@ -309,9 +305,9 @@
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
     </li><li name="com.workflowfm.proter.flows.Flow#apply" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="apply(t:com.workflowfm.proter.Task):com.workflowfm.proter.flows.FlowTask"></a><a id="apply(Task):FlowTask"></a>
+      <a id="apply(t:com.workflowfm.proter.Task*):com.workflowfm.proter.flows.Flow"></a><a id="apply(Task*):Flow"></a>
       <span class="permalink">
-      <a href="../../../../com/workflowfm/proter/flows/Flow$.html#apply(t:com.workflowfm.proter.Task):com.workflowfm.proter.flows.FlowTask" title="Permalink">
+      <a href="../../../../com/workflowfm/proter/flows/Flow$.html#apply(t:com.workflowfm.proter.Task*):com.workflowfm.proter.flows.Flow" title="Permalink">
         <i class="material-icons"></i>
       </a>
     </span>
@@ -320,23 +316,7 @@
         <span class="kind">def</span>
       </span>
       <span class="symbol">
-        <span class="name">apply</span><span class="params">(<span name="t">t: <a href="../Task.html" class="extype" name="com.workflowfm.proter.Task">Task</a></span>)</span><span class="result">: <a href="FlowTask.html" class="extype" name="com.workflowfm.proter.flows.FlowTask">FlowTask</a></span>
-      </span>
-      
-      
-    </li><li name="com.workflowfm.proter.flows.Flow#apply" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
-      <a id="apply():com.workflowfm.proter.flows.NoTask"></a><a id="apply():NoTask"></a>
-      <span class="permalink">
-      <a href="../../../../com/workflowfm/proter/flows/Flow$.html#apply():com.workflowfm.proter.flows.NoTask" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span class="name">apply</span><span class="params">()</span><span class="result">: <a href="NoTask.html" class="extype" name="com.workflowfm.proter.flows.NoTask">NoTask</a></span>
+        <span class="name">apply</span><span class="params">(<span name="t">t: <a href="../Task.html" class="extype" name="com.workflowfm.proter.Task">Task</a>*</span>)</span><span class="result">: <a href="Flow.html" class="extype" name="com.workflowfm.proter.flows.Flow">Flow</a></span>
       </span>
       
       
@@ -379,6 +359,8 @@
               
                 <span class="name">@native</span><span class="args">()</span>
               
+                <span class="name">@HotSpotIntrinsicCandidate</span><span class="args">()</span>
+              
         </dd></dl></div>
     </li><li name="scala.AnyRef#eq" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="eq(x$1:AnyRef):Boolean"></a><a id="eq(AnyRef):Boolean"></a>
@@ -412,28 +394,6 @@
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li name="scala.AnyRef#finalize" visbl="prt" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="finalize():Unit"></a>
-      <span class="permalink">
-      <a href="../../../../com/workflowfm/proter/flows/Flow$.html#finalize():Unit" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span class="name">finalize</span><span class="params">()</span><span class="result">: <a href="https://www.scala-lang.org/api/2.12.12/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
-      </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<span class="extype" name="java.lang">lang</span>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
-                <span class="name">@throws</span><span class="args">(<span>
-      
-      <span class="symbol">classOf[java.lang.Throwable]</span>
-    </span>)</span>
-              
-        </dd></dl></div>
     </li><li name="com.workflowfm.proter.flows.Flow#flowOfTask" visbl="pub" class="indented0 " data-isabs="false" fullComment="no" group="Ungrouped">
       <a id="flowOfTask(t:com.workflowfm.proter.Task):com.workflowfm.proter.flows.FlowTask"></a><a id="flowOfTask(Task):FlowTask"></a>
       <span class="permalink">
@@ -468,6 +428,8 @@
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd><dt>Annotations</dt><dd>
                 <span class="name">@native</span><span class="args">()</span>
               
+                <span class="name">@HotSpotIntrinsicCandidate</span><span class="args">()</span>
+              
         </dd></dl></div>
     </li><li name="scala.AnyRef#hashCode" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="hashCode():Int"></a>
@@ -486,6 +448,8 @@
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd><dt>Annotations</dt><dd>
                 <span class="name">@native</span><span class="args">()</span>
+              
+                <span class="name">@HotSpotIntrinsicCandidate</span><span class="args">()</span>
               
         </dd></dl></div>
     </li><li name="scala.Any#isInstanceOf" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
@@ -538,6 +502,8 @@
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
                 <span class="name">@native</span><span class="args">()</span>
               
+                <span class="name">@HotSpotIntrinsicCandidate</span><span class="args">()</span>
+              
         </dd></dl></div>
     </li><li name="scala.AnyRef#notifyAll" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="notifyAll():Unit"></a>
@@ -557,7 +523,47 @@
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
                 <span class="name">@native</span><span class="args">()</span>
               
+                <span class="name">@HotSpotIntrinsicCandidate</span><span class="args">()</span>
+              
         </dd></dl></div>
+    </li><li name="com.workflowfm.proter.flows.Flow#par" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="par(l:Seq[com.workflowfm.proter.flows.Flow]):com.workflowfm.proter.flows.Flow"></a><a id="par(Seq[Flow]):Flow"></a>
+      <span class="permalink">
+      <a href="../../../../com/workflowfm/proter/flows/Flow$.html#par(l:Seq[com.workflowfm.proter.flows.Flow]):com.workflowfm.proter.flows.Flow" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">par</span><span class="params">(<span name="l">l: <span class="extype" name="scala.Seq">Seq</span>[<a href="Flow.html" class="extype" name="com.workflowfm.proter.flows.Flow">Flow</a>]</span>)</span><span class="result">: <a href="Flow.html" class="extype" name="com.workflowfm.proter.flows.Flow">Flow</a></span>
+      </span>
+      
+      <p class="shortcomment cmt">Creates a parallel <a href="Flow.html" class="extype" name="com.workflowfm.proter.flows.Flow">Flow</a> from a collection of <a href="Flow.html" class="extype" name="com.workflowfm.proter.flows.Flow">Flow</a>s.</p><div class="fullcomment"><div class="comment cmt"><p>Creates a parallel <a href="Flow.html" class="extype" name="com.workflowfm.proter.flows.Flow">Flow</a> from a collection of <a href="Flow.html" class="extype" name="com.workflowfm.proter.flows.Flow">Flow</a>s.
+</p></div><dl class="paramcmts block"><dt class="param">l</dt><dd class="cmt"><p>The collection of <a href="Flow.html" class="extype" name="com.workflowfm.proter.flows.Flow">Flow</a>s</p></dd><dt>returns</dt><dd class="cmt"><p>A <a href="Flow.html" class="extype" name="com.workflowfm.proter.flows.Flow">Flow</a> that executes the given collection in parallel</p></dd></dl><dl class="attributes block"> <div class="block">Example:
+               <ol><li class="cmt"><p>Flow.par(Seq(t1,t2,t3)) = t1 | t2 | t3</p></li></ol>
+            </div><dt>See also</dt><dd><span class="cmt"><p><a href="And.html" class="extype" name="com.workflowfm.proter.flows.And">And</a></p></span></dd></dl></div>
+    </li><li name="com.workflowfm.proter.flows.Flow#seq" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="seq(l:Seq[com.workflowfm.proter.flows.Flow]):com.workflowfm.proter.flows.Flow"></a><a id="seq(Seq[Flow]):Flow"></a>
+      <span class="permalink">
+      <a href="../../../../com/workflowfm/proter/flows/Flow$.html#seq(l:Seq[com.workflowfm.proter.flows.Flow]):com.workflowfm.proter.flows.Flow" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">seq</span><span class="params">(<span name="l">l: <span class="extype" name="scala.Seq">Seq</span>[<a href="Flow.html" class="extype" name="com.workflowfm.proter.flows.Flow">Flow</a>]</span>)</span><span class="result">: <a href="Flow.html" class="extype" name="com.workflowfm.proter.flows.Flow">Flow</a></span>
+      </span>
+      
+      <p class="shortcomment cmt">Creates a sequence of a collection of <a href="Flow.html" class="extype" name="com.workflowfm.proter.flows.Flow">Flow</a>s.</p><div class="fullcomment"><div class="comment cmt"><p>Creates a sequence of a collection of <a href="Flow.html" class="extype" name="com.workflowfm.proter.flows.Flow">Flow</a>s.
+</p></div><dl class="paramcmts block"><dt class="param">l</dt><dd class="cmt"><p>The collection of <a href="Flow.html" class="extype" name="com.workflowfm.proter.flows.Flow">Flow</a>s</p></dd><dt>returns</dt><dd class="cmt"><p>A <a href="Flow.html" class="extype" name="com.workflowfm.proter.flows.Flow">Flow</a> that executes the given collection in sequence</p></dd></dl><dl class="attributes block"> <div class="block">Example:
+               <ol><li class="cmt"><p>Flow.seq(Seq(t1,t2,t3)) = t1 &gt; t2 &gt; t3</p></li></ol>
+            </div><dt>See also</dt><dd><span class="cmt"><p><a href="Then.html" class="extype" name="com.workflowfm.proter.flows.Then">Then</a></p></span></dd></dl></div>
     </li><li name="scala.AnyRef#synchronized" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="synchronized[T0](x$1:=&gt;T0):T0"></a><a id="synchronized[T0](⇒T0):T0"></a>
       <span class="permalink">
@@ -590,28 +596,6 @@
       </span>
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
-    </li><li name="scala.AnyRef#wait" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="wait():Unit"></a>
-      <span class="permalink">
-      <a href="../../../../com/workflowfm/proter/flows/Flow$.html#wait():Unit" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier">final </span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span class="name">wait</span><span class="params">()</span><span class="result">: <a href="https://www.scala-lang.org/api/2.12.12/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
-      </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
-                <span class="name">@throws</span><span class="args">(<span>
-      
-      <span class="defval" name="classOf[java.lang.InterruptedException]">...</span>
-    </span>)</span>
-              
-        </dd></dl></div>
     </li><li name="scala.AnyRef#wait" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="wait(x$1:Long,x$2:Int):Unit"></a><a id="wait(Long,Int):Unit"></a>
       <span class="permalink">
@@ -658,13 +642,62 @@
                 <span class="name">@native</span><span class="args">()</span>
               
         </dd></dl></div>
+    </li><li name="scala.AnyRef#wait" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="wait():Unit"></a>
+      <span class="permalink">
+      <a href="../../../../com/workflowfm/proter/flows/Flow$.html#wait():Unit" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier">final </span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">wait</span><span class="params">()</span><span class="result">: <a href="https://www.scala-lang.org/api/2.12.12/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+      </span>
+      
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">(<span>
+      
+      <span class="defval" name="classOf[java.lang.InterruptedException]">...</span>
+    </span>)</span>
+              
+        </dd></dl></div>
     </li>
               </ol>
             </div>
 
         
 
-        
+        <div class="values members">
+              <h3>Deprecated Value Members</h3>
+              <ol><li name="scala.AnyRef#finalize" visbl="prt" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="finalize():Unit"></a>
+      <span class="permalink">
+      <a href="../../../../com/workflowfm/proter/flows/Flow$.html#finalize():Unit" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name deprecated" title="Deprecated: ">finalize</span><span class="params">()</span><span class="result">: <a href="https://www.scala-lang.org/api/2.12.12/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+      </span>
+      
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<span class="extype" name="java.lang">lang</span>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">(<span>
+      
+      <span class="symbol">classOf[java.lang.Throwable]</span>
+    </span>)</span>
+              
+                <span class="name">@Deprecated</span>
+              
+        </dd><dt>Deprecated</dt><dd class="cmt"></dd></dl></div>
+    </li></ol>
+            </div>
         </div>
 
         <div id="inheritedMembers">

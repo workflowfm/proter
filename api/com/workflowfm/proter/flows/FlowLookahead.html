@@ -135,10 +135,6 @@
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../index.html" class="extype" name="com.workflowfm.proter">proter</a></dd></dl></div>
     </li><li class="current-entities indented4">
                         <span class="separator"></span>
-                        <a class="class" href="All.html" title=""></a>
-                        <a href="All.html" title="">All</a>
-                      </li><li class="current-entities indented4">
-                        <span class="separator"></span>
                         <a class="class" href="And.html" title=""></a>
                         <a href="And.html" title="">And</a>
                       </li><li class="current-entities indented4">
@@ -547,6 +543,8 @@ one or more completed <a href="../TaskInstance.html" class="extype" name="com.wo
               
                 <span class="name">@native</span><span class="args">()</span>
               
+                <span class="name">@HotSpotIntrinsicCandidate</span><span class="args">()</span>
+              
         </dd></dl></div>
     </li><li name="com.workflowfm.proter.LookingAhead#complete" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="react">
       <a id="complete(task:com.workflowfm.proter.TaskInstance,time:Long):Unit"></a><a id="complete(TaskInstance,Long):Unit"></a>
@@ -782,28 +780,6 @@ callbacks, then calling <code>runFlow</code>.
       
       <p class="shortcomment cmt">Declares that the simulation has failed or has been aborted.</p><div class="fullcomment"><div class="comment cmt"><p>Declares that the simulation has failed or has been aborted.
 </p></div><dl class="paramcmts block"><dt class="param">exception</dt><dd class="cmt"><p>The <code>Throwable</code> that caused the failure.</p></dd></dl><dl class="attributes block"> <dt>Definition Classes</dt><dd><a href="../Simulation.html" class="extype" name="com.workflowfm.proter.Simulation">Simulation</a></dd></dl></div>
-    </li><li name="scala.AnyRef#finalize" visbl="prt" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="finalize():Unit"></a>
-      <span class="permalink">
-      <a href="../../../../com/workflowfm/proter/flows/FlowLookahead.html#finalize():Unit" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier"></span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span class="name">finalize</span><span class="params">()</span><span class="result">: <a href="https://www.scala-lang.org/api/2.12.12/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
-      </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<span class="extype" name="java.lang">lang</span>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
-                <span class="name">@throws</span><span class="args">(<span>
-      
-      <span class="symbol">classOf[java.lang.Throwable]</span>
-    </span>)</span>
-              
-        </dd></dl></div>
     </li><li name="com.workflowfm.proter.flows.FlowSimulation#flow" visbl="prt" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="flow:com.workflowfm.proter.flows.Flow"></a><a id="flow:Flow"></a>
       <span class="permalink">
@@ -861,6 +837,8 @@ callbacks, then calling <code>runFlow</code>.
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd><dt>Annotations</dt><dd>
                 <span class="name">@native</span><span class="args">()</span>
               
+                <span class="name">@HotSpotIntrinsicCandidate</span><span class="args">()</span>
+              
         </dd></dl></div>
     </li><li name="com.workflowfm.proter.LookingAhead#getLookahead" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="act">
       <a id="getLookahead():com.workflowfm.proter.Lookahead"></a><a id="getLookahead():Lookahead"></a>
@@ -896,6 +874,8 @@ callbacks, then calling <code>runFlow</code>.
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd><dt>Annotations</dt><dd>
                 <span class="name">@native</span><span class="args">()</span>
+              
+                <span class="name">@HotSpotIntrinsicCandidate</span><span class="args">()</span>
               
         </dd></dl></div>
     </li><li name="scala.Any#isInstanceOf" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
@@ -997,6 +977,8 @@ callbacks, then calling <code>runFlow</code>.
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
                 <span class="name">@native</span><span class="args">()</span>
               
+                <span class="name">@HotSpotIntrinsicCandidate</span><span class="args">()</span>
+              
         </dd></dl></div>
     </li><li name="scala.AnyRef#notifyAll" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="notifyAll():Unit"></a>
@@ -1015,6 +997,8 @@ callbacks, then calling <code>runFlow</code>.
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
                 <span class="name">@native</span><span class="args">()</span>
+              
+                <span class="name">@HotSpotIntrinsicCandidate</span><span class="args">()</span>
               
         </dd></dl></div>
     </li><li name="com.workflowfm.proter.flows.FlowLookahead#parseFlow" visbl="prt" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
@@ -1047,7 +1031,7 @@ As it works through the flow tree, the algorithm does the following:</p><ol clas
      The preconditions (i.e. the IDFunction) of the left branch is the same as the preconditions of this node,
      however the preconditions of the right branch are that which is returned by the left branch (as opposed to
      the preconditions of this <code>Then</code> node). This is because, by our definition, the right branch happens _after_
-     the left branch, and hence the preconditions of the right branch is that the left branch is completed.</li><li>If the current node is an And, All, or Or node, it parses all its child nodes normally, since the child
+     the left branch, and hence the preconditions of the right branch is that the left branch is completed.</li><li>If the current node is an And, or Or node, it parses all its child nodes normally, since the child
      branches are independent.
 Then, depending on the node type, it returns a function and a lookahead structure. The lookahead structure contains
 the current lookahead entries, and may be combined with other structures later on. The IDFunction will be used
@@ -1060,10 +1044,10 @@ may start.</li><li>If our current node is a task (leaf node), then we create a n
      can be used to describe the prerequisites of future tasks.</li><li>If our current node is a Then, we only need to return the IDFunction of the right branch, since the left branch
      was already considered when parsing the right branch. For example, if you had a flow [A THEN B THEN C], we want to
      express that A is a prerequisite of B, and B is a prerequisite of C. It is unnecessary to say that A is a prerequisite
-     of C since it is already a prerequisite of B.</li><li>If our current node is an And or All, we need to combine the functions of all the child nodes. If all the child nodes
+     of C since it is already a prerequisite of B.</li><li>If our current node is an And, we need to combine the functions of all the child nodes. If all the child nodes
      are &quot;complete&quot; then this node is complete, hence if any child function returns None, this function should also return
-     None. Otherwise, the maximum value of the child functions is returned, since tasks that come after an And or an All
-     may only begin once all of the previous tasks have finished.</li><li>If our current node is an Or, the child node functions are also combined in a similar way to Ands and Alls, but this
+     None. Otherwise, the maximum value of the child functions is returned, since tasks that come after an And
+     may only begin once all of the previous tasks have finished.</li><li>If our current node is an Or, the child node functions are also combined in a similar way to Ands, but this
      time we return the minimum value of the child functions, since any task that comes after an Or may begin as soon as
      any of the branches in an Or are completed.
 It might be easier to picture this algorithim when given some examples. Please refer to the wiki for examples and more
@@ -1283,28 +1267,6 @@ that need to be called when the tasks complete.
       
       <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef → Any</dd></dl></div>
     </li><li name="scala.AnyRef#wait" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
-      <a id="wait():Unit"></a>
-      <span class="permalink">
-      <a href="../../../../com/workflowfm/proter/flows/FlowLookahead.html#wait():Unit" title="Permalink">
-        <i class="material-icons"></i>
-      </a>
-    </span>
-      <span class="modifier_kind">
-        <span class="modifier">final </span>
-        <span class="kind">def</span>
-      </span>
-      <span class="symbol">
-        <span class="name">wait</span><span class="params">()</span><span class="result">: <a href="https://www.scala-lang.org/api/2.12.12/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
-      </span>
-      
-      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
-                <span class="name">@throws</span><span class="args">(<span>
-      
-      <span class="defval" name="classOf[java.lang.InterruptedException]">...</span>
-    </span>)</span>
-              
-        </dd></dl></div>
-    </li><li name="scala.AnyRef#wait" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="wait(x$1:Long,x$2:Int):Unit"></a><a id="wait(Long,Int):Unit"></a>
       <span class="permalink">
       <a href="../../../../com/workflowfm/proter/flows/FlowLookahead.html#wait(x$1:Long,x$2:Int):Unit" title="Permalink">
@@ -1350,6 +1312,28 @@ that need to be called when the tasks complete.
                 <span class="name">@native</span><span class="args">()</span>
               
         </dd></dl></div>
+    </li><li name="scala.AnyRef#wait" visbl="pub" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="wait():Unit"></a>
+      <span class="permalink">
+      <a href="../../../../com/workflowfm/proter/flows/FlowLookahead.html#wait():Unit" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier">final </span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name">wait</span><span class="params">()</span><span class="result">: <a href="https://www.scala-lang.org/api/2.12.12/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+      </span>
+      
+      <div class="fullcomment"><dl class="attributes block"> <dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">(<span>
+      
+      <span class="defval" name="classOf[java.lang.InterruptedException]">...</span>
+    </span>)</span>
+              
+        </dd></dl></div>
     </li><li name="com.workflowfm.proter.Simulation#waiting" visbl="prt" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
       <a id="waiting:scala.collection.mutable.HashSet[java.util.UUID]"></a><a id="waiting:HashSet[UUID]"></a>
       <span class="permalink">
@@ -1392,7 +1376,34 @@ that need to be called when the tasks complete.
 
         
 
-        
+        <div class="values members">
+              <h3>Deprecated Value Members</h3>
+              <ol><li name="scala.AnyRef#finalize" visbl="prt" class="indented0 " data-isabs="false" fullComment="yes" group="Ungrouped">
+      <a id="finalize():Unit"></a>
+      <span class="permalink">
+      <a href="../../../../com/workflowfm/proter/flows/FlowLookahead.html#finalize():Unit" title="Permalink">
+        <i class="material-icons"></i>
+      </a>
+    </span>
+      <span class="modifier_kind">
+        <span class="modifier"></span>
+        <span class="kind">def</span>
+      </span>
+      <span class="symbol">
+        <span class="name deprecated" title="Deprecated: ">finalize</span><span class="params">()</span><span class="result">: <a href="https://www.scala-lang.org/api/2.12.12/scala/Unit.html#scala.Unit" class="extype" name="scala.Unit">Unit</a></span>
+      </span>
+      
+      <div class="fullcomment"><dl class="attributes block"> <dt>Attributes</dt><dd>protected[<span class="extype" name="java.lang">lang</span>] </dd><dt>Definition Classes</dt><dd>AnyRef</dd><dt>Annotations</dt><dd>
+                <span class="name">@throws</span><span class="args">(<span>
+      
+      <span class="symbol">classOf[java.lang.Throwable]</span>
+    </span>)</span>
+              
+                <span class="name">@Deprecated</span>
+              
+        </dd><dt>Deprecated</dt><dd class="cmt"></dd></dl></div>
+    </li></ol>
+            </div>
         </div>
 
         <div id="inheritedMembers">
