@@ -52,6 +52,7 @@ class NoTask() extends Flow { // this can't be a case class/object because of th
 
 class FlowTask(t: Task) extends Flow {
   override val id: UUID = t.id.getOrElse(UUID.randomUUID)
+  override def toString(): String = t.name
   val task: Task = t.withID(id) // make sure the task has an ID
 
   override def copy(): Flow = new FlowTask(task.withID(UUID.randomUUID))
@@ -59,12 +60,14 @@ class FlowTask(t: Task) extends Flow {
 
 class Then(val left: Flow, val right: Flow) extends Flow {
   override def copy(): Flow = new Then(left.copy(), right.copy())
+  override def toString(): String = "(" + left.toString + " > " + right.toString + ")"
 
   override def >(f: Flow): Then = new Then(left, right > f) // make > right associative
 }
 
 class And(val left: Flow, val right: Flow) extends Flow {
   override def copy(): Flow = new And(left.copy(), right.copy())
+  override def toString(): String = "(" + left.toString + " + " + right.toString + ")"
 }
 
 class Or(val left: Flow, val right: Flow) extends Flow {
@@ -328,5 +331,59 @@ class FlowSimulationGenerator(baseName: String, flow: Flow) extends SimulationGe
   override def build(manager: Manager, count: Int): Simulation = {
     val name = baseName + count.toString()
     new FlowSimulation(name, manager, flow.copy())
+  }
+}
+
+  /**
+    * Factory for making random flows given some parameters
+    *
+    * @param andProbability Probability that a flow node is an AND. Must in range [0,1]
+    * @param resources The list of available resources
+    * @param numTasks Distribution determining the number of tasks in the flow
+    * @param durationTasks Distribution determining task duration
+    * @param numResources Distribution determining number of resources
+    * @param cost Distribution determining cost of a task
+    * @param priority Distribution determining priority of a task
+    */
+case class RandomFlowFactory(
+    andProbability: Float, //balance between and and then nodes
+    resources: Seq[TaskResource],
+    numTasks: Distribution = Constant(1),
+    durationTasks: Distribution = Constant(1),
+    numResources: Distribution = Constant(1),
+    cost: Distribution = Constant(0),
+    priority: Distribution = Uniform(-2,2)
+) {
+
+  def withResources(r: Seq[TaskResource]): RandomFlowFactory = copy(resources=r)
+  def withTasks(d: Distribution): RandomFlowFactory = copy(numTasks=d)
+  def withDurations(d: Distribution): RandomFlowFactory = copy(durationTasks=d)
+  def withNumResources(d: Distribution): RandomFlowFactory = copy(numResources=d)
+  def withRandomPriority(d: Distribution): RandomFlowFactory = copy(priority=d)
+
+  def newFlow(): Flow = {
+    val goal: Int = Math.round(numTasks.get).toInt
+    randomNode(goal, 1)
+  }
+
+  protected def randomNode(num: Int, name: Int): Flow = {
+    num match {
+      case 1 => randomTask(name)
+      case _ => {
+        val leftNum = Math.round(Uniform(1, num-1).get).toInt
+        if (new util.Random().nextDouble <= andProbability) {
+          new And(randomNode(leftNum, name), randomNode(num-leftNum, name+leftNum))
+        } else {
+          new Then(randomNode(leftNum, name), randomNode(num-leftNum, name+leftNum))
+        }
+      }
+    }
+  }
+
+  protected def randomTask(name:Int): FlowTask = {
+    val numberOfResources = Math.round(numResources.get).toInt
+    val possibleResources = resources.combinations(numberOfResources).toSeq
+    val selectedResources = possibleResources(new util.Random().nextInt(possibleResources.length))
+    new FlowTask(Task("task"+name.toString,durationTasks.getLong).withResources(selectedResources.map(_.name)).withCost(cost.get).withPriority(Math.round(priority.get).toInt))
   }
 }
