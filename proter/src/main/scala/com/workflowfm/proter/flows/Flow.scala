@@ -52,6 +52,7 @@ class NoTask() extends Flow { // this can't be a case class/object because of th
 
 class FlowTask(t: Task) extends Flow {
   override val id: UUID = t.id.getOrElse(UUID.randomUUID)
+  override def toString(): String = t.name
   val task: Task = t.withID(id) // make sure the task has an ID
 
   override def copy(): Flow = new FlowTask(task.withID(UUID.randomUUID))
@@ -59,12 +60,14 @@ class FlowTask(t: Task) extends Flow {
 
 class Then(val left: Flow, val right: Flow) extends Flow {
   override def copy(): Flow = new Then(left.copy(), right.copy())
+  override def toString(): String = "(" + left.toString + " > " + right.toString + ")"
 
   override def >(f: Flow): Then = new Then(left, right > f) // make > right associative
 }
 
 class And(val left: Flow, val right: Flow) extends Flow {
   override def copy(): Flow = new And(left.copy(), right.copy())
+  override def toString(): String = "(" + left.toString + " + " + right.toString + ")"
 }
 
 class Or(val left: Flow, val right: Flow) extends Flow {
