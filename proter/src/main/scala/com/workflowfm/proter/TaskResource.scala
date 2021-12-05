@@ -26,36 +26,46 @@ import java.util.UUID
   * @param name The name of the resource.
   * @param costPerTick The cost of using the resource per unit of time.
   */
-class TaskResource(val name: String, val costPerTick: Double) {
+class TaskResource(val name: String, val costPerTick: Double, val capacity: Double = 1) {
   /**
     * Some [[TaskInstance]] currently attached to the resource, or [[scala.None]] if idle.
     */
-  var currentTask: Option[(Long, TaskInstance)] = None
+  var currentTasks: scala.collection.mutable.Map[UUID, (Long, TaskInstance)] = scala.collection.mutable.Map()
 
   /**
     * True if the resource is idle, false otherwise.
     *
     * @return true if the resource is idle, false otherwise.
     */
-  def isIdle: Boolean = currentTask == None
+  def hasSpace: Boolean = {
+    println("hasSpace. size" + currentTasks.size + " and capacity " + capacity)
+    currentTasks.size < capacity
+  }
+
+  def remainingSpace: Double = {
+    capacity - currentTasks.size
+  }
 
   /**
-    * Detaches the current [[TaskInstance]] (if any) if it has completed.
+    * Detaches the specified [[TaskInstance]] (if any) if it has completed.
     *
     * Checks to ensure the task is completed with respect to the current time and the task duration.
     *
     * Does not do anything to the task itself. It merely detaches it and becomes idle.
     *
+    * @param id The `UUID` of the task to finish.
     * @param currentTime The current (virtual) time.
     * @return The [[TaskInstance]] that was detached, if any.
     */
-  def finishTask(currentTime: Long): Option[TaskInstance] = currentTask match {
-    case None => None
-    case Some((startTime, task)) =>
-      if (currentTime >= startTime + task.duration) {
-        currentTask = None
+  def finishTask(id: UUID, currentTime: Long): Option[TaskInstance] = {
+    if (currentTasks.keySet.contains(id)) {
+      val task = currentTasks.get(id).get._2
+      if (currentTime >= currentTasks.get(id).get._1 + task.duration) {
+        currentTasks -= id
         Some(task)
       } else None
+    }
+    else None
   }
 
   /**
@@ -67,13 +77,12 @@ class TaskResource(val name: String, val costPerTick: Double) {
     * @return The starting time and [[TaskInstance]] if it was aborted successfully or [[scala.None None]] in any other case.
     */
   def abortTask(id: UUID): Option[(Long, TaskInstance)] = {
-    currentTask match {
-      case Some((startTime, task)) if task.id == id => {
-        currentTask = None
-        Some((startTime, task))
-      }
-      case _ => None
+    if (currentTasks.keySet.contains(id)) {
+      val time_task_tuple = currentTasks(id)
+      currentTasks -= id
+      Some(time_task_tuple)
     }
+    else None
   }
 
   /**
@@ -85,13 +94,9 @@ class TaskResource(val name: String, val costPerTick: Double) {
     * @return The starting time and [[TaskInstance]] if it was aborted successfully or [[scala.None None]] in any other case.
     */
   def abortSimulation(simulation: String): Option[(Long, TaskInstance)] = {
-    currentTask match {
-      case Some((startTime, task)) if task.simulation == simulation => {
-        currentTask = None
-        Some((startTime, task))
-      }
-      case _ => None
-    }
+    currentTasks = scala.collection.mutable.Map()
+    //TODO: find a way to return all aborted tasks
+    None
   }
 
   /**
@@ -106,14 +111,13 @@ class TaskResource(val name: String, val costPerTick: Double) {
     *         was already attached before
     */
   def startTask(task: TaskInstance, currentTime: Long): Option[TaskInstance] = {
-    currentTask match {
-      case None => {
-        currentTask = Some(currentTime, task)
-        None
-      }
-      case Some((_, currentTask)) => {
-        Some(currentTask)
-      }
+    if (capacity - currentTasks.size >= 1) {
+      currentTasks + (task.id -> (currentTime, task)) 
+      None
+    }
+    else {
+      //TODO find a way to handle this properly
+      None
     }
   }
 
@@ -129,10 +133,10 @@ class TaskResource(val name: String, val costPerTick: Double) {
     * @param currentTime
     * @return the estimated earliest time the resource will become available
     */
-  def nextAvailableTimestamp(currentTime: Long): Long = currentTask match {
-    case None => currentTime
-    case Some((startTime, t)) => {
-      startTime + t.estimatedDuration
+  def nextAvailableTimestamp(currentTime: Long): Long = {
+    if (currentTasks.size < capacity) currentTime
+    else {
+      currentTasks.values.map{ x => x._1 + x._2.estimatedDuration }.reduceLeft(_ min _)
     }
   }
 }

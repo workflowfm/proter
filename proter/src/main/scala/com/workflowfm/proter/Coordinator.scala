@@ -285,7 +285,7 @@ class Coordinator(
         } else {
           waitFor(task.simulation)
           // Unbind the resources
-          task.taskResources(resourceMap).foreach(detach)
+          task.taskResources(resourceMap).map(detach(task.id,_))
           Some(task)
         }
       }
@@ -588,10 +588,11 @@ class Coordinator(
     * publishes a [[com.workflowfm.proter.events.ETaskDetach ETaskDetach]].
     *
     * @group resources
+    * @param taskID The ID of the task to detach
     * @param r The [[TaskResource]] to free up.
     */
-  protected def detach(r: TaskResource): Unit = {
-    r.finishTask(time) match {
+  protected def detach(taskID: UUID, r: TaskResource): Unit = {
+    r.finishTask(taskID, time) match {
       case None => Unit
       case Some(task) => publish(ETaskDetach(id, time, task, r.name, r.costPerTick * task.duration))
     }

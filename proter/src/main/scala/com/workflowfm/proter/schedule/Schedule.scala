@@ -142,10 +142,8 @@ object Schedule {
     * @param r The [[TaskResource]] to schedule for.
     * @return The initialised schedule.
     */
-  def apply(r: TaskResource): Schedule = r.currentTask match {
-    case None => Schedule()
-    case Some((s, t)) => Schedule((s, s + t.estimatedDuration) :: Nil)
-  }
+  def apply(r: TaskResource): Schedule =
+    r.currentTasks.values.foldLeft(Schedule()){ (s, task) => s +> (task._1, task._2.estimatedDuration)}
 
   /**
     * Adds an interval to a list of intervals.
