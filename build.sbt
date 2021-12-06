@@ -1,3 +1,5 @@
+import com.workflowfm.proter.Dependencies
+
 val Http4sVersion = "0.23.6"
 val CirceVersion = "0.14.1"
 val MunitVersion = "0.7.29"
@@ -29,5 +31,26 @@ lazy val root = (project in file("."))
   )
 
 lazy val commonSettings = Seq(
-  scalacOptions += "-Ypartial-unification"
+  scalacOptions += "-Ypartial-unification",
+  scalaVersion := Dependencies.scalaVer,
+
+  semanticdbEnabled := true,
+  semanticdbVersion := scalafixSemanticdb.revision,
+
+  scalacOptions += "-Ywarn-unused", // required by `RemoveUnused` rule
+  autoAPIMappings := true,
+  Compile / doc / scalacOptions ++= Seq("-groups", "-implicits", "-diagrams", "-diagrams-debug"),
 )
+
+inThisBuild(List(
+  organization := "com.workflowfm",
+  organizationName := "WorkflowFM",
+  organizationHomepage := Some(url("http://www.workflowfm.com/")),
+  homepage := Some(url("http://www.workflowfm.com/proter/")),
+  description := "Proter frontend and API",
+  licenses := Seq("APL2" -> url("http://www.apache.org/licenses/LICENSE-2.0.txt")),
+  
+  dynverSonatypeSnapshots := true,
+
+  scalafixDependencies += Dependencies.sortImports,
+))
