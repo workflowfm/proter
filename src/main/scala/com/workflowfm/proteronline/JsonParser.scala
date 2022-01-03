@@ -20,9 +20,9 @@ case class IArrival(simulation: ISimulation, numberOfRuns: Int)
 case class ISimulation(name: String, flow: IFlow)
 case class IFlow(tasks: List[ITask], ordering: String)
 
-case class ITask(name: String, duration: Int, cost: Int, resources: String) {
+case class ITask(name: String, duration: Int, cost: Int, resources: String, priority: Int) {
   def toProterTask(): Task = {
-    proter.Task(this.name, Constant(this.duration.toDouble)).withCost(this.cost.toDouble).withResources(this.resources.split(","))
+    proter.Task(this.name, Constant(this.duration.toDouble)).withCost(this.cost.toDouble).withResources(this.resources.split(",")).withPriority(this.priority)
   }
 }
 
@@ -125,9 +125,8 @@ class JsonParser {
 
 object Test {
 
-  val sampleInputData = "{ \"Arrival\": {\"Simulation\": {\"Name\": \"Example Name\", \"Flow\":{ \"Tasks\": [{\"Name\": \"Get Order\",\"Duration\": 1,\"Cost\": 0,\"Resources\": \"2\"},{\"Name\": \"Cook\",\"Duration\": 10,\"Cost\": 4,\"Resources\": \"2\"},{\"Name\": \"Serve\",\"Duration\": 1,\"Cost\": 0,\"Resources\": \"2\"}], \"Ordering\": \"A->B->C\"} }, \"Number of Runs\": 10},\"Resources\": [{\"Name\": \"Waiter1\",\"CostPerTick\": 2},{\"Name\": \"Waiter2\",\"CostPerTick\": 2},{\"Name\": \"Chef\",\"CostPerTick\": 5}]}"
 
-  val betterSampleData: String = "{ \"arrival\": {\"simulation\": {\"name\": \"Example Name\", \"flow\":{ \"tasks\": [{\"name\": \"A\",\"duration\": 1,\"cost\": 2,\"resources\": \"R1\"},{\"name\": \"B\",\"duration\": 3,\"cost\": 5,\"resources\": \"R2\"},{\"name\": \"C\",\"duration\": 1,\"cost\": 6,\"resources\": \"R1,R2\"}], \"ordering\": \"A->B->C\"} }, \"numberOfRuns\": 17},\"resources\": [{\"name\": \"R1\",\"costPerTick\": 1},{\"name\": \"R2\",\"costPerTick\": 2}]}"
+  val betterSampleData: String = "{ \"arrival\": {\"simulation\": {\"name\": \"Example Name\", \"flow\":{ \"tasks\": [{\"name\": \"A\",\"duration\": 2,\"cost\": 2,\"resources\": \"R1\",\"priority\": 2},{\"name\": \"B\",\"duration\": 3,\"cost\": 55,\"resources\": \"R2\",\"priority\": -2}], \"ordering\": \"A->B\"} }, \"numberOfRuns\": 1},\"resources\": [{\"name\": \"R1\",\"costPerTick\": 2},{\"name\": \"R2\",\"costPerTick\": 3}]}"
   
   implicit val requestDecoder1: Decoder[IRequest] = deriveDecoder[IRequest]
   implicit val requestDecoder2: Decoder[IArrival] = deriveDecoder[IArrival]
