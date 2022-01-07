@@ -19,14 +19,16 @@ trait Manager {
     *
     * The manager needs to wait for that simulation to send a [[SimResponse]].
     *
-    * @param simulation The name of the [[SimulationRef]] we need to wait for.
+    * @param simulation
+    *   The name of the [[SimulationRef]] we need to wait for.
     */
   def waitFor(simulation: String): Unit
 
   /**
     * Handles a [[SimResponse]] from a simulation.
     *
-    * @param response The [[SimResponse]] to handle.
+    * @param response
+    *   The [[SimResponse]] to handle.
     */
   def simResponse(response: SimResponse): Unit
 }
@@ -36,20 +38,26 @@ trait Manager {
   *
   * Default implementation of [[Manager]].
   *
-  * It can run in a single thread or multi-threaded depending on the `singleThread`
-  * constructor parameter. In the multi-threaded setting, task completions are
-  * reported to the simulations asynchronously through a new thread (`Future`)
-  * each time. This allows simulations to run things concurrently, with the added overhead
-  * of thread spawning.
+  * It can run in a single thread or multi-threaded depending on the `singleThread` constructor
+  * parameter. In the multi-threaded setting, task completions are reported to the simulations
+  * asynchronously through a new thread (`Future`) each time. This allows simulations to run things
+  * concurrently, with the added overhead of thread spawning.
   *
-  * @groupname tasks Managing tasks
-  * @groupname simulations Managing simulations
-  * @groupname resources Managing resources
-  * @groupname toplevel Top level
+  * @groupname tasks
+  *   Managing tasks
+  * @groupname simulations
+  *   Managing simulations
+  * @groupname resources
+  *   Managing resources
+  * @groupname toplevel
+  *   Top level
   *
-  * @param scheduler The [[schedule.Scheduler Scheduler]] responsible for task allocation at any given time.
-  * @param singleThread Flag to run everything in a single thread or else use `Future`s.
-  * @param startingTime The starting timestamp of the entire simulation.
+  * @param scheduler
+  *   The [[schedule.Scheduler Scheduler]] responsible for task allocation at any given time.
+  * @param singleThread
+  *   Flag to run everything in a single thread or else use `Future`s.
+  * @param startingTime
+  *   The starting timestamp of the entire simulation.
   */
 class Coordinator(
     scheduler: Scheduler,
@@ -79,8 +87,8 @@ class Coordinator(
   protected var started: Boolean = false
 
   /**
-    * Flag to prevent continuing the virtual time before we have notified
-    * all simulations about completed tasks in the current time.
+    * Flag to prevent continuing the virtual time before we have notified all simulations about
+    * completed tasks in the current time.
     *
     * @group toplevel
     */
@@ -110,8 +118,7 @@ class Coordinator(
   protected val simulations: Map[String, SimulationRef] = Map[String, SimulationRef]()
 
   /**
-    * Priority queue of [[DiscreteEvent]]s to be processed,
-    * ordered by (future) timestamp.
+    * Priority queue of [[DiscreteEvent]]s to be processed, ordered by (future) timestamp.
     *
     * @group toplevel
     */
@@ -123,8 +130,8 @@ class Coordinator(
     * Set of [[Task]] IDs that have been aborted.
     *
     * This allows us to skip [[FinishingTask]] events for aborted tasks. We cannot remove those
-    * events from the middle of the priority queue, so this is a computationally cheap way
-    * to handle this.
+    * events from the middle of the priority queue, so this is a computationally cheap way to handle
+    * this.
     *
     * @group tasks
     */
@@ -140,7 +147,8 @@ class Coordinator(
     * Returns the current virtual time.
     *
     * @group toplevel
-    * @return The current virtual time.
+    * @return
+    *   The current virtual time.
     */
   def getTime(): Long = time
 
@@ -148,7 +156,8 @@ class Coordinator(
     * Add a new [[TaskResource]] to our map of available resources.
     *
     * @group resources
-    * @param r The [[TaskResource]] to be added.
+    * @param r
+    *   The [[TaskResource]] to be added.
     */
   def addResource(r: TaskResource): Unit = this.synchronized {
     if (!resourceMap.contains(r.name)) {
@@ -161,7 +170,8 @@ class Coordinator(
     * Add multiple [[TaskResource]]s in one go.
     *
     * @group resources
-    * @param r The sequence of [[TaskResource]]s to be added.
+    * @param r
+    *   The sequence of [[TaskResource]]s to be added.
     */
   def addResources(r: Seq[TaskResource]): Unit = r foreach addResource
 
@@ -171,8 +181,9 @@ class Coordinator(
     * Sequentially builds a `Seq` as it dequeues the events from the event queue.
     *
     * @group toplevel
-    * @param t The given timestamp to look out for. We assume it is less than or equal to
-    *          the timestamp of the first [[DiscreteEvent]] in the queue.
+    * @param t
+    *   The given timestamp to look out for. We assume it is less than or equal to the timestamp of
+    *   the first [[DiscreteEvent]] in the queue.
     */
   protected def dequeueEvents(t: Long): Seq[DiscreteEvent] = {
     val elems = scala.collection.immutable.Seq.newBuilder[DiscreteEvent]
@@ -185,21 +196,20 @@ class Coordinator(
   /**
     * Progress virtual time by processing the next [[DiscreteEvent]] in the queue.
     *
-    * This is called when we are done waiting for any simulations to respond.
-    * We take the first event from the queue and then use [[dequeueEvents]] to get
-    * all events with the same timestamp.
+    * This is called when we are done waiting for any simulations to respond. We take the first
+    * event from the queue and then use [[dequeueEvents]] to get all events with the same timestamp.
     *
-    *  - First, [[filterFinishingTasks]] releases all resources that are no longer in use.
-    *   It is useful to do this before notifying task completion to ensure all simulations can know the
-    *   correct state of the resources if they need to.
-    *   It also adds the simulations to the waiting list to ensure we will wait for all of them.
-    *  - We then handle finishing tasks, grouped by simulation, with [[stopTasks]].
-    *  - All other events are then handled via [[handleDiscreteEvent]].
-    *  - If there are no events, no tasks to run, and all simulations have finished, the whole
-    *   simulation is done, so we [[finish]].
-    *  - If there are no events and no simulations to wait for, but there are still tasks to run, we
-    *   attempt to allocate and run them. This may happen if something breaks when handling a previous
-    *   event.
+    *   - First, [[filterFinishingTasks]] releases all resources that are no longer in use. It is
+    *     useful to do this before notifying task completion to ensure all simulations can know the
+    *     correct state of the resources if they need to. It also adds the simulations to the
+    *     waiting list to ensure we will wait for all of them.
+    *   - We then handle finishing tasks, grouped by simulation, with [[stopTasks]].
+    *   - All other events are then handled via [[handleDiscreteEvent]].
+    *   - If there are no events, no tasks to run, and all simulations have finished, the whole
+    *     simulation is done, so we [[finish]].
+    *   - If there are no events and no simulations to wait for, but there are still tasks to run,
+    *     we attempt to allocate and run them. This may happen if something breaks when handling a
+    *     previous event.
     *
     * @group toplevel
     */
@@ -242,16 +252,16 @@ class Coordinator(
     } else if (waiting.isEmpty && !scheduler.noMoreTasks()) { // this may happen if handleDiscreteEvent fails
       allocateTasks()
       tick()
-    } //else {
-    //publish(EError(self, time, "No tasks left to run, but simulations have not finished."))
-    //}
+    } // else {
+    // publish(EError(self, time, "No tasks left to run, but simulations have not finished."))
+    // }
   }
 
   /**
     * Allocates the tasks due to start next to their resources.
     *
-    * Asks the [[schedule.Scheduler Scheduler]] to determine what tasks need to start next.
-    * Removes each of them from the queue and runs them using [[startTask]].
+    * Asks the [[schedule.Scheduler Scheduler]] to determine what tasks need to start next. Removes
+    * each of them from the queue and runs them using [[startTask]].
     *
     * @group resources
     */
@@ -264,17 +274,18 @@ class Coordinator(
   }
 
   /**
-    * Filters finishing tasks, releases resources that are no longer used
-    * and adds simulations to the waiting list.
+    * Filters finishing tasks, releases resources that are no longer used and adds simulations to
+    * the waiting list.
     *
     * If the provided event is a [[FinishingTask]] event, i.e. a [[TaskInstance]] just finished,
-    * this means the resources used by that [[TaskInstance]] can now be released and
-    * that we should wait for a response from their respective simulations.
+    * this means the resources used by that [[TaskInstance]] can now be released and that we should
+    * wait for a response from their respective simulations.
     *
     * Other [[DiscreteEvent]]s are just ignored.
     *
     * @group resources
-    * @param event The potential [[FinishingTask]].
+    * @param event
+    *   The potential [[FinishingTask]].
     */
   protected def filterFinishingTasks(event: DiscreteEvent): Option[TaskInstance] = {
     event match {
@@ -299,10 +310,10 @@ class Coordinator(
     * @param event
     */
   protected def handleDiscreteEvent(event: DiscreteEvent): Unit = {
-    //log.debug(s"[COORD:$time] Event!")
+    // log.debug(s"[COORD:$time] Event!")
     event match {
       // A task is finished, but we handle this elsewhere
-      case FinishingTask(t, task) if (t == time) => Unit
+      case FinishingTask(t, _) if (t == time) => Unit
 
       // A simulation (workflow) is starting now
       case StartingSim(t, sim) if (t == time) => startSimulation(sim)
@@ -311,7 +322,7 @@ class Coordinator(
 
       case arrival @ Arrival(t, _, simulationGenerator, limit, count) if (t == time) =>
         if (limit.map(_ > count).getOrElse(true)) {
-          events += arrival.next() //replicate self
+          events += arrival.next() // replicate self
           startSimulation(simulationGenerator.build(this, count))
         }
 
@@ -325,9 +336,11 @@ class Coordinator(
     * Publishes a [[com.workflowfm.proter.events.ESimAdd ESimAdd]].
     *
     * @group simulations
-    * @param t The timestamp when the simulation needs to start. Must be greater or equal to the current
-    *          time.
-    * @param simulation The [[Simulation]] to run.
+    * @param t
+    *   The timestamp when the simulation needs to start. Must be greater or equal to the current
+    *   time.
+    * @param simulation
+    *   The [[Simulation]] to run.
     */
   def addSimulation(t: Long, simulation: SimulationRef): Unit = this.synchronized {
     publish(ESimAdd(id, time, simulation.name, t))
@@ -340,7 +353,8 @@ class Coordinator(
     * Publishes a [[com.workflowfm.proter.events.ESimAdd ESimAdd]] for each simulation.
     *
     * @group simulations
-    * @param simulation The [[Simulation]] to run.
+    * @param simulation
+    *   The [[Simulation]] to run.
     */
   def addSimulationNow(simulation: SimulationRef): Unit = addSimulation(time, simulation)
 
@@ -350,18 +364,19 @@ class Coordinator(
     * This is equivalent to mapping [[addSimulation]] over the given sequence, but more efficient.
     *
     * @group simulations
-    * @param sims A sequence of pairs, each consisting of a starting timestamp and a
-    * [[Simulation]]. Timestamps must be greater or equal to the current time.
+    * @param sims
+    *   A sequence of pairs, each consisting of a starting timestamp and a [[Simulation]].
+    *   Timestamps must be greater or equal to the current time.
     */
   def addSimulations(sims: Seq[(Long, SimulationRef)]): Unit = this.synchronized {
-    events ++= sims.flatMap {
-      case (t, sim) => {
-          publish(ESimAdd(id, time, sim.name, t))
-        }
-        if (t >= time)
-          Some(StartingSim(t, sim))
-        else
-          None
+    events ++= sims.flatMap { case (t, sim) =>
+      {
+        publish(ESimAdd(id, time, sim.name, t))
+      }
+      if (t >= time)
+        Some(StartingSim(t, sim))
+      else
+        None
     }
   }
 
@@ -369,7 +384,8 @@ class Coordinator(
     * Add multiple simulations to be run in the current virtual time.
     *
     * @group simulations
-    * @param sims A sequence of [[Simulation]]s.
+    * @param sims
+    *   A sequence of [[Simulation]]s.
     */
   def addSimulationsNow(sims: Seq[SimulationRef]): Unit = addSimulations(sims.map((time, _)))
 
@@ -382,7 +398,8 @@ class Coordinator(
     * Publishes a [[com.workflowfm.proter.events.ESimStart ESimStart]].
     *
     * @group simulations
-    * @param simulation The [[Simulation]] to start.
+    * @param simulation
+    *   The [[Simulation]] to start.
     */
   protected def startSimulation(simulation: SimulationRef): Unit = {
     waitFor(simulation.name)
@@ -394,41 +411,44 @@ class Coordinator(
   /**
     * Stops a simulation when it is done.
     *
-    *  - Removes the simulation from the list of running simulations and the waiting list.
-    *  - Removes any [[Lookahead]] from the [[schedule.Scheduler Scheduler]].
-    *  - Publishes a [[com.workflowfm.proter.events.ESimEnd ESimEnd]].
-    *  - Calls [[ready]] to handle the fact that we no longer need to wait for this simulation.
+    *   - Removes the simulation from the list of running simulations and the waiting list.
+    *   - Removes any [[Lookahead]] from the [[schedule.Scheduler Scheduler]].
+    *   - Publishes a [[com.workflowfm.proter.events.ESimEnd ESimEnd]].
+    *   - Calls [[ready]] to handle the fact that we no longer need to wait for this simulation.
     *
     * @group simulations
-    * @param name The name of the completed simulation.
-    * @param result A string representation of the output of the simulation.
+    * @param name
+    *   The name of the completed simulation.
+    * @param result
+    *   A string representation of the output of the simulation.
     */
   protected def stopSimulation(name: String, result: String): Unit = {
     simulations -= name
     waiting -= name
     scheduler.removeLookahead(name)
     publish(ESimEnd(id, time, name, result))
-    //log.debug(s"[COORD:$time] Finished: [$name]")
+    // log.debug(s"[COORD:$time] Finished: [$name]")
     ready(name)
   }
 
   /**
     * Stops/aborts a simulation before it is done.
     *
-    *  - Removes the simulation from the list of running simulations and from the waiting list.
-    *  - Detaches all tasks of the simulation from the resources and adds them to the abort list.
-    *  - Publishes a [[com.workflowfm.proter.events.ETaskAbort ETaskAbort]] for each aborted task
-    *    and associated [[com.workflowfm.proter.events.ETaskDetach ETaskDetach]] for each released
-    *    resource.
-    *  - Removes all queued tasks of the simulation from the scheduler.
-    *  - Publishes a [[com.workflowfm.proter.events.ESimEnd ESimEnd]].
-    *  - Asks the simulation to stop.
-    *  - Does '''not''' progress time.
+    *   - Removes the simulation from the list of running simulations and from the waiting list.
+    *   - Detaches all tasks of the simulation from the resources and adds them to the abort list.
+    *   - Publishes a [[com.workflowfm.proter.events.ETaskAbort ETaskAbort]] for each aborted task
+    *     and associated [[com.workflowfm.proter.events.ETaskDetach ETaskDetach]] for each released
+    *     resource.
+    *   - Removes all queued tasks of the simulation from the scheduler.
+    *   - Publishes a [[com.workflowfm.proter.events.ESimEnd ESimEnd]].
+    *   - Asks the simulation to stop.
+    *   - Does '''not''' progress time.
     *
     * The bookkeeping assumes the rest of the simulation(s) can still proceed.
     *
     * @group simulations
-    * @param simulation The [[Simulation]] to stop.
+    * @param simulation
+    *   The [[Simulation]] to stop.
     */
   protected def abortSimulation(simulation: SimulationRef): Unit = {
     val name = simulation.name
@@ -463,7 +483,7 @@ class Coordinator(
     scheduler.removeSimulation(name)
 
     publish(ESimEnd(id, time, name, "[Simulation Aborted]"))
-    //log.debug(s"[COORD:$time] Aborted: [$name]")
+    // log.debug(s"[COORD:$time] Aborted: [$name]")
     simulation.stop()
   }
 
@@ -480,14 +500,17 @@ class Coordinator(
   /**
     * Adds new [[Task]](s) for a simulation.
     *
-    *  - Uses [[Task.create]] to create a [[TaskInstance]], which will now have a fixed duration and cost.
-    *  - Publishes a [[com.workflowfm.proter.events.ETaskAdd ETaskAdd]].
-    *  - If the task does not require any resources, it is started immediately using [[startTask]].
-    * Otherwise, we add it to the [[schedule.Scheduler Scheduler]].
+    *   - Uses [[Task.create]] to create a [[TaskInstance]], which will now have a fixed duration
+    *     and cost.
+    *   - Publishes a [[com.workflowfm.proter.events.ETaskAdd ETaskAdd]].
+    *   - If the task does not require any resources, it is started immediately using [[startTask]].
+    *     Otherwise, we add it to the [[schedule.Scheduler Scheduler]].
     *
     * @group tasks
-    * @param simulation The name of the [[Simulation]] that owns the task(s).
-    * @param task The list of [[Task]]s to be added.
+    * @param simulation
+    *   The name of the [[Simulation]] that owns the task(s).
+    * @param task
+    *   The list of [[Task]]s to be added.
     */
   protected def addTask(simulation: String, task: Seq[Task]): Unit = {
     task foreach { t =>
@@ -496,10 +519,10 @@ class Coordinator(
         val inst: TaskInstance = t.create(simulation, time)
 
         // Calculate the cost of all resource usage. We only know this now!
-        //val resourceCost = (0L /: inst.taskResources(resourceMap)) {
+        // val resourceCost = (0L /: inst.taskResources(resourceMap)) {
         //  case (c, r) => c + r.costPerTick * inst.duration
-        //}
-        //inst.addCost(resourceCost)
+        // }
+        // inst.addCost(resourceCost)
 
         publish(ETaskAdd(id, time, inst))
 
@@ -515,19 +538,22 @@ class Coordinator(
   /**
     * Start a [[TaskInstance]] at the current timestamp.
     *
-    * A [[TaskInstance]] is started when scheduled by the [[schedule.Scheduler Scheduler]].
-    * This assumes all the [[TaskResource]]s it needs are available.
+    * A [[TaskInstance]] is started when scheduled by the [[schedule.Scheduler Scheduler]]. This
+    * assumes all the [[TaskResource]]s it needs are available.
     *
-    *  - Publishes a [[com.workflowfm.proter.events.ETaskAdd ETaskAdd]].
-    *  - Calls [[TaskResource.startTask]] for each involved [[TaskResource]] to attach this [[TaskInstance]]
-    *    to them. Publishes a [[com.workflowfm.proter.events.ETaskAttach ETaskAttach]] for each successful attachment.
-    *    Otherwise publishes an appropriate [[com.workflowfm.proter.events.EError EError]]. The latter would
-    *    only happen if the [[schedule.Scheduler Scheduler]] tried to schedule a [[Task]] to a busy [[TaskResource]].
-    *  - Creates a [[FinishingTask]] event for this [[Task]] based on its duration, and adds it to
-    *    the even queue.
+    *   - Publishes a [[com.workflowfm.proter.events.ETaskAdd ETaskAdd]].
+    *   - Calls [[TaskResource.startTask]] for each involved [[TaskResource]] to attach this
+    *     [[TaskInstance]] to them. Publishes a
+    *     [[com.workflowfm.proter.events.ETaskAttach ETaskAttach]] for each successful attachment.
+    *     Otherwise publishes an appropriate [[com.workflowfm.proter.events.EError EError]]. The
+    *     latter would only happen if the [[schedule.Scheduler Scheduler]] tried to schedule a
+    *     [[Task]] to a busy [[TaskResource]].
+    *   - Creates a [[FinishingTask]] event for this [[Task]] based on its duration, and adds it to
+    *     the even queue.
     *
     * @group tasks
-    * @param task The [[TaskInstance]] to be started.
+    * @param task
+    *   The [[TaskInstance]] to be started.
     */
   protected def startTask(task: TaskInstance): Unit = {
     publish(ETaskStart(id, time, task))
@@ -558,7 +584,7 @@ class Coordinator(
     */
   override def waitFor(simulation: String): Unit = this.synchronized {
     waiting += simulation
-    //log.debug(s"[COORD:$time] Wait requested: $simulation")
+    // log.debug(s"[COORD:$time] Wait requested: $simulation")
   }
 
   /**
@@ -567,8 +593,10 @@ class Coordinator(
     * Calls [[stopSimulation]] according to the reported success or failure result.
     *
     * @group simulations
-    * @param simulation The name of the simulation
-    * @param result The result of completion
+    * @param simulation
+    *   The name of the simulation
+    * @param result
+    *   The result of completion
     */
   protected def simDone(simulation: String, result: Try[Any]): Unit = {
     result match {
@@ -584,11 +612,12 @@ class Coordinator(
   /**
     * Detaches the task attached to the given [[TaskResource]].
     *
-    * A wrapper of [[TaskResource.finishTask]] that
-    * publishes a [[com.workflowfm.proter.events.ETaskDetach ETaskDetach]].
+    * A wrapper of [[TaskResource.finishTask]] that publishes a
+    * [[com.workflowfm.proter.events.ETaskDetach ETaskDetach]].
     *
     * @group resources
-    * @param r The [[TaskResource]] to free up.
+    * @param r
+    *   The [[TaskResource]] to free up.
     */
   protected def detach(r: TaskResource): Unit = {
     r.finishTask(time) match {
@@ -602,19 +631,20 @@ class Coordinator(
     *
     * Assumes all instances belong to the same simulation.
     *
-    *  - Notifies the [[schedule.Scheduler Scheduler]] about each task comleting.
-    *  - Publishes a [[com.workflowfm.proter.events.ETaskDone ETaskDone]].
-    *  - Notifies the [[Simulation]] that its [[TaskInstance]]s have finished.
-    *    This happens in the same thread if `singleThread` is `true` or using a `Future` otherwise.
+    *   - Notifies the [[schedule.Scheduler Scheduler]] about each task comleting.
+    *   - Publishes a [[com.workflowfm.proter.events.ETaskDone ETaskDone]].
+    *   - Notifies the [[Simulation]] that its [[TaskInstance]]s have finished. This happens in the
+    *     same thread if `singleThread` is `true` or using a `Future` otherwise.
     *
     * Note that resources are detached before this in [[tick]] using [[filterFinishingTasks]].
     *
     * @group tasks
-    * @param taskGroup The simulation name paired with the [[TaskInstance]]s that need to be stopped.
+    * @param taskGroup
+    *   The simulation name paired with the [[TaskInstance]]s that need to be stopped.
     */
   protected def stopTasks(taskGroup: (String, Seq[TaskInstance])): Unit = taskGroup match {
     case (simulation, tasks) => {
-      //log.debug(s"[COORD:$time] Waiting post-task: ${task.simulation}")
+      // log.debug(s"[COORD:$time] Waiting post-task: ${task.simulation}")
       tasks foreach { task =>
         scheduler.complete(task, time)
         publish(ETaskDone(id, time, task))
@@ -633,32 +663,32 @@ class Coordinator(
   /**
     * Aborts one or more [[TaskInstance]]s.
     *
-    *  - Detaches all associated [[TaskResource]]s publishing a
-    *    [[com.workflowfm.proter.events.ETaskDetach ETaskDetach]] each time.
-    *  - Adds the task ID to the [[abortedTasks]] set.
-    *  - Publishes a [[com.workflowfm.proter.events.ETaskAbort ETaskAbort]].
+    *   - Detaches all associated [[TaskResource]]s publishing a
+    *     [[com.workflowfm.proter.events.ETaskDetach ETaskDetach]] each time.
+    *   - Adds the task ID to the [[abortedTasks]] set.
+    *   - Publishes a [[com.workflowfm.proter.events.ETaskAbort ETaskAbort]].
     *
     * @group tasks
-    * @param id The `UUID`s of the [[TaskInstance]]s that need to be aborted.
+    * @param id
+    *   The `UUID`s of the [[TaskInstance]]s that need to be aborted.
     */
   protected def abortTask(ids: Seq[UUID]): Unit = ids foreach { id =>
     {
-      val tasks = resourceMap.flatMap {
-        case (_, resource) =>
-          resource.abortTask(id).map {
-            case (start, task) => {
-              publish(
-                ETaskDetach(
-                  this.id,
-                  time,
-                  task,
-                  resource.name,
-                  resource.costPerTick * (time - start)
-                )
+      val tasks = resourceMap.flatMap { case (_, resource) =>
+        resource.abortTask(id).map {
+          case (start, task) => {
+            publish(
+              ETaskDetach(
+                this.id,
+                time,
+                task,
+                resource.name,
+                resource.costPerTick * (time - start)
               )
-              task
-            }
+            )
+            task
           }
+        }
       }
       abortedTasks += id
       publish(ETaskAbort(this.id, time, id))
@@ -668,16 +698,16 @@ class Coordinator(
   /**
     * Reacts to the fact that we no longer need to wait for a simulation.
     *
-    * This can happen when the simulation has responded and we finished handling the response.
-    * We remove it from the waiting queue and then check if the waiting queue is empty and if we
-    * have finished processing events.
-    * If so, we can progress time.
+    * This can happen when the simulation has responded and we finished handling the response. We
+    * remove it from the waiting queue and then check if the waiting queue is empty and if we have
+    * finished processing events. If so, we can progress time.
     *
-    * First, we allocate new tasks, because some of them
-    * may be able to start immediately. We then progress time with [[tick]].
+    * First, we allocate new tasks, because some of them may be able to start immediately. We then
+    * progress time with [[tick]].
     *
     * @group simulations
-    * @param actor The name of the [[SimulationRef]] that is ready.
+    * @param actor
+    *   The name of the [[SimulationRef]] that is ready.
     */
   protected def ready(name: String): Unit = {
     waiting -= name
@@ -691,8 +721,10 @@ class Coordinator(
     * Sets or updates the [[Lookahead]] structure for a given simulation.
     *
     * @group simulations
-    * @param simulation The name of the [[SimulationRef]].
-    * @param lookahead The new [[Lookahead]] structure.
+    * @param simulation
+    *   The name of the [[SimulationRef]].
+    * @param lookahead
+    *   The new [[Lookahead]] structure.
     */
   protected def setLookahead(simulation: String, lookahead: Lookahead): Unit = {
     scheduler.setLookahead(simulation, lookahead)
@@ -761,23 +793,29 @@ class Coordinator(
   /**
     * Sets a time limit in virtual time for the simulation to end.
     *
-    * @note Once a time limit is placed it cannot be removed. Multiple time limits can be set
-    * so that the earliest one will be triggered.
+    * @note
+    *   Once a time limit is placed it cannot be removed. Multiple time limits can be set so that
+    *   the earliest one will be triggered.
     *
     * @group toplevel
-    * @param t The virtual timestamp to end the simulation.
+    * @param t
+    *   The virtual timestamp to end the simulation.
     */
   def limit(t: Long): Unit = if (t >= time) events += TimeLimit(t)
 
   /**
     * Adds a new infinite arrival process to the coordinator.
     *
-    * @note This will generate new simulations infinitely. The [[Coordinator]] will not terminate
-    *       unless you add a [[TimeLimit]] event via [[limit]].
+    * @note
+    *   This will generate new simulations infinitely. The [[Coordinator]] will not terminate unless
+    *   you add a [[TimeLimit]] event via [[limit]].
     *
-    * @param t The virtual timestamp when the arrival process will begin.
-    * @param rate The arrival rate of the simulation instances.
-    * @param simulationGenerator The generator used to create new instances.
+    * @param t
+    *   The virtual timestamp when the arrival process will begin.
+    * @param rate
+    *   The arrival rate of the simulation instances.
+    * @param simulationGenerator
+    *   The generator used to create new instances.
     */
   def addInfiniteArrival(
       t: Long,
@@ -790,11 +828,14 @@ class Coordinator(
   /**
     * Adds a new infinite arrival process to the coordinator at the current virtual time.
     *
-    * @note This will generate new simulations infinitely. The [[Coordinator]] will not terminate
-    *       unless you add a [[TimeLimit]] event via [[limit]].
+    * @note
+    *   This will generate new simulations infinitely. The [[Coordinator]] will not terminate unless
+    *   you add a [[TimeLimit]] event via [[limit]].
     *
-    * @param rate The arrival rate of the simulation instances.
-    * @param simulationGenerator The generator used to create new instances.
+    * @param rate
+    *   The arrival rate of the simulation instances.
+    * @param simulationGenerator
+    *   The generator used to create new instances.
     */
   def addInfiniteArrivalNow(
       rate: Distribution,
@@ -806,11 +847,14 @@ class Coordinator(
   /**
     * Adds a new infinite arrival process to the coordinator at the next arrival time.
     *
-    * @note This will generate new simulations infinitely. The [[Coordinator]] will not terminate
-    *       unless you add a [[TimeLimit]] event via [[limit]].
+    * @note
+    *   This will generate new simulations infinitely. The [[Coordinator]] will not terminate unless
+    *   you add a [[TimeLimit]] event via [[limit]].
     *
-    * @param rate The arrival rate of the simulation instances.
-    * @param simulationGenerator The generator used to create new instances.
+    * @param rate
+    *   The arrival rate of the simulation instances.
+    * @param simulationGenerator
+    *   The generator used to create new instances.
     */
   def addInfiniteArrivalNext(
       rate: Distribution,
@@ -822,10 +866,14 @@ class Coordinator(
   /**
     * Adds a new arrival process to the coordinator.
     *
-    * @param t The virtual timestamp when the arrival process will begin.
-    * @param limit The number of simulation instances to spawn.
-    * @param rate The arrival rate of the simulation instances.
-    * @param simulationGenerator The generator used to create new instances.
+    * @param t
+    *   The virtual timestamp when the arrival process will begin.
+    * @param limit
+    *   The number of simulation instances to spawn.
+    * @param rate
+    *   The arrival rate of the simulation instances.
+    * @param simulationGenerator
+    *   The generator used to create new instances.
     */
   def addArrival(
       t: Long,
@@ -839,9 +887,12 @@ class Coordinator(
   /**
     * Adds a new arrival process to the coordinator at the current virtual time.
     *
-    * @param limit The number of simulation instances to spawn.
-    * @param rate The arrival rate of the simulation instances.
-    * @param simulationGenerator The generator used to create new instances.
+    * @param limit
+    *   The number of simulation instances to spawn.
+    * @param rate
+    *   The arrival rate of the simulation instances.
+    * @param simulationGenerator
+    *   The generator used to create new instances.
     */
   def addArrivalNow(
       limit: Int,
@@ -854,9 +905,12 @@ class Coordinator(
   /**
     * Adds a new arrival process to the coordinator at the next arrival time.
     *
-    * @param limit The number of simulation instances to spawn.
-    * @param rate The arrival rate of the simulation instances.
-    * @param simulationGenerator The generator used to create new instances.
+    * @param limit
+    *   The number of simulation instances to spawn.
+    * @param rate
+    *   The arrival rate of the simulation instances.
+    * @param simulationGenerator
+    *   The generator used to create new instances.
     */
   def addArrivalNext(
       limit: Int,
@@ -867,13 +921,16 @@ class Coordinator(
   }
 
   /**
-    * Checks if a given [[com.workflowfm.proter.events.Event Event]] in the output stream is the final one.
+    * Checks if a given [[com.workflowfm.proter.events.Event Event]] in the output stream is the
+    * final one.
     *
     * Causes the stream to shutdown after [[com.workflowfm.proter.events.EDone EDone]] is published.
     *
     * @group toplevel
-    * @param e The [[com.workflowfm.proter.events.Event Event]] to check.
-    * @return true if it is a [[com.workflowfm.proter.events.EDone EDone]], otherwise false.
+    * @param e
+    *   The [[com.workflowfm.proter.events.Event Event]] to check.
+    * @return
+    *   true if it is a [[com.workflowfm.proter.events.EDone EDone]], otherwise false.
     */
   override def isFinalEvent(e: Event): Boolean = e match {
     case EDone(_, _) => true

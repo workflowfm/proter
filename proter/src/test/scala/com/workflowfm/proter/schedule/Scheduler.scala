@@ -271,7 +271,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
     }
 
     "not block higher priority tasks of other resources" in {
-      val m = new TestResourceMap("A", "B") //+ ("B",1L)
+      val m = new TestResourceMap("A", "B") // + ("B",1L)
       m.p(t(1L, Seq("B"), Task.Highest), t(2L, Seq("A", "B"), Task.VeryLow, 0L, 100L)) should be(
         Seq(1L)
       )
@@ -314,21 +314,21 @@ class SchedulerTests extends TaskTester with ScheduleTester {
     "select a single task with a lookahead structure" in {
       val m = new TestResourceMap("A")
       m.lookahead = NoLookahead +> (id(1L), Task(
-              "t2",
-              Some(id(2L)),
-              Constant(2L),
-              Constant(2L)
-            ))
+        "t2",
+        Some(id(2L)),
+        Constant(2L),
+        Constant(2L)
+      ))
       m.l(t(1L, Seq("A"))) should be(Seq(1L))
     }
     "not select a task which would offset a higher priority future task" in {
       val m = new TestResourceMap("A", "B")
       m.lookahead = NoLookahead +> (id(1L), Task(
-              "t2",
-              Some(id(2L)),
-              Constant(5L),
-              Constant(5L)
-            ).withPriority(Task.High).withResources(Seq("B")))
+        "t2",
+        Some(id(2L)),
+        Constant(5L),
+        Constant(5L)
+      ).withPriority(Task.High).withResources(Seq("B")))
       m.l(
         t(1L, Seq("A"), Task.High),
         t(2L, Seq("B"), duration = 5L)
@@ -337,11 +337,11 @@ class SchedulerTests extends TaskTester with ScheduleTester {
     "select a task which offsets a lower priority future task" in {
       val m = new TestResourceMap("A", "B")
       m.lookahead = NoLookahead +> (id(1L), Task(
-              "t2",
-              Some(id(2L)),
-              Constant(5L),
-              Constant(5L)
-            ).withPriority(Task.Low).withResources(Seq("B")))
+        "t2",
+        Some(id(2L)),
+        Constant(5L),
+        Constant(5L)
+      ).withPriority(Task.Low).withResources(Seq("B")))
       m.l(
         t(1L, Seq("A"), Task.High),
         t(2L, Seq("B"), duration = 5L)
@@ -350,17 +350,17 @@ class SchedulerTests extends TaskTester with ScheduleTester {
     "consider a distant future task" in {
       val m = new TestResourceMap("A", "B")
       m.lookahead = NoLookahead +> (id(1L), Task(
-              "t2",
-              Some(id(2L)),
-              Constant(2L),
-              Constant(2L)
-            ).withPriority(Task.High).withResources(Seq("A")))
+        "t2",
+        Some(id(2L)),
+        Constant(2L),
+        Constant(2L)
+      ).withPriority(Task.High).withResources(Seq("A")))
       m.lookahead = m.lookahead +> (id(2L), Task(
-              "t3",
-              Some(id(3L)),
-              Constant(5L),
-              Constant(5L)
-            ).withPriority(Task.High).withResources(Seq("B")))
+        "t3",
+        Some(id(3L)),
+        Constant(5L),
+        Constant(5L)
+      ).withPriority(Task.High).withResources(Seq("B")))
       m.l(
         t(1L, Seq("A"), Task.High),
         t(3L, Seq("B"), duration = 5L)
@@ -369,11 +369,11 @@ class SchedulerTests extends TaskTester with ScheduleTester {
     "consider currently-running tasks" in {
       val m = new TestResourceMap("A")
       m.lookahead = NoLookahead +> (id(1L), Task(
-              "t2",
-              Some(id(2L)),
-              Constant(5L),
-              Constant(5L)
-            ).withPriority(Task.Low).withResources(Seq("B")))
+        "t2",
+        Some(id(2L)),
+        Constant(5L),
+        Constant(5L)
+      ).withPriority(Task.Low).withResources(Seq("B")))
       m.m.get("A").map { _.startTask(t(1L, Seq("A"), Task.High, 0L, 5L), 0L) }
       m.l(t(1L, Seq("A"))) should be(Seq())
     }
@@ -400,27 +400,27 @@ class SchedulerTests extends TaskTester with ScheduleTester {
     // test GreedyPriorityScheduler
     def g(tasks: TaskInstance*): Seq[Long] =
       new GreedyPriorityScheduler(tasks: _*).getNextTasks(0L, m) map (_.id
-            .getMostSignificantBits())
+        .getMostSignificantBits())
 
     // test StrictPriorityScheduler
     def s(tasks: TaskInstance*): Seq[Long] =
       new StrictPriorityScheduler(tasks: _*).getNextTasks(0L, m) map (_.id
-            .getMostSignificantBits())
+        .getMostSignificantBits())
 
     // test GreedyFCFSScheduler
     def gf(tasks: TaskInstance*): Seq[Long] =
       new GreedyFCFSScheduler(tasks: _*).getNextTasks(0L, m) map (_.id
-            .getMostSignificantBits())
+        .getMostSignificantBits())
 
     // test StrictFCFSScheduler
     def sf(tasks: TaskInstance*): Seq[Long] =
       new StrictFCFSScheduler(tasks: _*).getNextTasks(0L, m) map (_.id
-            .getMostSignificantBits())
+        .getMostSignificantBits())
 
     // test ProterScheduler
     def p(tasks: TaskInstance*): Seq[Long] =
       new ProterScheduler(tasks: _*).getNextTasks(0L, m) map (_.id
-            .getMostSignificantBits())
+        .getMostSignificantBits())
 
     // test LookaheadScheduler
     def l(tasks: TaskInstance*): Seq[Long] = {

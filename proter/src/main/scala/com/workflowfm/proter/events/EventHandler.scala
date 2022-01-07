@@ -15,36 +15,42 @@ trait EventHandler {
   /**
     * A unique identifier for the handler.
     *
-    * @return a unique identifier
+    * @return
+    *   a unique identifier
     */
   val id: UUID = UUID.randomUUID
 
   /**
     * Handles the initialisation of a new event stream.
     *
-    * @param publisher The [[Publisher]] that started the stream.
+    * @param publisher
+    *   The [[Publisher]] that started the stream.
     */
   def onInit(publisher: Publisher): Unit = ()
 
   /**
     * Handles an [[Event]] in the stream.
     *
-    * @param event The [[Event]] to handle.
+    * @param event
+    *   The [[Event]] to handle.
     */
   def onEvent(event: Event): Unit = ()
 
   /**
     * Handles the end of a stream.
     *
-    * @param publisher The [[Publisher]] that ended the stream.
+    * @param publisher
+    *   The [[Publisher]] that ended the stream.
     */
   def onDone(publisher: Publisher): Unit = ()
 
   /**
     * Handles an error in the stream.
     *
-    * @param e The throwable error that occurred.
-    * @param publisher The [[Publisher]] that threw the error.
+    * @param e
+    *   The throwable error that occurred.
+    * @param publisher
+    *   The [[Publisher]] that threw the error.
     */
   def onFail(e: Throwable, publisher: Publisher): Unit = ()
 }
@@ -104,13 +110,15 @@ class PrintEventHandler extends EventHandler {
 
 /**
   * An [[EventHandler]] with a measured result.
-  * @tparam R The type of the result.
+  * @tparam R
+  *   The type of the result.
   */
 trait ResultHandler[R] extends EventHandler {
   /**
     * The result of the handler.
     *
-    * @return The result of the handler.
+    * @return
+    *   The result of the handler.
     */
   def result: R
 }
@@ -147,11 +155,13 @@ class CounterHandler extends ResultHandler[Int] {
 }
 
 /**
-  * A wrapper for a [[ResultHandler]] that fulfills a [[scala.concurrent.Promise Promise]] with the result.
+  * A wrapper for a [[ResultHandler]] that fulfills a [[scala.concurrent.Promise Promise]] with the
+  * result.
   *
   * This is also itself a [[ResultHandler]].
   *
-  * @param handler The [[ResultHandler]] that calculates the result.
+  * @param handler
+  *   The [[ResultHandler]] that calculates the result.
   */
 class PromiseHandler[R](handler: ResultHandler[R]) extends ResultHandler[R] {
   /**
@@ -162,7 +172,8 @@ class PromiseHandler[R](handler: ResultHandler[R]) extends ResultHandler[R] {
   /**
     * Returns a [[scala.concurrent.Future Future]] of the result.
     *
-    * @return A future result.
+    * @return
+    *   A future result.
     */
   def future = promise.future
 
@@ -212,8 +223,10 @@ object PromiseHandler {
   /**
     * Declarative constructor for a [[PromiseHandler]] given a [[ResultHandler]].
     *
-    * @param handler The [[ResultHandler]] to use.
-    * @return The constructed [[PromiseHandler]].
+    * @param handler
+    *   The [[ResultHandler]] to use.
+    * @return
+    *   The constructed [[PromiseHandler]].
     */
   def of[R](handler: ResultHandler[R]): PromiseHandler[R] = new PromiseHandler[R](handler)
 }
@@ -221,8 +234,10 @@ object PromiseHandler {
 /**
   * Listens for the end of a named simulation and handles its result.
   *
-  * @param name The name of the [[SimulationRef]] to listen for.
-  * @param callback A function to handle the results of the simulation when it completes.
+  * @param name
+  *   The name of the [[SimulationRef]] to listen for.
+  * @param callback
+  *   A function to handle the results of the simulation when it completes.
   */
 class SimulationResultHandler(name: String, callback: String => Unit = { _ => Unit })
     extends ResultHandler[Option[String]] {
@@ -230,8 +245,8 @@ class SimulationResultHandler(name: String, callback: String => Unit = { _ => Un
   /**
     * The [[Publisher]] of the stream.
     *
-    * We assume to be subscribed to a single publisher. We then keep track of it so we can unsubscribe
-    * as soon as we get our result.
+    * We assume to be subscribed to a single publisher. We then keep track of it so we can
+    * unsubscribe as soon as we get our result.
     */
   var publisher: Option[Publisher] = None
 
@@ -250,8 +265,8 @@ class SimulationResultHandler(name: String, callback: String => Unit = { _ => Un
   /**
     * @inheritdoc
     *
-    * If the event is [[ESimEnd]] and the simulation name matches then
-    * we record the simulation result in [[simResult]], unsubscribe, and call the callback function.
+    * If the event is [[ESimEnd]] and the simulation name matches then we record the simulation
+    * result in [[simResult]], unsubscribe, and call the callback function.
     */
   override def onEvent(evt: Event): Unit = evt match {
     case ESimEnd(_, _, n, r) if n == name => {
@@ -265,7 +280,8 @@ class SimulationResultHandler(name: String, callback: String => Unit = { _ => Un
   /**
     * @inheritdoc
     *
-    * @return The result of the simulation or `None` if we have not received one (yet).
+    * @return
+    *   The result of the simulation or `None` if we have not received one (yet).
     */
   override def result = simResult
 }

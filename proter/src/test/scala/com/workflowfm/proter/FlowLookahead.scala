@@ -17,7 +17,7 @@ class FlowLookaheadTests extends FlowLookaheadTester {
     }
     "Do nothing if given a single task" in {
       val t1 = new FlowTask(Task("t", 2))
-      //val t1id = t1.generator.id
+      // val t1id = t1.generator.id
       val f = parseFlow(t1)
       f._2 should be(NoLookahead)
     }

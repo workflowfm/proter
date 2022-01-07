@@ -14,7 +14,7 @@ import com.workflowfm.proter.events.PrintEventHandler
 import com.workflowfm.proter.schedule.ProterScheduler
 
 class CoordinatorTests extends AnyWordSpecLike with Matchers with MockFactory with MockSimulations {
-  implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global //system.dispatchers.lookup("akka.my-dispatcher")
+  implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global // system.dispatchers.lookup("akka.my-dispatcher")
 
   "The Coordinator" must {
 
@@ -853,10 +853,10 @@ trait MockSimulations { self: MockFactory =>
     // T1 0..3 - to be aborted at 2
     val id1 = UUID.randomUUID()
     val tg1 = Task(
-        "T1",
-        3
-      ) withID id1 withResources (resource map (_.name) toSeq) withPriority (Task.Medium)
-    //val expected1 = tg1.create(name, 0)
+      "T1",
+      3
+    ) withID id1 withResources (resource map (_.name) toSeq) withPriority (Task.Medium)
+    // val expected1 = tg1.create(name, 0)
 
     // T2 0..2
     val id2 = UUID.randomUUID()

@@ -322,9 +322,9 @@ class FlowTests extends FlowsTester {
       val flow1 = new Then(new And(task1, task2), task1)
       val testMetrics = singleFlowTest(flow1)
 
-      //testMetrics.get("task1 (sim1)").value.value should be (1)
+      // testMetrics.get("task1 (sim1)").value.value should be (1)
       testMetrics.get("task2 (sim1)").value.value should be(2)
-      //testMetrics.get("task1 (sim1)").value.value should be (5)
+      // testMetrics.get("task1 (sim1)").value.value should be (5)
 
     }
 
@@ -357,8 +357,8 @@ class FlowTests extends FlowsTester {
       coordinator.start()
 
       val metrics = Await.result(smh.future, 3.seconds)
-      val testMetrics = metrics.taskMap.map {
-        case (_, tm) => tm.fullName -> tm.finished
+      val testMetrics = metrics.taskMap.map { case (_, tm) =>
+        tm.fullName -> tm.finished
       }
 
       testMetrics.get("task1 (sim1)").value.value should be(1)
@@ -392,13 +392,13 @@ class FlowTests extends FlowsTester {
       coordinator.start()
 
       val metrics = Await.result(smh.future, 3.seconds)
-      val testMetrics = metrics.taskMap.map {
-        case (_, tm) => tm.fullName -> tm.finished
+      val testMetrics = metrics.taskMap.map { case (_, tm) =>
+        tm.fullName -> tm.finished
       }
 
-      //testMetrics.get("task1 (sim1)").value.value should be (1)
+      // testMetrics.get("task1 (sim1)").value.value should be (1)
       testMetrics.get("task2 (sim2)").value.value should be(2)
-      //testMetrics.get("task1 (sim2)").value.value should be (3)
+      // testMetrics.get("task1 (sim2)").value.value should be (3)
     }
   }
 }
@@ -424,8 +424,8 @@ class FlowsTester extends AnyWordSpecLike with Matchers with OptionValues {
     coordinator.start()
 
     val metrics = Await.result(smh.future, 3.seconds)
-    metrics.taskMap.map {
-      case (_, tm) => tm.fullName -> tm.finished
+    metrics.taskMap.map { case (_, tm) =>
+      tm.fullName -> tm.finished
     }
   }
 }

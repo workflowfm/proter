@@ -5,16 +5,26 @@ import com.workflowfm.proter._
 /**
   * Factory for making random flows given some parameters
   *
-  * @param andProbability Probability that a flow node is an [[And]]. Must be in range [0,1]. The inverse probability yeilds [[Then]] nodes.
-  * @param resources The list of available resources
-  * @param numTasks Distribution determining the number of tasks in the flow. Distribution values must not exceed `Int.MaxValue` due to truncation during rounding from Long to Int
-  * @param durations Distribution determining task duration.
-  * @param numResources Distribution determining number of resources required by each task. Distribution values must not exceed `Int.MaxValue` due to truncation during rounding from Long to Int
-  * @param cost Distribution determining cost of a task
-  * @param priority Distribution determining priority of a task
+  * @param andProbability
+  *   Probability that a flow node is an [[And]]. Must be in range [0,1]. The inverse probability
+  *   yeilds [[Then]] nodes.
+  * @param resources
+  *   The list of available resources
+  * @param numTasks
+  *   Distribution determining the number of tasks in the flow. Distribution values must not exceed
+  *   `Int.MaxValue` due to truncation during rounding from Long to Int
+  * @param durations
+  *   Distribution determining task duration.
+  * @param numResources
+  *   Distribution determining number of resources required by each task. Distribution values must
+  *   not exceed `Int.MaxValue` due to truncation during rounding from Long to Int
+  * @param cost
+  *   Distribution determining cost of a task
+  * @param priority
+  *   Distribution determining priority of a task
   */
 case class RandomFlowFactory(
-    andProbability: Float, //balance between and and then nodes
+    andProbability: Float, // balance between and and then nodes
     resources: Seq[TaskResource],
     numTasks: Distribution = Constant(1),
     durations: Distribution = Constant(1),

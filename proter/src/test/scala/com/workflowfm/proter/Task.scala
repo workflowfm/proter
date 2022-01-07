@@ -84,7 +84,7 @@ class TaskTester extends AnyWordSpecLike with Matchers {
       name,
       "Test",
       created,
-      0L, //todo add tests for minStartTime
+      0L, // todo add tests for minStartTime
       resources,
       duration,
       duration,
