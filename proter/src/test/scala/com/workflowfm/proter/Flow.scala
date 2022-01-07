@@ -4,9 +4,9 @@ import scala.collection.mutable.Map
 import scala.concurrent._
 import scala.concurrent.duration._
 
-import org.junit.runner.RunWith
-import org.scalatest._
-import org.scalatest.junit.JUnitRunner
+import org.scalatest.OptionValues
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 import com.workflowfm.proter._
 import com.workflowfm.proter.events.{ PrintEventHandler, PromiseHandler }
@@ -14,9 +14,8 @@ import com.workflowfm.proter.flows._
 import com.workflowfm.proter.metrics._
 import com.workflowfm.proter.schedule.ProterScheduler
 
-@RunWith(classOf[JUnitRunner])
 class FlowTests extends FlowsTester {
-  "Flows" must {
+  "Flows" should {
     "execute a single flow" in {
       val task1 = new FlowTask(Task("task1", 1L))
       val flow1 = task1
@@ -404,7 +403,7 @@ class FlowTests extends FlowsTester {
   }
 }
 
-class FlowsTester extends WordSpecLike with Matchers with OptionValues {
+class FlowsTester extends AnyWordSpecLike with Matchers with OptionValues {
 
   def singleFlowTest(
       flow: Flow,

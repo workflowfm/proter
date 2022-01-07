@@ -9,7 +9,9 @@ import scala.util.Success
 import akka.actor.ActorSystem
 import akka.testkit.TestKit
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 import com.workflowfm.proter._
 import com.workflowfm.proter.schedule.ProterScheduler
@@ -18,7 +20,7 @@ class MockSimulationActorTests
     extends TestKit(
       ActorSystem("MockSimulationActorTests")
     )
-    with WordSpecLike
+    with AnyWordSpecLike
     with Matchers
     with MockFactory
     with MockSimulations

@@ -83,7 +83,7 @@ object Flow {
     * Creates a sequence of a collection of [[Flow]]s.
     *
     * @see [[Then]]
-    * @example Flow.seq(Seq(t1,t2,t3)) = t1 > t2 > t3    
+    * @example Flow.seq(Seq(t1,t2,t3)) = t1 > t2 > t3
     * @param l The collection of [[Flow]]s
     * @return A [[Flow]] that executes the given collection in sequence
     */
@@ -93,7 +93,7 @@ object Flow {
     * Creates a parallel [[Flow]] from a collection of [[Flow]]s.
     *
     * @see [[And]]
-    * @example Flow.par(Seq(t1,t2,t3)) = t1 | t2 | t3    
+    * @example Flow.par(Seq(t1,t2,t3)) = t1 | t2 | t3
     * @param l The collection of [[Flow]]s
     * @return A [[Flow]] that executes the given collection in parallel
     */

@@ -2,16 +2,15 @@ package com.workflowfm.proter
 
 import java.util.UUID
 
-import org.junit.runner.RunWith
-import org.scalatest._
-import org.scalatest.junit.JUnitRunner
+import org.scalatest.OptionValues
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 import com.workflowfm.proter.flows._
 import com.workflowfm.proter.schedule.ProterScheduler
 
-@RunWith(classOf[JUnitRunner])
 class FlowLookaheadTests extends FlowLookaheadTester {
-  "Lookahead parseFlow" must {
+  "Lookahead parseFlow" should {
     "Do nothing if given no tasks" in {
       val f = parseFlow(new NoTask())
       f._2 should be(NoLookahead)
@@ -78,7 +77,7 @@ class FlowLookaheadTests extends FlowLookaheadTester {
   }
 }
 
-class FlowLookaheadTester extends WordSpecLike with Matchers with OptionValues {
+class FlowLookaheadTester extends AnyWordSpecLike with Matchers with OptionValues {
 
   type IDFunction = Map[UUID, Long] => Option[Long]
 

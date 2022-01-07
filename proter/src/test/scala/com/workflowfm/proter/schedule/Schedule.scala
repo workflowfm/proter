@@ -1,14 +1,10 @@
 package com.workflowfm.proter.schedule
 
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-
 import com.workflowfm.proter.TaskTester
 
-@RunWith(classOf[JUnitRunner])
 class ScheduleTests extends TaskTester with ScheduleTester {
 
-  "The Schedule" must {
+  "The Schedule" should {
 
     "fit a task at the edge of another" in {
       s((1, 2)) + (2, 3) should be(Some(s((1, 3))))

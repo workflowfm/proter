@@ -3,19 +3,20 @@ package com.workflowfm.proter.akka
 import java.util.UUID
 
 import scala.concurrent._
-import scala.concurrent.duration._
 import scala.util.{ Failure, Success, Try }
 
-import akka.actor.{ ActorRef, ActorSystem, Props }
+import akka.actor.ActorSystem
 import akka.testkit.{ TestKit, TestProbe }
-import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 import com.workflowfm.proter._
 
 class SimulationActorTests
     extends TestKit(ActorSystem("SimulationActorTests"))
     with SimulationTester
-    with WordSpecLike
+    with AnyWordSpecLike
     with Matchers
     with BeforeAndAfterAll {
 

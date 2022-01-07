@@ -6,7 +6,7 @@ object Dependencies {
 
   val scalaVer = "2.12.12"
 
-  val scalaTest = "org.scalatest" %% "scalatest" % "3.2.0-SNAP10" % "test"
+  val scalaTest = "org.scalatest" %% "scalatest" % "3.2.10" % "test"
   val scalaCheck = "org.scalacheck" %% "scalacheck" % "1.14.0" % "test"
   val scalaMock = "org.scalamock" %% "scalamock" % "4.4.0" % "test"
   val junit = "junit" % "junit" % "4.8.2" % "test"

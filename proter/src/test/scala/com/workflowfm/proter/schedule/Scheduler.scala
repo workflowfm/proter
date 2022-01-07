@@ -1,8 +1,5 @@
 package com.workflowfm.proter.schedule
 
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-
 import com.workflowfm.proter.{
   Task,
   TaskTester,
@@ -13,10 +10,9 @@ import com.workflowfm.proter.{
   TaskInstance
 }
 
-@RunWith(classOf[JUnitRunner])
 class SchedulerTests extends TaskTester with ScheduleTester {
 
-  "GreedyFCFSScheduler" must {
+  "GreedyFCFSScheduler" should {
 
     "select a single task" in {
       val m = new TestResourceMap("A")

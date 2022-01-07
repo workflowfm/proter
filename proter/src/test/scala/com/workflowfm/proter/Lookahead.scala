@@ -6,17 +6,16 @@ import scala.collection.mutable.Map
 import scala.concurrent._
 import scala.concurrent.duration._
 
-import org.junit.runner.RunWith
-import org.scalatest._
-import org.scalatest.junit.JUnitRunner
+import org.scalatest.OptionValues
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 import com.workflowfm.proter.events.PromiseHandler
 import com.workflowfm.proter.flows._
 import com.workflowfm.proter.metrics._
 import com.workflowfm.proter.schedule.LookaheadScheduler
 
-@RunWith(classOf[JUnitRunner])
-class LookaheadTests extends LookaheadTester with WordSpecLike with Matchers with OptionValues {
+class LookaheadTests extends LookaheadTester with AnyWordSpecLike with Matchers with OptionValues {
 
   "Lookahead systems" should {
 

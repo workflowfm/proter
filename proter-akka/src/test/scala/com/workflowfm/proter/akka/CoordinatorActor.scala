@@ -8,7 +8,9 @@ import scala.util.Success
 
 import akka.actor.ActorSystem
 import akka.testkit.{ TestKit, TestProbe }
-import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 import com.workflowfm.proter._
 import com.workflowfm.proter.schedule.ProterScheduler
@@ -17,7 +19,7 @@ class CoordinatorActorTests
     extends TestKit(
       ActorSystem("CoordinatorActorTests")
     )
-    with WordSpecLike
+    with AnyWordSpecLike
     with Matchers
     with BeforeAndAfterAll {
   /* implicit val executionContext: ExecutionContext = this.system.dispatcher

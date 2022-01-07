@@ -7,12 +7,13 @@ import scala.concurrent.duration._
 import scala.util.{ Failure, Success, Try }
 
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{ Matchers, WordSpecLike }
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 import com.workflowfm.proter.events.PrintEventHandler
 import com.workflowfm.proter.schedule.ProterScheduler
 
-class CoordinatorTests extends WordSpecLike with Matchers with MockFactory with MockSimulations {
+class CoordinatorTests extends AnyWordSpecLike with Matchers with MockFactory with MockSimulations {
   implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global //system.dispatchers.lookup("akka.my-dispatcher")
 
   "The Coordinator" must {

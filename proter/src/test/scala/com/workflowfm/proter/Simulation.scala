@@ -6,13 +6,14 @@ import scala.concurrent._
 import scala.util.{ Failure, Success }
 
 import org.scalamock.scalatest.MockFactory
-import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 class SimulationTests extends SimulationTester with MockFactory {
 
   implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
 
-  "Simulations" must {
+  "Simulations" should {
 
     "interact correctly having no tasks" in {
       val mockinator: Coordinator = mock[Coordinator]
@@ -273,7 +274,7 @@ class SimulationTests extends SimulationTester with MockFactory {
   }
 }
 
-trait SimulationTester extends WordSpecLike with Matchers with BeforeAndAfterAll {
+trait SimulationTester extends AnyWordSpecLike with Matchers {
 
   class NoTasks(override val name: String, override protected val manager: Manager)
       extends Simulation {
