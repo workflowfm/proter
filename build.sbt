@@ -35,7 +35,7 @@ inThisBuild(List(
 
 // Publish to Sonatype / Maven Central
 
-publishTo in ThisBuild := sonatypePublishToBundle.value
+ThisBuild / publishTo := sonatypePublishToBundle.value
 pomIncludeRepository := { _ => false }
 publishMavenStyle := true
 sonatypeCredentialHost := "s01.oss.sonatype.org"
@@ -45,9 +45,9 @@ sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
 // Website generation with sbt-site
 
 Hugo / sourceDirectory := file("docs")
-baseURL in Hugo := uri("http://docs.workflowfm.com/proter")
+Hugo / baseURL := uri("http://docs.workflowfm.com/proter")
 //baseURL in Hugo := uri("./")
-includeFilter in Hugo := ("*")
+Hugo / includeFilter := ("*")
 
 ghpagesNoJekyll := true
 previewFixedPort := Some(9999)
@@ -83,8 +83,8 @@ lazy val root = Project(id = "proter-root", base = file("."))
   .settings(commonSettings)
   .settings( 
     publishArtifact := false,
-    siteSubdirName in ScalaUnidoc := "api",
-    addMappingsToSiteDir(mappings in (ScalaUnidoc, packageDoc), siteSubdirName in ScalaUnidoc)
+    ScalaUnidoc / siteSubdirName := "api",
+    addMappingsToSiteDir(ScalaUnidoc / packageDoc / mappings, ScalaUnidoc / siteSubdirName)
   )
   .aggregate(aggregatedProjects: _*)
   .enablePlugins(ScalaUnidocPlugin)
