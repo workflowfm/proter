@@ -22,9 +22,12 @@ class CoordinatorTests extends AnyWordSpecLike with Matchers with MockFactory wi
       val coordinator = new Coordinator(new ProterScheduler())
       val sim: Simulation = mock[Simulation]
 
-      sim.name _ expects () returning "sim" anyNumberOfTimes ()
+      (sim.name _).expects().returning("sim").anyNumberOfTimes()
 
-      sim.run _ expects () onCall (_ => coordinator.simResponse(SimDone("sim", Success(Unit)))) once
+      (sim.run _)
+        .expects()
+        .onCall { _: Any => coordinator.simResponse(SimDone("sim", Success(()))) }
+        .once()
 
       coordinator.addSimulation(0L, sim)
       Await.result(coordinator.start(), 3.seconds)
@@ -141,63 +144,82 @@ class CoordinatorTests extends AnyWordSpecLike with Matchers with MockFactory wi
       val coordinator = new Coordinator(new ProterScheduler())
 
       val sim1: Simulation = mock[Simulation]
-      sim1.name _ expects () returning "sim1" anyNumberOfTimes ()
+      (sim1.name _).expects().returning("sim1").anyNumberOfTimes()
       val sim2: Simulation = mock[Simulation]
-      sim2.name _ expects () returning "sim2" anyNumberOfTimes ()
+      (sim2.name _).expects().returning("sim2").anyNumberOfTimes()
 
       val id1a = UUID.randomUUID()
-      val tg1a = Task("T1a", 10) withID id1a
+      val tg1a = Task("T1a", 10).withID(id1a)
       val expected1a = tg1a.create("sim1", 0L)
 
       val id1b = UUID.randomUUID()
-      val tg1b = Task("T1b", 3L) withID id1b
+      val tg1b = Task("T1b", 3L).withID(id1b)
       val expected1b = tg1b.create("sim1", 2L)
 
       val id2 = UUID.randomUUID()
-      val tg2 = Task("T2", 1) withID id2
+      val tg2 = Task("T2", 1).withID(id2)
       val expected2 = tg2.create("sim2", 1L)
 
       inSequence {
-        sim1.run _ expects () onCall (_ => {
-          coordinator.simResponse(SimReady("sim1", Seq(tg1a)))
-        }) once ()
-
-        sim2.run _ expects () onCall (_ => {
-          coordinator.simResponse(SimReady("sim2", Seq(tg2)))
-        }) once ()
-
-        sim2.completed _ expects (
-          where { (time, tasks) =>
+        (sim1.run _)
+          .expects()
+          .onCall { _: Any =>
             {
-              tasks.size == 1 && containsTask(tasks, expected2) && time == 2L
+              coordinator.simResponse(SimReady("sim1", Seq(tg1a)))
             }
           }
-        ) onCall { (_, _) =>
-          {
-            coordinator.waitFor("sim1")
-            coordinator.simResponse(SimDone("sim2", Success(Unit)))
-            Thread.sleep(500)
-            coordinator.simResponse(SimReady("sim1", Seq(tg1b)))
-          }
-        } once ()
+          .once()
 
-        sim1.completed _ expects (
-          where { (time, tasks) =>
+        (sim2.run _)
+          .expects()
+          .onCall { _: Any =>
             {
-              tasks.size == 1 && containsTask(tasks, expected1b) && time == 5L
+              coordinator.simResponse(SimReady("sim2", Seq(tg2)))
             }
           }
-        ) onCall { (_, _) =>
-          {
-            coordinator.simResponse(SimReady("sim1", Seq()))
-          }
-        } once ()
+          .once()
 
-        sim1.completed _ expects (
-          where { (time, tasks) =>
-            tasks.size == 1 && containsTask(tasks, expected1a) && time == 10L
+        (sim2.completed _)
+          .expects(
+            where { (time, tasks) =>
+              {
+                tasks.size == 1 && containsTask(tasks, expected2) && time == 2L
+              }
+            }
+          )
+          .onCall { (_, _) =>
+            {
+              coordinator.waitFor("sim1")
+              coordinator.simResponse(SimDone("sim2", Success(())))
+              Thread.sleep(500)
+              coordinator.simResponse(SimReady("sim1", Seq(tg1b)))
+            }
           }
-        ) onCall (_ => coordinator.simResponse(SimDone("sim1", Success(Unit)))) once ()
+          .once()
+
+        (sim1.completed _)
+          .expects(
+            where { (time, tasks) =>
+              {
+                tasks.size == 1 && containsTask(tasks, expected1b) && time == 5L
+              }
+            }
+          )
+          .onCall { (_, _) =>
+            {
+              coordinator.simResponse(SimReady("sim1", Seq()))
+            }
+          }
+          .once()
+
+        (sim1.completed _)
+          .expects(
+            where { (time, tasks) =>
+              tasks.size == 1 && containsTask(tasks, expected1a) && time == 10L
+            }
+          )
+          .onCall { _: Any => coordinator.simResponse(SimDone("sim1", Success(()))) }
+          .once()
 
       }
 
@@ -333,9 +355,12 @@ class CoordinatorTests extends AnyWordSpecLike with Matchers with MockFactory wi
       val coordinator = new Coordinator(new ProterScheduler(), true)
       val sim: Simulation = mock[Simulation]
 
-      sim.name _ expects () returning "sim" anyNumberOfTimes ()
+      (sim.name _).expects().returning("sim").anyNumberOfTimes()
 
-      sim.run _ expects () onCall (_ => coordinator.simResponse(SimDone("sim", Success(Unit)))) once
+      (sim.run _)
+        .expects()
+        .onCall { _: Any => coordinator.simResponse(SimDone("sim", Success(()))) }
+        .once()
 
       coordinator.addSimulation(0L, sim)
       Await.result(coordinator.start(), 3.seconds)
@@ -452,63 +477,82 @@ class CoordinatorTests extends AnyWordSpecLike with Matchers with MockFactory wi
       val coordinator = new Coordinator(new ProterScheduler())
 
       val sim1: Simulation = mock[Simulation]
-      sim1.name _ expects () returning "sim1" anyNumberOfTimes ()
+      (sim1.name _).expects().returning("sim1").anyNumberOfTimes()
       val sim2: Simulation = mock[Simulation]
-      sim2.name _ expects () returning "sim2" anyNumberOfTimes ()
+      (sim2.name _).expects().returning("sim2").anyNumberOfTimes()
 
       val id1a = UUID.randomUUID()
-      val tg1a = Task("T1a", 10) withID id1a
+      val tg1a = Task("T1a", 10).withID(id1a)
       val expected1a = tg1a.create("sim1", 0L)
 
       val id1b = UUID.randomUUID()
-      val tg1b = Task("T1b", 3L) withID id1b
+      val tg1b = Task("T1b", 3L).withID(id1b)
       val expected1b = tg1b.create("sim1", 2L)
 
       val id2 = UUID.randomUUID()
-      val tg2 = Task("T2", 1) withID id2
+      val tg2 = Task("T2", 1).withID(id2)
       val expected2 = tg2.create("sim2", 1L)
 
       inSequence {
-        sim1.run _ expects () onCall (_ => {
-          coordinator.simResponse(SimReady("sim1", Seq(tg1a)))
-        }) once ()
-
-        sim2.run _ expects () onCall (_ => {
-          coordinator.simResponse(SimReady("sim2", Seq(tg2)))
-        }) once ()
-
-        sim2.completed _ expects (
-          where { (time, tasks) =>
+        (sim1.run _)
+          .expects()
+          .onCall { _: Any =>
             {
-              tasks.size == 1 && containsTask(tasks, expected2) && time == 2L
+              coordinator.simResponse(SimReady("sim1", Seq(tg1a)))
             }
           }
-        ) onCall { (_, _) =>
-          {
-            coordinator.waitFor("sim1")
-            coordinator.simResponse(SimDone("sim2", Success(Unit)))
-            Thread.sleep(500)
-            coordinator.simResponse(SimReady("sim1", Seq(tg1b)))
-          }
-        } once ()
+          .once()
 
-        sim1.completed _ expects (
-          where { (time, tasks) =>
+        (sim2.run _)
+          .expects()
+          .onCall { _: Any =>
             {
-              tasks.size == 1 && containsTask(tasks, expected1b) && time == 5L
+              coordinator.simResponse(SimReady("sim2", Seq(tg2)))
             }
           }
-        ) onCall { (_, _) =>
-          {
-            coordinator.simResponse(SimReady("sim1", Seq()))
-          }
-        } once ()
+          .once()
 
-        sim1.completed _ expects (
-          where { (time, tasks) =>
-            tasks.size == 1 && containsTask(tasks, expected1a) && time == 10L
+        (sim2.completed _)
+          .expects(
+            where { (time, tasks) =>
+              {
+                tasks.size == 1 && containsTask(tasks, expected2) && time == 2L
+              }
+            }
+          )
+          .onCall { (_, _) =>
+            {
+              coordinator.waitFor("sim1")
+              coordinator.simResponse(SimDone("sim2", Success(())))
+              Thread.sleep(500)
+              coordinator.simResponse(SimReady("sim1", Seq(tg1b)))
+            }
           }
-        ) onCall (_ => coordinator.simResponse(SimDone("sim1", Success(Unit)))) once ()
+          .once()
+
+        (sim1.completed _)
+          .expects(
+            where { (time, tasks) =>
+              {
+                tasks.size == 1 && containsTask(tasks, expected1b) && time == 5L
+              }
+            }
+          )
+          .onCall { (_, _) =>
+            {
+              coordinator.simResponse(SimReady("sim1", Seq()))
+            }
+          }
+          .once()
+
+        (sim1.completed _)
+          .expects(
+            where { (time, tasks) =>
+              tasks.size == 1 && containsTask(tasks, expected1a) && time == 10L
+            }
+          )
+          .onCall { _: Any => coordinator.simResponse(SimDone("sim1", Success(()))) }
+          .once()
 
       }
 
@@ -649,21 +693,29 @@ trait MockSimulations { self: MockFactory =>
       expectedEnd: Long
   ): Simulation = {
     val sim: Simulation = mock[Simulation]
-    sim.name _ expects () returning name anyNumberOfTimes ()
+    (sim.name _).expects().returning(name).anyNumberOfTimes()
 
     val id = UUID.randomUUID()
-    val tg = Task("T", duration) withID id
+    val tg = Task("T", duration).withID(id)
     val expected = tg.create(name, expectedCreate)
 
     inSequence {
-      sim.run _ expects () onCall (_ => {
-        coordinator.simResponse(SimReady(name, Seq(tg)))
-      }) once ()
-      sim.completed _ expects (
-        where { (time, tasks) =>
-          tasks.size == 1 && containsTask(tasks, expected) && time == expectedEnd
+      (sim.run _)
+        .expects()
+        .onCall { _: Any =>
+          {
+            coordinator.simResponse(SimReady(name, Seq(tg)))
+          }
         }
-      ) onCall (_ => coordinator.simResponse(SimDone(name, Success(Unit)))) once ()
+        .once()
+      (sim.completed _)
+        .expects(
+          where { (time, tasks) =>
+            tasks.size == 1 && containsTask(tasks, expected) && time == expectedEnd
+          }
+        )
+        .onCall { _: Any => coordinator.simResponse(SimDone(name, Success(()))) }
+        .once()
     }
 
     sim
@@ -679,34 +731,47 @@ trait MockSimulations { self: MockFactory =>
       expectedEnd2: Long
   ): Simulation = {
     val sim: Simulation = mock[Simulation]
-    sim.name _ expects () returning name anyNumberOfTimes ()
+    (sim.name _).expects().returning(name).anyNumberOfTimes()
 
     val id1 = UUID.randomUUID()
-    val tg1 = Task("T1", duration1) withID id1
+    val tg1 = Task("T1", duration1).withID(id1)
     val expected1 = tg1.create(name, expectedCreate1)
 
     val id2 = UUID.randomUUID()
-    val tg2 = Task("T2", duration2) withID id2
+    val tg2 = Task("T2", duration2).withID(id2)
     val expected2 = tg2.create(name, expectedEnd1)
 
     inSequence {
-      sim.run _ expects () onCall (_ => {
-        coordinator.simResponse(SimReady(name, Seq(tg1)))
-      }) once ()
-
-      sim.completed _ expects (
-        where { (time, tasks) =>
-          tasks.size == 1 && containsTask(tasks, expected1) && time == expectedEnd1
+      (sim.run _)
+        .expects()
+        .onCall { _: Any =>
+          {
+            coordinator.simResponse(SimReady(name, Seq(tg1)))
+          }
         }
-      ) onCall (_ => {
-        coordinator.simResponse(SimReady(name, Seq(tg2)))
-      }) once ()
+        .once()
 
-      sim.completed _ expects (
-        where { (time, tasks) =>
-          tasks.size == 1 && containsTask(tasks, expected2) && time == expectedEnd2
+      (sim.completed _)
+        .expects(
+          where { (time, tasks) =>
+            tasks.size == 1 && containsTask(tasks, expected1) && time == expectedEnd1
+          }
+        )
+        .onCall { _: Any =>
+          {
+            coordinator.simResponse(SimReady(name, Seq(tg2)))
+          }
         }
-      ) onCall (_ => coordinator.simResponse(SimDone(name, Success(Unit)))) once ()
+        .once()
+
+      (sim.completed _)
+        .expects(
+          where { (time, tasks) =>
+            tasks.size == 1 && containsTask(tasks, expected2) && time == expectedEnd2
+          }
+        )
+        .onCall { _: Any => coordinator.simResponse(SimDone(name, Success(()))) }
+        .once()
 
     }
 
@@ -721,35 +786,43 @@ trait MockSimulations { self: MockFactory =>
       repeat: Int
   ): Simulation = {
     val sim: Simulation = mock[Simulation]
-    sim.name _ expects () returning name anyNumberOfTimes ()
+    (sim.name _).expects().returning(name).anyNumberOfTimes()
 
     var i = 0
-    var tg = Task("T" + i, duration) withID UUID.randomUUID
+    var tg = Task("T" + i, duration).withID(UUID.randomUUID)
     var expected = tg.create(name, expectedCreate)
     i += 1
 
     inSequence {
-      sim.run _ expects () onCall (_ => {
-        coordinator.simResponse(SimReady(name, Seq(tg)))
-      }) once ()
+      (sim.run _)
+        .expects()
+        .onCall { _: Any =>
+          {
+            coordinator.simResponse(SimReady(name, Seq(tg)))
+          }
+        }
+        .once()
 
-      sim.completed _ expects (
-        where { (time, tasks) =>
-          tasks.size == 1 && containsTask(
-            tasks,
-            expected
-          ) && time == (expectedCreate + i * duration)
+      (sim.completed _)
+        .expects(
+          where { (time, tasks) =>
+            tasks.size == 1 && containsTask(
+              tasks,
+              expected
+            ) && time == (expectedCreate + i * duration)
+          }
+        )
+        .onCall { _: Any =>
+          if (i < repeat) {
+            tg = Task("T" + i, duration).withID(UUID.randomUUID)
+            expected = tg.create(name, expectedCreate + i * duration)
+            i += 1
+            coordinator.simResponse(SimReady(name, Seq(tg)))
+          } else {
+            coordinator.simResponse(SimDone(name, Success(())))
+          }
         }
-      ) onCall (_ =>
-        if (i < repeat) {
-          tg = Task("T" + i, duration) withID UUID.randomUUID
-          expected = tg.create(name, expectedCreate + i * duration)
-          i += 1
-          coordinator.simResponse(SimReady(name, Seq(tg)))
-        } else {
-          coordinator.simResponse(SimDone(name, Success(Unit)))
-        }
-      ) repeat (repeat)
+        .repeat(repeat)
     }
 
     sim
@@ -767,75 +840,92 @@ trait MockSimulations { self: MockFactory =>
       expectedEnd3: Long
   ): Simulation = {
     val sim: Simulation = mock[Simulation]
-    sim.name _ expects () returning name anyNumberOfTimes ()
+    (sim.name _).expects().returning(name).anyNumberOfTimes()
 
     val id1 = UUID.randomUUID()
-    val tg1 = Task("T1", duration1) withID id1
+    val tg1 = Task("T1", duration1).withID(id1)
     val expected1 = tg1.create(name, expectedCreate1)
 
     val id2 = UUID.randomUUID()
-    val tg2 = Task("T2", duration2) withID id2
+    val tg2 = Task("T2", duration2).withID(id2)
     val expected2 = tg2.create(name, expectedCreate1)
 
     val id3 = UUID.randomUUID()
-    val tg3 = Task("T3", duration3) withID id3
+    val tg3 = Task("T3", duration3).withID(id3)
     val expected3 = tg3.create(name, Math.max(expectedEnd1, expectedEnd2))
 
     inSequence {
-      sim.run _ expects () onCall (_ => {
-        coordinator.simResponse(SimReady(name, Seq(tg1, tg2)))
-      }) once ()
+      (sim.run _)
+        .expects()
+        .onCall { _: Any =>
+          {
+            coordinator.simResponse(SimReady(name, Seq(tg1, tg2)))
+          }
+        }
+        .once()
 
       if (expectedEnd1 != expectedEnd2) {
-        sim.completed _ expects (
-          where { (time, tasks) =>
+        (sim.completed _)
+          .expects(
+            where { (time, tasks) =>
+              {
+                tasks.size == 1 &&
+                ((containsTask(tasks, expected1) && time == expectedEnd1)) ||
+                ((containsTask(tasks, expected2) && time == expectedEnd2))
+              }
+            }
+          )
+          .onCall { (_, _) =>
             {
-              tasks.size == 1 &&
-              ((containsTask(tasks, expected1) && time == expectedEnd1)) ||
-              ((containsTask(tasks, expected2) && time == expectedEnd2))
+              coordinator.simResponse(SimReady(name, Seq()))
             }
           }
-        ) onCall { (_, _) =>
-          {
-            coordinator.simResponse(SimReady(name, Seq()))
-          }
-        } once ()
+          .once()
 
-        sim.completed _ expects (
-          where { (time, tasks) =>
+        (sim.completed _)
+          .expects(
+            where { (time, tasks) =>
+              {
+                tasks.size == 1 &&
+                ((containsTask(tasks, expected1) && time == expectedEnd1)) ||
+                ((containsTask(tasks, expected2) && time == expectedEnd2))
+              }
+            }
+          )
+          .onCall { (_, _) =>
             {
-              tasks.size == 1 &&
-              ((containsTask(tasks, expected1) && time == expectedEnd1)) ||
-              ((containsTask(tasks, expected2) && time == expectedEnd2))
+              coordinator.simResponse(SimReady(name, Seq(tg3)))
             }
           }
-        ) onCall { (_, _) =>
-          {
-            coordinator.simResponse(SimReady(name, Seq(tg3)))
-          }
-        } once ()
+          .once()
       } else {
-        sim.completed _ expects (
-          where { (time, tasks) =>
+        (sim.completed _)
+          .expects(
+            where { (time, tasks) =>
+              {
+                (tasks.size == 2 && containsTask(tasks, expected1) && containsTask(
+                  tasks,
+                  expected2
+                ) && time == expectedEnd2)
+              }
+            }
+          )
+          .onCall { (_, _) =>
             {
-              (tasks.size == 2 && containsTask(tasks, expected1) && containsTask(
-                tasks,
-                expected2
-              ) && time == expectedEnd2)
+              coordinator.simResponse(SimReady(name, Seq(tg3)))
             }
           }
-        ) onCall { (_, _) =>
-          {
-            coordinator.simResponse(SimReady(name, Seq(tg3)))
-          }
-        } once ()
+          .once()
       }
 
-      sim.completed _ expects (
-        where { (time, tasks) =>
-          tasks.size == 1 && containsTask(tasks, expected3) && time == expectedEnd3
-        }
-      ) onCall (_ => coordinator.simResponse(SimDone(name, Success(Unit)))) once ()
+      (sim.completed _)
+        .expects(
+          where { (time, tasks) =>
+            tasks.size == 1 && containsTask(tasks, expected3) && time == expectedEnd3
+          }
+        )
+        .onCall { _: Any => coordinator.simResponse(SimDone(name, Success(()))) }
+        .once()
 
     }
 
@@ -848,53 +938,64 @@ trait MockSimulations { self: MockFactory =>
       resource: Option[TaskResource]
   ): Simulation = {
     val sim: Simulation = mock[Simulation]
-    sim.name _ expects () returning name anyNumberOfTimes ()
+    (sim.name _).expects().returning(name).anyNumberOfTimes()
 
     // T1 0..3 - to be aborted at 2
     val id1 = UUID.randomUUID()
     val tg1 = Task(
       "T1",
       3
-    ) withID id1 withResources (resource map (_.name) toSeq) withPriority (Task.Medium)
+    ).withID(id1).withResources(resource.map(_.name).toSeq).withPriority(Task.Medium)
     // val expected1 = tg1.create(name, 0)
 
     // T2 0..2
     val id2 = UUID.randomUUID()
-    val tg2 = Task("T2", 2) withID id2 withPriority (Task.Medium)
+    val tg2 = Task("T2", 2).withID(id2).withPriority(Task.Medium)
     val expected2 = tg2.create(name, 0)
 
     // T3 0..5
     val id3 = UUID.randomUUID()
     val tg3 =
-      Task("T3", 5) withID id3 withResources (resource map (_.name) toSeq) withPriority (Task.Low)
+      Task("T3", 5).withID(id3).withResources(resource.map(_.name).toSeq).withPriority(Task.Low)
     val expected3 = tg3.create(name, 0)
 
     val expectedTime = if (resource.isEmpty) 5L else 7L
 
     inSequence {
-      sim.run _ expects () onCall (_ => {
-        coordinator.simResponse(SimReady(name, Seq(tg1, tg2, tg3)))
-      }) once ()
-
-      sim.completed _ expects (
-        where { (time, tasks) =>
+      (sim.run _)
+        .expects()
+        .onCall { _: Any =>
           {
-            tasks.size == 1 && containsTask(tasks, expected2) && time == 2
+            coordinator.simResponse(SimReady(name, Seq(tg1, tg2, tg3)))
           }
         }
-      ) onCall { (_, _) =>
-        {
-          coordinator.simResponse(SimReady(name, Seq(), Seq(id1)))
-        }
-      } once ()
+        .once()
 
-      sim.completed _ expects (
-        where { (time, tasks) =>
+      (sim.completed _)
+        .expects(
+          where { (time, tasks) =>
+            {
+              tasks.size == 1 && containsTask(tasks, expected2) && time == 2
+            }
+          }
+        )
+        .onCall { (_, _) =>
           {
-            tasks.size == 1 && containsTask(tasks, expected3) && time == expectedTime
+            coordinator.simResponse(SimReady(name, Seq(), Seq(id1)))
           }
         }
-      ) onCall (_ => coordinator.simResponse(SimDone(name, Success(Unit)))) once ()
+        .once()
+
+      (sim.completed _)
+        .expects(
+          where { (time, tasks) =>
+            {
+              tasks.size == 1 && containsTask(tasks, expected3) && time == expectedTime
+            }
+          }
+        )
+        .onCall { _: Any => coordinator.simResponse(SimDone(name, Success(()))) }
+        .once()
 
     }
 
@@ -907,18 +1008,23 @@ trait MockSimulations { self: MockFactory =>
       duration: Long
   ): Simulation = {
     val sim: Simulation = mock[Simulation]
-    sim.name _ expects () returning name anyNumberOfTimes ()
-    sim.completed _ expects (*, *) never ()
+    (sim.name _).expects().returning(name).anyNumberOfTimes()
+    (sim.completed _).expects(*, *).never()
 
     val id = UUID.randomUUID()
-    val tg = Task("T", duration) withID id
+    val tg = Task("T", duration).withID(id)
 
     inSequence {
-      sim.run _ expects () onCall (_ => {
-        coordinator.simResponse(SimReady(name, Seq(tg)))
-      }) once ()
+      (sim.run _)
+        .expects()
+        .onCall { _: Any =>
+          {
+            coordinator.simResponse(SimReady(name, Seq(tg)))
+          }
+        }
+        .once()
 
-      sim.stop _ expects () once ()
+      (sim.stop _).expects().once()
     }
 
     sim
@@ -932,15 +1038,18 @@ trait MockSimulations { self: MockFactory =>
       limit: Int
   ): SimulationGenerator = {
     val gen: SimulationGenerator = mock[SimulationGenerator]
-    (gen.build _) expects (*, *) onCall ({ (manager: Manager, count: Int) =>
-      mockSingleTask(
-        name + ":" + count,
-        manager,
-        start + interval * count,
-        duration,
-        start + interval * count + duration
-      )
-    }) repeat (limit)
+    (gen.build _)
+      .expects(*, *)
+      .onCall({ (manager: Manager, count: Int) =>
+        mockSingleTask(
+          name + ":" + count,
+          manager,
+          start + interval * count,
+          duration,
+          start + interval * count + duration
+        )
+      })
+      .repeat(limit)
     gen
   }
 

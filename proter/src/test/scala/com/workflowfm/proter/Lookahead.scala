@@ -191,13 +191,13 @@ class DummySim(coordinator: Manager) extends DummyLookaheadSim("sim1", coordinat
           callback((_, _) => {
             task(
               generator3,
-              callback((_, _) => { if (tick) succeed(Unit) else { tick = true; ack(Seq(id3)) } })
+              callback((_, _) => { if (tick) succeed(()) else { tick = true; ack(Seq(id3)) } })
             ); ack(Seq(id2))
           })
         )
         task(
           generator4,
-          callback((_, _) => { if (tick) succeed(Unit) else { tick = true; ack(Seq(id4)) } })
+          callback((_, _) => { if (tick) succeed(()) else { tick = true; ack(Seq(id4)) } })
         )
         ack(Seq(id1))
       })
@@ -278,7 +278,7 @@ class DummySim2(coordinator: Manager) extends DummyLookaheadSim("sim1", coordina
           callback((_, _) => {
             task(
               generator3,
-              callback((_, _) => { if (tick) succeed(Unit) else { tick = true; ack(Seq(id3)) } })
+              callback((_, _) => { if (tick) succeed(()) else { tick = true; ack(Seq(id3)) } })
             )
             ack(Seq(id2))
           })
@@ -288,7 +288,7 @@ class DummySim2(coordinator: Manager) extends DummyLookaheadSim("sim1", coordina
           callback((_, _) => {
             task(
               generator5,
-              callback((_, _) => { if (tick) succeed(Unit) else { tick = true; ack(Seq(id5)) } })
+              callback((_, _) => { if (tick) succeed(()) else { tick = true; ack(Seq(id5)) } })
             )
             ack(Seq(id4))
           })
@@ -385,7 +385,7 @@ class DummySim3(coordinator: Manager) extends DummyLookaheadSim("sim1", coordina
     def task5(): Unit = {
       task(
         generator5,
-        callback((_, _) => { if (tick) succeed(Unit) else { tick = true; ack(Seq(id5)) } })
+        callback((_, _) => { if (tick) succeed(()) else { tick = true; ack(Seq(id5)) } })
       )
     }
 
@@ -397,7 +397,7 @@ class DummySim3(coordinator: Manager) extends DummyLookaheadSim("sim1", coordina
         task(generator4, callback((_, _) => { if (count == 2) task5(); count += 1; ack(Seq(id4)) }))
         task(
           generator6,
-          callback((_, _) => { if (tick) succeed(Unit) else { tick = true; ack(Seq(id6)) } })
+          callback((_, _) => { if (tick) succeed(()) else { tick = true; ack(Seq(id6)) } })
         )
         ack(Seq(id1))
       })

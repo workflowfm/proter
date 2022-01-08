@@ -52,6 +52,7 @@ Hugo / includeFilter := ("*")
 ghpagesNoJekyll := true
 previewFixedPort := Some(9999)
 
+ThisBuild / scalafixScalaBinaryVersion := "2.13"
 
 lazy val commonSettings = Seq(
   scalaVersion := Dependencies.scalaVer,
@@ -59,7 +60,10 @@ lazy val commonSettings = Seq(
   semanticdbEnabled := true,
   semanticdbVersion := scalafixSemanticdb.revision,
 
-  scalacOptions += "-Ywarn-unused", // required by `RemoveUnused` rule
+  scalacOptions += "-Wunused:imports", // required by `RemoveUnused` rule
+  scalacOptions += "-deprecation",
+  scalacOptions += "-feature",
+
   autoAPIMappings := true,
   Compile / doc / scalacOptions ++= Seq("-groups", "-implicits", "-diagrams", "-diagrams-debug"),
 

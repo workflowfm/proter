@@ -188,7 +188,7 @@ class Coordinator(
   protected def dequeueEvents(t: Long): Seq[DiscreteEvent] = {
     val elems = scala.collection.immutable.Seq.newBuilder[DiscreteEvent]
     while (events.headOption.exists(_.time == t)) {
-      elems += events.dequeue
+      elems += events.dequeue()
     }
     elems.result()
   }
@@ -234,7 +234,7 @@ class Coordinator(
         // Dequeue all the events that need to happen now
         val eventsToHandle = dequeueEvents(firstEvent.time)
 
-        eventsToHandle flatMap filterFinishingTasks groupBy (_.simulation) foreach stopTasks
+        eventsToHandle.flatMap(filterFinishingTasks).groupBy(_.simulation).foreach(stopTasks)
 
         // Handle the event
         eventsToHandle foreach handleDiscreteEvent
@@ -267,7 +267,7 @@ class Coordinator(
     */
   protected def allocateTasks(): Unit = {
     // Assign the next tasks
-    scheduler.getNextTasks(time, resourceMap).foreach { task =>
+    scheduler.getNextTasks(time, resourceMap.toMap).foreach { task =>
       scheduler.removeTask(task)
       startTask(task)
     }
@@ -313,7 +313,7 @@ class Coordinator(
     // log.debug(s"[COORD:$time] Event!")
     event match {
       // A task is finished, but we handle this elsewhere
-      case FinishingTask(t, _) if (t == time) => Unit
+      case FinishingTask(t, _) if (t == time) => ()
 
       // A simulation (workflow) is starting now
       case StartingSim(t, sim) if (t == time) => startSimulation(sim)
@@ -463,7 +463,7 @@ class Coordinator(
         case FinishingTask(_, task) if task.simulation == name => {
           task.taskResources(resourceMap).map { resource =>
             resource.abortSimulation(name) match {
-              case None => Unit // TODO This should never happen! Should we publish an error?
+              case None => () // TODO This should never happen! Should we publish an error?
               case Some((start, t)) =>
                 publish(
                   ETaskDetach(id, time, t, resource.name, resource.costPerTick * (time - start))
@@ -472,7 +472,7 @@ class Coordinator(
           }
           tasksToAbort += task.id
         }
-        case _ => Unit
+        case _ => ()
       }
     }
 
@@ -621,7 +621,7 @@ class Coordinator(
     */
   protected def detach(r: TaskResource): Unit = {
     r.finishTask(time) match {
-      case None => Unit
+      case None => ()
       case Some(task) => publish(ETaskDetach(id, time, task, r.name, r.costPerTick * task.duration))
     }
   }
@@ -674,7 +674,8 @@ class Coordinator(
     */
   protected def abortTask(ids: Seq[UUID]): Unit = ids foreach { id =>
     {
-      val tasks = resourceMap.flatMap { case (_, resource) =>
+      // val tasks =
+      resourceMap.flatMap { case (_, resource) =>
         resource.abortTask(id).map {
           case (start, task) => {
             publish(
@@ -776,7 +777,7 @@ class Coordinator(
     */
   protected def finish(): Unit = {
     publish(EDone(id, time))
-    promise.success(Unit)
+    promise.success(())
   }
 
   /**

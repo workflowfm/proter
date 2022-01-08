@@ -86,7 +86,7 @@ case class Uniform(min: Double, max: Double) extends Distribution {
     * @return
     *   The random value.
     */
-  override def get: Double = new util.Random().nextDouble * (max - min) + min
+  override def get: Double = new util.Random().nextDouble() * (max - min) + min
 
   /**
     * Provides an estimate of the values that can be generated.
@@ -109,7 +109,7 @@ case class Exponential(mean: Double) extends Distribution {
     *   The random value.
     */
   override def get: Double = {
-    val rand = new util.Random().nextDouble
+    val rand = new util.Random().nextDouble()
     /* Density function:
      * fx(t) = le^(-lt) , where l is lambda, t is time
      *

@@ -277,7 +277,7 @@ class SimMetricsHandler(output: SimMetricsOutput = SimNoOutput)
       output(t, metrics)
     }
     case EResourceAdd(_, _, n, c) => metrics.addResource(n, c)
-    case ESimAdd(_, _, _, _) => Unit
+    case ESimAdd(_, _, _, _) => ()
     case ESimStart(_, t, n) => metrics.addSim(n, t)
     case ESimEnd(_, t, n, r) => metrics.simulation(n)(_.done(r, t))
     case ETaskAdd(_, _, task) => metrics.addTask(task)
@@ -290,10 +290,10 @@ class SimMetricsHandler(output: SimMetricsOutput = SimNoOutput)
       metrics.task(task)(_.addCost(c))
       metrics.simulation(task.simulation)(_.addCost(c))
     }
-    case ETaskDone(_, _, _) => Unit
+    case ETaskDone(_, _, _) => ()
     case ETaskAbort(_, t, id) => metrics.task(id)(_.abort(t))
 
-    case EError(_, _, _) => Unit
+    case EError(_, _, _) => ()
   }
 
   override def result = metrics

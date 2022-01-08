@@ -239,7 +239,7 @@ object PromiseHandler {
   * @param callback
   *   A function to handle the results of the simulation when it completes.
   */
-class SimulationResultHandler(name: String, callback: String => Unit = { _ => Unit })
+class SimulationResultHandler(name: String, callback: String => Unit = { _ => () })
     extends ResultHandler[Option[String]] {
 
   /**
@@ -274,7 +274,7 @@ class SimulationResultHandler(name: String, callback: String => Unit = { _ => Un
       simResult = Some(r)
       callback(r)
     }
-    case _ => Unit
+    case _ => ()
   }
 
   /**

@@ -154,7 +154,7 @@ trait Simulation extends SimulationRef {
     * @param time
     *   The timestamp of completion and current time.
     */
-  def complete(task: TaskInstance, time: Long): Unit = Unit
+  def complete(task: TaskInstance, time: Long): Unit = ()
 
   // final : cannot be final because that prevents mockups in scalamock
   override def completed(time: Long, tasks: Seq[TaskInstance]): Unit = {
@@ -363,7 +363,7 @@ class SingleTaskSimulation(
     */
   override def complete(task: TaskInstance, time: Long): Unit = succeed((task, time))
 
-  override def stop(): Unit = Unit
+  override def stop(): Unit = ()
 }
 
 /**

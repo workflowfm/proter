@@ -75,6 +75,8 @@ class Or(val left: Flow, val right: Flow) extends Flow {
 }
 
 object Flow {
+  import scala.language.implicitConversions
+
   def apply(t: Task*): Flow = Flow.seq(t.map(new FlowTask(_)))
 
   implicit def flowOfTask(t: Task): FlowTask = new FlowTask(t)
@@ -133,7 +135,7 @@ class FlowSimulation(
     * Initiates the execution of the simulation.
     */
   override def run(): Unit = {
-    runFlow(flow, callback((_, _) => succeed(Unit)))
+    runFlow(flow, callback((_, _) => succeed(())))
     ready()
   }
 
@@ -343,8 +345,8 @@ class FlowLookahead(
         )
         (
           (m) => {
-            val results = functions.map(_._1(m))
-            (results filter (_.isDefined) headOption).flatten
+            val results = functions.map(_._1(m)).flatten
+            results.headOption
           },
           functions.map(_._2).fold(NoLookahead) { (a, b) => a and b }
         )

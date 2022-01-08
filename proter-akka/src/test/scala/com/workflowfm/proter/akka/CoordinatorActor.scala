@@ -25,7 +25,7 @@ class CoordinatorActorTests
   /* implicit val executionContext: ExecutionContext = this.system.dispatcher
    * //system.dispatchers.lookup("akka.my-dispatcher") */
 
-  override def afterAll: Unit = {
+  override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system)
   }
 
@@ -43,8 +43,8 @@ class CoordinatorActorTests
       coordinator.addSimulation(0L, sim)
       coordinator.start()
       probe.expectMsg(SimulationActor.Run)
-      coordinator.simResponse(SimDone("sim", Success(Unit)))
-      probe.expectNoMsg()
+      coordinator.simResponse(SimDone("sim", Success(())))
+      probe.expectNoMessage()
     }
 
     "interact correctly with a simulation with just a ping" in {
@@ -59,8 +59,8 @@ class CoordinatorActorTests
 
       Await.result(coordinator.ping(), 3.seconds) should be(CoordinatorActor.Time(0L))
 
-      coordinator.simResponse(SimDone("sim", Success(Unit)))
-      probe.expectNoMsg()
+      coordinator.simResponse(SimDone("sim", Success(())))
+      probe.expectNoMessage()
     }
 
     "interact correctly with a simulation with one task" in {
@@ -84,7 +84,7 @@ class CoordinatorActorTests
       containsTask(tasks, expected) should be(true)
 
       Await.result(coordinator.ping(), 3.seconds) should be(CoordinatorActor.Time(2L))
-      coordinator.simResponse(SimDone("sim", Success(Unit)))
+      coordinator.simResponse(SimDone("sim", Success(())))
     }
 
     "interact correctly with a simulation with two tasks in sequence" in {
@@ -113,7 +113,7 @@ class CoordinatorActorTests
       time2 should be(5L)
       containsTask(tasks2, expected2) should be(true)
 
-      coordinator.simResponse(SimDone("sim", Success(Unit)))
+      coordinator.simResponse(SimDone("sim", Success(())))
     }
 
     "interact correctly with two single-task simulations in parallel" in {
@@ -158,8 +158,8 @@ class CoordinatorActorTests
       time2a should be(2L)
       containsTask(tasks2a, expected2a) should be(true)
 
-      coordinator.simResponse(SimDone("sim1", Success(Unit)))
-      coordinator.simResponse(SimDone("sim2", Success(Unit)))
+      coordinator.simResponse(SimDone("sim1", Success(())))
+      coordinator.simResponse(SimDone("sim2", Success(())))
     }
 
     "interact correctly with two two-task simulations in parallel" in {
@@ -222,7 +222,7 @@ class CoordinatorActorTests
       time2b should be(4L)
       containsTask(tasks2b, expected2b) should be(true)
 
-      coordinator.simResponse(SimDone("sim2", Success(Unit)))
+      coordinator.simResponse(SimDone("sim2", Success(())))
 
       // T1b completes
       val SimulationActor.Completed(time1b, tasks1b) =
@@ -230,7 +230,7 @@ class CoordinatorActorTests
       time1b should be(6L)
       containsTask(tasks1b, expected1b) should be(true)
 
-      coordinator.simResponse(SimDone("sim1", Success(Unit)))
+      coordinator.simResponse(SimDone("sim1", Success(())))
 
     }
 
@@ -274,7 +274,7 @@ class CoordinatorActorTests
       coordinator.waitFor("sim1")
 
       // sim2 completes
-      coordinator.simResponse(SimDone("sim2", Success(Unit)))
+      coordinator.simResponse(SimDone("sim2", Success(())))
 
       // Coordinator must wait
       Thread.sleep(500)
@@ -299,7 +299,7 @@ class CoordinatorActorTests
       time1a should be(10L)
       containsTask(tasks1a, expected1a) should be(true)
 
-      coordinator.simResponse(SimDone("sim1", Success(Unit)))
+      coordinator.simResponse(SimDone("sim1", Success(())))
     }
 
     "interact correctly with a simulation aborting a task without resources" in {
@@ -338,7 +338,7 @@ class CoordinatorActorTests
       time1c should be(5L)
       containsTask(tasks1c, expected1c) should be(true)
 
-      coordinator.simResponse(SimDone("sim1", Success(Unit)))
+      coordinator.simResponse(SimDone("sim1", Success(())))
     }
 
     "interact correctly with a simulation aborting a task with resources" in {
@@ -380,7 +380,7 @@ class CoordinatorActorTests
       time1c should be(7L)
       containsTask(tasks1c, expected1c) should be(true)
 
-      coordinator.simResponse(SimDone("sim1", Success(Unit)))
+      coordinator.simResponse(SimDone("sim1", Success(())))
     }
 
     "abort 2 simulations when the time limit is hit" in {

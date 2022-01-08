@@ -218,10 +218,10 @@ object Schedule {
       tasks: List[(Long, Long)],
       result: Queue[(Long, Long)] = Queue[(Long, Long)]()
   ): Option[List[(Long, Long)]] = tasks match {
-    case Nil => Some(result :+ (start, end) toList)
+    case Nil => Some((result :+ (start, end)).toList)
     case (l: Long, r: Long) :: t =>
-      if (l > end) Some(result ++ ((start, end) :: (l, r) :: t) toList)
-      else if (l == end) Some(result ++ ((start, r) :: t) toList)
+      if (l > end) Some(result.concat((start, end) :: (l, r) :: t).toList)
+      else if (l == end) Some(result.concat((start, r) :: t).toList)
       else if (r < start) add(start, end, t, result :+ ((l, r)))
       else if (r == start) add(l, end, t, result)
       else /* if (r >= end) */ None
@@ -292,10 +292,10 @@ object Schedule {
       g2: List[(Long, Long)],
       result: Queue[(Long, Long)] = Queue[(Long, Long)]()
   ): List[(Long, Long)] = g1 match {
-    case Nil => result ++ g2 toList
+    case Nil => result.concat(g2).toList
     case (l1, r1) :: t1 =>
       g2 match {
-        case Nil => result ++ g1 toList
+        case Nil => result.concat(g1).toList
         case (l2, r2) :: t2 => {
           if (r2 < l1) merge(g1, t2, result :+ (l2, r2))
           else if (r1 < l2) merge(t1, g2, result :+ (l1, r1))
@@ -317,7 +317,7 @@ object Schedule {
     *   The merged schedule.
     */
   def mergeSchedules(schedules: Seq[Schedule]): Schedule = {
-    (Schedule() /: schedules)(_ ++ _)
+    schedules.foldLeft(Schedule())(_ ++ _)
   }
 
   @deprecated("No longer using gaps in Schedule", "1.2.0")
@@ -344,14 +344,14 @@ object Schedule {
       g2: List[(Long, Long)],
       result: Queue[(Long, Long)] = Queue[(Long, Long)]()
   ): List[(Long, Long)] = g1 match {
-    case Nil => result toList
+    case Nil => result.toList
     case (l1, r1) :: t1 =>
       g2 match {
-        case Nil => result toList
+        case Nil => result.toList
         case (l2, r2) :: t2 => {
           if (r2 <= l1) mergeGaps(g1, t2, result)
           else if (r1 <= l2) mergeGaps(t1, g2, result)
-          else if (r1 == Long.MaxValue && r1 == r2) result :+ (math.max(l1, l2), r1) toList
+          else if (r1 == Long.MaxValue && r1 == r2) (result :+ (math.max(l1, l2), r1)).toList
           else if (r2 <= r1) mergeGaps(g1, t2, result :+ (math.max(l1, l2), r2))
           else /* if (r1 < r2) */ mergeGaps(t1, g2, result :+ (math.max(l1, l2), r1))
         }

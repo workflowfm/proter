@@ -19,7 +19,7 @@ class SimulationTests extends SimulationTester with MockFactory {
       val mockinator: Coordinator = mock[Coordinator]
       val sim = new NoTasks("sim", mockinator)
 
-      (mockinator.simResponse _).expects(SimDone("sim", Success(Unit))).once()
+      (mockinator.simResponse _).expects(SimDone("sim", Success(()))).once()
 
       sim.run()
     }
@@ -31,14 +31,17 @@ class SimulationTests extends SimulationTester with MockFactory {
       val ti1 = sim.theTask.create("sim", 0L)
 
       inSequence {
-        mockinator.simResponse _ expects (where { (r: SimResponse) =>
-          r match {
-            case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.theTask
-            case _ => false
-          }
-        }) onCall { _ => sim.complete(ti1, 2L) } once
+        (mockinator.simResponse _)
+          .expects(where { (r: SimResponse) =>
+            r match {
+              case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.theTask
+              case _ => false
+            }
+          })
+          .onCall { _: Any => sim.complete(ti1, 2L) }
+          .once()
 
-        mockinator.simResponse _ expects (SimDone("sim", Success((ti1, 2L)))) once ()
+        (mockinator.simResponse _).expects(SimDone("sim", Success((ti1, 2L)))).once()
       }
 
       sim.run()
@@ -52,21 +55,27 @@ class SimulationTests extends SimulationTester with MockFactory {
       val ti2 = sim.t2.create("sim", 2L)
 
       inSequence {
-        mockinator.simResponse _ expects (where { (r: SimResponse) =>
-          r match {
-            case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t1
-            case _ => false
-          }
-        }) onCall { _ => sim.complete(ti1, 2L) } once
+        (mockinator.simResponse _)
+          .expects(where { (r: SimResponse) =>
+            r match {
+              case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t1
+              case _ => false
+            }
+          })
+          .onCall { _: Any => sim.complete(ti1, 2L) }
+          .once()
 
-        mockinator.simResponse _ expects (where { (r: SimResponse) =>
-          r match {
-            case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t2
-            case _ => false
-          }
-        }) onCall { _ => sim.complete(ti2, 4L) } once
+        (mockinator.simResponse _)
+          .expects(where { (r: SimResponse) =>
+            r match {
+              case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t2
+              case _ => false
+            }
+          })
+          .onCall { _: Any => sim.complete(ti2, 4L) }
+          .once()
 
-        mockinator.simResponse _ expects (SimDone("sim", Success((ti2, 4L)))) once ()
+        (mockinator.simResponse _).expects(SimDone("sim", Success((ti2, 4L)))).once()
       }
 
       sim.run()
@@ -81,28 +90,37 @@ class SimulationTests extends SimulationTester with MockFactory {
       val ti3 = sim.t3.create("sim", 4L)
 
       inSequence {
-        mockinator.simResponse _ expects (where { (r: SimResponse) =>
-          r match {
-            case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t1
-            case _ => false
-          }
-        }) onCall { _ => sim.complete(ti1, 2L) } once
+        (mockinator.simResponse _)
+          .expects(where { (r: SimResponse) =>
+            r match {
+              case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t1
+              case _ => false
+            }
+          })
+          .onCall { _: Any => sim.complete(ti1, 2L) }
+          .once()
 
-        mockinator.simResponse _ expects (where { (r: SimResponse) =>
-          r match {
-            case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t2
-            case _ => false
-          }
-        }) onCall { _ => sim.complete(ti2, 4L) } once
+        (mockinator.simResponse _)
+          .expects(where { (r: SimResponse) =>
+            r match {
+              case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t2
+              case _ => false
+            }
+          })
+          .onCall { _: Any => sim.complete(ti2, 4L) }
+          .once()
 
-        mockinator.simResponse _ expects (where { (r: SimResponse) =>
-          r match {
-            case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t3
-            case _ => false
-          }
-        }) onCall { _ => sim.complete(ti3, 6L) } once
+        (mockinator.simResponse _)
+          .expects(where { (r: SimResponse) =>
+            r match {
+              case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t3
+              case _ => false
+            }
+          })
+          .onCall { _: Any => sim.complete(ti3, 6L) }
+          .once()
 
-        mockinator.simResponse _ expects (SimDone("sim", Success((ti3, 6L)))) once ()
+        (mockinator.simResponse _).expects(SimDone("sim", Success((ti3, 6L)))).once()
       }
 
       sim.run()
@@ -117,33 +135,41 @@ class SimulationTests extends SimulationTester with MockFactory {
       val ti2 = sim.t2.create("sim", 2L)
 
       inSequence {
-        mockinator.simResponse _ expects (where { (r: SimResponse) =>
-          r match {
-            case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t1
-            case _ => false
-          }
-        }) onCall { _ => sim.complete(ti1, 2L) } once
+        (mockinator.simResponse _)
+          .expects(where { (r: SimResponse) =>
+            r match {
+              case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t1
+              case _ => false
+            }
+          })
+          .onCall { _: Any => sim.complete(ti1, 2L) }
+          .once()
 
-        mockinator.simResponse _ expects (where { (r: SimResponse) =>
-          r match {
-            case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t2
-            case _ => false
+        (mockinator.simResponse _)
+          .expects(where { (r: SimResponse) =>
+            r match {
+              case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t2
+              case _ => false
+            }
+          })
+          .onCall { _: Any =>
+            {
+              sim.stop()
+              sim.complete(ti2, 4L)
+            }
           }
-        }) onCall { _ =>
-          {
-            sim.stop()
-            sim.complete(ti2, 4L)
-          }
-        } once
+          .once()
 
-        mockinator.simResponse _ expects (where { (r: SimResponse) =>
-          r match {
-            case SimDone("sim", Failure(_: Simulation.SimulationStoppingException)) => true
-            case _ => false
-          }
-        }) once
+        (mockinator.simResponse _)
+          .expects(where { (r: SimResponse) =>
+            r match {
+              case SimDone("sim", Failure(_: Simulation.SimulationStoppingException)) => true
+              case _ => false
+            }
+          })
+          .once()
 
-        mockinator.simResponse _ expects (*) never ()
+        (mockinator.simResponse _).expects(*).never()
       }
 
       sim.run()
@@ -156,24 +182,29 @@ class SimulationTests extends SimulationTester with MockFactory {
       val ti1 = sim.t1.create("sim", 0L)
 
       inSequence {
-        mockinator.simResponse _ expects (where { (r: SimResponse) =>
-          r match {
-            case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t1
-            case _ => false
+        (mockinator.simResponse _)
+          .expects(where { (r: SimResponse) =>
+            r match {
+              case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t1
+              case _ => false
+            }
+          })
+          .onCall { _: Any =>
+            {
+              sim.stop()
+              sim.complete(ti1, 4L)
+            }
           }
-        }) onCall { _ =>
-          {
-            sim.stop()
-            sim.complete(ti1, 4L)
-          }
-        } once
+          .once()
 
-        mockinator.simResponse _ expects (where { (r: SimResponse) =>
-          r match {
-            case SimDone("sim", Failure(_: Simulation.SimulationStoppingException)) => true
-            case _ => false
-          }
-        }) once
+        (mockinator.simResponse _)
+          .expects(where { (r: SimResponse) =>
+            r match {
+              case SimDone("sim", Failure(_: Simulation.SimulationStoppingException)) => true
+              case _ => false
+            }
+          })
+          .once()
       }
 
       sim.run()
@@ -188,31 +219,39 @@ class SimulationTests extends SimulationTester with MockFactory {
       val ti2 = sim.t2.create("sim", 2L)
 
       inSequence {
-        mockinator.simResponse _ expects (where { (r: SimResponse) =>
-          r match {
-            case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t1
-            case _ => false
-          }
-        }) onCall { _ => sim.complete(ti1, 2L) } once
+        (mockinator.simResponse _)
+          .expects(where { (r: SimResponse) =>
+            r match {
+              case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t1
+              case _ => false
+            }
+          })
+          .onCall { _: Any => sim.complete(ti1, 2L) }
+          .once()
 
-        mockinator.simResponse _ expects (where { (r: SimResponse) =>
-          r match {
-            case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t2
-            case _ => false
+        (mockinator.simResponse _)
+          .expects(where { (r: SimResponse) =>
+            r match {
+              case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t2
+              case _ => false
+            }
+          })
+          .onCall { _: Any =>
+            {
+              sim.stop()
+              sim.complete(ti2, 4L)
+            }
           }
-        }) onCall { _ =>
-          {
-            sim.stop()
-            sim.complete(ti2, 4L)
-          }
-        } once
+          .once()
 
-        mockinator.simResponse _ expects (where { (r: SimResponse) =>
-          r match {
-            case SimDone("sim", Failure(_: Simulation.SimulationStoppingException)) => true
-            case _ => false
-          }
-        }) once
+        (mockinator.simResponse _)
+          .expects(where { (r: SimResponse) =>
+            r match {
+              case SimDone("sim", Failure(_: Simulation.SimulationStoppingException)) => true
+              case _ => false
+            }
+          })
+          .once()
       }
 
       sim.run()
@@ -278,15 +317,15 @@ trait SimulationTester extends AnyWordSpecLike with Matchers {
 
   class NoTasks(override val name: String, override protected val manager: Manager)
       extends Simulation {
-    override def run(): Unit = succeed(Unit) // finish instantly
-    override def complete(task: TaskInstance, time: Long): Unit = Unit // does nothing
-    override def stop(): Unit = Unit
+    override def run(): Unit = succeed(()) // finish instantly
+    override def complete(task: TaskInstance, time: Long): Unit = () // does nothing
+    override def stop(): Unit = ()
   }
 
   class ThreeFutureTasks(
       override val name: String,
       override protected val manager: Manager,
-      onFail: Throwable => Unit = _ => Unit,
+      onFail: Throwable => Unit = _ => (),
       d1: Long = 2L,
       d2: Long = 2L,
       d3: Long = 3L
@@ -316,7 +355,10 @@ trait SimulationTester extends AnyWordSpecLike with Matchers {
         ack(Seq(id2))
         t
       }
-      task3.onFailure { case ex => onFail(ex) }
+      task3.onComplete {
+        case Failure(ex) => onFail(ex)
+        case _ => ()
+      }
       task3.onComplete(done)
     }
   }
@@ -324,7 +366,7 @@ trait SimulationTester extends AnyWordSpecLike with Matchers {
   class TwoTasks(
       override val name: String,
       override protected val manager: Manager,
-      onFail: Throwable => Unit = _ => Unit,
+      onFail: Throwable => Unit = _ => (),
       d1: Long = 2L,
       d2: Long = 2L
   ) extends AsyncSimulation {

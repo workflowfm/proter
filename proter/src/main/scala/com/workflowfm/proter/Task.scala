@@ -68,7 +68,7 @@ class TaskInstance(
       currentTime: Long,
       resourceMap: collection.Map[String, TaskResource]
   ): Long = {
-    (currentTime /: resources) { case (i, rN) =>
+    resources.foldLeft(currentTime) { case (i, rN) =>
       resourceMap.get(rN) match {
         case None => throw new RuntimeException(s"Resource $rN not found!")
         case Some(r) => Math.max(i, r.nextAvailableTimestamp(currentTime))

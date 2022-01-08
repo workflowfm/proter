@@ -26,7 +26,7 @@ class MockSimulationActorTests
     with MockSimulations
     with BeforeAndAfterAll {
 
-  override def afterAll: Unit = {
+  override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system)
   }
 
@@ -36,9 +36,12 @@ class MockSimulationActorTests
       val coordinator = AkkaManager.build(new ProterScheduler())
       val sim: Simulation = mock[Simulation]
 
-      sim.name _ expects () returning "sim" anyNumberOfTimes ()
+      (sim.name _).expects().returning("sim").anyNumberOfTimes()
 
-      sim.run _ expects () onCall (_ => coordinator.simResponse(SimDone("sim", Success(Unit)))) once
+      (sim.run _)
+        .expects()
+        .onCall { _: Any => coordinator.simResponse(SimDone("sim", Success(()))) }
+        .once()
 
       val simRef = AkkaSimulationRef.of(sim)
       coordinator.addSimulation(0L, simRef)
@@ -168,9 +171,9 @@ class MockSimulationActorTests
       val coordinator = AkkaManager.build(new ProterScheduler())
 
       val sim1: Simulation = mock[Simulation]
-      sim1.name _ expects () returning "sim1" anyNumberOfTimes ()
+      (sim1.name _).expects().returning("sim1").anyNumberOfTimes()
       val sim2: Simulation = mock[Simulation]
-      sim2.name _ expects () returning "sim2" anyNumberOfTimes ()
+      (sim2.name _).expects().returning("sim2").anyNumberOfTimes()
 
       val id1a = UUID.randomUUID()
       val tg1a = Task("T1a", 10) withID id1a
@@ -185,46 +188,65 @@ class MockSimulationActorTests
       val expected2 = tg2.create("sim2", 1L)
 
       inSequence {
-        sim1.run _ expects () onCall (_ => {
-          coordinator.simResponse(SimReady("sim1", Seq(tg1a)))
-        }) once ()
-
-        sim2.run _ expects () onCall (_ => {
-          coordinator.simResponse(SimReady("sim2", Seq(tg2)))
-        }) once ()
-
-        sim2.completed _ expects (
-          where { (time, tasks) =>
+        (sim1.run _)
+          .expects()
+          .onCall { _: Any =>
             {
-              tasks.size == 1 && containsTask(tasks, expected2) && time == 2L
+              coordinator.simResponse(SimReady("sim1", Seq(tg1a)))
             }
           }
-        ) onCall { (_, _) =>
-          {
-            coordinator.waitFor("sim1")
-            coordinator.simResponse(SimDone("sim2", Success(Unit)))
-            Thread.sleep(500)
-            coordinator.simResponse(SimReady("sim1", Seq(tg1b)))
-          }
-        } once ()
+          .once()
 
-        sim1.completed _ expects (
-          where { (time, tasks) =>
+        (sim2.run _)
+          .expects()
+          .onCall { _: Any =>
             {
-              tasks.size == 1 && containsTask(tasks, expected1b) && time == 5L
+              coordinator.simResponse(SimReady("sim2", Seq(tg2)))
             }
           }
-        ) onCall { (_, _) =>
-          {
-            coordinator.simResponse(SimReady("sim1", Seq()))
-          }
-        } once ()
+          .once()
 
-        sim1.completed _ expects (
-          where { (time, tasks) =>
-            tasks.size == 1 && containsTask(tasks, expected1a) && time == 10L
+        (sim2.completed _)
+          .expects(
+            where { (time, tasks) =>
+              {
+                tasks.size == 1 && containsTask(tasks, expected2) && time == 2L
+              }
+            }
+          )
+          .onCall { (_, _) =>
+            {
+              coordinator.waitFor("sim1")
+              coordinator.simResponse(SimDone("sim2", Success(())))
+              Thread.sleep(500)
+              coordinator.simResponse(SimReady("sim1", Seq(tg1b)))
+            }
           }
-        ) onCall (_ => coordinator.simResponse(SimDone("sim1", Success(Unit)))) once ()
+          .once()
+
+        (sim1.completed _)
+          .expects(
+            where { (time, tasks) =>
+              {
+                tasks.size == 1 && containsTask(tasks, expected1b) && time == 5L
+              }
+            }
+          )
+          .onCall { (_, _) =>
+            {
+              coordinator.simResponse(SimReady("sim1", Seq()))
+            }
+          }
+          .once()
+
+        (sim1.completed _)
+          .expects(
+            where { (time, tasks) =>
+              tasks.size == 1 && containsTask(tasks, expected1a) && time == 10L
+            }
+          )
+          .onCall { _: Any => coordinator.simResponse(SimDone("sim1", Success(()))) }
+          .once()
 
       }
 

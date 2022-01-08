@@ -49,7 +49,7 @@ case class RandomFlowFactory(
       case 1 => randomTask(name)
       case _ => {
         val leftNum = Uniform(1, num - 1).getLong.toInt
-        if (new util.Random().nextDouble <= andProbability) {
+        if (new util.Random().nextDouble() <= andProbability) {
           new And(randomNode(leftNum, name), randomNode(num - leftNum, name + leftNum))
         } else {
           new Then(randomNode(leftNum, name), randomNode(num - leftNum, name + leftNum))
@@ -63,7 +63,7 @@ case class RandomFlowFactory(
     val possibleResources = resources.combinations(numberOfResources).toSeq
     val selectedResources = possibleResources(new util.Random().nextInt(possibleResources.length))
     new FlowTask(
-      Task("task" + name.toString, durations.getLong)
+      Task("task" + name.toString, durations.get)
         .withResources(selectedResources.map(_.name))
         .withCost(cost.get)
         .withPriority(priority.getLong.toInt)

@@ -3,7 +3,7 @@ package com.workflowfm.proter.schedule
 import java.util.UUID
 
 import scala.annotation.tailrec
-import scala.collection.Map
+import scala.collection.immutable.Map
 import scala.collection.mutable.SortedSet
 
 import com.workflowfm.proter.{ TaskInstance, TaskResource, Lookahead, NoLookahead }
@@ -57,7 +57,7 @@ trait Scheduler {
     * @param obj
     *   The lookahead structure.
     */
-  def setLookahead(simulation: String, obj: Lookahead): Unit = Unit
+  def setLookahead(simulation: String, obj: Lookahead): Unit = ()
 
   /**
     * Removes the lookahead structure associated with the given actor.
@@ -65,7 +65,7 @@ trait Scheduler {
     * @param actor
     *   The actor corresponding to the lookahead structure.
     */
-  def removeLookahead(simulation: String): Unit = Unit
+  def removeLookahead(simulation: String): Unit = ()
 
   /**
     * Adds an Task described by an (ID,time) pair to the list of completed IDs
@@ -77,7 +77,7 @@ trait Scheduler {
     * @return
     *   A LookaheadStructure with this (ID,time) pair added to the list of completed tasks
     */
-  def complete(task: TaskInstance, time: Long): Unit = Unit
+  def complete(task: TaskInstance, time: Long): Unit = ()
 
   /**
     * Retrieves an iterable collection of queued [[TaskInstance]]s.
@@ -397,7 +397,13 @@ class ProterScheduler(initialTasks: TaskInstance*) extends PriorityScheduler {
       currentTime: Long,
       resourceMap: Map[String, TaskResource]
   ): Seq[TaskInstance] =
-    findNextTasks(currentTime, resourceMap, resourceMap.mapValues(Schedule(_)), tasks, Queue())
+    findNextTasks(
+      currentTime,
+      resourceMap,
+      resourceMap.view.mapValues(Schedule(_)).toMap,
+      tasks,
+      Queue()
+    )
 
   /**
     * Finds the [[Task]]s that can be started now.
@@ -439,7 +445,7 @@ class ProterScheduler(initialTasks: TaskInstance*) extends PriorityScheduler {
     else {
       val t = tasks.head
       val start = Schedule.mergeSchedules(t.resources.flatMap(schedules.get(_))) ? (currentTime, t)
-      val schedules2 = (schedules /: t.resources) { case (s, r) =>
+      val schedules2 = t.resources.foldLeft(schedules) { case (s, r) =>
         s + (r -> (s.getOrElse(r, Schedule()) +> (start, t)))
       }
       val result2 =
@@ -541,7 +547,7 @@ class LookaheadScheduler(initialTasks: TaskInstance*) extends PriorityScheduler 
     val t = findNextTasks(
       currentTime,
       resourceMap,
-      resourceMap.mapValues(Schedule(_)),
+      resourceMap.view.mapValues(Schedule(_)).toMap,
       tasks ++ inProgressFutureTasks,
       Seq(),
       lookaheadSetThisIter,
@@ -611,7 +617,7 @@ class LookaheadScheduler(initialTasks: TaskInstance*) extends PriorityScheduler 
       val scheduledThisIter2 = scheduledThisIter :+ ((t.id, start + t.estimatedDuration))
       val lookaheadSetThisIter2 = lookaheadSetThisIter - t.id
       val futureTasks = tasksAfterThis(t.simulation, scheduledThisIter2, lookaheadSetThisIter2)
-      val schedules2 = (schedules /: t.resources) { case (s, r) =>
+      val schedules2 = t.resources.foldLeft(schedules) { case (s, r) =>
         s + (r -> (s.getOrElse(r, Schedule()) +> (start, t)))
       }
       val result2 =

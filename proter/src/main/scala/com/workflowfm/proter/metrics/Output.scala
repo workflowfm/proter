@@ -95,7 +95,7 @@ object SimMetricsOutputs {
   * A [[SimMetricsOutput]] that does nothing.
   */
 object SimNoOutput extends SimMetricsOutput {
-  def apply(totalTicks: Long, aggregator: SimMetricsAggregator): Unit = Unit
+  def apply(totalTicks: Long, aggregator: SimMetricsAggregator): Unit = ()
 }
 
 /** Generates a string representation of the metrics using a generalized CSV format. */
@@ -355,7 +355,7 @@ class SimD3Timeline(path: String, file: String, tick: Int = 1)
 
   /** Helps build the output with a static system time. */
   def build(aggregator: SimMetricsAggregator, now: Long): String = {
-    val buf: StringBuilder = StringBuilder.newBuilder
+    val buf: StringBuilder = new StringBuilder()
     buf.append("var tasks = [\n")
     for (p <- (collection.immutable.SortedSet[String]() ++ aggregator.taskSet))
       buf.append(s"""\t"$p",\n""")
