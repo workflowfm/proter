@@ -213,7 +213,7 @@ case class LookaheadSet(
     * @inheritdoc
     */
   override def getTaskData(scheduled: Iterable[(UUID, Long)]): Seq[(Task, Long)] = {
-    val y = lookaheadSet flatMap { x: (Map[UUID, Long] => Option[Long], Seq[Task]) =>
+    val y = lookaheadSet flatMap { (x: (Map[UUID, Long] => Option[Long], Seq[Task])) =>
       x match {
         case (function, data) =>
           val l = function((scheduled).foldLeft(Map.empty[UUID, Long]) { (a, b) =>

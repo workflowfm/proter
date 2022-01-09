@@ -7,7 +7,7 @@ object Dependencies {
   val scalaVer = "2.13.7"
 
   val scalaTest = "org.scalatest" %% "scalatest" % "3.2.10" % "test"
-  val scalaMock = "org.scalamock" %% "scalamock" % "5.2.0" % "test"
+  val scalaMock = ("org.scalamock" %% "scalamock" % "5.2.0" % "test").cross(CrossVersion.for3Use2_13)
 
   val akkaActor = "com.typesafe.akka" %% "akka-actor" % "2.6.18"
   val akkaTestkit = "com.typesafe.akka" %% "akka-testkit" % "2.6.18" % "test"

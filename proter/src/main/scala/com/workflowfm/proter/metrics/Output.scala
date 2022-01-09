@@ -42,7 +42,7 @@ object SimMetricsOutput {
   def formatOption[T](
       v: Option[T],
       nullValue: String,
-      format: T => String = { x: T => x.toString }
+      format: T => String = { (x: T) => x.toString }
   ): String = v.map(format).getOrElse(nullValue)
   def formatTime(format: String)(time: Long): String = new SimpleDateFormat(format).format(time)
 
