@@ -56,7 +56,7 @@ ThisBuild / scalafixScalaBinaryVersion := "2.13"
 
 lazy val commonSettings = Seq(
 //  scalaVersion := Dependencies.scalaVer,
-  scalaVersion := "3.1.0",
+  scalaVersion := "2.13.7",
   crossScalaVersions ++= Seq("2.13.7", "3.1.0"),
 
   semanticdbEnabled := true,
