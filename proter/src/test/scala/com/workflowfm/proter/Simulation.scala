@@ -9,178 +9,127 @@ import org.scalatest.Inside
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpecLike
 
-trait MockManager extends Manager with Matchers with Inside {
-  private var lastResponse: Option[SimResponse] = None
+class SimulationTests extends SimulationTester with MockManagerResponseMatcher {
 
-  override def waitFor(simulation: String): Unit = ()
-
-  override def simResponse(response: SimResponse): Unit = lastResponse match {
-    case None => lastResponse = Some(response)
-    case Some(r) => fail(s"Received [$response] before handling: $r")
-  }
-
-  def clear(): Unit = lastResponse = None
-
-  def finish(sleep: Int = 0): Unit = {
-    if (sleep > 0) Thread.sleep(sleep)
-    lastResponse should be(None)
-    ()
-  }
-
-  def done(simulation: SimulationRef, result: Any): Unit = {
-    inside(lastResponse) {
-      case Some(SimDone(name, Success(r))) => {
-        name should be(simulation.name)
-        r should be(result)
-      }
-      case _ => fail(s"Expected SimDone for ${simulation.name} with result $result")
-    }
-    clear()
-    ()
-  }
-
-  def stopped(simulation: SimulationRef): Unit = {
-    inside(lastResponse) {
-      case Some(SimDone(name, Failure(f))) => {
-        name should be(simulation.name)
-        f shouldBe a[Simulation.SimulationStoppingException]
-      }
-      case _ => fail(s"Expected SimDone for ${simulation.name} with SimulationStoppingException")
-    }
-    clear()
-    ()
-  }
-
-  def ready1(simulation: SimulationRef, task: Task): Unit = {
-    inside(lastResponse) {
-      case Some(SimReady(name, ts, _, _)) => {
-        name should be(simulation.name)
-        ts.length should be(1)
-        ts.head should be(task)
-      }
-      case _ => fail(s"Expected SimReady for ${task}")
-    }
-    clear()
-    ()
-  }
-}
-
-class SimulationTests extends SimulationTester with MockManager {
-
+  import MockManager._
   implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
 
   "Simulations" should {
 
     "interact correctly having no tasks" in {
-      val sim = new NoTasks("sim", this)
+      val manager: MockManager = new MockManager
+      val sim = new NoTasks("sim", manager)
 
-      clear()
+      manager.expected += SimDone("sim", Success(()))
+
       sim.run()
-
-      done(sim, ())
-      finish()
+      manager should comply
     }
 
     "interact correctly having one task" in {
-      val sim = new SingleTaskSimulation("sim", this, Seq("r1"), Constant(2L))
+      val manager: MockManager = new MockManager
+      val sim = new SingleTaskSimulation("sim", manager, Seq("r1"), Constant(2L))
 
       val ti1 = sim.theTask.create("sim", 0L)
 
-      clear()
+      manager.reactions += sim.theTask -> Complete(sim, 2L, Seq(ti1))
+      manager.expected ++= Seq(
+        SimReady("sim", Seq(sim.theTask)),
+        SimDone("sim", Success((ti1, 2L)))
+      )
+
       sim.run()
-      ready1(sim, sim.theTask)
-      sim.complete(ti1, 2L)
-      done(sim, (ti1, 2L))
-      finish()
+      manager should comply
     }
 
     "interact correctly having 2 tasks in sequence with callback" in {
-      val sim = new TwoTasks("sim", this)
+      val manager: MockManager = new MockManager
+      val sim = new TwoTasks("sim", manager)
 
       val ti1 = sim.t1.create("sim", 0L)
       val ti2 = sim.t2.create("sim", 2L)
 
-      clear()
+      manager.reactions += sim.t1 -> Complete(sim, 2L, Seq(ti1))
+      manager.reactions += sim.t2 -> Complete(sim, 4L, Seq(ti2))
+
+      manager.expected += SimReady("sim", Seq(sim.t1))
+      manager.expected += SimReady("sim", Seq(sim.t2))
+      manager.expected += SimDone("sim", Success((ti2, 4L)))
+
       sim.run()
-      ready1(sim, sim.t1)
-      sim.complete(ti1, 2L)
-      ready1(sim, sim.t2)
-      sim.complete(ti2, 4L)
-      done(sim, (ti2, 4L))
-      finish()
+      manager should comply
     }
 
     "interact correctly having 3 tasks in sequence with Futures" in {
-      val sim = new ThreeFutureTasks("sim", this)
+      val manager: MockManager = new MockManager
+      val sim = new ThreeFutureTasks("sim", manager)
 
       val ti1 = sim.t1.create("sim", 0L)
       val ti2 = sim.t2.create("sim", 2L)
       val ti3 = sim.t3.create("sim", 4L)
 
-      clear()
+      manager.reactions += sim.t1 -> Complete(sim, 2L, Seq(ti1))
+      manager.reactions += sim.t2 -> Complete(sim, 4L, Seq(ti2))
+      manager.reactions += sim.t3 -> Complete(sim, 6L, Seq(ti3))
+
+      manager.expected += SimReady("sim", Seq(sim.t1))
+      manager.expected += SimReady("sim", Seq(sim.t2))
+      manager.expected += SimReady("sim", Seq(sim.t3))
+      manager.expected += SimDone("sim", Success((ti3, 6L)))
+
       sim.run()
-      ready1(sim, sim.t1)
-      sim.complete(ti1, 2L)
-      Thread.sleep(200) // allow futures to complete
-      ready1(sim, sim.t2)
-      sim.complete(ti2, 4L)
-      Thread.sleep(200) // allow futures to complete
-      ready1(sim, sim.t3)
-      sim.complete(ti3, 6L)
-      Thread.sleep(200) // allow futures to complete
-      done(sim, (ti3, 6L))
-      finish(200)
+      Thread.sleep(200)
+      manager should comply
     }
 
     "stop between 2 tasks in sequence" in {
-      val sim = new TwoTasks("sim", this)
+      val manager: MockManager = new MockManager
+      val sim = new TwoTasks("sim", manager)
 
       val ti1 = sim.t1.create("sim", 0L)
-      val ti2 = sim.t2.create("sim", 2L)
 
-      clear()
+      manager.reactions += sim.t1 -> Complete(sim, 2L, Seq(ti1))
+      manager.reactions += sim.t2 -> Stop(sim)
+
+      manager.expected += SimReady("sim", Seq(sim.t1))
+      manager.expected += SimReady("sim", Seq(sim.t2))
+      manager.expected += SimDone("sim", Failure(new Exception))
+
       sim.run()
-      ready1(sim, sim.t1)
-      sim.complete(ti1, 2L)
-      ready1(sim, sim.t2)
-      sim.stop()
-      sim.complete(ti2, 4L)
-      stopped(sim)
-      finish()
+      manager should comply
     }
 
     "stop after the 1st task in a sequence of 3 tasks with futures" in {
-      val sim = new ThreeFutureTasks("sim", this)
+      val manager: MockManager = new MockManager
+      val sim = new ThreeFutureTasks("sim", manager)
 
-      val ti1 = sim.t1.create("sim", 0L)
+      manager.reactions += sim.t1 -> Stop(sim)
 
-      clear()
+      manager.expected += SimReady("sim", Seq(sim.t1))
+      manager.expected += SimDone("sim", Failure(new Exception))
+
       sim.run()
-      ready1(sim, sim.t1)
-      sim.stop()
-      sim.complete(ti1, 2L)
       Thread.sleep(200) // allow futures to complete
-      stopped(sim)
-      finish(200)
+      manager should comply
     }
 
     "stop after the 2nd task in a sequence of 3 tasks with futures" in {
-      val sim = new ThreeFutureTasks("sim", this)
+      val manager: MockManager = new MockManager
+      val sim = new ThreeFutureTasks("sim", manager)
 
       val ti1 = sim.t1.create("sim", 0L)
       val ti2 = sim.t2.create("sim", 2L)
 
-      clear()
+      manager.reactions += sim.t1 -> Complete(sim, 2L, Seq(ti1))
+      manager.reactions += sim.t2 -> Stop(sim)
+
+      manager.expected += SimReady("sim", Seq(sim.t1))
+      manager.expected += SimReady("sim", Seq(sim.t2))
+      manager.expected += SimDone("sim", Failure(new Exception))
+
       sim.run()
-      ready1(sim, sim.t1)
-      sim.complete(ti1, 2L)
       Thread.sleep(200) // allow futures to complete
-      ready1(sim, sim.t2)
-      sim.stop()
-      sim.complete(ti2, 4L)
-      Thread.sleep(200) // allow futures to complete
-      stopped(sim)
-      finish(200)
+      manager should comply
     }
 
     // "reply to LookaheadNextItter messages" in {
