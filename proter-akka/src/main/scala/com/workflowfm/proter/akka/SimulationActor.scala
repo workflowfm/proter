@@ -21,19 +21,89 @@ import com.workflowfm.proter._
 case class AkkaSimulationRef(simName: String, simulation: ActorRef) extends SimulationRef {
 
   override def name: String = simName
-  override def run(): Unit = simulation ! SimulationActor.Run
-  override def stop(): Unit = simulation ! SimulationActor.Stop
+  override def run(): Unit = simulation ! SimulationRefActor.Run
+  override def stop(): Unit = simulation ! SimulationRefActor.Stop
 
   override def completed(time: Long, tasks: Seq[TaskInstance]): Unit =
-    simulation ! SimulationActor.Completed(time, tasks)
+    simulation ! SimulationRefActor.Completed(time, tasks)
 }
 
 object AkkaSimulationRef {
 
+  /**
+    * Builds a [[com.workflowfm.proter.SimulationRef SimulationRef]] for an actor-based simulation.
+    *
+    * @param simulation A [[com.workflowfm.proter.Simulation Simulation]] to wrap within the actor.
+    * @param system 
+    * @return The constructed [[com.workflowfm.proter.SimulationRef SimulationRef]].
+    */
   def of(simulation: Simulation)(implicit system: ActorSystem): SimulationRef = {
     AkkaSimulationRef(simulation.name, system.actorOf(Props(new SimulationActor(simulation))))
   }
+
+  /**
+    * Builds a [[com.workflowfm.proter.SimulationRef SimulationRef]] for an actor-based simulation.
+    *
+    * @param simulationRef A [[com.workflowfm.proter.SimulationRef SimulationRef]] to wrap within the actor.
+    * @param system 
+    * @return The constructed [[com.workflowfm.proter.SimulationRef SimulationRef]].
+    */
+  def ofRef(simulationRef: SimulationRef)(implicit system: ActorSystem): SimulationRef = {
+    AkkaSimulationRef(simulationRef.name, system.actorOf(Props(new SimulationRefActor(simulationRef))))
+  }
 }
+
+/**
+  * Actor wrapper for a given [[com.workflowfm.proter.SimulationRef SimulationRef]].
+  *
+  * Provides access to all functionality via messaging.
+  *
+  * @param simulation
+  *   The simulation reference to wrap inside an actor.
+  */
+class SimulationRefActor(final val simulationRef: SimulationRef) extends Actor {
+
+  def simulationRefReceive: Receive = {
+    case SimulationRefActor.Run => simulationRef.run()
+    case SimulationRefActor.Completed(time, tasks) => simulationRef.completed(time, tasks)
+    case SimulationRefActor.Stop => simulationRef.stop()
+  }
+
+  def receive: Receive = simulationRefReceive
+}
+
+/**
+  * Defines the messages a [[SimulationRefActor]] can receive by default.
+  *
+  */
+object SimulationRefActor {
+  /**
+    * Instructs the start of simulation logic execution.
+    */
+  case object Run
+
+  /**
+    * Informs a [[Task]] has completed
+    *
+    * @see
+    *   [[Simulation.complete]]
+    *
+    * @param task
+    *   The completed [[Task]].
+    * @param time
+    *   The (virtual) time of completion.
+    */
+  case class Completed(time: Long, tasks: Seq[TaskInstance])
+
+  /**
+    * Tells the [[Simulation]] to stop.
+    *
+    * @see
+    *   [[Simulation.stop]]
+    */
+  case object Stop
+}
+
 
 /**
   * Actor wrapper for a given [[com.workflowfm.proter.Simulation Simulation]].
@@ -43,12 +113,10 @@ object AkkaSimulationRef {
   * @param simulation
   *   The simulation to wrap inside an actor.
   */
-class SimulationActor(final val simulation: Simulation) extends Actor {
+class SimulationActor(final val simulation: Simulation) extends SimulationRefActor(simulation) with Actor {
 
-  def receive: Receive = {
-    case SimulationActor.Run => simulation.run()
+  def simulationReceive: Receive = {
     case SimulationActor.Ready => simulation.ready()
-    case SimulationActor.Completed(time, tasks) => simulation.completed(time, tasks)
     case SimulationActor.AddTasks(tasks) => tasks foreach (simulation.task(_))
     case SimulationActor.AckTasks(tasks) => simulation.ack(tasks)
     case SimulationActor.AbortTasks(ids) => simulation.abort(ids: _*)
@@ -56,32 +124,20 @@ class SimulationActor(final val simulation: Simulation) extends Actor {
     case SimulationActor.Done(result) => simulation.done(result)
     case SimulationActor.Succeed(result) => simulation.succeed(result)
     case SimulationActor.Fail(exception) => simulation.fail(exception)
-    case SimulationActor.Stop => simulation.stop()
   }
 
+  override def receive: Receive = simulationRefReceive orElse simulationReceive
 }
 
 /**
   * Defines the messages a [[SimulationActor]] can receive by default.
-  *
-  * @groupname coordinator
-  *   Sent by Coordinator
-  * @groupname process
-  *   Sent by SimulatedProcess
   */
 object SimulationActor {
-  /**
-    * Instructs the start of simulation logic execution.
-    *
-    * @group coordinator
-    */
-  case object Run
   /**
     * Triggers [[Simulation.ready]].
     *
     * @see
     *   [[Simulation.ready]]
-    * @group process
     */
   case object Ready
 
@@ -90,7 +146,6 @@ object SimulationActor {
     *
     * @see
     *   [[Simulation.task]]
-    * @group process
     *
     * @param t
     *   The [[TaskGenerator]] to generate the [[Task]].
@@ -102,7 +157,6 @@ object SimulationActor {
     *
     * @see
     *   [[Simulation.abort]]
-    * @group process
     *
     * @param ids
     *   The [[Task]] IDs to abort.
@@ -110,38 +164,16 @@ object SimulationActor {
   case class AbortTasks(ids: Seq[UUID])
 
   /**
-    * Informs a [[Task]] has completed
-    *
-    * @see
-    *   [[Simulation.complete]]
-    * @group coordinator
-    *
-    * @param task
-    *   The completed [[Task]].
-    * @param time
-    *   The (virtual) time of completion.
-    */
-  case class Completed(time: Long, tasks: Seq[TaskInstance])
-
-  /**
     * Tells the [[Simulation]] to request that [[Coordinator]] waits.
     *
-    * @group process
     */
   case object Wait
-  /**
-    * Acknowledges that the [[Coordinator]] is waiting as requested.
-    *
-    * @group coordinator
-    */
-  case object AckWait
 
   /**
     * Acknowledges a sequence of completed [[Task]] IDs has been processed.
     *
     * @see
     *   [[Simulation.ack]]
-    * @group process
     *
     * @param task
     *   The acknowledged [[Task]] UUIDs.
@@ -153,7 +185,6 @@ object SimulationActor {
     *
     * @see
     *   [[Simulation.done]]
-    * @group process
     *
     * @param result
     *   The successful simulation result.
@@ -165,7 +196,6 @@ object SimulationActor {
     *
     * @see
     *   [[Simulation.succeed]]
-    * @group process
     *
     * @param result
     *   The successful simulation result.
@@ -177,21 +207,11 @@ object SimulationActor {
     *
     * @see
     *   [[Simulation.fail]]
-    * @group process
     *
     * @param exception
     *   The `Throwable` causing the failure.
     */
   case class Fail(exception: Throwable)
-
-  /**
-    * Tells the [[Simulation]] to stop.
-    *
-    * @see
-    *   [[Simulation.stop]]
-    * @group coordinator
-    */
-  case object Stop
 
 }
 
