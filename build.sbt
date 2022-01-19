@@ -55,9 +55,7 @@ previewFixedPort := Some(9999)
 //ThisBuild / scalafixScalaBinaryVersion := "3.1"
 
 lazy val commonSettings = Seq(
-//  scalaVersion := Dependencies.scalaVer,
-  scalaVersion := "3.1.0",
-  crossScalaVersions ++= Seq("2.13.7", "3.1.0"),
+  scalaVersion := Dependencies.scalaVer,
 
   semanticdbEnabled := true,
   semanticdbVersion := scalafixSemanticdb.revision,
@@ -72,23 +70,12 @@ lazy val commonSettings = Seq(
       "UTF-8",
       "-feature",
       //"-language:implicitConversions",
-      // disabled during the migration
-      // "-Xfatal-warnings"
-    ) ++
-    (CrossVersion.partialVersion(scalaVersion.value) match {
-      case Some((3, _)) => Seq(
-        "-unchecked",
-        "-source:3.0-migration",
-        "-rewrite",
-        "-new-syntax"
+      // "-Xfatal-warnings",
+      "-unchecked",
+//      "-source:3.0-migration",
+//      "-rewrite",
+//      "-new-syntax"
       )
-      case _ => Seq(
-        "-deprecation",
-        //"-Xfatal-warnings",
-        "-Wunused:imports,privates,locals",
-        "-Wvalue-discard"
-      )
-    })
   },
 
   autoAPIMappings := true,

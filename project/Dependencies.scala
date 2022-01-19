@@ -4,7 +4,7 @@ import sbt._
 
 object Dependencies {
 
-  val scalaVer = "2.13.7"
+  val scalaVer = "3.1.0"
 
   val scalaTest = "org.scalatest" %% "scalatest" % "3.2.10" % "test"
 
