@@ -361,8 +361,8 @@ class ProterScheduler(initialTasks: TaskInstance*) extends PriorityScheduler {
   override def getNextTasks(
       currentTime: Long,
       resourceMap: Map[String, TaskResource]
-  ): Seq[TaskInstance] =
-    findNextTasks(currentTime, resourceMap, resourceMap.mapValues(Schedule(_)), tasks, Queue())
+  ): Seq[TaskInstance] = 
+    findNextTasks(currentTime, resourceMap, resourceMap.mapValues(WeightedSchedule(_)), tasks, Queue())
 
   /**
     * Finds the [[Task]]s that can be started now.
@@ -388,21 +388,20 @@ class ProterScheduler(initialTasks: TaskInstance*) extends PriorityScheduler {
   final protected def findNextTasks(
       currentTime: Long,
       resourceMap: Map[String, TaskResource],
-      schedules: Map[String, Schedule],
+      schedules: Map[String, WeightedSchedule],
       tasks: SortedSet[TaskInstance],
       result: Queue[TaskInstance]
   ): Seq[TaskInstance] =
     if (tasks.isEmpty) result
     else {
-      println("find next! tasks waiting:" + tasks.size)
       val t = tasks.head
-      val start = Schedule.mergeSchedules(t.resources.filter(!resourceMap(_).hasSpace).flatMap(schedules.get(_))) ? (currentTime, t)
-      val schedules2 = (schedules /: t.resources.filter(!resourceMap(_).hasSpace)) {
-        case (s, r) => s + (r -> (s.getOrElse(r, Schedule()) +> (start, t)))
+      val start = Schedule.mergeSchedules(t.resources.flatMap{ s=> schedules.get(s).map(_.binary(1,resourceMap.get(s).map(_.capacity.toInt).getOrElse(0)))}) ? (currentTime, t)
+      val schedules2 = (schedules /: t.resources) {
+        case (s, r) => s + (r -> (s.getOrElse(r, WeightedSchedule()) +> (start, t)))
       }
       val result2 =
-        if (start == currentTime && t.taskResources(resourceMap).forall(_.hasSpace)) {println("added task: "+t.name); result :+ t}
-        else {println("else: start " + start + " and currentTime " + currentTime);result}
+        if (start == currentTime && t.taskResources(resourceMap).forall(_.hasSpace)) result :+ t
+        else result
       findNextTasks(currentTime, resourceMap, schedules2, tasks.tail, result2)
     }
 }
@@ -475,22 +474,22 @@ class LookaheadScheduler(initialTasks: TaskInstance*) extends PriorityScheduler 
     var futureTasksFoundSoFar = Seq[(UUID, Long)]()
     val inProgressFutureTasks: Iterable[TaskInstance] = resourceMap.flatMap {
       case (_, x) =>
-        Seq()
-        //TODO: FIX this horrible code
-        // if (!x.currentTask.isDefined) Seq()
-        // else {
-        //   futureTasksFoundSoFar = futureTasksFoundSoFar :+ (
-        //           (
-        //             x.currentTask.get._2.id,
-        //             x.nextAvailableTimestamp(currentTime)
-        //           )
-        //         )
-        //   tasksAfterThis(
-        //     x.currentTask.get._2.simulation,
-        //     futureTasksFoundSoFar,
-        //     lookaheadSetThisIter
-        //   )
-        // }
+        if (x.currentTasks.size==0) Seq()
+        else {
+          x.currentTasks.map {t =>
+            futureTasksFoundSoFar = futureTasksFoundSoFar :+ (
+                    (
+                      t._2._2.id,
+                      x.nextAvailableTimestamp(currentTime)
+                    )
+                  )
+          }
+          tasksAfterThis(
+            x.currentTasks.head._2._2.simulation, //yuck
+            futureTasksFoundSoFar,
+            lookaheadSetThisIter
+          )
+        }
     }
     val t = findNextTasks(
       currentTime,

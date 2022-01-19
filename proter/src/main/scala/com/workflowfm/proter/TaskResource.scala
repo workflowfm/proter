@@ -38,7 +38,6 @@ class TaskResource(val name: String, val costPerTick: Double, val capacity: Doub
     * @return true if the resource is idle, false otherwise.
     */
   def hasSpace: Boolean = {
-    println("hasSpace. size" + currentTasks.size + " and capacity " + capacity)
     currentTasks.size < capacity
   }
 
@@ -112,11 +111,12 @@ class TaskResource(val name: String, val costPerTick: Double, val capacity: Doub
     */
   def startTask(task: TaskInstance, currentTime: Long): Option[TaskInstance] = {
     if (capacity - currentTasks.size >= 1) {
-      currentTasks + (task.id -> (currentTime, task)) 
+      currentTasks += (task.id -> (currentTime, task)) 
       None
     }
     else {
       //TODO find a way to handle this properly
+      println("WARNING: NO CAPACITY")
       None
     }
   }
