@@ -8,6 +8,7 @@ import org.scalatest.wordspec.AnyWordSpecLike
 
 import com.workflowfm.proter.flows._
 import com.workflowfm.proter.schedule.ProterScheduler
+import scala.concurrent.ExecutionContext
 
 class FlowLookaheadTests extends FlowLookaheadTester {
   "Lookahead parseFlow" should {
@@ -90,7 +91,11 @@ class FlowLookaheadTester extends AnyWordSpecLike with Matchers with OptionValue
 }
 
 class FlowLookaheadTest
-    extends FlowLookahead("testFlow", new Coordinator(new ProterScheduler), new NoTask()) {
+    extends FlowLookahead(
+      "testFlow",
+      new Coordinator(new ProterScheduler)(using ExecutionContext.global),
+      new NoTask()
+    ) {
 
   override def parseFlow(
       flow: Flow,

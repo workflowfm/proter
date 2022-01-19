@@ -63,7 +63,7 @@ class Coordinator(
     scheduler: Scheduler,
     singleThread: Boolean = false,
     startingTime: Long = 0L
-)(implicit executionContext: ExecutionContext = ExecutionContext.global)
+)(using ExecutionContext)
     extends Manager
     with HashMapPublisher {
 

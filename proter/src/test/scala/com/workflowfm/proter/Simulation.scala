@@ -12,7 +12,7 @@ import org.scalatest.wordspec.AnyWordSpecLike
 class SimulationTests extends SimulationTester with MockManagerResponseMatcher {
 
   import MockManager._
-  implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
+  given ExecutionContextExecutor = ExecutionContext.global
 
   "Simulations" should {
 
@@ -204,7 +204,7 @@ trait SimulationTester extends AnyWordSpecLike with Matchers {
       d2: Long = 2L,
       d3: Long = 3L
   )(
-      implicit executionContext: ExecutionContext
+      using ExecutionContext
   ) extends AsyncSimulation
       with FutureTasks {
 

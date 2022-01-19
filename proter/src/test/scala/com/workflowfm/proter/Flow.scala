@@ -15,6 +15,8 @@ import com.workflowfm.proter.metrics._
 import com.workflowfm.proter.schedule.ProterScheduler
 
 class FlowTests extends FlowsTester {
+  given ExecutionContext = ExecutionContext.global
+
   "Flows" should {
     "execute a single flow" in {
       val task1 = new FlowTask(Task("task1", 1L))
@@ -367,7 +369,7 @@ class FlowTests extends FlowsTester {
     }
 
     "execute two simulations which use the same tasks" in {
-      val coordinator = new Coordinator(new ProterScheduler())
+      val coordinator = new Coordinator(new ProterScheduler())(using ExecutionContext.global)
 
       val smh = new PromiseHandler(new SimMetricsHandler)
       coordinator.subscribe(smh)
@@ -411,7 +413,7 @@ class FlowsTester extends AnyWordSpecLike with Matchers with OptionValues {
       simName: String = "sim1"
   ): Map[String, Option[Long]] = {
 
-    val coordinator = new Coordinator(new ProterScheduler())
+    val coordinator = new Coordinator(new ProterScheduler())(using ExecutionContext.global)
 
     val smh = new PromiseHandler(new SimMetricsHandler)
     coordinator.subscribe(smh)

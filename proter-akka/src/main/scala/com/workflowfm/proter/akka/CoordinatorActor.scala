@@ -92,9 +92,9 @@ object AkkaManager {
       scheduler: Scheduler,
       startingTime: Long = 0L,
       timeout: Timeout = Timeout(1, TimeUnit.MINUTES)
-  )(implicit system: ActorSystem): AkkaManager = {
+  )(using system: ActorSystem): AkkaManager = {
     AkkaManager(
-      system.actorOf(CoordinatorActor.props(scheduler, startingTime)(system)),
+      system.actorOf(CoordinatorActor.props(scheduler, startingTime)(using system)),
       timeout
     )
   }
@@ -114,10 +114,10 @@ object AkkaManager {
 class CoordinatorActor(
     scheduler: Scheduler,
     startingTime: Long
-)(implicit actorSystem: ActorSystem)
+)(using actorSystem: ActorSystem)
     extends Actor {
 
-  implicit val executionContext: ExecutionContext = actorSystem.dispatcher
+  given ExecutionContext = actorSystem.dispatcher
 
   val coordinator: Coordinator = new Coordinator(scheduler, true, startingTime)
 
@@ -310,7 +310,7 @@ object CoordinatorActor {
   def props(
       scheduler: Scheduler,
       startingTime: Long = 0L
-  )(implicit system: ActorSystem): Props = Props(
+  )(using ActorSystem): Props = Props(
     new CoordinatorActor(scheduler, startingTime)
   )
 }

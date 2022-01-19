@@ -39,7 +39,7 @@ object AkkaSimulationRef {
     * @return
     *   The constructed [[com.workflowfm.proter.SimulationRef SimulationRef]].
     */
-  def of(simulation: Simulation)(implicit system: ActorSystem): SimulationRef = {
+  def of(simulation: Simulation)(using system: ActorSystem): SimulationRef = {
     AkkaSimulationRef(simulation.name, system.actorOf(Props(new SimulationActor(simulation))))
   }
 
@@ -52,7 +52,7 @@ object AkkaSimulationRef {
     * @return
     *   The constructed [[com.workflowfm.proter.SimulationRef SimulationRef]].
     */
-  def ofRef(simulationRef: SimulationRef)(implicit system: ActorSystem): SimulationRef = {
+  def ofRef(simulationRef: SimulationRef)(using system: ActorSystem): SimulationRef = {
     AkkaSimulationRef(
       simulationRef.name,
       system.actorOf(Props(new SimulationRefActor(simulationRef)))
@@ -227,7 +227,7 @@ object SimulationActor {
   * @param gen
   *   The underlying [[SimulationGenerator]] to use.
   */
-class AkkaSimulationGenerator(gen: SimulationGenerator)(implicit system: ActorSystem)
+class AkkaSimulationGenerator(gen: SimulationGenerator)(using system: ActorSystem)
     extends SimulationRefGenerator {
 
   /**
@@ -250,7 +250,7 @@ class AkkaSimulationGenerator(gen: SimulationGenerator)(implicit system: ActorSy
 
 object AkkaSimulationGenerator {
 
-  def of(gen: SimulationRefGenerator)(implicit system: ActorSystem): SimulationRefGenerator =
+  def of(gen: SimulationRefGenerator)(using system: ActorSystem): SimulationRefGenerator =
     gen match {
       case simGen: SimulationGenerator => new AkkaSimulationGenerator(simGen)
       case _ => gen

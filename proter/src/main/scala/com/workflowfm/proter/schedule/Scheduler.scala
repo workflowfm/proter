@@ -162,7 +162,7 @@ trait QueueScheduler extends Scheduler {
   *
   * Forms the basis for priority-based schedulers.
   */
-abstract class PriorityScheduler(implicit ordering: Ordering[TaskInstance]) extends Scheduler {
+abstract class PriorityScheduler(using ordering: Ordering[TaskInstance]) extends Scheduler {
 
   /**
     * A sorted queue of tasks that need to be run.

@@ -20,7 +20,7 @@ class SimulationActorTests
     with Matchers
     with BeforeAndAfterAll {
 
-  implicit val executionContext: ExecutionContext = system.dispatcher
+  given ExecutionContext = system.dispatcher
 
   override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system)

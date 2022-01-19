@@ -12,7 +12,7 @@ import org.scalatest.wordspec.AnyWordSpecLike
 import com.workflowfm.proter.schedule.ProterScheduler
 
 class CoordinatorTests extends MockSimulationCallMatcher with AnyWordSpecLike with Matchers { // with MockSimulations {
-  implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global // system.dispatchers.lookup("akka.my-dispatcher")
+  given ExecutionContextExecutor = ExecutionContext.global // system.dispatchers.lookup("akka.my-dispatcher")
 
   import MockSimulation._
 

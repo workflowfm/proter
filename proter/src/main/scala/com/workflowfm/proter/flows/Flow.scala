@@ -75,11 +75,12 @@ class Or(val left: Flow, val right: Flow) extends Flow {
 }
 
 object Flow {
-  import scala.language.implicitConversions
+//  import scala.language.implicitConversions
 
   def apply(t: Task*): Flow = Flow.seq(t.map(new FlowTask(_)))
 
-  implicit def flowOfTask(t: Task): FlowTask = new FlowTask(t)
+  given Conversion[Task, FlowTask] with
+    def apply(t: Task): FlowTask = new FlowTask(t)
 
   /**
     * Creates a sequence of a collection of [[Flow]]s.

@@ -94,7 +94,7 @@ class LookaheadTests extends LookaheadTester with AnyWordSpecLike with Matchers 
 trait LookaheadTester {
 
   def getCoordinator(): Coordinator = {
-    val coordinator = new Coordinator(new LookaheadScheduler())
+    val coordinator = new Coordinator(new LookaheadScheduler())(using ExecutionContext.global)
 
     coordinator.addResources(
       Seq(

@@ -67,8 +67,8 @@ class TaskTests extends TaskTester {
 }
 
 class TaskTester extends AnyWordSpecLike with Matchers {
-  implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
-  implicit val timeout: FiniteDuration = 10.seconds
+  given ExecutionContextExecutor = ExecutionContext.global
+  given timeout: FiniteDuration = 10.seconds
 
   def t(
       id: Long,
