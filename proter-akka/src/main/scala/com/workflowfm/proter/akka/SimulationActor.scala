@@ -33,9 +33,11 @@ object AkkaSimulationRef {
   /**
     * Builds a [[com.workflowfm.proter.SimulationRef SimulationRef]] for an actor-based simulation.
     *
-    * @param simulation A [[com.workflowfm.proter.Simulation Simulation]] to wrap within the actor.
-    * @param system 
-    * @return The constructed [[com.workflowfm.proter.SimulationRef SimulationRef]].
+    * @param simulation
+    *   A [[com.workflowfm.proter.Simulation Simulation]] to wrap within the actor.
+    * @param system
+    * @return
+    *   The constructed [[com.workflowfm.proter.SimulationRef SimulationRef]].
     */
   def of(simulation: Simulation)(implicit system: ActorSystem): SimulationRef = {
     AkkaSimulationRef(simulation.name, system.actorOf(Props(new SimulationActor(simulation))))
@@ -44,12 +46,17 @@ object AkkaSimulationRef {
   /**
     * Builds a [[com.workflowfm.proter.SimulationRef SimulationRef]] for an actor-based simulation.
     *
-    * @param simulationRef A [[com.workflowfm.proter.SimulationRef SimulationRef]] to wrap within the actor.
-    * @param system 
-    * @return The constructed [[com.workflowfm.proter.SimulationRef SimulationRef]].
+    * @param simulationRef
+    *   A [[com.workflowfm.proter.SimulationRef SimulationRef]] to wrap within the actor.
+    * @param system
+    * @return
+    *   The constructed [[com.workflowfm.proter.SimulationRef SimulationRef]].
     */
   def ofRef(simulationRef: SimulationRef)(implicit system: ActorSystem): SimulationRef = {
-    AkkaSimulationRef(simulationRef.name, system.actorOf(Props(new SimulationRefActor(simulationRef))))
+    AkkaSimulationRef(
+      simulationRef.name,
+      system.actorOf(Props(new SimulationRefActor(simulationRef)))
+    )
   }
 }
 
@@ -74,7 +81,6 @@ class SimulationRefActor(final val simulationRef: SimulationRef) extends Actor {
 
 /**
   * Defines the messages a [[SimulationRefActor]] can receive by default.
-  *
   */
 object SimulationRefActor {
   /**
@@ -104,7 +110,6 @@ object SimulationRefActor {
   case object Stop
 }
 
-
 /**
   * Actor wrapper for a given [[com.workflowfm.proter.Simulation Simulation]].
   *
@@ -113,7 +118,9 @@ object SimulationRefActor {
   * @param simulation
   *   The simulation to wrap inside an actor.
   */
-class SimulationActor(final val simulation: Simulation) extends SimulationRefActor(simulation) with Actor {
+class SimulationActor(final val simulation: Simulation)
+    extends SimulationRefActor(simulation)
+    with Actor {
 
   def simulationReceive: Receive = {
     case SimulationActor.Ready => simulation.ready()
@@ -165,7 +172,6 @@ object SimulationActor {
 
   /**
     * Tells the [[Simulation]] to request that [[Coordinator]] waits.
-    *
     */
   case object Wait
 

@@ -69,7 +69,7 @@ class CoordinatorActorTests
       val probe = TestProbe()
       val sim = new AkkaSimulationRef("sim", probe.ref)
 
-      coordinator.addSimulation(0L, sim) 
+      coordinator.addSimulation(0L, sim)
       coordinator.start()
       probe.expectMsg(SimulationRefActor.Run)
 
@@ -78,7 +78,8 @@ class CoordinatorActorTests
       val expected = tg.create("sim", 0L)
 
       coordinator.simResponse(SimReady("sim", Seq(tg)))
-      val SimulationRefActor.Completed(time, tasks) = probe.expectMsgType[SimulationRefActor.Completed]
+      val SimulationRefActor.Completed(time, tasks) =
+        probe.expectMsgType[SimulationRefActor.Completed]
 
       time should be(2L)
       containsTask(tasks, expected) should be(true)
@@ -101,7 +102,8 @@ class CoordinatorActorTests
       val expected1 = tg1.create("sim", 0L)
 
       coordinator.simResponse(SimReady("sim", Seq(tg1)))
-      val SimulationRefActor.Completed(time1, tasks1) = probe.expectMsgType[SimulationRefActor.Completed]
+      val SimulationRefActor.Completed(time1, tasks1) =
+        probe.expectMsgType[SimulationRefActor.Completed]
       time1 should be(2L)
       containsTask(tasks1, expected1) should be(true)
 
@@ -109,7 +111,8 @@ class CoordinatorActorTests
       val expected2 = tg2.create("sim", 2L)
 
       coordinator.simResponse(SimReady("sim", Seq(tg2)))
-      val SimulationRefActor.Completed(time2, tasks2) = probe.expectMsgType[SimulationRefActor.Completed]
+      val SimulationRefActor.Completed(time2, tasks2) =
+        probe.expectMsgType[SimulationRefActor.Completed]
       time2 should be(5L)
       containsTask(tasks2, expected2) should be(true)
 
