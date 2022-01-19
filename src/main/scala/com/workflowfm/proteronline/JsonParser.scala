@@ -4,7 +4,6 @@ import io.circe._, io.circe.parser._
 import io.circe.generic.semiauto._
 import com.workflowfm.proter._
 import com.workflowfm.proter.schedule.ProterScheduler
-import com.workflowfm.proter.flows.FlowSimulation
 import scala.concurrent.duration._
 import scala.concurrent.Await
 import com.workflowfm.proter
@@ -16,7 +15,7 @@ import com.workflowfm.proter.events.PromiseHandler
 
 //Below case classes define the structure of the JSON for decoding
 case class IRequest(arrival: IArrival, resources: List[IResource])
-case class IArrival(simulation: ISimulation, infinite: Boolean, Rate: IDistribution, simulationLimit: Int, timeLimit: Int)
+case class IArrival(simulation: ISimulation, infinite: Boolean, rate: IDistribution, simulationLimit: Option[Int], timeLimit: Option[Int])
 case class ISimulation(name: String, flow: IFlow)
 case class IFlow(tasks: List[ITask], ordering: String)
 
@@ -32,14 +31,14 @@ case class IResource(name: String, costPerTick: Double) {
   }
 }
 
-case class IDistribution(distType: String, value1: Double, value2: Double) {
+case class IDistribution(distType: String, value1: Double, value2: Option[Double]) {
   def toProterDistribution(): Distribution = {
     if (this.distType == "C") {
       new Constant(this.value1);
     } else if (this.distType == "E") {
       new Exponential(this.value1);
     } else if (this.distType == "U") {
-      new Uniform(this.value1, this.value2);
+      new Uniform(this.value1, this.value2.get)
     } else {
       new Constant(1); //Replace with an error throw
     }
@@ -65,7 +64,7 @@ class JsonParser {
     * This top level function should take an IRequest and then return a Results object
     *
     * @param request The input IRequest
-    * @return 
+    * @return A Results object
     */
   def process(request: IRequest) : Results = {
 
@@ -77,7 +76,7 @@ class JsonParser {
     val agg = promiseHandler.future
 
     coordinator.subscribe(promiseHandler)
-    coordinator.subscribe(new proter.events.PrintEventHandler)
+    coordinator.subscribe(new proter.events.PrintEventHandler) //For debug use
 
     //println("Starting Simulations")
 
@@ -105,6 +104,8 @@ class JsonParser {
     val resources: List[TaskResource] = requestObj.resources.map(_.toProterResource()) //Build the task resources
     coord.addResources(resources) //Task Resources added
 
+    //If/when multiple simulations are implimented loop should include all lines down to, but excluding, coord.limit...
+
     val order: Array[String] = requestObj.arrival.simulation.flow.ordering.split("->")
 
     val iTasks: List[ITask] = requestObj.arrival.simulation.flow.tasks
@@ -115,18 +116,32 @@ class JsonParser {
     
     val taskFlow: Flow = Flow.seq(tasks)
 
-    val i: List[Int] = (1 to 2).toList
+    val simGen = new FlowSimulationGenerator(requestObj.arrival.simulation.name, taskFlow)
 
-    //Make sure to .copy() that tasks
-    val sims: List[FlowSimulation] = i.map(x => new FlowSimulation(requestObj.arrival.simulation.name + x.toString(), coord, taskFlow.copy()))
+    //println(requestObj.arrival.simulationLimit.isEmpty)
 
-    //val sim: FlowSimulation = new FlowSimulation(requestObj.arrival.simulation.name, coord, taskFlow)
-    coord.addSimulationsNow(sims)
-    //coord.addSimulationNow(sim)
+    if (requestObj.arrival.infinite) {
+      coord.addInfiniteArrivalNow(
+        requestObj.arrival.rate.toProterDistribution(),
+        simGen
+      )
+      coord.limit(requestObj.arrival.timeLimit.get.toLong) //If its infinite then we add a timer to stop it running forever
+    } else {
+      coord.addArrivalNow(
+        requestObj.arrival.simulationLimit.get, //If its finite then its this limit on the number of simulations that stops it
+        requestObj.arrival.rate.toProterDistribution(),
+        simGen
+      )
+    }
   }
 
-
-
+  /**
+    * Method takes the Proter SimMetricsHandler and turns it into a format that is more suitable for
+    * turning into JSON and being sent back to the user
+    *
+    * @param aggregator The SimMetricsHandler from a completed set of simulations
+    * @return A Results object
+    */
   def processAggregator(aggregator: SimMetricsAggregator): Results = {
     new Results(
       aggregator.start.get,
@@ -142,7 +157,7 @@ class JsonParser {
 object Test {
 
 
-  val betterSampleData: String = "{ \"arrival\": {\"simulation\": {\"name\": \"Example Name\", \"flow\":{ \"tasks\": [{\"name\": \"A\",\"duration\": 2,\"cost\": 2,\"resources\": \"R1\",\"priority\": 2},{\"name\": \"B\",\"duration\": 3,\"cost\": 55,\"resources\": \"R2\",\"priority\": -2}], \"ordering\": \"A->B\"} }, \"numberOfRuns\": 1},\"resources\": [{\"name\": \"R1\",\"costPerTick\": 2},{\"name\": \"R2\",\"costPerTick\": 3}]}"
+  val betterSampleData: String = "{ \"arrival\": {\"simulation\": {\"name\": \"Example Name\", \"flow\":{ \"tasks\": [{\"name\": \"A\",\"duration\": {\"distType\": \"C\",\"value1\": 2,\"value2\": null},\"cost\": {\"distType\": \"E\",\"value1\": 4,\"value2\": null},\"resources\": \"R1\",\"priority\": 0},{\"name\": \"B\",\"duration\": {\"distType\": \"U\",\"value1\": 3,\"value2\": 7},\"cost\": {\"distType\": \"C\",\"value1\": 5,\"value2\": null},\"resources\": \"R2\",\"priority\": 0}], \"ordering\": \"A->B\"} }, \"infinite\": true,\"rate\": {\"distType\": \"C\",\"value1\": 5,\"value2\": null},\"simulationLimit\": null,\"timeLimit\": 250},\"resources\": [{\"name\": \"R1\",\"costPerTick\": 3},{\"name\": \"R2\",\"costPerTick\": 2}]}"
   
   implicit val requestDecoder1: Decoder[IRequest] = deriveDecoder[IRequest]
   implicit val requestDecoder2: Decoder[IArrival] = deriveDecoder[IArrival]
