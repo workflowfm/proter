@@ -103,7 +103,7 @@ trait Lookahead {
   def +>>(source: Set[UUID], generator: Task): Lookahead = {
     val function: Map[UUID, Long] => Option[Long] = { s =>
       val times = source map (s.get(_))
-      if (times.contains(None)) None
+      if times.contains(None) then None
       else Some((times map (_.get)).max)
     }
     this.+(function, generator)

@@ -236,10 +236,10 @@ trait GreedyScheduler extends Scheduler {
       tasks: Iterable[TaskInstance],
       result: Queue[TaskInstance]
   ): Seq[TaskInstance] =
-    if (tasks.isEmpty) result
+    if tasks.isEmpty then result
     else {
       val t = tasks.head
-      if (t.resources.forall(idleResources.contains))
+      if t.resources.forall(idleResources.contains) then
         findNextTasks(idleResources -- t.resources, tasks.tail, result :+ t)
       else findNextTasks(idleResources, tasks.tail, result)
     }
@@ -284,10 +284,10 @@ trait StrictScheduler extends Scheduler {
       tasks: Iterable[TaskInstance],
       result: Queue[TaskInstance]
   ): Seq[TaskInstance] =
-    if (tasks.isEmpty) result
+    if tasks.isEmpty then result
     else {
       val t = tasks.head
-      if (t.resources.forall(idleResources.contains))
+      if t.resources.forall(idleResources.contains) then
         findNextTasks(idleResources -- t.resources, tasks.tail, result :+ t)
       else findNextTasks(idleResources -- t.resources, tasks.tail, result)
     }
@@ -441,7 +441,7 @@ class ProterScheduler(initialTasks: TaskInstance*) extends PriorityScheduler {
       tasks: SortedSet[TaskInstance],
       result: Queue[TaskInstance]
   ): Seq[TaskInstance] =
-    if (tasks.isEmpty) result
+    if tasks.isEmpty then result
     else {
       val t = tasks.head
       val start = Schedule.mergeSchedules(t.resources.flatMap(schedules.get(_))) ? (currentTime, t)
@@ -449,7 +449,7 @@ class ProterScheduler(initialTasks: TaskInstance*) extends PriorityScheduler {
         s + (r -> (s.getOrElse(r, Schedule()) +> (start, t)))
       }
       val result2 =
-        if (start == currentTime && t.taskResources(resourceMap).forall(_.isIdle)) result :+ t
+        if start == currentTime && t.taskResources(resourceMap).forall(_.isIdle) then result :+ t
         else result
       findNextTasks(currentTime, resourceMap, schedules2, tasks.tail, result2)
     }
@@ -529,7 +529,7 @@ class LookaheadScheduler(initialTasks: TaskInstance*) extends PriorityScheduler 
     // get future tasks from currently running tasks
     var futureTasksFoundSoFar = Seq[(UUID, Long)]()
     val inProgressFutureTasks = resourceMap.flatMap { case (_, x) =>
-      if (!x.currentTask.isDefined) Seq()
+      if !x.currentTask.isDefined then Seq()
       else {
         futureTasksFoundSoFar = futureTasksFoundSoFar :+ (
           (
@@ -607,7 +607,7 @@ class LookaheadScheduler(initialTasks: TaskInstance*) extends PriorityScheduler 
       lookaheadSetThisIter: Lookahead,
       result: Queue[TaskInstance]
   ): Seq[TaskInstance] =
-    if (tasks.isEmpty) result
+    if tasks.isEmpty then result
     else {
       val t = tasks.head
       val start = Schedule.mergeSchedules(t.resources.flatMap(schedules.get(_))) ? (Math.max(
@@ -621,7 +621,7 @@ class LookaheadScheduler(initialTasks: TaskInstance*) extends PriorityScheduler 
         s + (r -> (s.getOrElse(r, Schedule()) +> (start, t)))
       }
       val result2 =
-        if (start == currentTime && t.taskResources(resourceMap).forall(_.isIdle)) result :+ t
+        if start == currentTime && t.taskResources(resourceMap).forall(_.isIdle) then result :+ t
         else result
       findNextTasks(
         currentTime,

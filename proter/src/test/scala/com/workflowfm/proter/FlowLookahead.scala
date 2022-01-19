@@ -47,7 +47,7 @@ class FlowLookaheadTests extends FlowLookaheadTester {
       val t1 = new FlowTask(Task("t", 2).withID(UUID.randomUUID))
       val t1id = t1.id
       val dummyID = java.util.UUID.randomUUID()
-      val function = (m: Map[UUID, Long]) => if (m.keySet.contains(dummyID)) Some(0L) else None
+      val function = (m: Map[UUID, Long]) => if m.keySet.contains(dummyID) then Some(0L) else None
       val f = parseFlow(t1, Some(function))
       f._2 should not be (NoLookahead)
       f._2.getTaskData(Seq()).size should be(0)

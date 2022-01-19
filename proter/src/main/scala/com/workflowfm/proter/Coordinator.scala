@@ -160,7 +160,7 @@ class Coordinator(
     *   The [[TaskResource]] to be added.
     */
   def addResource(r: TaskResource): Unit = this.synchronized {
-    if (!resourceMap.contains(r.name)) {
+    if !resourceMap.contains(r.name) then {
       publish(EResourceAdd(id, time, r.name, r.costPerTick))
       resourceMap += r.name -> r
     }
@@ -187,7 +187,7 @@ class Coordinator(
     */
   protected def dequeueEvents(t: Long): Seq[DiscreteEvent] = {
     val elems = scala.collection.immutable.Seq.newBuilder[DiscreteEvent]
-    while (events.headOption.exists(_.time == t)) {
+    while events.headOption.exists(_.time == t) do {
       elems += events.dequeue()
     }
     elems.result()
@@ -215,17 +215,17 @@ class Coordinator(
     */
   @tailrec
   final protected def tick(): Unit = {
-    if (!waiting.isEmpty) { // This should never happen, but we add it here as a safeguard for
+    if !waiting.isEmpty then { // This should never happen, but we add it here as a safeguard for
       // future extensions.
       publish(EError(id, time, s"Called `tick()` even though I am still waiting for: $waiting"))
-    } else if (!events.isEmpty) { // Are events pending?
+    } else if !events.isEmpty then { // Are events pending?
       processing = true
 
       // Grab the first event
       val firstEvent = events.head
 
       // Did we somehow go past the event time? This should never happen.
-      if (firstEvent.time < time) {
+      if firstEvent.time < time then {
         publish(EError(id, time, s"Unable to handle past event for time: [${firstEvent.time}]"))
       } else {
         // Jump ahead to the event time. This is a priority queue so we shouldn't skip any events
@@ -241,15 +241,15 @@ class Coordinator(
 
         processing = false
         // If we are not waiting for anything, continue
-        if (waiting.isEmpty) {
+        if waiting.isEmpty then {
           allocateTasks()
           tick()
         }
       }
 
-    } else if (scheduler.noMoreTasks() && simulations.isEmpty && !promise.isCompleted) {
+    } else if scheduler.noMoreTasks() && simulations.isEmpty && !promise.isCompleted then {
       finish()
-    } else if (waiting.isEmpty && !scheduler.noMoreTasks()) { // this may happen if handleDiscreteEvent fails
+    } else if waiting.isEmpty && !scheduler.noMoreTasks() then { // this may happen if handleDiscreteEvent fails
       allocateTasks()
       tick()
     } // else {
@@ -290,7 +290,7 @@ class Coordinator(
   protected def filterFinishingTasks(event: DiscreteEvent): Option[TaskInstance] = {
     event match {
       case FinishingTask(t, task) if (t == time) => {
-        if (abortedTasks.contains(task.id)) {
+        if abortedTasks.contains(task.id) then {
           abortedTasks -= task.id
           None
         } else {
@@ -321,7 +321,7 @@ class Coordinator(
       case TimeLimit(t) if (t == time) => stop()
 
       case arrival @ Arrival(t, _, simulationGenerator, limit, count) if (t == time) =>
-        if (limit.map(_ > count).getOrElse(true)) {
+        if limit.map(_ > count).getOrElse(true) then {
           events += arrival.next() // replicate self
           startSimulation(simulationGenerator.build(this, count))
         }
@@ -344,7 +344,7 @@ class Coordinator(
     */
   def addSimulation(t: Long, simulation: SimulationRef): Unit = this.synchronized {
     publish(ESimAdd(id, time, simulation.name, t))
-    if (t >= time) events += StartingSim(t, simulation)
+    if t >= time then events += StartingSim(t, simulation)
   }
 
   /**
@@ -373,10 +373,8 @@ class Coordinator(
       {
         publish(ESimAdd(id, time, sim.name, t))
       }
-      if (t >= time)
-        Some(StartingSim(t, sim))
-      else
-        None
+      if t >= time then Some(StartingSim(t, sim))
+      else None
     }
   }
 
@@ -526,8 +524,7 @@ class Coordinator(
 
         publish(ETaskAdd(id, time, inst))
 
-        if (t.resources.length > 0)
-          scheduler.addTask(inst)
+        if t.resources.length > 0 then scheduler.addTask(inst)
         else
           // if the task does not require resources, start it now
           startTask(inst)
@@ -652,10 +649,8 @@ class Coordinator(
       simulations
         .get(simulation)
         .map(x =>
-          if (singleThread)
-            x.completed(time, tasks)
-          else
-            Future { x.completed(time, tasks) }
+          if singleThread then x.completed(time, tasks)
+          else Future { x.completed(time, tasks) }
         )
     }
   }
@@ -712,7 +707,7 @@ class Coordinator(
     */
   protected def ready(name: String): Unit = {
     waiting -= name
-    if (waiting.isEmpty && !processing) {
+    if waiting.isEmpty && !processing then {
       allocateTasks()
       tick()
     }
@@ -737,7 +732,7 @@ class Coordinator(
     * @group simulations
     */
   override def simResponse(response: SimResponse): Unit = this.synchronized {
-    if (!promise.isCompleted) {
+    if !promise.isCompleted then {
       response match {
         case SimReady(sim, tasks, abort, lookahead) => {
           addTask(sim, tasks)
@@ -757,7 +752,7 @@ class Coordinator(
     *
     * @group toplevel
     */
-  def start(): Future[Any] = if (started) promise.future
+  def start(): Future[Any] = if started then promise.future
   else {
     started = true
     Future {
@@ -802,7 +797,7 @@ class Coordinator(
     * @param t
     *   The virtual timestamp to end the simulation.
     */
-  def limit(t: Long): Unit = if (t >= time) events += TimeLimit(t)
+  def limit(t: Long): Unit = if t >= time then events += TimeLimit(t)
 
   /**
     * Adds a new infinite arrival process to the coordinator.
@@ -823,7 +818,7 @@ class Coordinator(
       rate: Distribution,
       simulationGenerator: SimulationRefGenerator
   ): Unit = {
-    if (t >= time) events += Arrival(t, rate, simulationGenerator)
+    if t >= time then events += Arrival(t, rate, simulationGenerator)
   }
 
   /**
@@ -882,7 +877,7 @@ class Coordinator(
       rate: Distribution,
       simulationGenerator: SimulationRefGenerator
   ): Unit = {
-    if (t >= time) events += Arrival(t, rate, simulationGenerator, Some(limit))
+    if t >= time then events += Arrival(t, rate, simulationGenerator, Some(limit))
   }
 
   /**

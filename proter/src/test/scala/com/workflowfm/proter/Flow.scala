@@ -50,7 +50,7 @@ class FlowTests extends FlowsTester {
       val testMetrics = singleFlowTest(flow1, List(r1))
 
       val task1time = testMetrics.get("task1 (sim1)").value.value
-      if (task1time == 1) testMetrics.get("task2 (sim1)").value.value should be(3)
+      if task1time == 1 then testMetrics.get("task2 (sim1)").value.value should be(3)
       else testMetrics.get("task2 (sim1)").value.value should be(2)
 
     }

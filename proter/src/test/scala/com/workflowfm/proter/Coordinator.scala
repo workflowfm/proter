@@ -144,7 +144,7 @@ class CoordinatorTests extends MockSimulationCallMatcher with AnyWordSpecLike wi
 
 //      val handler = new com.workflowfm.proter.events.PrintEventHandler
 //      coordinator.subscribe(handler)
-      val sims = for (i <- 1 to 100) yield {
+      val sims = for i <- 1 to 100 yield {
         val start = i % 10
         val sim: MockSimulation = mockTwoPlusOneTasks(
           "sim" + i + "(" + start + ")",
@@ -173,7 +173,7 @@ class CoordinatorTests extends MockSimulationCallMatcher with AnyWordSpecLike wi
 
 //      val handler = new com.workflowfm.proter.events.PrintEventHandler
 //      coordinator.subscribe(handler)
-      val sims = for (i <- 1 to 100) yield {
+      val sims = for i <- 1 to 100 yield {
         val start = i % 10
         val sim: MockSimulation = mockRepeater(
           "sim" + i + "(" + start + ")",
@@ -548,7 +548,7 @@ class CoordinatorTests extends MockSimulationCallMatcher with AnyWordSpecLike wi
 
 //      val handler = new com.workflowfm.proter.events.PrintEventHandler
 //      coordinator.subscribe(handler)
-      val sims = for (i <- 1 to 100) yield {
+      val sims = for i <- 1 to 100 yield {
         val start = i % 10
         val sim: MockSimulation = mockTwoPlusOneTasks(
           "sim" + i + "(" + start + ")",
@@ -577,7 +577,7 @@ class CoordinatorTests extends MockSimulationCallMatcher with AnyWordSpecLike wi
 
 //      val handler = new com.workflowfm.proter.events.PrintEventHandler
 //      coordinator.subscribe(handler)
-      val sims = for (i <- 1 to 100) yield {
+      val sims = for i <- 1 to 100 yield {
         val start = i % 10
         val sim: MockSimulation = mockRepeater(
           "sim" + i + "(" + start + ")",

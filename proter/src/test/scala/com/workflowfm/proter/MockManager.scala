@@ -71,7 +71,7 @@ trait MockManagerResponseMatcher {
         "Responses matched"
       )
     case (response :: rrest, expected :: erest) =>
-      if (responsesMatch(response, expected)) allResponsesMatch(rrest, erest)
+      if responsesMatch(response, expected) then allResponsesMatch(rrest, erest)
       else MatchResult(false, s"Expected: $expected - but got: $response", "Response matched")
   }
 

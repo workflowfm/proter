@@ -62,7 +62,7 @@ trait MockSimulationCallMatcher {
           "Calls matched"
         )
       case (call :: crest, expected :: erest) =>
-        if (callsMatch(call, expected)) allCallsMatch(crest, erest)
+        if callsMatch(call, expected) then allCallsMatch(crest, erest)
         else MatchResult(false, s"Expected: $expected - but got: $call", "Call matched")
     }
 
@@ -95,12 +95,12 @@ object MockSimulation {
   ): MockSimulation = new MockSimulation(name) {
     val id = UUID.randomUUID()
     val tg = Task("T", duration).withID(id)
-    val expected = tg.create(name, expectedCreate)
+    val expected = tg.create(this.name, expectedCreate)
 
     override def react(call: Call): Unit = call match {
-      case Run => coordinator.simResponse(SimReady(name, Seq(tg)))
+      case Run => coordinator.simResponse(SimReady(this.name, Seq(tg)))
       case Complete(time, Seq(task)) if time == expectedEnd && task.compare(expected) == 0 =>
-        coordinator.simResponse(SimDone(name, Success(())))
+        coordinator.simResponse(SimDone(this.name, Success(())))
       case _ => ()
     }
 
@@ -118,18 +118,18 @@ object MockSimulation {
   ): MockSimulation = new MockSimulation(name) {
     val id1 = UUID.randomUUID()
     val tg1 = Task("T1", duration1).withID(id1)
-    val expected1 = tg1.create(name, expectedCreate1)
+    val expected1 = tg1.create(this.name, expectedCreate1)
 
     val id2 = UUID.randomUUID()
     val tg2 = Task("T2", duration2).withID(id2)
-    val expected2 = tg2.create(name, expectedEnd1)
+    val expected2 = tg2.create(this.name, expectedEnd1)
 
     override def react(call: Call): Unit = call match {
-      case Run => coordinator.simResponse(SimReady(name, Seq(tg1)))
+      case Run => coordinator.simResponse(SimReady(this.name, Seq(tg1)))
       case Complete(time, Seq(task)) if time == expectedEnd1 && task.compare(expected1) == 0 =>
-        coordinator.simResponse(SimReady(name, Seq(tg2)))
+        coordinator.simResponse(SimReady(this.name, Seq(tg2)))
       case Complete(time, Seq(task)) if time == expectedEnd2 && task.compare(expected2) == 0 =>
-        coordinator.simResponse(SimDone(name, Success(())))
+        coordinator.simResponse(SimDone(this.name, Success(())))
       case _ => ()
     }
 
@@ -149,24 +149,24 @@ object MockSimulation {
     var i: Int = 0
 
     val tasks: Seq[Task] =
-      for (i <- 0 to repeat) yield Task("T" + i, duration).withID(UUID.randomUUID)
+      for i <- 0 to repeat yield Task("T" + i, duration).withID(UUID.randomUUID)
 
     val expected = tasks.zipWithIndex.map { case (t, i) =>
       Complete(
         expectedCreate + (i + 1) * duration,
-        Seq(t.create(name, expectedCreate + i * duration))
+        Seq(t.create(this.name, expectedCreate + i * duration))
       )
     }
 
     override def react(call: Call): Unit = call match {
-      case Run => coordinator.simResponse(SimReady(name, Seq(tasks(0))))
+      case Run => coordinator.simResponse(SimReady(this.name, Seq(tasks(0))))
       case Complete(time, Seq(task))
           if time == expected(i).time && task.compare(expected(i).tasks.head) == 0 => {
-        if (i < repeat) {
+        if i < repeat then {
           i = i + 1
-          coordinator.simResponse(SimReady(name, Seq(tasks(i))))
+          coordinator.simResponse(SimReady(this.name, Seq(tasks(i))))
         } else {
-          coordinator.simResponse(SimDone(name, Success(())))
+          coordinator.simResponse(SimDone(this.name, Success(())))
         }
       }
       case _ => ()
@@ -188,50 +188,46 @@ object MockSimulation {
   ): MockSimulation = new MockSimulation(name) {
     val id1 = UUID.randomUUID()
     val tg1 = Task("T1", duration1).withID(id1)
-    val expected1 = tg1.create(name, expectedCreate1)
+    val expected1 = tg1.create(this.name, expectedCreate1)
 
     val id2 = UUID.randomUUID()
     val tg2 = Task("T2", duration2).withID(id2)
-    val expected2 = tg2.create(name, expectedCreate1)
+    val expected2 = tg2.create(this.name, expectedCreate1)
 
     val id3 = UUID.randomUUID()
     val tg3 = Task("T3", duration3).withID(id3)
-    val expected3 = tg3.create(name, Math.max(expectedEnd1, expectedEnd2))
+    val expected3 = tg3.create(this.name, Math.max(expectedEnd1, expectedEnd2))
 
     override def react(call: Call): Unit = call match {
-      case Run => coordinator.simResponse(SimReady(name, Seq(tg1, tg2)))
+      case Run => coordinator.simResponse(SimReady(this.name, Seq(tg1, tg2)))
       case Complete(time, Seq(task)) if time == expectedEnd1 && task.compare(expected1) == 0 => {
-        if (expectedEnd1 > expectedEnd2)
-          coordinator.simResponse(SimReady(name, Seq(tg3)))
-        else
-          coordinator.simResponse(SimReady(name, Seq()))
+        if expectedEnd1 > expectedEnd2 then coordinator.simResponse(SimReady(this.name, Seq(tg3)))
+        else coordinator.simResponse(SimReady(this.name, Seq()))
       }
       case Complete(time, Seq(task)) if time == expectedEnd2 && task.compare(expected2) == 0 => {
-        if (expectedEnd1 < expectedEnd2)
-          coordinator.simResponse(SimReady(name, Seq(tg3)))
-        else
-          coordinator.simResponse(SimReady(name, Seq()))
+        if expectedEnd1 < expectedEnd2 then coordinator.simResponse(SimReady(this.name, Seq(tg3)))
+        else coordinator.simResponse(SimReady(this.name, Seq()))
       }
       case Complete(time, Seq(task1, task2))
           if time == expectedEnd1 && expectedEnd1 == expectedEnd2 && tasksMatch(
             Seq(task1, task2),
             Seq(expected1, expected2)
           ) =>
-        coordinator.simResponse(SimReady(name, Seq(tg3)))
+        coordinator.simResponse(SimReady(this.name, Seq(tg3)))
       case Complete(time, Seq(task)) if time == expectedEnd3 && task.compare(expected3) == 0 =>
-        coordinator.simResponse(SimDone(name, Success(())))
+        coordinator.simResponse(SimDone(this.name, Success(())))
       case _ => ()
     }
 
     override def expectedCalls: Seq[Call] =
-      if (expectedEnd1 < expectedEnd2)
+      if expectedEnd1 < expectedEnd2 then
         Seq(
           Run,
           Complete(expectedEnd1, Seq(expected1)),
           Complete(expectedEnd2, Seq(expected2)),
           Complete(expectedEnd3, Seq(expected3))
         )
-      else if (expectedEnd1 > expectedEnd2)
+      else if expectedEnd1 > expectedEnd2 then
         Seq(
           Run,
           Complete(expectedEnd2, Seq(expected2)),
@@ -263,23 +259,23 @@ object MockSimulation {
     // T2 0..2
     val id2 = UUID.randomUUID()
     val tg2 = Task("T2", 2L).withID(id2).withPriority(Task.Medium)
-    val expected2 = tg2.create(name, 0)
+    val expected2 = tg2.create(this.name, 0)
 
     // T3 0..5
     val id3 = UUID.randomUUID()
 
     val tg3 =
       Task("T3", 5L).withID(id3).withResources(resource.map(_.name).toSeq).withPriority(Task.Low)
-    val expected3 = tg3.create(name, 0)
+    val expected3 = tg3.create(this.name, 0)
 
-    val expectedTime = if (resource.isEmpty) 5L else 7L
+    val expectedTime = if resource.isEmpty then 5L else 7L
 
     override def react(call: Call): Unit = call match {
-      case Run => coordinator.simResponse(SimReady(name, Seq(tg1, tg2, tg3)))
+      case Run => coordinator.simResponse(SimReady(this.name, Seq(tg1, tg2, tg3)))
       case Complete(time, Seq(task)) if time == 2L && task.compare(expected2) == 0 =>
-        coordinator.simResponse(SimReady(name, Seq(), Seq(id1)))
+        coordinator.simResponse(SimReady(this.name, Seq(), Seq(id1)))
       case Complete(time, Seq(task)) if time == expectedTime && task.compare(expected3) == 0 =>
-        coordinator.simResponse(SimDone(name, Success(())))
+        coordinator.simResponse(SimDone(this.name, Success(())))
       case _ => ()
     }
 
@@ -296,7 +292,7 @@ object MockSimulation {
     val tg = Task("T", duration).withID(id)
 
     override def react(call: Call): Unit = call match {
-      case Run => coordinator.simResponse(SimReady(name, Seq(tg)))
+      case Run => coordinator.simResponse(SimReady(this.name, Seq(tg)))
       case _ => ()
     }
 

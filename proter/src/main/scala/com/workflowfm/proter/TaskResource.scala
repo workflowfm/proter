@@ -57,7 +57,7 @@ class TaskResource(val name: String, val costPerTick: Double) {
   def finishTask(currentTime: Long): Option[TaskInstance] = currentTask match {
     case None => None
     case Some((startTime, task)) =>
-      if (currentTime >= startTime + task.duration) {
+      if currentTime >= startTime + task.duration then {
         currentTask = None
         Some(task)
       } else None

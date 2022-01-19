@@ -31,9 +31,9 @@ sealed trait DiscreteEvent extends Ordered[DiscreteEvent] {
     lazy val cOrder = this.classOrder.compare(that.classOrder)
     lazy val vOrder = sameClassCompare(that)
 
-    if (tOrder != 0) tOrder
-    else if (cOrder != 0) cOrder
-    else if (vOrder != 0) vOrder
+    if tOrder != 0 then tOrder
+    else if cOrder != 0 then cOrder
+    else if vOrder != 0 then vOrder
     else this.hashCode().compare(that.hashCode())
   }
 

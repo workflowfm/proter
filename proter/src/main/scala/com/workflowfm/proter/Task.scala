@@ -126,11 +126,11 @@ class TaskInstance(
     lazy val cInterrupt = this.interrupt.compare(that.interrupt)
     lazy val cID = this.id.compareTo(that.id)
 
-    if (cPriority != 0) cPriority
-    else if (cAge != 0) cAge
-    else if (cResources != 0) cResources
-    else if (cDuration != 0) cDuration
-    else if (cInterrupt != 0) cInterrupt
+    if cPriority != 0 then cPriority
+    else if cAge != 0 then cAge
+    else if cResources != 0 then cResources
+    else if cDuration != 0 then cDuration
+    else if cInterrupt != 0 then cInterrupt
     else cID
   }
 
@@ -196,7 +196,7 @@ case class Task(
     *   The generated [[TaskInstance]].
     */
   def create(simulation: String, currentTime: Long): TaskInstance = {
-    val creation = if (createTime >= 0) createTime else currentTime
+    val creation = if createTime >= 0 then createTime else currentTime
 
     new TaskInstance(
       id.getOrElse(UUID.randomUUID()),

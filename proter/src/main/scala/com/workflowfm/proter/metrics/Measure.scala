@@ -180,7 +180,7 @@ case class ResourceMetrics(
 
   /** Adds some idle time to the total. */
   def idle(t: Long): ResourceMetrics =
-    if (idleUpdate < t) copy(idleTime = idleTime + t - idleUpdate, idleUpdate = t) else this
+    if idleUpdate < t then copy(idleTime = idleTime + t - idleUpdate, idleUpdate = t) else this
 
   /** Updates the metrics given a new [[TaskInstance]] has been attached to the [[TaskResource]]. */
   def task(t: Long, task: TaskInstance): ResourceMetrics = idle(t).copy(

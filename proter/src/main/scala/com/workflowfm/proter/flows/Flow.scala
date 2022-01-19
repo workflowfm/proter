@@ -23,7 +23,7 @@ sealed trait Flow {
     case _: NoTask => this
     case _ => new Or(this, f)
   }
-  def *(i: Int): Flow = Flow.par(for (_ <- 1 to i) yield this.copy())
+  def *(i: Int): Flow = Flow.par(for _ <- 1 to i yield this.copy())
 
   def +(t: Task): Flow = this + new FlowTask(t)
   def >(t: Task): Flow = this > new FlowTask(t)
@@ -196,18 +196,18 @@ class FlowSimulation(
 
       case f: And => {
         val leftCallback: Callback =
-          callback((_, _) => (if (!tasks.contains(f.right.id)) complete(f.id)))
+          callback((_, _) => (if !tasks.contains(f.right.id) then complete(f.id)))
         val rightCallback: Callback =
-          callback((_, _) => (if (!tasks.contains(f.left.id)) complete(f.id)))
+          callback((_, _) => (if !tasks.contains(f.left.id) then complete(f.id)))
         runFlow(f.left, leftCallback)
         runFlow(f.right, rightCallback)
       }
 
       case f: Or => {
         val leftCallback: Callback =
-          callback((_, _) => (if (tasks.contains(f.right.id)) complete(f.id)))
+          callback((_, _) => (if tasks.contains(f.right.id) then complete(f.id)))
         val rightCallback: Callback =
-          callback((_, _) => (if (tasks.contains(f.left.id)) complete(f.id)))
+          callback((_, _) => (if tasks.contains(f.left.id) then complete(f.id)))
         runFlow(f.left, leftCallback)
         runFlow(f.right, rightCallback)
       }
@@ -318,7 +318,7 @@ class FlowLookahead(
       case _: NoTask => ((_: Map[UUID, Long]) => (Some(Long.MinValue)), NoLookahead)
       case f: FlowTask => {
         var s = lookaheadStructure
-        if (extraFunction.isDefined) s = s + (extraFunction.get, f.task)
+        if extraFunction.isDefined then s = s + (extraFunction.get, f.task)
         ((m: Map[UUID, Long]) => (m.get(f.id)), s)
       }
       case f: Then => {
@@ -333,7 +333,7 @@ class FlowLookahead(
         (
           (m) => {
             val results = functions map (_._1(m))
-            if (results.contains(None)) None else results.max
+            if results.contains(None) then None else results.max
           },
           functions.map(_._2).fold(NoLookahead) { (a, b) => a and b }
         )

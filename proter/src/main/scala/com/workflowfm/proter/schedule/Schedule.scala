@@ -220,10 +220,10 @@ object Schedule {
   ): Option[List[(Long, Long)]] = tasks match {
     case Nil => Some((result :+ (start, end)).toList)
     case (l: Long, r: Long) :: t =>
-      if (l > end) Some(result.concat((start, end) :: (l, r) :: t).toList)
-      else if (l == end) Some(result.concat((start, r) :: t).toList)
-      else if (r < start) add(start, end, t, result :+ ((l, r)))
-      else if (r == start) add(l, end, t, result)
+      if l > end then Some(result.concat((start, end) :: (l, r) :: t).toList)
+      else if l == end then Some(result.concat((start, r) :: t).toList)
+      else if r < start then add(start, end, t, result :+ ((l, r)))
+      else if r == start then add(l, end, t, result)
       else /* if (r >= end) */ None
     // else None
   }
@@ -297,12 +297,12 @@ object Schedule {
       g2 match {
         case Nil => result.concat(g1).toList
         case (l2, r2) :: t2 => {
-          if (r2 < l1) merge(g1, t2, result :+ (l2, r2))
-          else if (r1 < l2) merge(t1, g2, result :+ (l1, r1))
-          else if (r1 == r2) merge(t1, t2, result :+ (math.min(l1, l2), r1))
-          else if (r2 == l1) merge((l2, r1) :: t1, t2, result)
-          else if (r1 == l2) merge(t1, (l1, r2) :: t2, result)
-          else if (r1 < r2) merge(t1, (math.min(l1, l2), r2) :: t2, result)
+          if r2 < l1 then merge(g1, t2, result :+ (l2, r2))
+          else if r1 < l2 then merge(t1, g2, result :+ (l1, r1))
+          else if r1 == r2 then merge(t1, t2, result :+ (math.min(l1, l2), r1))
+          else if r2 == l1 then merge((l2, r1) :: t1, t2, result)
+          else if r1 == l2 then merge(t1, (l1, r2) :: t2, result)
+          else if r1 < r2 then merge(t1, (math.min(l1, l2), r2) :: t2, result)
           else /* if (r1 > r2)*/ merge((math.min(l1, l2), r1) :: t1, t2, result)
         }
       }
@@ -329,11 +329,12 @@ object Schedule {
   ): Option[List[(Long, Long)]] = gaps match {
     case Nil => Some(result.toList)
     case (l: Long, r: Long) :: t =>
-      if (l == start && end == r) fitInGaps(start, end, t, result) // event fits exactly
-      else if (l == start && end <= r) fitInGaps(start, end, t, result :+ ((end, r))) // add an event at the beginning of the gap
-      else if (l <= start && end == r) fitInGaps(start, end, t, result :+ ((l, start))) // add an event at the end of the gaps
-      else if (l < start && end < r) fitInGaps(start, end, t, result :+ ((l, start)) :+ ((end, r))) // add an event within a gap
-      else if (start > r || end < l) fitInGaps(start, end, t, result :+ ((l, r)))
+      if l == start && end == r then fitInGaps(start, end, t, result) // event fits exactly
+      else if l == start && end <= r then fitInGaps(start, end, t, result :+ ((end, r))) // add an event at the beginning of the gap
+      else if l <= start && end == r then fitInGaps(start, end, t, result :+ ((l, start))) // add an event at the end of the gaps
+      else if l < start && end < r then
+        fitInGaps(start, end, t, result :+ ((l, start)) :+ ((end, r))) // add an event within a gap
+      else if start > r || end < l then fitInGaps(start, end, t, result :+ ((l, r)))
       else None
   }
 
@@ -349,10 +350,10 @@ object Schedule {
       g2 match {
         case Nil => result.toList
         case (l2, r2) :: t2 => {
-          if (r2 <= l1) mergeGaps(g1, t2, result)
-          else if (r1 <= l2) mergeGaps(t1, g2, result)
-          else if (r1 == Long.MaxValue && r1 == r2) (result :+ (math.max(l1, l2), r1)).toList
-          else if (r2 <= r1) mergeGaps(g1, t2, result :+ (math.max(l1, l2), r2))
+          if r2 <= l1 then mergeGaps(g1, t2, result)
+          else if r1 <= l2 then mergeGaps(t1, g2, result)
+          else if r1 == Long.MaxValue && r1 == r2 then (result :+ (math.max(l1, l2), r1)).toList
+          else if r2 <= r1 then mergeGaps(g1, t2, result :+ (math.max(l1, l2), r2))
           else /* if (r1 < r2) */ mergeGaps(t1, g2, result :+ (math.max(l1, l2), r1))
         }
       }

@@ -198,7 +198,7 @@ class PromiseHandler[R](handler: ResultHandler[R]) extends ResultHandler[R] {
     */
   override def onDone(publisher: Publisher): Unit = {
     handler.onDone(publisher)
-    if (!promise.isCompleted) promise.success(result)
+    if !promise.isCompleted then promise.success(result)
   }
 
   /**
@@ -208,7 +208,7 @@ class PromiseHandler[R](handler: ResultHandler[R]) extends ResultHandler[R] {
     */
   override def onFail(ex: Throwable, publisher: Publisher): Unit = {
     handler.onFail(ex, publisher)
-    if (!promise.isCompleted) promise.failure(ex)
+    if !promise.isCompleted then promise.failure(ex)
   }
 
   /**

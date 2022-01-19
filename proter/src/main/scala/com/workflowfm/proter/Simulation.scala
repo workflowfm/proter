@@ -233,7 +233,7 @@ trait Simulation extends SimulationRef {
     */
   def ack(taskIDs: Seq[UUID]): Unit = this.synchronized {
     waiting --= taskIDs
-    if (waiting.isEmpty) {
+    if waiting.isEmpty then {
       val response = SimReady(name, tasksToAdd.clone.toSeq, aborted.clone.toSeq, getLookahead())
       clear()
       manager.simResponse(response)

@@ -53,7 +53,7 @@ trait Publisher {
     */
   def publish(evt: Event): Unit = {
     doPublish(evt)
-    if (isFinalEvent(evt)) stopStream()
+    if isFinalEvent(evt) then stopStream()
   }
 }
 

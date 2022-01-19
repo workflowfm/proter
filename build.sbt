@@ -52,11 +52,11 @@ Hugo / includeFilter := ("*")
 ghpagesNoJekyll := true
 previewFixedPort := Some(9999)
 
-ThisBuild / scalafixScalaBinaryVersion := "2.13"
+//ThisBuild / scalafixScalaBinaryVersion := "3.1"
 
 lazy val commonSettings = Seq(
 //  scalaVersion := Dependencies.scalaVer,
-  scalaVersion := "2.13.7",
+  scalaVersion := "3.1.0",
   crossScalaVersions ++= Seq("2.13.7", "3.1.0"),
 
   semanticdbEnabled := true,
@@ -79,7 +79,8 @@ lazy val commonSettings = Seq(
       case Some((3, _)) => Seq(
         "-unchecked",
         "-source:3.0-migration",
-        "-rewrite"
+        "-rewrite",
+        "-new-syntax"
       )
       case _ => Seq(
         "-deprecation",

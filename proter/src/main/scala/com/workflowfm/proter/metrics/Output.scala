@@ -357,14 +357,14 @@ class SimD3Timeline(path: String, file: String, tick: Int = 1)
   def build(aggregator: SimMetricsAggregator, now: Long): String = {
     val buf: StringBuilder = new StringBuilder()
     buf.append("var tasks = [\n")
-    for (p <- (collection.immutable.SortedSet[String]() ++ aggregator.taskSet))
+    for p <- (collection.immutable.SortedSet[String]() ++ aggregator.taskSet) do
       buf.append(s"""\t"$p",\n""")
     buf.append("];\n\n")
     buf.append("var resourceData = [\n")
-    for (m <- aggregator.resourceMetrics) buf.append(s"""${resourceEntry(m, aggregator)}\n""")
+    for m <- aggregator.resourceMetrics do buf.append(s"""${resourceEntry(m, aggregator)}\n""")
     buf.append("];\n\n")
     buf.append("var simulationData = [\n")
-    for (m <- aggregator.simulationMetrics) buf.append(s"""${simulationEntry(m, aggregator)}\n""")
+    for m <- aggregator.simulationMetrics do buf.append(s"""${simulationEntry(m, aggregator)}\n""")
     buf.append("];\n")
     buf.toString
   }
