@@ -16,19 +16,33 @@ import com.workflowfm.proter.events.PromiseHandler
 
 //Below case classes define the structure of the JSON for decoding
 case class IRequest(arrival: IArrival, resources: List[IResource])
-case class IArrival(simulation: ISimulation, numberOfRuns: Int)
+case class IArrival(simulation: ISimulation, infinite: Boolean, Rate: IDistribution, simulationLimit: Int, timeLimit: Int)
 case class ISimulation(name: String, flow: IFlow)
 case class IFlow(tasks: List[ITask], ordering: String)
 
-case class ITask(name: String, duration: Int, cost: Int, resources: String, priority: Int) {
+case class ITask(name: String, duration: IDistribution, cost: IDistribution, resources: String, priority: Int) {
   def toProterTask(): Task = {
-    proter.Task(this.name, Constant(this.duration.toDouble)).withCost(this.cost.toDouble).withResources(this.resources.split(",")).withPriority(this.priority)
+    proter.Task(this.name, this.duration.toProterDistribution()).withCostGenerator(this.cost.toProterDistribution()).withResources(this.resources.split(",")).withPriority(this.priority)
   }
 }
 
-case class IResource(name: String, costPerTick: Int) {
+case class IResource(name: String, costPerTick: Double) {
   def toProterResource(): TaskResource = {
-    new TaskResource(this.name, this.costPerTick.toDouble)
+    new TaskResource(this.name, this.costPerTick)
+  }
+}
+
+case class IDistribution(distType: String, value1: Double, value2: Double) {
+  def toProterDistribution(): Distribution = {
+    if (this.distType == "C") {
+      new Constant(this.value1);
+    } else if (this.distType == "E") {
+      new Exponential(this.value1);
+    } else if (this.distType == "U") {
+      new Uniform(this.value1, this.value2);
+    } else {
+      new Constant(1); //Replace with an error throw
+    }
   }
 }
 
@@ -44,6 +58,8 @@ class JsonParser {
   implicit val requestDecoder4: Decoder[IFlow] = deriveDecoder[IFlow]
   implicit val requestDecoder5: Decoder[ITask] = deriveDecoder[ITask]
   implicit val requestDecoder6: Decoder[IResource] = deriveDecoder[IResource]
+  implicit val requestDecoder7: Decoder[IDistribution] = deriveDecoder[IDistribution]
+
 
   /**
     * This top level function should take an IRequest and then return a Results object
@@ -134,6 +150,7 @@ object Test {
   implicit val requestDecoder4: Decoder[IFlow] = deriveDecoder[IFlow]
   implicit val requestDecoder5: Decoder[ITask] = deriveDecoder[ITask]
   implicit val requestDecoder6: Decoder[IResource] = deriveDecoder[IResource]
+  implicit val requestDecoder7: Decoder[IDistribution] = deriveDecoder[IDistribution]
 
   /**
     * Decodes the JSON provided to it based on the implicit decoders defined in the class' attributes using
