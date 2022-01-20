@@ -334,14 +334,14 @@ class SingleTaskSimulation(
     override val name: String,
     override protected val manager: Manager,
     resources: Seq[String],
-    duration: Distribution,
+    duration: LongDistribution,
     cost: Distribution = Constant(0),
     interrupt: Int = (-1),
     priority: Int = 0
 ) extends Simulation {
 
   lazy val theTask: Task = Task(s"${name}Task", duration)
-    .withCostGenerator(cost)
+    .withCost(cost)
     .withResources(resources)
     .withInterrupt(interrupt)
     .withPriority(priority)

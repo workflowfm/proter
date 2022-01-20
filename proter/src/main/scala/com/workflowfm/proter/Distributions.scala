@@ -1,17 +1,51 @@
 package com.workflowfm.proter
 
 /**
-  * A random function sampling some probability distribution.
+  * A random function sampling some probability distribution to produce a `Long` value.
   *
-  * It can be used to generate a value for some simulation parameters (typically duration and cost).
-  * It can be a [[Constant]] which always provides the same value or any probability distribution.
+  * It can be used to generate a value for simulation parameters (typically duration). It can be a
+  * [[ConstantLong]] which always provides the same value or any probability distribution.
   *
   * Distributions must also provide an estimate of the generated values such that can be used in an
   * environment of imperfect knowledge. For example, the [[schedule.Scheduler Scheduler]] does not
   * know the actual durations of tasks, which can vary from the expected estimate for various
   * reasons.
   */
-trait Distribution {
+trait LongDistribution {
+
+  /**
+    * Provides a sample `Long` value.
+    *
+    * @return
+    *   A sample `Long` value.
+    */
+  def getLong: Long
+
+  /**
+    * Provides an estimate of the values that can be generated.
+    *
+    * This could be the mean of the distribution for instance. It can help create an environment of
+    * imperfect knowledge. For example, the [[schedule.Scheduler Scheduler]] does not know the
+    * actual durations of tasks, which can vary from the expected estimate for various reasons.
+    *
+    * @return
+    *   An estimate of the values that can be generated.
+    */
+  def longEstimate: Long
+}
+
+/**
+  * A random function sampling some probability distribution to produce a `Double` value.
+  *
+  * It can be used to generate a value for simulation parameters (typically duration and cost). It
+  * can be a [[Constant]] which always provides the same value or any probability distribution.
+  *
+  * Distributions must also provide an estimate of the generated values such that can be used in an
+  * environment of imperfect knowledge. For example, the [[schedule.Scheduler Scheduler]] does not
+  * know the actual durations of tasks, which can vary from the expected estimate for various
+  * reasons.
+  */
+trait Distribution extends LongDistribution {
 
   /**
     * Provides a sample value.
@@ -40,7 +74,45 @@ trait Distribution {
     * @return
     *   A sample `Long` value.
     */
-  def getLong: Long = get.floor.round
+  override def getLong: Long = get.floor.round
+
+  /**
+    * Provides an estimate of the `Long` values that can be generated.
+    *
+    * This could be the mean of the distribution for instance. It can help create an environment of
+    * imperfect knowledge. For example, the [[schedule.Scheduler Scheduler]] does not know the
+    * actual durations of tasks, which can vary from the expected estimate for various reasons.
+    *
+    * @return
+    *   An estimate of the values that can be generated.
+    */
+  override def longEstimate: Long = estimate.floor.round
+}
+
+/**
+  * A constant Long value generator.
+  *
+  * Always generates the same value.
+  *
+  * @param value
+  *   The value to generate.
+  */
+case class ConstantLong(value: Long) extends LongDistribution {
+  /**
+    * Provides the constant value.
+    *
+    * @return
+    *   The constant value.
+    */
+  override def getLong = value
+
+  /**
+    * Provides an estimate of the constant value, i.e. the value itself.
+    *
+    * @return
+    *   The constant value as an estimate of itself.
+    */
+  override def longEstimate = value
 }
 
 /**
@@ -67,6 +139,36 @@ case class Constant(value: Double) extends Distribution {
     *   The constant value as an estimate of itself.
     */
   override def estimate = value
+}
+
+/**
+  * A uniform Long distribution.
+  *
+  * Samples a random variable uniformly between [[min]] and [[max]].
+  *
+  * @param min
+  *   The minimum possible value.
+  * @param max
+  *   The maximum possible value.
+  */
+case class UniformLong(min: Long, max: Long) extends LongDistribution {
+  /**
+    * Provides a random value uniformly sampled between [[min]] and [[max]].
+    *
+    * @return
+    *   The random value.
+    */
+  override def getLong: Long = new util.Random().nextLong(max - min) + min
+
+  /**
+    * Provides an estimate of the values that can be generated.
+    *
+    * Uses the median of the uniform distribution.
+    *
+    * @return
+    *   The median as an estimate of the values that can be generated.
+    */
+  override def longEstimate: Long = (max + min) / 2
 }
 
 /**

@@ -174,7 +174,7 @@ class TaskInstance(
 case class Task(
     name: String,
     id: Option[UUID],
-    duration: Distribution,
+    duration: LongDistribution,
     cost: Distribution = Constant(0L),
     minStartTime: Long = 0L,
     resources: Seq[String] = Seq(),
@@ -206,7 +206,7 @@ case class Task(
       minStartTime,
       resources,
       duration.getLong,
-      duration.estimate.round,
+      duration.longEstimate,
       cost.get,
       interrupt,
       priority
@@ -261,7 +261,7 @@ case class Task(
     * @return
     *   An updated [[Task]].
     */
-  def withDurationGenerator(dur: Distribution): Task = copy(duration = dur)
+  def withDuration(dur: LongDistribution): Task = copy(duration = dur)
 
   /**
     * Update the duration distribution to a constant value.
@@ -271,7 +271,7 @@ case class Task(
     * @return
     *   An updated [[Task]].
     */
-  def withDuration(dur: Double): Task = copy(duration = Constant(dur))
+  def withDuration(dur: Long): Task = copy(duration = ConstantLong(dur))
 
   /**
     * Update the cost distribution to use.
@@ -281,7 +281,7 @@ case class Task(
     * @return
     *   An updated [[Task]].
     */
-  def withCostGenerator(cost: Distribution): Task = copy(cost = cost)
+  def withCost(cost: Distribution): Task = copy(cost = cost)
 
   /**
     * Update the cost [[Distribution]] to a constant value.
@@ -341,7 +341,7 @@ object Task {
     */
   def apply(
       name: String,
-      duration: Distribution
+      duration: LongDistribution
   ): Task =
     Task(name, None, duration)
 
@@ -359,9 +359,9 @@ object Task {
     */
   def apply(
       name: String,
-      duration: Double
+      duration: Long
   ): Task =
-    Task(name, None, Constant(duration))
+    Task(name, None, ConstantLong(duration))
 
   /**
     * An alternative constructor of a [[Task]].
@@ -378,9 +378,9 @@ object Task {
   def apply(
       name: String,
       id: UUID,
-      duration: Double
+      duration: Long
   ): Task =
-    Task(name, Some(id), Constant(duration))
+    Task(name, Some(id), ConstantLong(duration))
 
   val Highest: Int = 2
   val High: Int = 1

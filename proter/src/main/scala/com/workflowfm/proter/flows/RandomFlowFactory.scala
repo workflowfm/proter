@@ -27,7 +27,7 @@ case class RandomFlowFactory(
     andProbability: Float, // balance between and and then nodes
     resources: Seq[TaskResource],
     numTasks: Distribution = Constant(1),
-    durations: Distribution = Constant(1),
+    durations: LongDistribution = ConstantLong(1),
     numResources: Distribution = Constant(1),
     cost: Distribution = Constant(0),
     priority: Distribution = Uniform(-2, 2)
@@ -35,7 +35,7 @@ case class RandomFlowFactory(
 
   def withResources(r: Seq[TaskResource]): RandomFlowFactory = copy(resources = r)
   def withTasks(d: Distribution): RandomFlowFactory = copy(numTasks = d)
-  def withDurations(d: Distribution): RandomFlowFactory = copy(durations = d)
+  def withDurations(d: LongDistribution): RandomFlowFactory = copy(durations = d)
   def withNumResources(d: Distribution): RandomFlowFactory = copy(numResources = d)
   def withRandomPriority(d: Distribution): RandomFlowFactory = copy(priority = d)
 
@@ -63,7 +63,7 @@ case class RandomFlowFactory(
     val possibleResources = resources.combinations(numberOfResources).toSeq
     val selectedResources = possibleResources(new util.Random().nextInt(possibleResources.length))
     new FlowTask(
-      Task("task" + name.toString, durations.get)
+      Task("task" + name.toString, durations.getLong)
         .withResources(selectedResources.map(_.name))
         .withCost(cost.get)
         .withPriority(priority.getLong.toInt)

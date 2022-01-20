@@ -69,6 +69,7 @@ lazy val commonSettings = Seq(
       "-encoding",
       "UTF-8",
       "-feature",
+      "-deprecation",
       //"-language:implicitConversions",
       // "-Xfatal-warnings",
       "-unchecked",
