@@ -36,8 +36,15 @@ class TaskInstance(
     val estimatedDuration: Long,
     val cost: Double,
     val interrupt: Int = Int.MaxValue,
-    val priority: Int = 0
+    val priority: Int = 0,
+    val resourceQuantities: Seq[Int] = Seq()
 ) extends Ordered[TaskInstance] {
+
+
+  def resourceQuantity(r: String): Int = {
+    if (resourceQuantities.length==0) 1
+    else resourceQuantities(resources.indexOf(r))
+  }
 
   /**
     * Finds the soonest this task can start.
@@ -151,7 +158,8 @@ case class Task(
     resources: Seq[String] = Seq(),
     interrupt: Int = (-1),
     priority: Int = 0,
-    createTime: Long = (-1)
+    createTime: Long = (-1),
+    resourceQuantities: Seq[Int] = Seq()
 ) {
 
   /**
@@ -176,7 +184,8 @@ case class Task(
       duration.estimate.round,
       cost.get,
       interrupt,
-      priority
+      priority,
+      resourceQuantities
     )
   }
 
@@ -195,6 +204,8 @@ case class Task(
     * @return An updated [[Task]].
     */
   def withResources(r: Seq[String]): Task = copy(resources = r)
+
+  def withResourceQuantities(q: Seq[Int]): Task = copy(resourceQuantities= q)
 
   /**
     * Update the priority to use.

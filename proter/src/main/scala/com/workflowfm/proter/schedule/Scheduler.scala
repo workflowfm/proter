@@ -395,9 +395,9 @@ class ProterScheduler(initialTasks: TaskInstance*) extends PriorityScheduler {
     if (tasks.isEmpty) result
     else {
       val t = tasks.head
-      val start = Schedule.mergeSchedules(t.resources.flatMap{ s=> schedules.get(s).map(_.binary(1,resourceMap.get(s).map(_.capacity.toInt).getOrElse(0)))}) ? (currentTime, t)
+      val start = Schedule.mergeSchedules(t.resources.flatMap{ s=> schedules.get(s).map(_.binary(t.resourceQuantity(s),resourceMap.get(s).map(_.capacity.toInt).getOrElse(0)))}) ? (currentTime, t)
       val schedules2 = (schedules /: t.resources) {
-        case (s, r) => s + (r -> (s.getOrElse(r, WeightedSchedule()) +> (start, t)))
+        case (s, r) => s + (r -> (s.getOrElse(r, WeightedSchedule()) +> (start, start+t.estimatedDuration, t.resourceQuantity(r))))
       }
       val result2 =
         if (start == currentTime && t.taskResources(resourceMap).forall(_.hasSpace)) result :+ t
