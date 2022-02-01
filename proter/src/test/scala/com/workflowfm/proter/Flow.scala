@@ -227,25 +227,7 @@ class FlowTests extends FlowsTester {
       testMetrics.get("task5 (sim1)").value.value should be(22)
     }
 
-    "execute OR followed by a THEN" in {
-      val task1 = new FlowTask(
-        Task("task1", 1L)
-      )
-      val task2 = new FlowTask(
-        Task("task2", 2L)
-      )
-      val task3 = new FlowTask(
-        Task("task3", 4L)
-      )
-      val flow1 = new Then(new Or(task1, task2), task3)
-      val testMetrics = singleFlowTest(flow1)
-
-      testMetrics.get("task1 (sim1)").value.value should be(1)
-      testMetrics.get("task2 (sim1)").value.value should be(2)
-      testMetrics.get("task3 (sim1)").value.value should be(5)
-    }
-
-    "execute mixed AND/THEN/OR flows" in {
+    "execute more mixed AND/THEN flows" in {
       val task1 = new FlowTask(
         Task("task1", 1L)
       )
@@ -261,14 +243,14 @@ class FlowTests extends FlowsTester {
       val task5 = new FlowTask(
         Task("task5", 16L)
       )
-      val flow1 = new Then(new Then(task1, new Or(task2, task3)), new And(task4, task5))
+      val flow1 = new Then(new Then(task1, new And(task2, task3)), new And(task4, task5))
       val testMetrics = singleFlowTest(flow1)
 
       testMetrics.get("task1 (sim1)").value.value should be(1)
       testMetrics.get("task2 (sim1)").value.value should be(3)
       testMetrics.get("task3 (sim1)").value.value should be(5)
-      testMetrics.get("task4 (sim1)").value.value should be(11)
-      testMetrics.get("task5 (sim1)").value.value should be(19)
+      testMetrics.get("task4 (sim1)").value.value should be(13)
+      testMetrics.get("task5 (sim1)").value.value should be(21)
     }
 
     "execute multpile tasks of same duration" in {
