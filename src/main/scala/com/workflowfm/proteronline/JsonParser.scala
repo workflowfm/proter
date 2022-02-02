@@ -12,6 +12,7 @@ import com.workflowfm.proter.metrics._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import com.workflowfm.proter.events.PromiseHandler
+import cats.effect.IO
 
 //Below case classes define the structure of the JSON for decoding
 case class IRequest(arrival: IArrival, resources: List[IResource])
@@ -40,7 +41,7 @@ case class IDistribution(distType: String, value1: Double, value2: Option[Double
     } else if (this.distType == "U") {
       new Uniform(this.value1, this.value2.get)
     } else {
-      new Constant(1); //Replace with an error throw
+      throw new IllegalArgumentException("Invalid Distribution Type: Was \'" + this.distType + "\' can only be C, E or U")
     }
   }
 }
@@ -59,7 +60,6 @@ class JsonParser {
   implicit val requestDecoder6: Decoder[IResource] = deriveDecoder[IResource]
   implicit val requestDecoder7: Decoder[IDistribution] = deriveDecoder[IDistribution]
 
-
   /**
     * This top level function should take an IRequest and then return a Results object
     *
@@ -68,11 +68,9 @@ class JsonParser {
     */
   def process(request: IRequest) : Results = {
 
-    //println(request)
+    val coordinator : Coordinator = new Coordinator(new ProterScheduler)
 
-    val coordinator : Coordinator = new Coordinator(new ProterScheduler) //Consider multiple schedulers
-
-    val promiseHandler = new PromiseHandler(new SimMetricsHandler(new proter.metrics.SimMetricsPrinter))
+    val promiseHandler = new PromiseHandler(new SimMetricsHandler(new SimMetricsPrinter))
     val agg = promiseHandler.future
 
     coordinator.subscribe(promiseHandler)
@@ -90,6 +88,20 @@ class JsonParser {
     Await.result(result, 10.second) //Current approach involves getting the data out of the future here, in later versions the future will be passed out of the function
     //println("Simulations Complete")
     result.value.get.get //Grabs the result out of the future
+  }
+
+  def streamHandler(request: IRequest): fs2.Stream[IO, String] = {
+    
+    val coordinator : Coordinator = new Coordinator(new ProterScheduler)
+
+    val streamHandler: StreamEventHandler = new StreamEventHandler()
+    coordinator.subscribe(streamHandler)
+    coordinator.subscribe(new SimMetricsHandler(new SimMetricsPrinter()))
+
+    programmaticTransform(coordinator, request)
+    coordinator.start()
+
+    streamHandler.stream
   }
 
   /**
@@ -152,12 +164,21 @@ class JsonParser {
     )
   }
 
+  def validateRequest(request: IRequest): Boolean = {
+    val definedResources: Set[String] = request.resources.map(_.name).toSet
+    val referencedResources: Set[String] = request.arrival.simulation.flow.tasks.flatMap(_.resources.split(",")).toSet
+    if (definedResources.equals(referencedResources)) {
+      false
+    } else {
+      true
+    }
+  }
 }
 
 object Test {
 
 
-  val betterSampleData: String = "{ \"arrival\": {\"simulation\": {\"name\": \"Example Name\", \"flow\":{ \"tasks\": [{\"name\": \"A\",\"duration\": {\"distType\": \"C\",\"value1\": 2,\"value2\": null},\"cost\": {\"distType\": \"E\",\"value1\": 4,\"value2\": null},\"resources\": \"R1\",\"priority\": 0},{\"name\": \"B\",\"duration\": {\"distType\": \"U\",\"value1\": 3,\"value2\": 7},\"cost\": {\"distType\": \"C\",\"value1\": 5,\"value2\": null},\"resources\": \"R2\",\"priority\": 0}], \"ordering\": \"A->B\"} }, \"infinite\": true,\"rate\": {\"distType\": \"C\",\"value1\": 5,\"value2\": null},\"simulationLimit\": null,\"timeLimit\": 250},\"resources\": [{\"name\": \"R1\",\"costPerTick\": 3},{\"name\": \"R2\",\"costPerTick\": 2}]}"
+  val betterSampleData: String = "{ \"arrival\": {\"simulation\": {\"name\": \"Example Name\", \"flow\":{ \"tasks\": [{\"name\": \"A\",\"duration\": {\"distType\": \"C\",\"value1\": 2,\"value2\": null},\"cost\": {\"distType\": \"E\",\"value1\": 4,\"value2\": null},\"resources\": \"R1\",\"priority\": 0},{\"name\": \"B\",\"duration\": {\"distType\": \"U\",\"value1\": 3,\"value2\": 7},\"cost\": {\"distType\": \"C\",\"value1\": 5,\"value2\": null},\"resources\": \"R2\",\"priority\": 0}], \"ordering\": \"A->B\"} }, \"infinite\": false,\"rate\": {\"distType\": \"C\",\"value1\": 5,\"value2\": null},\"simulationLimit\": 10,\"timeLimit\": 25000},\"resources\": [{\"name\": \"R1\",\"costPerTick\": 3},{\"name\": \"R2\",\"costPerTick\": 2}]}"
   
   implicit val requestDecoder1: Decoder[IRequest] = deriveDecoder[IRequest]
   implicit val requestDecoder2: Decoder[IArrival] = deriveDecoder[IArrival]
