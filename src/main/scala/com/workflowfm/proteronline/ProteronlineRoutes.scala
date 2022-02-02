@@ -52,8 +52,23 @@ object ProteronlineRoutes {
     HttpRoutes.of[F] {
       case req @ POST -> Root / "API" =>
         for {
-          request <- req.as[IRequest] //I dunno just get me the damn string out of the body!!!!
+          request <- req.as[IRequest]
           resp <- Ok(parse.process(request).asJson)
+        } yield resp
+      }
+  }
+
+  def streamApiRoutes[F[_]: Concurrent](): HttpRoutes[IO] = {
+    val dsl = new Http4sDsl[IO]{}
+    import dsl._
+    implicit val reqDec: EntityDecoder[IO, IRequest] = jsonOf[IO, IRequest]
+    //implicit val streamEnc = EntityEncoder.streamEncoder[IO, Stream[String]]
+    val parse: JsonParser = new JsonParser()
+    HttpRoutes.of[IO] {
+      case req @ POST -> Root / "stream" =>
+        for {
+          request <- req.as[IRequest]
+          resp <- Ok(parse.streamHandler(request))
         } yield resp
       }
   }
