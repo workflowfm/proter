@@ -50,9 +50,9 @@ case class RandomFlowFactory(
       case _ => {
         val leftNum = Uniform(1, num - 1).getLong.toInt
         if new util.Random().nextDouble() <= andProbability then {
-          new And(randomNode(leftNum, name), randomNode(num - leftNum, name + leftNum))
+          And(randomNode(leftNum, name), randomNode(num - leftNum, name + leftNum))
         } else {
-          new Then(randomNode(leftNum, name), randomNode(num - leftNum, name + leftNum))
+          Then(randomNode(leftNum, name), randomNode(num - leftNum, name + leftNum))
         }
       }
     }

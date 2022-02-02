@@ -8,64 +8,56 @@ import com.workflowfm.proter._
 
 sealed trait Flow {
   def +(f: Flow): Flow = f match {
-    case _: NoTask => this
-    case _ => new And(this, f)
+    case NoTask => this
+    case _ => And(this, f)
   }
 
   def >(f: Flow): Flow = f match {
-    case _: NoTask => this
-    case _ => new Then(this, f)
+    case NoTask => this
+    case _ => Then(this, f)
   }
 
   def *(i: Int): Flow = Flow.par(for _ <- 1 to i yield this.copy())
 
-  def +(t: Task): Flow = this + new FlowTask(t)
-  def >(t: Task): Flow = this > new FlowTask(t)
-
   def copy(): Flow
 
-  def simulation(name: String, manager: Manager): FlowSimulation =
-    new FlowSimulation(name, manager, this)
+  def simulation(name: String, manager: Manager): FlowSimulation = FlowSimulation(name, manager, this)
 
-  def simGenerator(name: String): FlowSimulationGenerator = new FlowSimulationGenerator(name, this)
+  def simGenerator(name: String): FlowSimulationGenerator = FlowSimulationGenerator(name, this)
 }
 
-class NoTask() extends Flow { // this can't be a case class/object because of the id
-  override def copy(): Flow = new NoTask()
+case object NoTask extends Flow { 
+  override def copy(): Flow = NoTask
 
   override def +(f: Flow): Flow = f
   override def >(f: Flow): Flow = f
   override def *(i: Int): Flow = this
-
-  override def +(t: Task): Flow = new FlowTask(t)
-  override def >(t: Task): Flow = new FlowTask(t)
 }
 
-class FlowTask(val task: Task) extends Flow {
+case class FlowTask(val task: Task) extends Flow {
+  override def copy(): FlowTask = FlowTask(task.withID(UUID.randomUUID))
   override def toString(): String = task.name
-
-  override def copy(): Flow = new FlowTask(task.withID(UUID.randomUUID))
 }
 
-class Then(val left: Flow, val right: Flow) extends Flow {
-  override def copy(): Flow = new Then(left.copy(), right.copy())
+case class Then(val left: Flow, val right: Flow) extends Flow {
+  override def copy(): Flow = Then(left.copy(), right.copy())
   override def toString(): String = "(" + left.toString + " > " + right.toString + ")"
 
-  override def >(f: Flow): Then = new Then(left, right > f) // make > right associative
+  override def >(f: Flow): Then = Then(left, right > f) // make > right associative
 }
 
-class And(val left: Flow, val right: Flow) extends Flow {
-  override def copy(): Flow = new And(left.copy(), right.copy())
+case class And(val left: Flow, val right: Flow) extends Flow {
+  override def copy(): Flow = And(left.copy(), right.copy())
   override def toString(): String = "(" + left.toString + " + " + right.toString + ")"
 }
 
 object Flow {
 //  import scala.language.implicitConversions
 
-  def apply(t: Task*): Flow = Flow.seq(t.map(new FlowTask(_)))
+  def apply(t: Task*): Flow = Flow.seq(t.map(FlowTask(_)))
 
   given Conversion[Task, FlowTask] with
-    def apply(t: Task): FlowTask = new FlowTask(t)
+    def apply(t: Task): FlowTask = FlowTask(t)
 
   /**
     * Creates a sequence of a collection of [[Flow]]s.
@@ -79,7 +71,7 @@ object Flow {
     * @return
     *   A [[Flow]] that executes the given collection in sequence
     */
-  def seq(l: Seq[Flow]): Flow = (l.foldRight[Flow](new NoTask()) { (l, r) => new Then(l, r) })
+  def seq(l: Seq[Flow]): Flow = l.foldRight[Flow](NoTask) { (l, r) => Then(l, r) }
 
   /**
     * Creates a parallel [[Flow]] from a collection of [[Flow]]s.
@@ -93,7 +85,7 @@ object Flow {
     * @return
     *   A [[Flow]] that executes the given collection in parallel
     */
-  def par(l: Seq[Flow]): Flow = (l.foldRight[Flow](new NoTask()) { (l, r) => new And(l, r) })
+  def par(l: Seq[Flow]): Flow = l.foldRight[Flow](NoTask) { (l, r) => And(l, r) }
 }
 
 /**
@@ -152,24 +144,24 @@ class FlowSimulation(
     */
   final def execute(id: UUID, flow: Flow): Unit = {
     flow match {
-      case f: NoTask => complete(id)
+      case NoTask => complete(id)
 
-      case f: FlowTask => {
+      case FlowTask(someTask) => {
         val taskCallback =  callback((t, l) => { 
           complete(id)
           ack(Seq(t.id))
         })
-        task(f.task, taskCallback)
+        task(someTask, taskCallback)
       }
 
-      case f: Then => {
+      case Then(left, right) => {
         val leftID: UUID = UUID.randomUUID
-        val leftCallback: Callback = callback((_, _) => execute(id, f.right))
+        val leftCallback: Callback = callback((_, _) => execute(id, right))
         tasks += leftID -> leftCallback
-        execute(leftID, f.left)
+        execute(leftID, left)
       }
 
-      case f: And => {
+      case And(left, right) => {
         val leftID: UUID = UUID.randomUUID
         val rightID: UUID = UUID.randomUUID
 
@@ -181,8 +173,8 @@ class FlowSimulation(
         tasks += leftID -> leftCallback
         tasks += rightID -> rightCallback
 
-        execute(leftID, f.left)
-        execute(rightID, f.right)
+        execute(leftID, left)
+        execute(rightID, right)
       }
 
     }
@@ -289,20 +281,20 @@ class FlowLookahead(
       lookaheadStructure: Lookahead
   ): (IDFunction, Lookahead) = {
     flow match {
-      case _: NoTask => ((_: Map[UUID, Long]) => (Some(Long.MinValue)), NoLookahead)
-      case f: FlowTask => {
-        val id = f.task.id.getOrElse(UUID.randomUUID)
-        val s = extraFunction.map( fn => lookaheadStructure + (fn, f.task.withID(id)) ).getOrElse(lookaheadStructure)
+      case NoTask => ((_: Map[UUID, Long]) => (Some(Long.MinValue)), NoLookahead)
+      case FlowTask(someTask) => {
+        val id = someTask.id.getOrElse(UUID.randomUUID)
+        val s = extraFunction.map( fn => lookaheadStructure + (fn, someTask.withID(id)) ).getOrElse(lookaheadStructure)
         ((m: Map[UUID, Long]) => (m.get(id)), s) // TODO f.id?
       }
-      case f: Then => {
-        val (fn, l) = parseFlow(f.left, extraFunction, lookaheadStructure)
-        parseFlow(f.right, Some(fn), l)
+      case Then(left, right) => {
+        val (fn, l) = parseFlow(left, extraFunction, lookaheadStructure)
+        parseFlow(right, Some(fn), l)
       }
-      case f: And => {
+      case And(left, right) => {
         val functions = Seq(
-          parseFlow(f.left, extraFunction, lookaheadStructure),
-          parseFlow(f.right, extraFunction, lookaheadStructure)
+          parseFlow(left, extraFunction, lookaheadStructure),
+          parseFlow(right, extraFunction, lookaheadStructure)
         )
         (
           (m) => {
@@ -316,7 +308,7 @@ class FlowLookahead(
   }
 }
 
-class FlowSimulationGenerator(baseName: String, flow: Flow) extends SimulationGenerator {
+case class FlowSimulationGenerator(baseName: String, flow: Flow) extends SimulationGenerator {
 
   override def build(manager: Manager, count: Int): Simulation = {
     val name = baseName + count.toString()

@@ -19,7 +19,7 @@ class FlowTests extends FlowsTester {
 
   "Flows" should {
     "execute a single flow" in {
-      val task1 = new FlowTask(Task("task1", 1L))
+      val task1 = FlowTask(Task("task1", 1L))
       val flow1 = task1
       val testMetrics = singleFlowTest(flow1, List())
 
@@ -27,9 +27,9 @@ class FlowTests extends FlowsTester {
     }
 
     "execute an AND of two tasks which use different resources" in {
-      val task1 = new FlowTask(Task("task1", 1L))
-      val task2 = new FlowTask(Task("task2", 2L))
-      val flow1 = new And(task1, task2)
+      val task1 = FlowTask(Task("task1", 1L))
+      val task2 = FlowTask(Task("task2", 2L))
+      val flow1 = And(task1, task2)
       val testMetrics = singleFlowTest(flow1)
 
       testMetrics.get("task1 (sim1)").value.value should be(1)
@@ -38,17 +38,17 @@ class FlowTests extends FlowsTester {
 
     "execute an AND of two tasks which use the same resources" in {
       val r1 = new TaskResource("r1", 0)
-      val task1 = new FlowTask(
+      val task1 = FlowTask(
         Task("task1", 1L).withResources(
           Seq("r1")
         )
       )
-      val task2 = new FlowTask(
+      val task2 = FlowTask(
         Task("task2", 2L).withResources(
           Seq("r1")
         )
       )
-      val flow1 = new And(task1, task2)
+      val flow1 = And(task1, task2)
       val testMetrics = singleFlowTest(flow1, List(r1))
 
       val task1time = testMetrics.get("task1 (sim1)").value.value
@@ -58,13 +58,13 @@ class FlowTests extends FlowsTester {
     }
 
     "execute a THEN of two tasks" in {
-      val task1 = new FlowTask(
+      val task1 = FlowTask(
         Task("task1", 1L)
       )
-      val task2 = new FlowTask(
+      val task2 = FlowTask(
         Task("task2", 2L)
       )
-      val flow1 = new Then(task1, task2)
+      val flow1 = Then(task1, task2)
       val testMetrics = singleFlowTest(flow1)
 
       testMetrics.get("task1 (sim1)").value.value should be(1)
@@ -72,22 +72,22 @@ class FlowTests extends FlowsTester {
     }
 
     "execute nested ANDs (left associativity)" in {
-      val task1 = new FlowTask(
+      val task1 = FlowTask(
         Task("task1", 1L)
       )
-      val task2 = new FlowTask(
+      val task2 = FlowTask(
         Task("task2", 2L)
       )
-      val task3 = new FlowTask(
+      val task3 = FlowTask(
         Task("task3", 4L)
       )
-      val task4 = new FlowTask(
+      val task4 = FlowTask(
         Task("task4", 8L)
       )
-      val task5 = new FlowTask(
+      val task5 = FlowTask(
         Task("task5", 16L)
       )
-      val flow1 = new And(new And(new And(new And(task1, task2), task3), task4), task5)
+      val flow1 = And(And(And(And(task1, task2), task3), task4), task5)
       val testMetrics = singleFlowTest(flow1)
 
       testMetrics.get("task1 (sim1)").value.value should be(1)
@@ -98,22 +98,22 @@ class FlowTests extends FlowsTester {
     }
 
     "execute nested ANDs (right associativity)" in {
-      val task1 = new FlowTask(
+      val task1 = FlowTask(
         Task("task1", 1L)
       )
-      val task2 = new FlowTask(
+      val task2 = FlowTask(
         Task("task2", 2L)
       )
-      val task3 = new FlowTask(
+      val task3 = FlowTask(
         Task("task3", 4L)
       )
-      val task4 = new FlowTask(
+      val task4 = FlowTask(
         Task("task4", 8L)
       )
-      val task5 = new FlowTask(
+      val task5 = FlowTask(
         Task("task5", 16L)
       )
-      val flow1 = new And(task1, new And(task2, new And(task3, new And(task4, task5))))
+      val flow1 = And(task1, And(task2, And(task3, And(task4, task5))))
       val testMetrics = singleFlowTest(flow1)
 
       testMetrics.get("task1 (sim1)").value.value should be(1)
@@ -124,22 +124,22 @@ class FlowTests extends FlowsTester {
     }
 
     "execute nested THENs (left associativity)" in {
-      val task1 = new FlowTask(
+      val task1 = FlowTask(
         Task("task1", 1L)
       )
-      val task2 = new FlowTask(
+      val task2 = FlowTask(
         Task("task2", 2L)
       )
-      val task3 = new FlowTask(
+      val task3 = FlowTask(
         Task("task3", 4L)
       )
-      val task4 = new FlowTask(
+      val task4 = FlowTask(
         Task("task4", 8L)
       )
-      val task5 = new FlowTask(
+      val task5 = FlowTask(
         Task("task5", 16L)
       )
-      val flow1 = new Then(new Then(new Then(new Then(task1, task2), task3), task4), task5)
+      val flow1 = Then(Then(Then(Then(task1, task2), task3), task4), task5)
       val testMetrics = singleFlowTest(flow1)
 
       testMetrics.get("task1 (sim1)").value.value should be(1)
@@ -150,22 +150,22 @@ class FlowTests extends FlowsTester {
     }
 
     "execute nested THENs (right associativity)" in {
-      val task1 = new FlowTask(
+      val task1 = FlowTask(
         Task("task1", 1L)
       )
-      val task2 = new FlowTask(
+      val task2 = FlowTask(
         Task("task2", 2L)
       )
-      val task3 = new FlowTask(
+      val task3 = FlowTask(
         Task("task3", 4L)
       )
-      val task4 = new FlowTask(
+      val task4 = FlowTask(
         Task("task4", 8L)
       )
-      val task5 = new FlowTask(
+      val task5 = FlowTask(
         Task("task5", 16L)
       )
-      val flow1 = new Then(task1, new Then(task2, new Then(task3, new Then(task4, task5))))
+      val flow1 = Then(task1, Then(task2, Then(task3, Then(task4, task5))))
       val testMetrics = singleFlowTest(flow1)
 
       testMetrics.get("task1 (sim1)").value.value should be(1)
@@ -176,19 +176,19 @@ class FlowTests extends FlowsTester {
     }
 
     "execute nested THENs (right associativity) (operator)" in {
-      val task1 = new FlowTask(
+      val task1 = FlowTask(
         Task("task1", 1L)
       )
-      val task2 = new FlowTask(
+      val task2 = FlowTask(
         Task("task2", 2L)
       )
-      val task3 = new FlowTask(
+      val task3 = FlowTask(
         Task("task3", 4L)
       )
-      val task4 = new FlowTask(
+      val task4 = FlowTask(
         Task("task4", 8L)
       )
-      val task5 = new FlowTask(
+      val task5 = FlowTask(
         Task("task5", 16L)
       )
       val flow1 = task1 > task2 > task3 > task4 > task5
@@ -202,22 +202,22 @@ class FlowTests extends FlowsTester {
     }
 
     "execute mixed AND/THEN flows" in {
-      val task1 = new FlowTask(
+      val task1 = FlowTask(
         Task("task1", 1L)
       )
-      val task2 = new FlowTask(
+      val task2 = FlowTask(
         Task("task2", 2L)
       )
-      val task3 = new FlowTask(
+      val task3 = FlowTask(
         Task("task3", 4L)
       )
-      val task4 = new FlowTask(
+      val task4 = FlowTask(
         Task("task4", 8L)
       )
-      val task5 = new FlowTask(
+      val task5 = FlowTask(
         Task("task5", 16L)
       )
-      val flow1 = new Then(new And(task1, new Then(task2, task3)), new And(task4, task5))
+      val flow1 = Then(And(task1, Then(task2, task3)), And(task4, task5))
       val testMetrics = singleFlowTest(flow1)
 
       testMetrics.get("task1 (sim1)").value.value should be(1)
@@ -228,22 +228,22 @@ class FlowTests extends FlowsTester {
     }
 
     "execute more mixed AND/THEN flows" in {
-      val task1 = new FlowTask(
+      val task1 = FlowTask(
         Task("task1", 1L)
       )
-      val task2 = new FlowTask(
+      val task2 = FlowTask(
         Task("task2", 2L)
       )
-      val task3 = new FlowTask(
+      val task3 = FlowTask(
         Task("task3", 4L)
       )
-      val task4 = new FlowTask(
+      val task4 = FlowTask(
         Task("task4", 8L)
       )
-      val task5 = new FlowTask(
+      val task5 = FlowTask(
         Task("task5", 16L)
       )
-      val flow1 = new Then(new Then(task1, new And(task2, task3)), new And(task4, task5))
+      val flow1 = Then(Then(task1, And(task2, task3)), And(task4, task5))
       val testMetrics = singleFlowTest(flow1)
 
       testMetrics.get("task1 (sim1)").value.value should be(1)
@@ -254,34 +254,34 @@ class FlowTests extends FlowsTester {
     }
 
     "execute multpile tasks of same duration" in {
-      val task1 = new FlowTask(
+      val task1 = FlowTask(
         Task("task1", 1L)
       )
-      val task2 = new FlowTask(
+      val task2 = FlowTask(
         Task("task2", 1L)
       )
-      val task3 = new FlowTask(
+      val task3 = FlowTask(
         Task("task3", 1L)
       )
-      val task4 = new FlowTask(
+      val task4 = FlowTask(
         Task("task4", 1L)
       )
-      val task5 = new FlowTask(
+      val task5 = FlowTask(
         Task("task5", 1L)
       )
-      val task6 = new FlowTask(
+      val task6 = FlowTask(
         Task("task6", 1L)
       )
-      val task7 = new FlowTask(
+      val task7 = FlowTask(
         Task("task7", 1L)
       )
-      val task8 = new FlowTask(
+      val task8 = FlowTask(
         Task("task8", 1L)
       )
 
-      val flow1 = new Then(
-        new And(new Then(task1, task2), new Then(task3, task4)),
-        new And(new Then(task5, task6), new Then(task7, task8))
+      val flow1 = Then(
+        And(Then(task1, task2), Then(task3, task4)),
+        And(Then(task5, task6), Then(task7, task8))
       )
 
       val testMetrics = singleFlowTest(flow1)
@@ -297,13 +297,13 @@ class FlowTests extends FlowsTester {
     }
 
     "execute a flow which uses the same task multiple times" in {
-      val task1 = new FlowTask(
+      val task1 = FlowTask(
         Task("task1", 1L)
       )
-      val task2 = new FlowTask(
+      val task2 = FlowTask(
         Task("task2", 2L)
       )
-      val flow1 = new Then(new And(task1, task2), task1)
+      val flow1 = Then(And(task1, task2), task1)
       val testMetrics = singleFlowTest(flow1)
 
       // testMetrics.get("task1 (sim1)").value.value should be (1)
@@ -318,17 +318,17 @@ class FlowTests extends FlowsTester {
       val smh = new PromiseHandler(new SimMetricsHandler)
       coordinator.subscribe(smh)
 
-      val task1 = new FlowTask(
+      val task1 = FlowTask(
         Task("task1", 1L)
       )
-      val task2 = new FlowTask(
+      val task2 = FlowTask(
         Task("task2", 2L)
       )
-      val task3 = new FlowTask(
+      val task3 = FlowTask(
         Task("task3", 4L)
       )
       val flow1 = task1
-      val flow2 = new Then(task2, task3)
+      val flow2 = Then(task2, task3)
 
       coordinator.addSimulation(
         0L,
@@ -356,14 +356,14 @@ class FlowTests extends FlowsTester {
       val smh = new PromiseHandler(new SimMetricsHandler)
       coordinator.subscribe(smh)
 
-      val task1 = new FlowTask(
+      val task1 = FlowTask(
         Task("task1", 1L)
       )
-      val task2 = new FlowTask(
+      val task2 = FlowTask(
         Task("task2", 2L)
       )
       val flow1 = task1
-      val flow2 = new Then(task2, task1)
+      val flow2 = Then(task2, task1)
 
       coordinator.addSimulation(
         0L,
