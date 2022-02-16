@@ -14,41 +14,6 @@ import scala.concurrent.Future
 import com.workflowfm.proter.events.PromiseHandler
 import cats.effect.IO
 
-//Below case classes define the structure of the JSON for decoding
-case class IRequest(arrival: IArrival, resources: List[IResource])
-case class IArrival(simulation: ISimulation, infinite: Boolean, rate: IDistribution, simulationLimit: Option[Int], timeLimit: Option[Int])
-case class ISimulation(name: String, flow: IFlow)
-case class IFlow(tasks: List[ITask], ordering: String)
-
-case class ITask(name: String, duration: IDistribution, cost: IDistribution, resources: String, priority: Int) {
-  def toProterTask(): Task = {
-    proter.Task(this.name, this.duration.toProterDistribution()).withCostGenerator(this.cost.toProterDistribution()).withResources(this.resources.split(",")).withPriority(this.priority)
-  }
-}
-
-case class IResource(name: String, costPerTick: Double) {
-  def toProterResource(): TaskResource = {
-    new TaskResource(this.name, this.costPerTick)
-  }
-}
-
-case class IDistribution(distType: String, value1: Double, value2: Option[Double]) {
-  def toProterDistribution(): Distribution = {
-    if (this.distType == "C") {
-      new Constant(this.value1);
-    } else if (this.distType == "E") {
-      new Exponential(this.value1);
-    } else if (this.distType == "U") {
-      new Uniform(this.value1, this.value2.get)
-    } else {
-      throw new IllegalArgumentException("Invalid Distribution Type: Was \'" + this.distType + "\' can only be C, E or U")
-    }
-  }
-}
-
-//Class defines an encoding for the results from a simulation, data should be pulled from a SimMetricsAggregator
-case class Results(start: Long, end: Long, resources: List[ResourceMetrics], simulations: List[SimulationMetrics], tasks: List[TaskMetrics])
-
 class SimulationRunner {
 
   //Forming the implicit decoders
