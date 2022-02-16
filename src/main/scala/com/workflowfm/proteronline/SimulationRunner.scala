@@ -49,7 +49,7 @@ case class IDistribution(distType: String, value1: Double, value2: Option[Double
 //Class defines an encoding for the results from a simulation, data should be pulled from a SimMetricsAggregator
 case class Results(start: Long, end: Long, resources: List[ResourceMetrics], simulations: List[SimulationMetrics], tasks: List[TaskMetrics])
 
-class JsonParser {
+class SimulationRunner {
 
   //Forming the implicit decoders
   implicit val requestDecoder1: Decoder[IRequest] = deriveDecoder[IRequest]
@@ -164,13 +164,20 @@ class JsonParser {
     )
   }
 
-  def validateRequest(request: IRequest): Boolean = {
+  /**
+    * This checks to ensure that the request has matching resources, as in ensuring the resources referenced in the Tasks are
+    * defined in the resource list
+    * 
+    * @param request An IRequest object to check
+    * @return a boolean
+    */
+  def matchingResources(request: IRequest): Boolean = {
     val definedResources: Set[String] = request.resources.map(_.name).toSet
     val referencedResources: Set[String] = request.arrival.simulation.flow.tasks.flatMap(_.resources.split(",")).toSet
-    if (definedResources.equals(referencedResources)) {
-      false
-    } else {
+    if (referencedResources.subsetOf(definedResources)) {
       true
+    } else {
+      false
     }
   }
 }
