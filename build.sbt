@@ -25,7 +25,10 @@ lazy val root = (project in file("."))
       "org.typelevel"   %% "munit-cats-effect-3" % MunitCatsEffectVersion % Test,
       "ch.qos.logback"  %  "logback-classic"     % LogbackVersion,
       "org.scalameta"   %% "svm-subs"            % "20.2.0",
-      "com.workflowfm"  %% "proter"              % "0.7.4"
+      "com.workflowfm"  %% "proter"              % "0.7.4",
+      "org.scalactic"   %% "scalactic"           % "3.2.11",
+      "org.scalatest"   %% "scalatest"           % "3.2.11" % "test",
+      "org.scalatest"   %% "scalatest-funsuite"  % "3.2.11" % "test"
     ),
     addCompilerPlugin("org.typelevel" %% "kind-projector"     % "0.13.0" cross CrossVersion.full),
     addCompilerPlugin("com.olegpy"    %% "better-monadic-for" % "0.3.1"),

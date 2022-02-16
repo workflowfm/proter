@@ -48,7 +48,7 @@ object ProteronlineRoutes {
     val dsl = new Http4sDsl[F]{}
     import dsl._
     implicit val reqDec: EntityDecoder[F, IRequest] = jsonOf[F, IRequest]
-    val parse: JsonParser = new JsonParser()
+    val parse: SimulationRunner = new SimulationRunner()
     HttpRoutes.of[F] {
       case req @ POST -> Root / "API" =>
         for {
@@ -63,7 +63,7 @@ object ProteronlineRoutes {
     import dsl._
     implicit val reqDec: EntityDecoder[IO, IRequest] = jsonOf[IO, IRequest]
     //implicit val streamEnc = EntityEncoder.streamEncoder[IO, Stream[String]]
-    val parse: JsonParser = new JsonParser()
+    val parse: SimulationRunner = new SimulationRunner()
     HttpRoutes.of[IO] {
       case req @ POST -> Root / "stream" =>
         for {
