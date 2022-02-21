@@ -58,9 +58,39 @@ class IntermediateTests extends AnyFunSuite {
 
     //Not Currently working
     test("Resource Conversion, correct") {
-        val inter = IResource("Dave", 10)
+        val inter = new IResource("Dave", 10)
         val prot = new proter.TaskResource("Dave", 10)
         val converted = inter.toProterResource()
         assert(prot.equals(converted))
     }
+    
+    test("Resource Invalid Argument thrown on negative value") {
+        assertThrows[IllegalArgumentException] {
+            new IResource("R1", -4.3)
+        }
+    }
+
+    test("Resource Invalid Argument not thrown on positive value") {
+        new IResource("R1", 0)
+        new IResource("R2", 1)
+    }
+
+    test("Task invalid priority > valid") {
+        val interCostDist = new IDistribution("U", 1, Some(10))
+        val interDurationDist = new IDistribution("C", 4, None)
+
+        assertThrows[IllegalArgumentException] {
+            new ITask("Dave", interDurationDist, interCostDist, "R1", 7)
+        }
+    }
+
+    test("Task invalid priority < valid") {
+        val interCostDist = new IDistribution("U", 1, Some(10))
+        val interDurationDist = new IDistribution("C", 4, None)
+
+        assertThrows[IllegalArgumentException] {
+            new ITask("Dave", interDurationDist, interCostDist, "R1", -3)
+        }
+    }
+    
 }

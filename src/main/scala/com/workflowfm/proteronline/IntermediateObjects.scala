@@ -58,7 +58,9 @@ case class IFlow(tasks: List[ITask], ordering: String)
   * @param priority The priority of the task (from -2 being the lowest to 2 being the highest)
   */
 case class ITask(name: String, duration: IDistribution, cost: IDistribution, resources: String, priority: Int) {
-
+  if (priority > 2 || priority < -2) {
+    throw new IllegalArgumentException
+  }
   /**
     * This method converts this intermediate task object into a Proter Task
     *
@@ -80,6 +82,9 @@ case class ITask(name: String, duration: IDistribution, cost: IDistribution, res
   * @param costPerTick The Cost per time unit for the resource
   */
 case class IResource(name: String, costPerTick: Double) {
+  if (costPerTick < 0) {
+    throw new IllegalArgumentException("Resource Cost cannot be less than 0")
+  }
     /**
       * Converts this intermediate object to a Proter Resource
       *
