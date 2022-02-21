@@ -12,8 +12,8 @@ import com.workflowfm.proter.metrics._
 /**
   * IRequest is the highest level object for encoding a request for proter execution
   *
-  * @param arrival Defines how simulation arrive
-  * @param resources Contains the definitions of resources that are reference deeper in the arrival
+  * @param arrival Defines how simulations arrive
+  * @param resources Contains the definitions of resources that are referenced in the arrival
   */
 case class IRequest(arrival: IArrival, resources: List[IResource])
 
