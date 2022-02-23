@@ -100,20 +100,25 @@ case class IResource(name: String, costPerTick: Double) {
 /**
   * This defines a distribution which can be sampled for values
   *
-  * @param distType The type of distribution (Constant, Exponential, Uniform)
+  * @param distType The type of distribution (Constant, Exponential, Uniform), should pass the first letter uppercase
   * @param value1 For constant distributions this is the value always returned, for exponential this is the mean, for uniform this is the start of the range
   * @param value2 For constant and Exponential this should be None, for Uniform this is the end of the range
   */
 case class IDistribution(distType: String, value1: Double, value2: Option[Double]) {
+  if (!Array("C", "E", "U").contains(distType)) {
+    throw new IllegalArgumentException("Invalid Distribution Type: Was \'" + this.distType + "\' can only be C, E or U")
+  }
+  if (distType == "U" && value2.isEmpty) {
+    throw new IllegalArgumentException("Uniform Distributions must have two values")
+  }
+
   def toProterDistribution(): proter.Distribution = {
     if (this.distType == "C") {
       new proter.Constant(this.value1);
     } else if (this.distType == "E") {
       new proter.Exponential(this.value1);
-    } else if (this.distType == "U") {
-      new proter.Uniform(this.value1, this.value2.get)
     } else {
-      throw new IllegalArgumentException("Invalid Distribution Type: Was \'" + this.distType + "\' can only be C, E or U")
+      new proter.Uniform(this.value1, this.value2.get)
     }
   }
 }

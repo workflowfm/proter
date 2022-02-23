@@ -44,7 +44,19 @@ class IntermediateTests extends AnyFunSuite {
         assert(prot.equals(converted) == false)
     }
 
-    //Not currently working
+    test("Distribution creation with invalid type") {
+        assertThrows[IllegalArgumentException] {
+            new IDistribution("F", 5, None)
+        }
+    }
+
+    test("Uniform Distribution created without second value") {
+        assertThrows[IllegalArgumentException] {
+            new IDistribution("U", 5, None)
+        }
+    }
+
+    //Not currently working, due to equals() not working
     test("Task Conversion, correct") {
         val proterCostDist = new Uniform(1, 10)
         val interCostDist = new IDistribution("U", 1, Some(10))
@@ -56,7 +68,7 @@ class IntermediateTests extends AnyFunSuite {
         assert(prot.equals(converted))
     }
 
-    //Not Currently working
+    //Not Currently working, due to equals() not working
     test("Resource Conversion, correct") {
         val inter = new IResource("Dave", 10)
         val prot = new proter.TaskResource("Dave", 10)
