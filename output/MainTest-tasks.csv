@@ -1,0 +1,5 @@
+ID,Task,Simulation,Priority,Created,Start,Delay,Duration,Cost,Aborted,Resources
+50b845b6-03a7-4ad4-ba97-64de0327c29c,B,sim,1,0,0,0,3,0.0,false,r2
+f54f5448-a59d-4192-9f53-297781812720,A,sim,1,0,0,0,2,0.0,false,r1
+dec446b7-ba92-4ca4-a994-8a1b61e99e43,C,sim,0,0,3,3,2,0.0,false,r1;r2
+4cf946f9-30f5-4dcf-97e1-1dce146eed20,D,sim,-1,2,5,3,2,0.0,false,r1

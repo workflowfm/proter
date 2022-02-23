@@ -255,6 +255,12 @@ Duration: ${SimMetricsOutput.formatDuration(aggregator.start, aggregator.end, du
   }
 }
 
+class SimMetricsScore extends SimMetricsStringOutput {
+  def apply(totalTicks: Long, aggregator: SimMetricsAggregator): Unit = {
+    println(s"Makespan: ${aggregator.simulationMetrics(0).duration}")
+  }
+}
+
 /** Outputs simulation metrics to files using a standard CSV format.
   * Generates 3 CSV files,
   *   1. One for tasks with a "-tasks.csv" suffix,
