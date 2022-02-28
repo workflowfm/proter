@@ -494,7 +494,7 @@ class LookaheadScheduler(initialTasks: TaskInstance*) extends PriorityScheduler 
     val t = findNextTasks(
       currentTime,
       resourceMap,
-      resourceMap.mapValues(Schedule(_)),
+      resourceMap.mapValues(Schedule(_, currentTime)),
       tasks ++ inProgressFutureTasks,
       Seq(),
       lookaheadSetThisIter,

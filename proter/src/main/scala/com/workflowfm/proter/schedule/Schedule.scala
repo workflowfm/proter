@@ -56,6 +56,7 @@ case class Schedule(tasks: List[(Long, Long)]) {
   def +>(start: Long, end: Long): Schedule = Schedule.add(start, end, tasks) match {
     case None => {
       System.err.println(s"*** Unable to add ($start,$end) to Schedule: $tasks")
+      throw new Exception("e")
       this
     }
     case Some(l) => copy(tasks = l)
@@ -144,6 +145,9 @@ object Schedule {
     */
   def apply(r: TaskResource): Schedule =
     r.currentTasks.values.foldLeft(Schedule()){ (s, task) => s +> (task._1, task._2.estimatedDuration)}
+
+  def apply(r: TaskResource, currentTime: Long): Schedule =
+    r.currentTasks.values.foldLeft(Schedule()){ (s, task) => s +> (task._1, currentTime + task._2.estimatedDuration)}
 
   /**
     * Adds an interval to a list of intervals.

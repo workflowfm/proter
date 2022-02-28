@@ -38,11 +38,12 @@ class TaskResource(val name: String, val costPerTick: Double, val capacity: Doub
     * @return true if the resource is idle, false otherwise.
     */
   def hasSpace: Boolean = {
-    currentTasks.size < capacity
+    val t: Long = currentTasks.values.foldLeft(0L){(total:Long,task)=>total+task._1}
+    t < capacity
   }
 
   def remainingSpace: Double = {
-    capacity - currentTasks.size
+    capacity - currentTasks.values.foldLeft(0L){(total:Long,task)=>total+task._1}
   }
 
   /**
@@ -110,7 +111,7 @@ class TaskResource(val name: String, val costPerTick: Double, val capacity: Doub
     *         was already attached before
     */
   def startTask(task: TaskInstance, currentTime: Long): Option[TaskInstance] = {
-    if (capacity - currentTasks.size >= 1) {
+    if (remainingSpace >= task.resourceQuantity(name)) {
       currentTasks += (task.id -> (currentTime, task)) 
       None
     }

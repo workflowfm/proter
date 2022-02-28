@@ -11,7 +11,16 @@ import java.util.concurrent.TimeoutException
 
 
 object Evaluation {
+  val PRINTSTATS=false
   def main(args: Array[String]): Unit = {
+    var i = 0
+    for (i <- 1 to 10000) {
+      random_example()
+    }
+
+  }
+  
+  def random_example(): Unit = {
     implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
 
     val coordinator_proter = new Coordinator(new ProterScheduler())
@@ -29,20 +38,26 @@ object Evaluation {
     // new SimD3Timeline("output" + File.separator,"MainTest")
     )
 
-    coordinators foreach(_.subscribe(new SimMetricsHandler(handler)))
-
+    coordinators foreach{c=>
+      c.subscribe(new SimMetricsHandler(handler))
+      val r1 = new TaskResource("r1",0,1)
+      val r2 = new TaskResource("r2",0,1)
+      val resources = Seq(r1,r2)
+      c.addResources(resources)
+    }
     val r1 = new TaskResource("r1",0,1)
     val r2 = new TaskResource("r2",0,1)
-  
     val resources = Seq(r1,r2)
-    coordinators foreach(_.addResources(resources))
 
 
     val flow = new RandomFlowFactory(0.5f, resources).withTasks(Uniform(1, 10)).withDurations(Uniform(1,10)).withNumResources(Uniform(1,2)).build
-    println(s"Flow: ${flow}")
-    print("Resources: "); println(resources map{r=> s"${r.name},  ${r.capacity}"})
-    printTasks(flow)
-    println()
+
+    if(PRINTSTATS) {
+      println(s"Flow: ${flow}")
+      print("Resources: "); println(resources map{r=> s"${r.name},  ${r.capacity}"})
+      printTasks(flow)
+      println()
+    }
 
     //Add and start simulations
     coordinators foreach{c =>
@@ -63,7 +78,7 @@ object Evaluation {
     flow match {
       case _: NoTask => return
       case f: FlowTask => {
-        print(s"${f.task.name}:")
+        print(s"${f.task.name}:${f.task.duration},${f.task.priority},")
         if (f.task.resourceQuantities.isEmpty) {
           f.task.resources.foreach{x=>print(s"(${x},1)")}
         } else {
