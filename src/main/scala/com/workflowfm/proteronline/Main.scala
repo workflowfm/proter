@@ -22,7 +22,7 @@ import org.http4s.server.middleware.CORS
 object Main extends IOApp {
   def run(args: List[String]) =
     StreamingServer.serverBuilder.serve.compile.drain.as(ExitCode.Success)
-    //ProteronlineServer.stream[IO].compile.drain.as(ExitCode.Success)
+    //StandardServer.stream[IO].compile.drain.as(ExitCode.Success)
 }
 
 object StreamingServer {
@@ -43,7 +43,7 @@ object StreamingServer {
   
 }
 
-object ProteronlineServer {
+object StandardServer {
 
   def stream[F[_]: Async]: Stream[F, Nothing] = {
     

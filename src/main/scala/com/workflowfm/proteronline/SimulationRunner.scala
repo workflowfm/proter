@@ -6,7 +6,6 @@ import com.workflowfm.proter._
 import com.workflowfm.proter.schedule.ProterScheduler
 import scala.concurrent.duration._
 import scala.concurrent.Await
-import com.workflowfm.proter
 import com.workflowfm.proter.flows._
 import com.workflowfm.proter.metrics._
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -39,13 +38,10 @@ class SimulationRunner {
 
     val coordinator : Coordinator = new Coordinator(new ProterScheduler)
 
-    val promiseHandler = new PromiseHandler(new SimMetricsHandler(new SimMetricsPrinter))
+    val promiseHandler = new PromiseHandler(new SimMetricsHandler) //(new SimMetricsPrinter)
     val agg = promiseHandler.future
 
     coordinator.subscribe(promiseHandler)
-    coordinator.subscribe(new proter.events.PrintEventHandler) //For debug use
-
-    //println("Starting Simulations")
 
     programmaticTransform(coordinator, request)
 
