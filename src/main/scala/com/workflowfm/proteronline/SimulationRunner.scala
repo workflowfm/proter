@@ -65,7 +65,7 @@ class SimulationRunner {
 
     val streamHandler: StreamEventHandler = new StreamEventHandler()
     coordinator.subscribe(streamHandler)
-    coordinator.subscribe(new SimMetricsHandler(new SimMetricsPrinter()))
+    //coordinator.subscribe(new SimMetricsHandler(new SimMetricsPrinter())) Uncomment for debug
 
     programmaticTransform(coordinator, request)
     coordinator.start()

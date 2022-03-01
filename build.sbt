@@ -59,3 +59,5 @@ inThisBuild(List(
 
   scalafixDependencies += Dependencies.sortImports,
 ))
+
+  coverageExcludedPackages := "<empty>;.*Main;.*HelloWorld;.*ProteronlineRoutes;.*StandardServer;.*StreamingServer;"
