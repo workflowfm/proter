@@ -33,6 +33,10 @@ class SimulationRunner {
     */
   def process(request: IRequest) : Results = {
 
+    if (!this.matchingResources(request)) {
+      throw new IllegalArgumentException("Resources do not match")
+    }
+
     val coordinator : Coordinator = new Coordinator(new ProterScheduler)
 
     val promiseHandler = new PromiseHandler(new SimMetricsHandler(new SimMetricsPrinter))
@@ -56,6 +60,10 @@ class SimulationRunner {
   }
 
   def streamHandler(request: IRequest): fs2.Stream[IO, String] = {
+
+    if (!this.matchingResources(request)) {
+      throw new IllegalArgumentException("Resources do not match")
+    }
     
     val coordinator : Coordinator = new Coordinator(new ProterScheduler)
 
