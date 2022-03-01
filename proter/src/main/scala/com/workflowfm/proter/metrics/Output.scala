@@ -20,6 +20,15 @@ trait FileOutput {
   } catch {
     case e: Exception => e.printStackTrace()
   }
+
+  def appendToFile(filePath: String, output: String): Unit = try {
+    val file = new File(filePath)
+    val bw = new BufferedWriter(new FileWriter(file, true))
+    bw.write(output)
+    bw.close()
+  } catch {
+    case e: Exception => e.printStackTrace()
+  }
 }
 
 /** Manipulates a [[SimMetricsAggregator]] to produce some output via side-effects.
@@ -287,6 +296,29 @@ class SimCSVFileOutput(path: String, name: String) extends SimMetricsStringOutpu
       resourceFile,
       resHeader(separator) + "\n" + resources(aggregator, separator, lineSep)
     )
+  }
+}
+
+class SimEvalCSVAppendOutput(path: String, name: String) extends SimMetricsStringOutput with FileOutput {
+  val separator = ","
+  val lineSep = "\n"
+
+  def apply(totalTicks: Long, aggregator: SimMetricsAggregator): Unit = {
+    val taskFile = s"$path$name-tasks.csv"
+    val simulationFile = s"$path$name-simulations.csv"
+    val resourceFile = s"$path$name-resources.csv"
+    appendToFile(taskFile, tasks(aggregator, separator, lineSep) + "\n")
+    appendToFile(simulationFile, simulations(aggregator, separator, lineSep) + "\n")
+    appendToFile(resourceFile, resources(aggregator, separator, lineSep) + "\n")
+  }
+
+  def initFiles(): Unit = {
+     val taskFile = s"$path$name-tasks.csv"
+    val simulationFile = s"$path$name-simulations.csv"
+    val resourceFile = s"$path$name-resources.csv"
+    writeToFile(taskFile, taskHeader(separator) + "\n")
+    writeToFile(simulationFile, simHeader(separator) + "\n")
+    writeToFile(resourceFile, resHeader(separator) + "\n")
   }
 }
 

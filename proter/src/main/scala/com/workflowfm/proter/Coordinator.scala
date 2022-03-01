@@ -65,7 +65,8 @@ class Coordinator(
     * @group toplevel
     */
   val id: String = this.toString()
-
+  
+  val schedulerName: String = this.scheduler.getClass.getSimpleName
   /**
     * A promise to fulfil when the simulation is complete.
     *

@@ -13,8 +13,10 @@ import java.util.concurrent.TimeoutException
 object Evaluation {
   val PRINTSTATS=false
   def main(args: Array[String]): Unit = {
+    List("ProterScheduler", "GreedyFCFSScheduler", "StrictFCFSScheduler", "GreedyPriorityScheduler", "StrictPriorityScheduler", "LookaheadScheduler") foreach (
+      new SimEvalCSVAppendOutput("output" + File.separator,_).initFiles)
     var i = 0
-    for (i <- 1 to 10000) {
+    for (i <- 1 to 10) {
       random_example()
     }
 
@@ -31,14 +33,16 @@ object Evaluation {
     val coordinator_Lookahead = new Coordinator(new LookaheadScheduler())
     val coordinators = Seq(coordinator_proter, coordinator_GreedyFCFS, coordinator_StrictFCFS, coordinator_GreedyPriority, coordinator_StrictPriority, coordinator_Lookahead)
 
-    val handler = SimMetricsOutputs(
+    // val handler = SimMetricsOutputs(
     // new SimMetricsPrinter(),
-    new SimMetricsScore(),
+    // new SimMetricsScore(),
     // new SimCSVFileOutput("output" + File.separator,"MainTest"),
     // new SimD3Timeline("output" + File.separator,"MainTest")
-    )
+    // )
 
     coordinators foreach{c=>
+      val evalOutput = new SimEvalCSVAppendOutput("output" + File.separator,c.schedulerName)
+      val handler = SimMetricsOutputs(evalOutput)
       c.subscribe(new SimMetricsHandler(handler))
       val r1 = new TaskResource("r1",0,1)
       val r2 = new TaskResource("r2",0,1)
