@@ -4,7 +4,9 @@ WORKDIR /usr/app/proteronline
 
 ADD src/ /usr/app/proteronline/src
 ADD build.sbt /usr/app/proteronline
-ADD project/ /usr/app/proteronline/project
+ADD project/build.properties /usr/app/proteronline/project/build.properties
+ADD project/Dependencies.scala /usr/app/proteronline/project/Dependencies.scala
+ADD project/plugins.sbt /usr/app/proteronline/project/plugins.sbt
 
 RUN ls /usr/app/proteronline
 
