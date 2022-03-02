@@ -12,6 +12,13 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import com.workflowfm.proter.events.PromiseHandler
 import cats.effect.IO
+import fs2.Stream
+import cats.effect.std.Dispatcher
+import cats.effect.std.Queue
+import com.workflowfm.proter.events.Event
+import java.util.UUID
+import com.workflowfm.proter.events.EventHandler
+import com.workflowfm.proter.events.Publisher
 
 class SimulationRunner {
 
@@ -55,7 +62,7 @@ class SimulationRunner {
     result.value.get.get //Grabs the result out of the future
   }
 
-  def streamHandler(request: IRequest): fs2.Stream[IO, String] = {
+  def streamHandler(request: IRequest): IO[Unit] = {
 
     if (!this.matchingResources(request)) {
       throw new IllegalArgumentException("Resources do not match")
@@ -63,15 +70,51 @@ class SimulationRunner {
     
     val coordinator : Coordinator = new Coordinator(new ProterScheduler)
 
-    val streamHandler: StreamEventHandler = new StreamEventHandler()
-    coordinator.subscribe(streamHandler)
+    //val streamHandler: StreamEventHandler = new StreamEventHandler()
+    //coordinator.subscribe(streamHandler)
     //coordinator.subscribe(new SimMetricsHandler(new SimMetricsPrinter())) Uncomment for debug
 
     programmaticTransform(coordinator, request)
-    coordinator.start()
+    //coordinator.start()
+    println("Made it to the start")
 
-    streamHandler.stream
+    val s = for {
+      (sub, str) <- streamSetup()
+      _ <- Stream.eval(streamStart(coordinator, sub)).concurrently(Stream.eval(consume(str)))
+    } yield ()
+    s.compile.drain
   }
+
+  def streamStart(p: Coordinator, s: EventHandler): IO[Unit] = for {
+    _ <- IO(p.subscribe(s))
+    _ <- IO(p.start())
+  } yield ()
+
+  def streamSetup(): Stream[IO, (EventHandler, Stream[IO, Event])] = { 
+    for {
+      dispatcher <- Stream.resource(Dispatcher[IO])
+      queue <- Stream.eval( Queue.unbounded[IO, Option[Event]] ) // Queue.unbounded[IO, Option[Event]] )
+      impureInterface <- Stream.eval( IO.delay {
+        new EventHandler {
+          override val id: UUID = UUID.randomUUID
+          override def onEvent(event: Event): Unit = {
+            println("[Subscriber] Received: " + event.toString())
+            dispatcher.unsafeRunSync(queue.offer(Some(event)))
+          }
+          override def onDone(publisher: Publisher): Unit = {
+            println("[Subscriber] Done!")
+            dispatcher.unsafeRunSync(queue.offer(None))
+          }
+        }
+      })
+    } yield (impureInterface, Stream.fromQueueNoneTerminated(queue))
+  }
+
+  def consume(str: Stream[IO, Event]): IO[Unit] = for {
+    _ <- IO.println("Setting up stream...")
+    _ <- str.evalMap(event => IO.println(Thread.currentThread().getName + " consumed an Event: " + event.toString())).compile.drain
+    _ <- IO.println("Consuming finished!")
+  } yield ()
 
   /**
     * Method takes a decoded request and adds to the given coordinator the details of the request
@@ -148,5 +191,26 @@ class SimulationRunner {
     } else {
       false
     }
+  }
+}
+
+object Test {
+  def main(args: Array[String]) {
+    val simRun = new SimulationRunner()
+    val externalResourceList: List[IResource] = List(
+      new IResource("R1", 0.4),
+      new IResource("R2", 8.3),
+    )
+    val taskList: List[ITask] = List(
+      new ITask("A", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R1", 0),
+      new ITask("B", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R2", 0),
+    )
+    val flow: IFlow = new IFlow(taskList, "A->B")
+    val sim: ISimulation = new ISimulation("Sim Name", flow)
+    val arrival = new IArrival(sim, false, new IDistribution("C", 4.3, None), Some(3), None)
+    val request: IRequest = new IRequest(arrival, externalResourceList)
+
+    println("Stuff has finished now?")
+    println(simRun.streamHandler(request))
   }
 }
