@@ -19,6 +19,8 @@ import com.workflowfm.proter.events.Event
 import java.util.UUID
 import com.workflowfm.proter.events.EventHandler
 import com.workflowfm.proter.events.Publisher
+import cats.effect.IOApp
+import cats.effect.ExitCode
 
 class SimulationRunner {
 
@@ -58,11 +60,17 @@ class SimulationRunner {
 
 
     Await.result(result, 10.second) //Current approach involves getting the data out of the future here, in later versions the future will be passed out of the function
-    //println("Simulations Complete")
     result.value.get.get //Grabs the result out of the future
   }
 
-  def streamHandler(request: IRequest): IO[Unit] = {
+  /**
+    * This method is the streaming equivalent of the process() method. Takes in an IRequest,
+    * builds the proter objects, runs the simulation and passes back a stream of the simulation events
+    *
+    * @param request An IRequest Object
+    * @return
+    */
+  def streamHandler(request: IRequest): Stream[IO, Event] = {
 
     if (!this.matchingResources(request)) {
       throw new IllegalArgumentException("Resources do not match")
@@ -70,51 +78,51 @@ class SimulationRunner {
     
     val coordinator : Coordinator = new Coordinator(new ProterScheduler)
 
-    //val streamHandler: StreamEventHandler = new StreamEventHandler()
-    //coordinator.subscribe(streamHandler)
-    //coordinator.subscribe(new SimMetricsHandler(new SimMetricsPrinter())) Uncomment for debug
-
     programmaticTransform(coordinator, request)
-    //coordinator.start()
-    println("Made it to the start")
 
     val s = for {
       (sub, str) <- streamSetup()
-      _ <- Stream.eval(streamStart(coordinator, sub)).concurrently(Stream.eval(consume(str)))
-    } yield ()
-    s.compile.drain
+      stream <- str.concurrently(Stream.eval(streamStart(coordinator, sub)))
+    } yield (stream)
+    s //Returns the stream
   }
 
+  /**
+    * Method that starts a stream prepared by the streamSetup() method
+    *
+    * @param p The Coordinator (AKA producer)
+    * @param s The Event Handler (AKA subscriber)
+    * @return
+    */
   def streamStart(p: Coordinator, s: EventHandler): IO[Unit] = for {
     _ <- IO(p.subscribe(s))
-    _ <- IO(p.start())
+    _ <- IO.fromFuture(IO.pure(p.start()))
   } yield ()
 
+  /**
+    * Sets up a stream that will catch the events of the proter coordinator and allows them to be sent back over a connection
+    *
+    * @return Some kinda Stream
+    */
   def streamSetup(): Stream[IO, (EventHandler, Stream[IO, Event])] = { 
     for {
       dispatcher <- Stream.resource(Dispatcher[IO])
-      queue <- Stream.eval( Queue.unbounded[IO, Option[Event]] ) // Queue.unbounded[IO, Option[Event]] )
+      queue <- Stream.eval( Queue.unbounded[IO, Option[Event]] )
       impureInterface <- Stream.eval( IO.delay {
-        new EventHandler {
+        new EventHandler { //Creates a custom EventHandler subclass that can interact with the stream
           override val id: UUID = UUID.randomUUID
           override def onEvent(event: Event): Unit = {
-            println("[Subscriber] Received: " + event.toString())
+            //println("[Subscriber] Received: " + event.toString())
             dispatcher.unsafeRunSync(queue.offer(Some(event)))
           }
           override def onDone(publisher: Publisher): Unit = {
-            println("[Subscriber] Done!")
+            //println("[Subscriber] Done!")
             dispatcher.unsafeRunSync(queue.offer(None))
           }
         }
       })
     } yield (impureInterface, Stream.fromQueueNoneTerminated(queue))
   }
-
-  def consume(str: Stream[IO, Event]): IO[Unit] = for {
-    _ <- IO.println("Setting up stream...")
-    _ <- str.evalMap(event => IO.println(Thread.currentThread().getName + " consumed an Event: " + event.toString())).compile.drain
-    _ <- IO.println("Consuming finished!")
-  } yield ()
 
   /**
     * Method takes a decoded request and adds to the given coordinator the details of the request
@@ -128,7 +136,7 @@ class SimulationRunner {
     val resources: List[TaskResource] = requestObj.resources.map(_.toProterResource()) //Build the task resources
     coord.addResources(resources) //Task Resources added
 
-    //If/when multiple simulations are implimented loop should include all lines down to, but excluding, coord.limit...
+    //If multiple simulations are to be implemented a loop over simulations should include all lines down to, but excluding, the if statements
 
     val order: Array[String] = requestObj.arrival.simulation.flow.ordering.split("->")
 
@@ -141,8 +149,6 @@ class SimulationRunner {
     val taskFlow: Flow = Flow.seq(tasks)
 
     val simGen = new FlowSimulationGenerator(requestObj.arrival.simulation.name, taskFlow)
-
-    //println(requestObj.arrival.simulationLimit.isEmpty)
 
     if (requestObj.arrival.infinite) {
       coord.addInfiniteArrivalNow(
@@ -194,8 +200,13 @@ class SimulationRunner {
   }
 }
 
-object Test {
-  def main(args: Array[String]) {
+
+/**
+ * Testing for the streaming, need to remove before finish
+ */
+object Test extends IOApp {
+
+  def run(args: List[String]): IO[ExitCode] = {
     val simRun = new SimulationRunner()
     val externalResourceList: List[IResource] = List(
       new IResource("R1", 0.4),
@@ -210,7 +221,19 @@ object Test {
     val arrival = new IArrival(sim, false, new IDistribution("C", 4.3, None), Some(3), None)
     val request: IRequest = new IRequest(arrival, externalResourceList)
 
-    println("Stuff has finished now?")
-    println(simRun.streamHandler(request))
+    simRun.streamHandler(request).map(println).compile.drain.as(ExitCode.Success)
   }
 }
+/*
+  /**
+    * Consume, don't think we need this anyone
+    *
+    * @param str
+    * @return
+    */
+  def consume(str: Stream[IO, Event]): IO[Unit] = for {
+    _ <- IO.println("Setting up stream...")
+    _ <- str.evalMap(event => IO.println(Thread.currentThread().getName + " consumed an Event: " + event.toString())).compile.drain
+    _ <- IO.println("Consuming finished!")
+  } yield ()
+*/

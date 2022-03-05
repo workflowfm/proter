@@ -56,7 +56,7 @@ object ProteronlineRoutes {
       case req @ POST -> Root / "stream" =>
         for {
           request <- req.as[IRequest]
-          resp <- Ok(parse.streamHandler(request))
+          resp <- Ok(parse.streamHandler(request).map(_.toString()))
         } yield resp
       }
   }
