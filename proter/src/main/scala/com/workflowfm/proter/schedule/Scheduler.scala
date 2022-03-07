@@ -216,8 +216,8 @@ trait GreedyScheduler extends Scheduler {
     if (tasks.isEmpty) result
     else {
       val t = tasks.head
-      if (t.resources.forall{ x => (resourceSpace.getOrElse(x,0D)) > 0D }) {
-        val resourceSpace2: Map[String, Double] = t.resources.foldLeft(resourceSpace){ (x: Map[String, Double], y: String) => x + (y -> (x(y)-1)) } //subtract 1 of each resource
+      if (t.resources.forall{ x => (resourceSpace.getOrElse(x,0D)) >= t.resourceQuantity(x) }) {
+        val resourceSpace2: Map[String, Double] = t.resources.foldLeft(resourceSpace){ (x: Map[String, Double], y: String) => x + (y -> (x(y)-t.resourceQuantity(y))) } //subtract usage of each resource
         findNextTasks(resourceSpace2, tasks.tail, result :+ t)
       } else findNextTasks(resourceSpace, tasks.tail, result)
     }
@@ -261,8 +261,8 @@ trait StrictScheduler extends Scheduler {
     if (tasks.isEmpty) result
     else {
       val t = tasks.head
-      val resourceSpace2: Map[String, Double] = t.resources.foldLeft(resourceSpace){ (x: Map[String, Double], y: String) => x + (y -> (x(y)-1)) } //subtract 1 of each resource
-      if (t.resources.forall{ x => (resourceSpace.getOrElse(x,0D)) > 0D }) 
+      val resourceSpace2: Map[String, Double] = t.resources.foldLeft(resourceSpace){ (x: Map[String, Double], y: String) => x + (y -> (x(y)-t.resourceQuantity(y))) } //subtract usage of each resource
+      if (t.resources.forall{ x => (resourceSpace.getOrElse(x,0D)) >= t.resourceQuantity(x) }) 
         findNextTasks(resourceSpace2, tasks.tail, result :+ t)
       else findNextTasks(resourceSpace2, tasks.tail, result)
     }

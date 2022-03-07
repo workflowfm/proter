@@ -16,7 +16,7 @@ object Evaluation {
     List("ProterScheduler", "GreedyFCFSScheduler", "StrictFCFSScheduler", "GreedyPriorityScheduler", "StrictPriorityScheduler", "LookaheadScheduler") foreach (
       new SimEvalCSVAppendOutput("output" + File.separator,_).initFiles)
     var i = 0
-    for (i <- 1 to 10) {
+    for (i <- 1 to 1000) {
       random_example()
     }
 
@@ -25,12 +25,12 @@ object Evaluation {
   def random_example(): Unit = {
     implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
 
-    val coordinator_proter = new Coordinator(new ProterScheduler())
-    val coordinator_GreedyFCFS = new Coordinator(new GreedyFCFSScheduler())
-    val coordinator_StrictFCFS = new Coordinator(new StrictFCFSScheduler())
-    val coordinator_GreedyPriority = new Coordinator(new GreedyPriorityScheduler())
-    val coordinator_StrictPriority = new Coordinator(new StrictPriorityScheduler())
-    val coordinator_Lookahead = new Coordinator(new LookaheadScheduler())
+    val coordinator_proter = new Coordinator(new ProterScheduler(), true)
+    val coordinator_GreedyFCFS = new Coordinator(new GreedyFCFSScheduler(), true)
+    val coordinator_StrictFCFS = new Coordinator(new StrictFCFSScheduler(), true)
+    val coordinator_GreedyPriority = new Coordinator(new GreedyPriorityScheduler(), true)
+    val coordinator_StrictPriority = new Coordinator(new StrictPriorityScheduler(), true)
+    val coordinator_Lookahead = new Coordinator(new LookaheadScheduler(), true)
     val coordinators = Seq(coordinator_proter, coordinator_GreedyFCFS, coordinator_StrictFCFS, coordinator_GreedyPriority, coordinator_StrictPriority, coordinator_Lookahead)
 
     // val handler = SimMetricsOutputs(
@@ -44,17 +44,17 @@ object Evaluation {
       val evalOutput = new SimEvalCSVAppendOutput("output" + File.separator,c.schedulerName)
       val handler = SimMetricsOutputs(evalOutput)
       c.subscribe(new SimMetricsHandler(handler))
-      val r1 = new TaskResource("r1",0,1)
-      val r2 = new TaskResource("r2",0,1)
+      val r1 = new TaskResource("r1",0,2)
+      val r2 = new TaskResource("r2",0,2)
       val resources = Seq(r1,r2)
       c.addResources(resources)
     }
-    val r1 = new TaskResource("r1",0,1)
-    val r2 = new TaskResource("r2",0,1)
+    val r1 = new TaskResource("r1",0,2)
+    val r2 = new TaskResource("r2",0,2)
     val resources = Seq(r1,r2)
 
 
-    val flow = new RandomFlowFactory(0.5f, resources).withTasks(Uniform(1, 10)).withDurations(Uniform(1,10)).withNumResources(Uniform(1,2)).build
+    val flow = new RandomFlowFactory(0.5f, resources.map((_,Uniform(1,3)))).withTasks(Uniform(5, 10)).withDurations(Uniform(1,10)).withNumResources(Uniform(1,2)).build
 
     if(PRINTSTATS) {
       println(s"Flow: ${flow}")

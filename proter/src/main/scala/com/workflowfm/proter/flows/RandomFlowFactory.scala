@@ -15,7 +15,7 @@ import com.workflowfm.proter._
     */
 case class RandomFlowFactory(
     andProbability: Float, //balance between and and then nodes
-    resources: Seq[TaskResource],
+    resources: Seq[(TaskResource, Distribution)], //resource and capacity
     numTasks: Distribution = Constant(1),
     durations: Distribution = Constant(1),
     numResources: Distribution = Constant(1),
@@ -23,7 +23,7 @@ case class RandomFlowFactory(
     priority: Distribution = Uniform(-2,2)
 ) {
 
-  def withResources(r: Seq[TaskResource]): RandomFlowFactory = copy(resources=r)
+  def withResources(r: Seq[(TaskResource, Distribution)]): RandomFlowFactory = copy(resources=r)
   def withTasks(d: Distribution): RandomFlowFactory = copy(numTasks=d)
   def withDurations(d: Distribution): RandomFlowFactory = copy(durations=d)
   def withNumResources(d: Distribution): RandomFlowFactory = copy(numResources=d)
@@ -52,6 +52,6 @@ case class RandomFlowFactory(
     val numberOfResources = Math.round(numResources.get).toInt
     val possibleResources = resources.combinations(numberOfResources).toSeq
     val selectedResources = possibleResources(new util.Random().nextInt(possibleResources.length))
-    new FlowTask(Task("task"+name.toString,durations.getLong).withResources(selectedResources.map(_.name)).withCost(cost.get).withPriority(priority.getLong.toInt))
+    new FlowTask(Task("task"+name.toString,durations.getLong).withResources(selectedResources.map(_._1.name)).withCost(cost.get).withPriority(priority.getLong.toInt).withResourceQuantities(selectedResources.map(_._2.getLong.toInt)))
   }
 }
