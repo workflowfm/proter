@@ -400,7 +400,10 @@ class ProterScheduler(initialTasks: TaskInstance*) extends PriorityScheduler {
         case (s, r) => s + (r -> (s.getOrElse(r, WeightedSchedule()) +> (start, start+t.estimatedDuration, t.resourceQuantity(r))))
       }
       val result2 =
-        if (start == currentTime && t.taskResources(resourceMap).forall(_.hasSpace)) result :+ t
+        if (start == currentTime && t.taskResources(resourceMap).forall{x=>x.remainingSpace >= t.resourceQuantity(x.name)}) {
+          println(t.taskResources(resourceMap))
+          result :+ t
+        }
         else result
       findNextTasks(currentTime, resourceMap, schedules2, tasks.tail, result2)
     }

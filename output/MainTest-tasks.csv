@@ -1,0 +1,9 @@
+ID,Task,Simulation,Priority,Created,Start,Delay,Duration,Cost,Aborted,Resources
+2a10c85f-7093-49c6-9d16-c2b587d60f15,task2,sim,-2,0,0,0,7,0.0,false,r1;r2
+065b3de4-7df3-43f2-8a96-0e508376b8ff,task1,sim,-2,0,0,0,2,0.0,false,r2
+c692d3c4-35ea-4538-bf26-9baabd0b5b89,task4,sim,-1,0,7,7,7,0.0,false,r1
+efe20cd4-14b4-4bc1-97a9-47d3f6858fe8,task3,sim,1,0,7,7,1,0.0,false,r1
+4a04c5c8-a82b-40dc-ad5e-6be3a98a29f6,task6,sim,1,0,8,8,9,0.0,false,r1;r2
+db03ccd8-caa8-4846-89ef-d236c8ad6800,task5,sim,-1,0,17,17,1,0.0,false,r1;r2
+f5a679ed-1157-4f10-aef3-d275eaf62a04,task7,sim,-2,17,18,1,3,0.0,false,r1
+5266bafd-3ef7-48dc-bca3-8a5c31e34119,task8,sim,1,21,21,0,4,0.0,false,r1;r2

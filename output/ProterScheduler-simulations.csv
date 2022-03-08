@@ -1,0 +1,11 @@
+Name,Start,Duration,Delay,Tasks,Cost,Result
+sim1,0,40,2,9,0.0,Some(object scala.Unit)
+sim2,0,22,5,8,0.0,Some(object scala.Unit)
+sim3,0,37,9,6,0.0,Some(object scala.Unit)
+sim4,0,34,10,8,0.0,Some(object scala.Unit)
+sim5,0,34,9,10,0.0,Some(object scala.Unit)
+sim6,0,18,33,8,0.0,Some(object scala.Unit)
+sim7,0,36,44,10,0.0,Some(object scala.Unit)
+sim8,0,22,13,7,0.0,Some(object scala.Unit)
+sim9,0,14,4,8,0.0,Some(object scala.Unit)
+sim10,0,26,6,6,0.0,Some(object scala.Unit)

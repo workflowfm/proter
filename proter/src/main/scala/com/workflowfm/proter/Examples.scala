@@ -21,47 +21,63 @@ object Examples {
     // val coordinator_StrictPriority = new Coordinator(new StrictPriorityScheduler())
     // val coordinator_Lookahead = new Coordinator(new LookaheadScheduler())
 
-    val coordinator_proter = new Coordinator(new LookaheadScheduler())
+    val coordinator_proter = new Coordinator(new ProterScheduler())
 
     val handler = SimMetricsOutputs(
-    new SimMetricsPrinter(),
-    new SimMetricsScore(),
+    // new SimMetricsPrinter(),
+    // new SimMetricsScore(),
     // new SimCSVFileOutput("output" + File.separator,"MainTest"),
     // new SimD3Timeline("output" + File.separator,"MainTest")
     )
 
     coordinator_proter.subscribe(new SimMetricsHandler(handler))
 
-    val r1 = new TaskResource("r1",0,1)
-    val r2 = new TaskResource("r2",0,1)
-    val resources = Seq(r1,r2)
+    val r1 = new TaskResource("r1",0,5)
+    val r2 = new TaskResource("r2",0,5)
+    val r3 = new TaskResource("r3",0,5)
+    val resources = Seq(r1,r2,r3)
 
     coordinator_proter.addResources(resources)
 
     // *** Unable to add (9,14) to Schedule: List((9,12), (16,9))
-    var s = new WeightedSchedule(List())
-    println(s)
-    s = s +> (9, 12)
-    println(s)
-    s = s +> (16, 9)
-    println(s)
-    s = s +> (9, 14)
-    println(s)
+    // var s = new WeightedSchedule(List())
+    // println(s)
+    // s = s +> (9, 12)
+    // println(s)
+    // s = s +> (16, 9)
+    // println(s)
+    // s = s +> (9, 14)
+    // println(s)
 
 
-// Flow: ((task1 + (task2 + (task3 + task4))) + ((task5 > task6) > (task7 + task8)))
-// Resources: List(r1,  1.0, r2,  1.0)
-// task1:Constant(5.0),-2,(r1,1)(r2,1) task2:Constant(5.0),-1,(r2,1) task3:Constant(3.0),0,(r1,1) task4:Constant(4.0),1,(r1,1) task5:Constant(3.0),1,(r1,1)(r2,1) task6:Constant(9.0),1,(r1,1)(r2,1) task7:Constant(7.0),-2,(r1,1)(r2,1) task8:Constant(9.0),1,(r1,1)
-    val task1 = new FlowTask(Task("task1",5L).withResources(Seq("r1","r2")).withPriority(-2))//.withResourceQuantities(Seq(1)))
-    val task2 = new FlowTask(Task("task2",5L).withResources(Seq("r2")).withPriority(-1))
-    val task3 = new FlowTask(Task("task3",3L).withResources(Seq("r1")).withPriority(0))
-    val task4 = new FlowTask(Task("task4",4L).withResources(Seq("r1")).withPriority(1))
-    val task5 = new FlowTask(Task("task5",3L).withResources(Seq("r1","r2")).withPriority(1))
-    val task6 = new FlowTask(Task("task6",9L).withResources(Seq("r1","r2")).withPriority(1))
-    val task7 = new FlowTask(Task("task7",7L).withResources(Seq("r1","r2")).withPriority(-2))
-    val task8 = new FlowTask(Task("task8",9L).withResources(Seq("r1")).withPriority(1))
+// Flow: (task1 > (task2 + (task3 + (task4 + task5))))
+// Resources: List(r1,  5.0, r2,  5.0, r3,  5.0)
+// task1:Constant(10.0),-1,(r3,4) task2:Constant(10.0),1,(r1,1)(r3,4) task3:Constant(7.0),1,(r1,4)(r2,2) task4:Constant(10.0),-1,(r1,3)(r3,1) task5:Constant(9.0),-2,(r1,1)(r2,1)(r3,1)
+// Queue(Task(58afd86e-2db4-4918-8afd-ba4230e546b9,task1,sim10,0,[r3],d10(10),c0.0,i-1,-1))
+// 4 and 5.0,
+// Queue(Task(2f5e5ccc-7132-4b2f-9be3-3313a279af8f,task2,sim10,10,[r1,r3],d10(10),c0.0,i-1,1), Task(59fc0d82-e984-4d08-84e6-8a341a30a655,task3,sim10,10,[r1,r2],d7(7),c0.0,i-1,1))
+// 1 and 5.0,
+// 4 and 5.0,
+// 4 and 4.0,
+// 2 and 5.0,
+// Queue(Task(127082d2-f4db-4fd2-b6e1-dbe99a11e4eb,task4,sim10,10,[r1,r3],d10(10),c0.0,i-1,-1), Task(24fa97f5-32c2-41f9-99ce-2fcdb78aec24,task5,sim10,10,[r1,r2,r3],d9(9),c0.0,i-1,-2))
+// 3 and 4.0,
+// 1 and 1.0,
+// 1 and 1.0,
+// 1 and 5.0,
+// 1 and 0.0,
+// WARNING: NO CAPACITY
+// Queue()
+// Queue()
+// Queue()
 
-    val flow = ((task1 + (task2 + (task3 + task4))) + ((task5 > task6) > (task7 + task8)))
+    val task1 = new FlowTask(Task("task1",10L).withResources(Seq("r3")).withPriority(-1).withResourceQuantities(Seq(4)))
+    val task2 = new FlowTask(Task("task2",10L).withResources(Seq("r1","r3")).withPriority(1).withResourceQuantities(Seq(1,4)))
+    val task3 = new FlowTask(Task("task3",7L).withResources(Seq("r1","r2")).withPriority(1).withResourceQuantities(Seq(4,2)))
+    val task4 = new FlowTask(Task("task4",10L).withResources(Seq("r1","r3")).withPriority(-1).withResourceQuantities(Seq(3,1)))
+    val task5 = new FlowTask(Task("task5",9L).withResources(Seq("r1","r2","r3")).withPriority(-2).withResourceQuantities(Seq(1,1,1)))
+
+    val flow = (task1 > (task2 + (task3 + (task4 + task5))))
 
     //Add and start simulations
     val flow_sim = new FlowSimulation("sim",coordinator_proter,flow)

@@ -111,12 +111,17 @@ class TaskResource(val name: String, val costPerTick: Double, val capacity: Doub
     *         was already attached before
     */
   def startTask(task: TaskInstance, currentTime: Long): Option[TaskInstance] = {
+    print(task.resourceQuantity(name))
+    print(" and ")
+    print(remainingSpace)
+    println(", ")
     if (remainingSpace >= task.resourceQuantity(name)) {
       currentTasks += (task.id -> (currentTime, task)) 
       None
     }
     else {
       //TODO find a way to handle this properly
+      
       println("WARNING: NO CAPACITY")
       None
     }

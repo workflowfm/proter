@@ -11,18 +11,18 @@ import java.util.concurrent.TimeoutException
 
 
 object Evaluation {
-  val PRINTSTATS=false
+  val PRINTSTATS=true
   def main(args: Array[String]): Unit = {
     List("ProterScheduler", "GreedyFCFSScheduler", "StrictFCFSScheduler", "GreedyPriorityScheduler", "StrictPriorityScheduler", "LookaheadScheduler") foreach (
       new SimEvalCSVAppendOutput("output" + File.separator,_).initFiles)
     var i = 0
-    for (i <- 1 to 1000) {
-      random_example()
+    for (i <- 1 to 10) {
+      random_example(i)
     }
 
   }
   
-  def random_example(): Unit = {
+  def random_example(iter: Int): Unit = {
     implicit val ec: scala.concurrent.ExecutionContext = scala.concurrent.ExecutionContext.global
 
     val coordinator_proter = new Coordinator(new ProterScheduler(), true)
@@ -31,8 +31,8 @@ object Evaluation {
     val coordinator_GreedyPriority = new Coordinator(new GreedyPriorityScheduler(), true)
     val coordinator_StrictPriority = new Coordinator(new StrictPriorityScheduler(), true)
     val coordinator_Lookahead = new Coordinator(new LookaheadScheduler(), true)
-    val coordinators = Seq(coordinator_proter, coordinator_GreedyFCFS, coordinator_StrictFCFS, coordinator_GreedyPriority, coordinator_StrictPriority, coordinator_Lookahead)
-
+    // val coordinators = Seq(coordinator_proter, coordinator_GreedyFCFS, coordinator_StrictFCFS, coordinator_GreedyPriority, coordinator_StrictPriority, coordinator_Lookahead)
+    val coordinators = Seq(coordinator_proter)
     // val handler = SimMetricsOutputs(
     // new SimMetricsPrinter(),
     // new SimMetricsScore(),
@@ -42,19 +42,21 @@ object Evaluation {
 
     coordinators foreach{c=>
       val evalOutput = new SimEvalCSVAppendOutput("output" + File.separator,c.schedulerName)
-      val handler = SimMetricsOutputs(evalOutput)
+      val handler = SimMetricsOutputs(evalOutput)// new SimD3Timeline("output" + File.separator,"MainTest"))
       c.subscribe(new SimMetricsHandler(handler))
-      val r1 = new TaskResource("r1",0,2)
-      val r2 = new TaskResource("r2",0,2)
-      val resources = Seq(r1,r2)
+      val r1 = new TaskResource("r1",0,5)
+      val r2 = new TaskResource("r2",0,5)
+      val r3 = new TaskResource("r3",0,5)
+      val resources = Seq(r1,r2,r3)
       c.addResources(resources)
     }
-    val r1 = new TaskResource("r1",0,2)
-    val r2 = new TaskResource("r2",0,2)
-    val resources = Seq(r1,r2)
+    val r1 = new TaskResource("r1",0,5)
+    val r2 = new TaskResource("r2",0,5)
+    val r3 = new TaskResource("r3",0,5)
+      val resources = Seq(r1,r2,r3)
 
 
-    val flow = new RandomFlowFactory(0.5f, resources.map((_,Uniform(1,3)))).withTasks(Uniform(5, 10)).withDurations(Uniform(1,10)).withNumResources(Uniform(1,2)).build
+    val flow = new RandomFlowFactory(0.5f, resources.map((_,Uniform(1,5)))).withTasks(Uniform(5, 11)).withDurations(Uniform(1,11)).withNumResources(Uniform(1,3)).build
 
     if(PRINTSTATS) {
       println(s"Flow: ${flow}")
@@ -65,7 +67,7 @@ object Evaluation {
 
     //Add and start simulations
     coordinators foreach{c =>
-      val flow_sim = new FlowSimulation("sim",c,flow)
+      val flow_sim = new FlowSimulation("sim"+iter,c,flow)
       c.addSimulationNow(flow_sim)
     }
 

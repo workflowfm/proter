@@ -1,0 +1,5 @@
+val r1 = new TaskResource("r1",0,1)
+val r2 = new TaskResource("r2",0,1)
+val r3 = new TaskResource("r3",0,1)
+
+val flow = new RandomFlowFactory(0.5f, resources.map((_,Constant(1)))).withTasks(Uniform(5, 11)).withDurations(Uniform(1,11)).withNumResources(Uniform(1,3)).build
