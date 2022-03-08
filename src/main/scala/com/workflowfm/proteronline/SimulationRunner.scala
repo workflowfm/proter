@@ -227,16 +227,3 @@ object Test extends IOApp {
     simRun.streamHandler(request).map(println).compile.drain.as(ExitCode.Success)
   }
 }
-/*
-  /**
-    * Consume, don't think we need this anyone
-    *
-    * @param str
-    * @return
-    */
-  def consume(str: Stream[IO, Event]): IO[Unit] = for {
-    _ <- IO.println("Setting up stream...")
-    _ <- str.evalMap(event => IO.println(Thread.currentThread().getName + " consumed an Event: " + event.toString())).compile.drain
-    _ <- IO.println("Consuming finished!")
-  } yield ()
-*/

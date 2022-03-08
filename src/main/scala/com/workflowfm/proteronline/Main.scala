@@ -33,16 +33,8 @@ object StreamingServer {
           .withAllowOriginAll
           .withAllowCredentials(false)
           .apply(ProteronlineRoutes.streamApiRoutes[IO]())
-    // services: cats.data.Kleisli[cats.data.OptionT[IO, β$0$], Request[IO], Response[IO]] = Kleisli(
-    //   cats.data.KleisliSemigroupK$$Lambda$17101/636152927@30ca3ae0
-    // )
     val httpApp: Kleisli[IO,Request[IO],Response[IO]] = Router("/" -> services).orNotFound
-    // httpApp: cats.data.Kleisli[IO, Request[IO], Response[IO]] = Kleisli(
-    //   org.http4s.syntax.KleisliResponseOps$$Lambda$17314/2020906500@227d09cf
-    // )
-    val serverBuilder: BlazeServerBuilder[IO] = BlazeServerBuilder[IO].bindHttp(8080, "localhost").withHttpApp(httpApp)
-    // serverBuilder: BlazeServerBuilder[IO] = org.http4s.blaze.server.BlazeServerBuilder@12d04c86
-  
+    val serverBuilder: BlazeServerBuilder[IO] = BlazeServerBuilder[IO].bindHttp(8080, "localhost").withHttpApp(httpApp)  
 }
 
 object StandardServer {
@@ -53,10 +45,6 @@ object StandardServer {
       _ <- Stream.resource(EmberClientBuilder.default[F].build) //Cant remove this line or the whole thing freaks out
       helloWorldAlg = HelloWorld.impl[F]
 
-      // Combine Service Routes into an HttpApp.
-      // Can also be done via a Router if you
-      // want to extract a segments not checked
-      // in the underlying routes.
       httpApp = (
         CORS.policy
           .withAllowOriginAll
