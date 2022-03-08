@@ -1,10 +1,11 @@
 package com.workflowfm.proteronline
 
-
 import org.scalatest.funsuite.AnyFunSuite
 import com.workflowfm.proter.Constant
 import com.workflowfm.proter.Uniform
 import com.workflowfm.proter.Exponential
+import com.workflowfm.proter.Task
+import com.workflowfm.proter.TaskResource
 //import com.workflowfm.proter.TaskResource
 //import com.workflowfm.proter
 
@@ -57,26 +58,38 @@ class IntermediateTests extends AnyFunSuite {
         }
     }
 
-    /* //Not currently working, due to equals() not working
+    //Not currently working, due to equals() not working
     test("Task Conversion, correct") {
+        val utils = new TestUtilities()
         val proterCostDist = new Uniform(1, 10)
         val interCostDist = new IDistribution("U", 1, Some(10))
         val proterDurationDist = new Constant(4)
         val interDurationDist = new IDistribution("C", 4, None)
-        val prot = proter.Task("Task 1", proterDurationDist).withCostGenerator(proterCostDist).withResources(Array("R1")).withPriority(1)
-        val inter: ITask = new ITask("Task 1", interCostDist, interDurationDist, "R1", 1)
+        val prot = Task("Task 1", proterDurationDist).withCostGenerator(proterCostDist).withResources(Array("R1")).withPriority(1)
+        val inter: ITask = new ITask("Task 1", interDurationDist, interCostDist, "R1", 1)
         val converted = inter.toProterTask()
-        assert(prot.equals(converted))
+        assert(utils.tasksEqual(prot, converted))
     }
 
-    //Not Currently working, due to equals() not working
+    test("Task Conversion should work for multiple resources") {
+        val utils = new TestUtilities()
+        val proterCostDist = new Uniform(1, 10)
+        val interCostDist = new IDistribution("U", 1, Some(10))
+        val proterDurationDist = new Constant(4)
+        val interDurationDist = new IDistribution("C", 4, None)
+        val prot = Task("Task 1", proterDurationDist).withCostGenerator(proterCostDist).withResources(Array("R1", "R2")).withPriority(1)
+        val inter: ITask = new ITask("Task 1", interDurationDist, interCostDist, "R1,R2", 1)
+        val converted = inter.toProterTask()
+        assert(utils.tasksEqual(prot, converted))
+    }
+
     test("Resource Conversion, correct") {
+        val utils = new TestUtilities()
         val inter = new IResource("Dave", 10)
         val prot: TaskResource = new TaskResource("Dave", 10)
         val converted: TaskResource = inter.toProterResource()
-        assert(prot.equals(converted))
+        assert(utils.resourceEqual(prot, converted))
     }
-    */
     
     test("Resource Invalid Argument thrown on negative value") {
         assertThrows[IllegalArgumentException] {
