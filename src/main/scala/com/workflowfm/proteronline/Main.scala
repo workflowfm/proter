@@ -1,26 +1,28 @@
 package com.workflowfm.proteronline
 
-import cats.effect.{ExitCode, IOApp}
-import org.http4s.blaze.server.BlazeServerBuilder
-import cats.effect.IO
-import org.http4s.server.middleware.CORS
-import org.http4s.server.Router
-import org.http4s.blaze.server._
-import org.http4s.implicits._
-import org.http4s.server.Router
 import cats.effect.{Async, Resource}
+import cats.effect.{ExitCode, IOApp}
+import cats.effect.IO
 import cats.syntax.all._
 import com.comcast.ip4s._
 import fs2.Stream
+import org.http4s.blaze.server._
+import org.http4s.blaze.server.BlazeServerBuilder
 import org.http4s.ember.client.EmberClientBuilder
 import org.http4s.ember.server.EmberServerBuilder
 import org.http4s.implicits._
-import org.http4s.server.middleware.Logger
+import org.http4s.implicits._
+import org.http4s.server.Router
+import org.http4s.server.Router
 import org.http4s.server.middleware.CORS
+import org.http4s.server.middleware.CORS
+import org.http4s.server.middleware.Logger
+import cats.data.Kleisli
+import org.http4s.{Request, Response }
 
 
 object Main extends IOApp {
-  def run(args: List[String]) =
+  def run(args: List[String]): IO[ExitCode] =
     StreamingServer.serverBuilder.serve.compile.drain.as(ExitCode.Success)
     //StandardServer.stream[IO].compile.drain.as(ExitCode.Success)
 }
@@ -34,11 +36,11 @@ object StreamingServer {
     // services: cats.data.Kleisli[cats.data.OptionT[IO, β$0$], Request[IO], Response[IO]] = Kleisli(
     //   cats.data.KleisliSemigroupK$$Lambda$17101/636152927@30ca3ae0
     // )
-    val httpApp = Router("/" -> services).orNotFound
+    val httpApp: Kleisli[IO,Request[IO],Response[IO]] = Router("/" -> services).orNotFound
     // httpApp: cats.data.Kleisli[IO, Request[IO], Response[IO]] = Kleisli(
     //   org.http4s.syntax.KleisliResponseOps$$Lambda$17314/2020906500@227d09cf
     // )
-    val serverBuilder = BlazeServerBuilder[IO].bindHttp(8080, "localhost").withHttpApp(httpApp)
+    val serverBuilder: BlazeServerBuilder[IO] = BlazeServerBuilder[IO].bindHttp(8080, "localhost").withHttpApp(httpApp)
     // serverBuilder: BlazeServerBuilder[IO] = org.http4s.blaze.server.BlazeServerBuilder@12d04c86
   
 }

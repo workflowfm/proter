@@ -1,17 +1,15 @@
 package com.workflowfm.proteronline
 
+import cats.effect._
 import cats.effect.Sync
 import cats.implicits._
-import org.http4s.HttpRoutes
-import org.http4s.dsl.Http4sDsl
-
-import cats.effect._
 import cats.implicits._
-
 import io.circe.generic.auto._
 import io.circe.syntax._
-import org.http4s.circe._
 import org.http4s.EntityDecoder
+import org.http4s.HttpRoutes
+import org.http4s.circe._
+import org.http4s.dsl.Http4sDsl
 
 object ProteronlineRoutes {
 

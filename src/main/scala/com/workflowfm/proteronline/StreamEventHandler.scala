@@ -1,7 +1,7 @@
 package com.workflowfm.proteronline
 
-import com.workflowfm.proter.events.EventHandler
 import com.workflowfm.proter.events.Event
+import com.workflowfm.proter.events.EventHandler
 import com.workflowfm.proter.events.Publisher
 
 

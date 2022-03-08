@@ -1,26 +1,29 @@
 package com.workflowfm.proteronline
 
-import io.circe._
-import io.circe.generic.semiauto._
-import com.workflowfm.proter._
-import com.workflowfm.proter.schedule.ProterScheduler
-import scala.concurrent.duration._
+import java.util.UUID
+
 import scala.concurrent.Await
-import com.workflowfm.proter.flows._
-import com.workflowfm.proter.metrics._
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
-import com.workflowfm.proter.events.PromiseHandler
+import scala.concurrent.duration._
+
+import cats.effect.ExitCode
 import cats.effect.IO
-import fs2.Stream
+import cats.effect.IOApp
 import cats.effect.std.Dispatcher
 import cats.effect.std.Queue
+import fs2.Stream
+import io.circe._
+import io.circe.generic.semiauto._
+
+import com.workflowfm.proter._
 import com.workflowfm.proter.events.Event
-import java.util.UUID
 import com.workflowfm.proter.events.EventHandler
+import com.workflowfm.proter.events.PromiseHandler
 import com.workflowfm.proter.events.Publisher
-import cats.effect.IOApp
-import cats.effect.ExitCode
+import com.workflowfm.proter.flows._
+import com.workflowfm.proter.metrics._
+import com.workflowfm.proter.schedule.ProterScheduler
 
 class SimulationRunner {
 
@@ -130,7 +133,7 @@ class SimulationRunner {
     * @param coord
     * @param requestObj
     */
-  def programmaticTransform(coord: Coordinator, requestObj: IRequest) = {
+  def programmaticTransform(coord: Coordinator, requestObj: IRequest): Unit = {
 
     //Resources
     val resources: List[TaskResource] = requestObj.resources.map(_.toProterResource()) //Build the task resources
