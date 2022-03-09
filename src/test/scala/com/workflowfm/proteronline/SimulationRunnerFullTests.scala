@@ -8,7 +8,7 @@ import org.scalatest.funsuite.AnyFunSuite
   */
 class SimulationRunnerFullTests extends AnyFunSuite {
 
-    test("Example Simulation should run from JSON producing results") {
+    test("Example, finite, Simulation should run from JSON producing results") {
         val simRun = new SimulationRunner()
         val externalResourceList: List[IResource] = List(
         new IResource("R1", 0.4),
@@ -68,5 +68,93 @@ class SimulationRunnerFullTests extends AnyFunSuite {
         val request: IRequest = new IRequest(arrival, externalResourceList)
 
         simRun.streamHandler(request)
+    }
+
+    test("Simulation that fails resource checks") {
+        val simRun = new SimulationRunner()
+        val externalResourceList: List[IResource] = List(
+            new IResource("R1", 0.4),
+            new IResource("R2", 8.3),
+        )
+        val taskList: List[ITask] = List(
+            new ITask("A", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R1", 0),
+            new ITask("B", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R2", 0),
+            new ITask("C", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R3", 0)
+
+        )
+        val flow: IFlow = new IFlow(taskList, "A->B")
+        val sim: ISimulation = new ISimulation("Sim Name", flow)
+        val arrival = new IArrival(sim, false, new IDistribution("C", 4.3, None), Some(10), None)
+        val request: IRequest = new IRequest(arrival, externalResourceList)
+
+        assertThrows[IllegalArgumentException] {
+            simRun.process(request)
+        }
+    }
+
+    test("Simulation that fails task checks") {
+        val simRun = new SimulationRunner()
+        val externalResourceList: List[IResource] = List(
+            new IResource("R1", 0.4),
+            new IResource("R2", 8.3),
+        )
+        val taskList: List[ITask] = List(
+            new ITask("A", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R1", 0),
+            new ITask("B", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R2", 0),
+            new ITask("B", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R1,R2", 0)
+
+        )
+        val flow: IFlow = new IFlow(taskList, "A->B->C->GGG")
+        val sim: ISimulation = new ISimulation("Sim Name", flow)
+        val arrival = new IArrival(sim, false, new IDistribution("C", 4.3, None), Some(10), None)
+        val request: IRequest = new IRequest(arrival, externalResourceList)
+
+        assertThrows[IllegalArgumentException] {
+            simRun.process(request)
+        }
+    }
+
+    test("Streaming Simulation that fails resource checks") {
+        val simRun = new SimulationRunner()
+        val externalResourceList: List[IResource] = List(
+            new IResource("R1", 0.4),
+            new IResource("R2", 8.3),
+        )
+        val taskList: List[ITask] = List(
+            new ITask("A", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R1", 0),
+            new ITask("B", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R2", 0),
+            new ITask("C", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R3", 0)
+
+        )
+        val flow: IFlow = new IFlow(taskList, "A->B->C")
+        val sim: ISimulation = new ISimulation("Sim Name", flow)
+        val arrival = new IArrival(sim, false, new IDistribution("C", 4.3, None), Some(10), None)
+        val request: IRequest = new IRequest(arrival, externalResourceList)
+
+        assertThrows[IllegalArgumentException] {
+            simRun.streamHandler(request)
+        }
+    }
+
+    test("Streaming Simulation that fails task checks") {
+        val simRun = new SimulationRunner()
+        val externalResourceList: List[IResource] = List(
+            new IResource("R1", 0.4),
+            new IResource("R2", 8.3),
+        )
+        val taskList: List[ITask] = List(
+            new ITask("A", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R1", 0),
+            new ITask("B", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R2", 0),
+            new ITask("B", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R1,R2", 0)
+
+        )
+        val flow: IFlow = new IFlow(taskList, "A->B->C->GGG")
+        val sim: ISimulation = new ISimulation("Sim Name", flow)
+        val arrival = new IArrival(sim, false, new IDistribution("C", 4.3, None), Some(10), None)
+        val request: IRequest = new IRequest(arrival, externalResourceList)
+
+        assertThrows[IllegalArgumentException] {
+            simRun.streamHandler(request)
+        }
     }
 }
