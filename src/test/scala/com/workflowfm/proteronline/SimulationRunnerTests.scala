@@ -96,7 +96,7 @@ class SimulationRunnerTests extends AnyFunSuite {
     val arrival = new IArrival(sim, false, new IDistribution("C", 4.3, None), Some(10), None)
     val request: IRequest = new IRequest(arrival, externalResourceList)
     
-    assert(simRun.tasksMatch(request))
+    assert(simRun.matchingTasks(request))
   }
 
   test("matchingTasks, should spot missing task in defined tasks") {
@@ -114,7 +114,7 @@ class SimulationRunnerTests extends AnyFunSuite {
     val arrival = new IArrival(sim, false, new IDistribution("C", 4.3, None), Some(10), None)
     val request: IRequest = new IRequest(arrival, externalResourceList)
     
-    assert(!simRun.tasksMatch(request))
+    assert(!simRun.matchingTasks(request))
   }
 
   test("matchingTasks, unused task defined") {
@@ -135,7 +135,7 @@ class SimulationRunnerTests extends AnyFunSuite {
     val arrival = new IArrival(sim, false, new IDistribution("C", 4.3, None), Some(10), None)
     val request: IRequest = new IRequest(arrival, externalResourceList)
     
-    assert(simRun.tasksMatch(request))
+    assert(simRun.matchingTasks(request))
   }
 
   test("Example Simulation should run from JSON producing results") {

@@ -22,3 +22,4 @@ project/metals.sbt
 project/project/metals.sbt
 .bsp/
 .vscode/
+coverageTest.sh

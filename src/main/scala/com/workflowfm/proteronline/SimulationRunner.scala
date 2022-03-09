@@ -7,9 +7,7 @@ import scala.concurrent.ExecutionContext.Implicits.global
 import scala.concurrent.Future
 import scala.concurrent.duration._
 
-import cats.effect.ExitCode
 import cats.effect.IO
-import cats.effect.IOApp
 import cats.effect.std.Dispatcher
 import cats.effect.std.Queue
 import fs2.Stream
@@ -47,7 +45,7 @@ class SimulationRunner {
     if (!this.matchingResources(request)) {
       throw new IllegalArgumentException("Resources do not match")
     }
-    if (!this.tasksMatch(request)) {
+    if (!this.matchingTasks(request)) {
       throw new IllegalArgumentException("Tasks do not match")
     }
 
@@ -81,7 +79,7 @@ class SimulationRunner {
     if (!this.matchingResources(request)) {
       throw new IllegalArgumentException("Resources do not match")
     }
-    if (!this.tasksMatch(request)) {
+    if (!this.matchingTasks(request)) {
       throw new IllegalArgumentException("Tasks do not match")
     }
     
@@ -208,7 +206,14 @@ class SimulationRunner {
     }
   }
 
-  def tasksMatch(request: IRequest): Boolean = {
+  /**
+    * This checks to ensure that the request has matching tasks, as in ensuring the tasks referenced in the flow ordering are
+    * defined in the flows task list
+    *
+    * @param request An IRequest object
+    * @return Boolean
+    */
+  def matchingTasks(request: IRequest): Boolean = {
     val definedTasks: Set[String] = request.arrival.simulation.flow.tasks.map(_.name).toSet
     val referencedTasks: Set[String] = request.arrival.simulation.flow.ordering.split("->").toSet
     if (referencedTasks.subsetOf(definedTasks)) {
@@ -216,30 +221,5 @@ class SimulationRunner {
     } else {
       false
     }
-  }
-}
-
-
-/**
- * Testing for the streaming, need to remove before finish
- */
-object Test extends IOApp {
-
-  def run(args: List[String]): IO[ExitCode] = {
-    val simRun = new SimulationRunner()
-    val externalResourceList: List[IResource] = List(
-      new IResource("R1", 0.4),
-      new IResource("R2", 8.3),
-    )
-    val taskList: List[ITask] = List(
-      new ITask("A", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R1", 0),
-      new ITask("B", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R2", 0),
-    )
-    val flow: IFlow = new IFlow(taskList, "A->B")
-    val sim: ISimulation = new ISimulation("Sim Name", flow)
-    val arrival = new IArrival(sim, false, new IDistribution("C", 4.3, None), Some(3), None)
-    val request: IRequest = new IRequest(arrival, externalResourceList)
-
-    simRun.streamHandler(request).map(println).compile.drain.as(ExitCode.Success)
   }
 }
