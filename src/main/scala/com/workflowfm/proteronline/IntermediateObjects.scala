@@ -27,7 +27,17 @@ case class IRequest(arrival: IArrival, resources: List[IResource])
   * @param simulationLimit If infinite is false then this determines how many simulations should be run in total before stopping
   * @param timeLimit If infinite is true then this determines for how long the simulation should be run before stopping
   */
-case class IArrival(simulation: ISimulation, infinite: Boolean, rate: IDistribution, simulationLimit: Option[Int], timeLimit: Option[Int])
+case class IArrival(simulation: ISimulation, infinite: Boolean, rate: IDistribution, simulationLimit: Option[Int], timeLimit: Option[Int]) {
+  if (infinite) {
+    if (!timeLimit.isDefined) {
+      throw new IllegalArgumentException("If the Arrival is infinite then a time limit must be defined")
+    }
+  } else {
+    if (!simulationLimit.isDefined) {
+      throw new IllegalArgumentException("If the Arrival is not infinite then a simulation limit must be defined")
+    }
+  }
+}
 
 
 /**
