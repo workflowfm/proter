@@ -157,4 +157,25 @@ class SimulationRunnerFullTests extends AnyFunSuite {
             simRun.streamHandler(request)
         }
     }
+
+    test("Single Task Simulation") {
+        val simRun = new SimulationRunner()
+        val externalResourceList: List[IResource] = List(
+            new IResource("R1", 0.4)
+        )
+        val taskList: List[ITask] = List(
+            new ITask("A", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R1", 0)
+        )
+        val flow: IFlow = new IFlow(taskList, "A")
+        val sim: ISimulation = new ISimulation("Sim Name", flow)
+        val arrival = new IArrival(sim, false, new IDistribution("C", 4.3, None), Some(10), None)
+        val request: IRequest = new IRequest(arrival, externalResourceList)
+
+        val results = simRun.process(request)
+        assert( //Checks the results are of the correct shape and size (and that they are there)
+            (results.simulations.size == 10) &&
+            (results.tasks.size == 10) &&
+            (results.resources.size == 1)
+        )
+    }
 }
