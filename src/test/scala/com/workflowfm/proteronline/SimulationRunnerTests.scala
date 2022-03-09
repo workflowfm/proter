@@ -2,6 +2,10 @@ package com.workflowfm.proteronline
 
 import org.scalatest.funsuite.AnyFunSuite
 
+/**
+  * Contains the partial tests for SimulationRunner primarily testing the validation and utility functions of that class
+  *
+  */
 class SimulationRunnerTests extends AnyFunSuite {
 
   test("matchingResources, should identify simple matching resource lists") {
@@ -138,107 +142,4 @@ class SimulationRunnerTests extends AnyFunSuite {
     assert(simRun.matchingTasks(request))
   }
 
-  test("Example Simulation should run from JSON producing results") {
-    val simRun = new SimulationRunner()
-    val externalResourceList: List[IResource] = List(
-      new IResource("R1", 0.4),
-      new IResource("R2", 8.3),
-    )
-    val taskList: List[ITask] = List(
-      new ITask("A", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R1", 0),
-      new ITask("B", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R2", 0),
-    )
-    val flow: IFlow = new IFlow(taskList, "A->B")
-    val sim: ISimulation = new ISimulation("Sim Name", flow)
-    val arrival = new IArrival(sim, false, new IDistribution("C", 4.3, None), Some(10), None)
-    val request: IRequest = new IRequest(arrival, externalResourceList)
-
-    val results = simRun.process(request)
-    assert( //Checks the results are of the correct shape and size (and that they are there)
-      (results.simulations.size == 10) &&
-      (results.tasks.size == 20) &&
-      (results.resources.size == 2)
-    )
-  }
-
-  test("Simulation with Infinite Arrival") {
-    val simRun = new SimulationRunner()
-    val externalResourceList: List[IResource] = List(
-      new IResource("R1", 0.4),
-      new IResource("R2", 8.3),
-    )
-    val taskList: List[ITask] = List(
-      new ITask("A", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R1", 0),
-      new ITask("B", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R2", 0),
-    )
-    val flow: IFlow = new IFlow(taskList, "A->B")
-    val sim: ISimulation = new ISimulation("Sim Name", flow)
-    val arrival = new IArrival(sim, true, new IDistribution("C", 4.3, None), None, Some(100))
-    val request: IRequest = new IRequest(arrival, externalResourceList)
-
-    val results = simRun.process(request)
-    assert( //Checks the results are of the correct shape and size (and that they are there)
-      (results.resources.size == 2)
-    )
-  }
-
-  test("Stream Test") {
-    val simRun = new SimulationRunner()
-    val externalResourceList: List[IResource] = List(
-      new IResource("R1", 0.4),
-      new IResource("R2", 8.3),
-    )
-    val taskList: List[ITask] = List(
-      new ITask("A", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R1", 0),
-      new ITask("B", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R2", 0),
-    )
-    val flow: IFlow = new IFlow(taskList, "A->B")
-    val sim: ISimulation = new ISimulation("Sim Name", flow)
-    val arrival = new IArrival(sim, false, new IDistribution("C", 4.3, None), Some(3), None)
-    val request: IRequest = new IRequest(arrival, externalResourceList)
-
-    simRun.streamHandler(request)
-  }
-
 }
-
-/* Old Testing Data, may prove to be useful
-object Test {
-
-
-  val betterSampleData: String = "{ \"arrival\": {\"simulation\": {\"name\": \"Example Name\", \"flow\":{ \"tasks\": [{\"name\": \"A\",\"duration\": {\"distType\": \"C\",\"value1\": 2,\"value2\": null},\"cost\": {\"distType\": \"E\",\"value1\": 4,\"value2\": null},\"resources\": \"R1\",\"priority\": 0},{\"name\": \"B\",\"duration\": {\"distType\": \"U\",\"value1\": 3,\"value2\": 7},\"cost\": {\"distType\": \"C\",\"value1\": 5,\"value2\": null},\"resources\": \"R2\",\"priority\": 0}], \"ordering\": \"A->B\"} }, \"infinite\": false,\"rate\": {\"distType\": \"C\",\"value1\": 5,\"value2\": null},\"simulationLimit\": 10,\"timeLimit\": 25000},\"resources\": [{\"name\": \"R1\",\"costPerTick\": 3},{\"name\": \"R2\",\"costPerTick\": 2}]}"
-  
-  implicit val requestDecoder1: Decoder[IRequest] = deriveDecoder[IRequest]
-  implicit val requestDecoder2: Decoder[IArrival] = deriveDecoder[IArrival]
-  implicit val requestDecoder3: Decoder[ISimulation] = deriveDecoder[ISimulation]
-  implicit val requestDecoder4: Decoder[IFlow] = deriveDecoder[IFlow]
-  implicit val requestDecoder5: Decoder[ITask] = deriveDecoder[ITask]
-  implicit val requestDecoder6: Decoder[IResource] = deriveDecoder[IResource]
-  implicit val requestDecoder7: Decoder[IDistribution] = deriveDecoder[IDistribution]
-
-  /**
-    * Decodes the JSON provided to it based on the implicit decoders defined in the class' attributes using
-    * circle's auto decode thing with the case classes at the top of this document
-    *
-    * @param json A JSON string of the correct format
-    * @return Either a 
-    */
-  def decodeJson(json: String) : IRequest = {
-    val result = decode[IRequest](json)
-
-    result match {
-      case Right(request) => return request
-      case Left(error) => 
-        println("Error: " + error)
-        return null //Not good practice need to improve error handling here and in the parent function
-    }
-  }
-
-  def main(args: Array[String]) {
-    val obj = new JsonParser()
-    val req: IRequest = decodeJson(betterSampleData)
-    val a = obj.streamHandler(req)
-    print(a)
-  }
-}
-*/
