@@ -47,6 +47,9 @@ class SimulationRunner {
     if (!this.matchingResources(request)) {
       throw new IllegalArgumentException("Resources do not match")
     }
+    if (!this.tasksMatch(request)) {
+      throw new IllegalArgumentException("Tasks do not match")
+    }
 
     val coordinator : Coordinator = new Coordinator(new ProterScheduler)
 
@@ -77,6 +80,9 @@ class SimulationRunner {
 
     if (!this.matchingResources(request)) {
       throw new IllegalArgumentException("Resources do not match")
+    }
+    if (!this.tasksMatch(request)) {
+      throw new IllegalArgumentException("Tasks do not match")
     }
     
     val coordinator : Coordinator = new Coordinator(new ProterScheduler)
@@ -196,6 +202,16 @@ class SimulationRunner {
     val definedResources: Set[String] = request.resources.map(_.name).toSet
     val referencedResources: Set[String] = request.arrival.simulation.flow.tasks.flatMap(_.resources.split(",")).toSet
     if (referencedResources.subsetOf(definedResources)) {
+      true
+    } else {
+      false
+    }
+  }
+
+  def tasksMatch(request: IRequest): Boolean = {
+    val definedTasks: Set[String] = request.arrival.simulation.flow.tasks.map(_.name).toSet
+    val referencedTasks: Set[String] = request.arrival.simulation.flow.ordering.split("->").toSet
+    if (referencedTasks.subsetOf(definedTasks)) {
       true
     } else {
       false

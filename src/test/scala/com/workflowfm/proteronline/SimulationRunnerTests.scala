@@ -80,6 +80,64 @@ class SimulationRunnerTests extends AnyFunSuite {
     assert(simRun.matchingResources(request))
   }
 
+  test("matchingTasks, should match simple instance") {
+    val simRun = new SimulationRunner()
+    val externalResourceList: List[IResource] = List(
+      new IResource("R1", 0.4),
+      new IResource("R2", 8.3),
+    )
+    val taskList: List[ITask] = List(
+      new ITask("A", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R1", 0),
+      new ITask("B", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R2", 0),
+      new ITask("C", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R1,R2", 0)
+    )
+    val flow: IFlow = new IFlow(taskList, "A->B->C")
+    val sim: ISimulation = new ISimulation("Sim Name", flow)
+    val arrival = new IArrival(sim, false, new IDistribution("C", 4.3, None), Some(10), None)
+    val request: IRequest = new IRequest(arrival, externalResourceList)
+    
+    assert(simRun.tasksMatch(request))
+  }
+
+  test("matchingTasks, should spot missing task in defined tasks") {
+    val simRun = new SimulationRunner()
+    val externalResourceList: List[IResource] = List(
+      new IResource("R1", 0.4),
+      new IResource("R2", 8.3),
+    )
+    val taskList: List[ITask] = List(
+      new ITask("A", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R1", 0),
+      new ITask("B", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R2", 0),
+    )
+    val flow: IFlow = new IFlow(taskList, "A->B->C")
+    val sim: ISimulation = new ISimulation("Sim Name", flow)
+    val arrival = new IArrival(sim, false, new IDistribution("C", 4.3, None), Some(10), None)
+    val request: IRequest = new IRequest(arrival, externalResourceList)
+    
+    assert(!simRun.tasksMatch(request))
+  }
+
+  test("matchingTasks, unused task defined") {
+    val simRun = new SimulationRunner()
+    val externalResourceList: List[IResource] = List(
+      new IResource("R1", 0.4),
+      new IResource("R2", 8.3),
+      new IResource("R3", 6.2)
+    )
+    val taskList: List[ITask] = List(
+      new ITask("A", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R1", 0),
+      new ITask("B", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R2", 0),
+      new ITask("C", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R1,R2", 0),
+      new ITask("D", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R2", 0)
+    )
+    val flow: IFlow = new IFlow(taskList, "A->B->C")
+    val sim: ISimulation = new ISimulation("Sim Name", flow)
+    val arrival = new IArrival(sim, false, new IDistribution("C", 4.3, None), Some(10), None)
+    val request: IRequest = new IRequest(arrival, externalResourceList)
+    
+    assert(simRun.tasksMatch(request))
+  }
+
   test("Example Simulation should run from JSON producing results") {
     val simRun = new SimulationRunner()
     val externalResourceList: List[IResource] = List(
