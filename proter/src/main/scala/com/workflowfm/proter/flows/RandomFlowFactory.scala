@@ -2,6 +2,7 @@ package com.workflowfm.proter.flows
 
 import com.workflowfm.proter._
 
+/*
 /**
   * Factory for making random flows given some parameters
   *
@@ -70,3 +71,4 @@ case class RandomFlowFactory(
     )
   }
 }
+ */

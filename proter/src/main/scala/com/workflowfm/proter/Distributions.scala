@@ -1,5 +1,9 @@
 package com.workflowfm.proter
 
+import cats.effect.std.Random
+import cats.Applicative
+import cats.implicits._
+
 /**
   * A random function sampling some probability distribution to produce a `Long` value.
   *
@@ -19,7 +23,7 @@ trait LongDistribution {
     * @return
     *   A sample `Long` value.
     */
-  def getLong: Long
+  def getLong[F[_] : Applicative : Random]: F[Long]
 
   /**
     * Provides an estimate of the values that can be generated.
@@ -53,7 +57,7 @@ trait Distribution extends LongDistribution {
     * @return
     *   A sample value.
     */
-  def get: Double
+  def get[F[_]: Applicative : Random]: F[Double]
 
   /**
     * Provides an estimate of the values that can be generated. This could be the mean of the
@@ -74,7 +78,7 @@ trait Distribution extends LongDistribution {
     * @return
     *   A sample `Long` value.
     */
-  override def getLong: Long = get.floor.round
+  override def getLong[F[_]: Applicative : Random]: F[Long] = Applicative[F].map(get[F])(_.floor.round)
 
   /**
     * Provides an estimate of the `Long` values that can be generated.
@@ -98,13 +102,15 @@ trait Distribution extends LongDistribution {
   *   The value to generate.
   */
 case class ConstantLong(value: Long) extends LongDistribution {
+  import cats.implicits.catsSyntaxApplicativeId
+
   /**
     * Provides the constant value.
     *
     * @return
     *   The constant value.
     */
-  override def getLong = value
+  override def getLong[F[_]: Applicative : Random]: F[Long] = Applicative[F].pure(value)
 
   /**
     * Provides an estimate of the constant value, i.e. the value itself.
@@ -130,7 +136,7 @@ case class Constant(value: Double) extends Distribution {
     * @return
     *   The constant value.
     */
-  override def get = value
+  override def get[F[_]: Applicative : Random]: F[Double] = Applicative[F].pure(value)
 
   /**
     * Provides an estimate of the constant value, i.e. the value itself.
@@ -138,7 +144,7 @@ case class Constant(value: Double) extends Distribution {
     * @return
     *   The constant value as an estimate of itself.
     */
-  override def estimate = value
+  override def estimate: Double = value
 }
 
 /**
@@ -158,7 +164,7 @@ case class UniformLong(min: Long, max: Long) extends LongDistribution {
     * @return
     *   The random value.
     */
-  override def getLong: Long = new util.Random().nextLong(max - min) + min
+  override def getLong[F[_]: Applicative : Random]: F[Long] = Random[F].betweenLong(min, max)
 
   /**
     * Provides an estimate of the values that can be generated.
@@ -188,7 +194,7 @@ case class Uniform(min: Double, max: Double) extends Distribution {
     * @return
     *   The random value.
     */
-  override def get: Double = new util.Random().nextDouble() * (max - min) + min
+  override def get[F[_]: Applicative : Random]: F[Double] = Random[F].betweenDouble(min, max)
 
   /**
     * Provides an estimate of the values that can be generated.
@@ -210,8 +216,7 @@ case class Exponential(mean: Double) extends Distribution {
     * @return
     *   The random value.
     */
-  override def get: Double = {
-    val rand = new util.Random().nextDouble()
+  override def get[F[_]: Applicative : Random]: F[Double] = Random[F].nextDouble.map { rand =>
     /* Density function:
      * fx(t) = le^(-lt) , where l is lambda, t is time
      *

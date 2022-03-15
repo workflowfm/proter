@@ -8,7 +8,7 @@ import scala.concurrent.{ ExecutionContext, Future, Promise }
 import scala.util.{ Try, Success, Failure }
 
 import com.workflowfm.proter.events._
-import com.workflowfm.proter.schedule.Scheduler
+//import com.workflowfm.proter.schedule.Scheduler
 
 /**
   * Abstract simulation manager.
@@ -32,7 +32,7 @@ trait Manager {
     */
   def simResponse(response: SimResponse): Unit
 }
-
+/*
 /**
   * Provides coordination for discrete event simulation of multiple asynchronous simulations.
   *
@@ -934,3 +934,4 @@ class Coordinator(
   }
 
 }
+ */

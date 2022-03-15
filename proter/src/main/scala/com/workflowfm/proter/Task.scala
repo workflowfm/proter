@@ -1,6 +1,9 @@
 package com.workflowfm.proter
 
 import java.util.UUID
+import cats.effect.std.Random
+import cats.Monad
+import cats.implicits._
 
 /**
   * An instance of a task to be performed in virtual time.
@@ -195,21 +198,25 @@ case class Task(
     * @return
     *   The generated [[TaskInstance]].
     */
-  def create(simulation: String, currentTime: Long): TaskInstance = {
+  def create[F[_]: Monad : Random](simulation: String, currentTime: Long): F[TaskInstance] = {
     val creation = if createTime >= 0 then createTime else currentTime
-
-    new TaskInstance(
-      id.getOrElse(UUID.randomUUID()),
-      name,
-      simulation,
-      creation,
-      minStartTime,
-      resources,
-      duration.getLong,
-      duration.longEstimate,
-      cost.get,
-      interrupt,
-      priority
+    for {
+      dur <- duration.getLong
+      c <- cost.get 
+    } yield (
+      new TaskInstance(
+        id.getOrElse(UUID.randomUUID()),
+        name,
+        simulation,
+        creation,
+        minStartTime,
+        resources,
+        dur,
+        duration.longEstimate,
+        c,
+        interrupt,
+        priority
+      )
     )
   }
 

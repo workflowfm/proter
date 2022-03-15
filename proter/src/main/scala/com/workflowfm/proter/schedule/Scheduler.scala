@@ -8,6 +8,7 @@ import scala.collection.mutable.SortedSet
 
 import com.workflowfm.proter.{ TaskInstance, TaskResource, Lookahead, NoLookahead }
 
+/*
 /**
   * A scheduler selects the next [[TaskInstance]]s to be started by the [[Coordinator]] at a given
   * time.
@@ -658,3 +659,4 @@ class LookaheadScheduler(initialTasks: TaskInstance*) extends PriorityScheduler 
     // todo warning if time <= currentTime. coordinator could pass log. Logging adaptor?
   }
 }
+ */

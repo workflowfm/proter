@@ -116,6 +116,11 @@ case class Arrival(
     limit: Option[Int] = None,
     count: Int = 0
 ) extends DiscreteEvent {
+
+  import cats.effect.std.Random
+  import cats.Applicative
+  import cats.implicits._
+
   override val classOrder: Short = 11
 
   override def sameClassCompare(that: DiscreteEvent): Int = that match {
@@ -129,6 +134,6 @@ case class Arrival(
     * @return
     *   The next arrival event.
     */
-  def next(): Arrival = copy(time = time + rate.get.round, count = count + 1)
-
+  def next[F[_] : Applicative : Random](): F[Arrival] = 
+    rate.get.map { r => copy(time = time + r.round, count = count + 1) }
 }
