@@ -137,3 +137,22 @@ case class Arrival(
   def next[F[_] : Applicative : Random](): F[Arrival] = 
     rate.get.map { r => copy(time = time + r.round, count = count + 1) }
 }
+
+
+
+import collection.immutable.{ SortedMap, SortedSet }
+
+case class EventQueue(events: SortedMap[Long, SortedSet[DiscreteEvent]]) {
+  def +(event: DiscreteEvent): EventQueue = {
+    copy(events = events.updatedWith(event.time) {
+      case None => Some(SortedSet(event))
+      case Some(s) => Some(s + event)
+    })
+  }
+
+  def next(): Option[(SortedSet[DiscreteEvent], EventQueue)] = events.headOption.map { (k,v) => 
+    (v, copy(events = events - k))
+  }
+
+  def size: Int = events.size
+}
