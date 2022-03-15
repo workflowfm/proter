@@ -20,23 +20,23 @@ case class ResourceState(resource: Resource, currentTask: Option[(Long, TaskInst
     * Attach a [[TaskInstance]] to this resource.
     *
     * If the resource is already attached to another [[TaskInstance]], the attached task is
-    * returned. Otherwise, we return [[scala.None]].
+    * returned. Otherwise, we return the updated [[ResourceState]].
     *
     * @param task
     *   The [[TaskInstance]] to attach.
     * @param currentTime
     *   The current (virtual) time.
     * @return
-    *   [[scala.None None]] if the task was attached, or some [[TaskInstance]] that was already
-    *   attached before
+    *   Some [[TaskInstance]] that was already attached before or An updated [[ResourceState]] 
+    *   if the task was attached successfully.
     */
-  def startTask(task: TaskInstance, currentTime: Long): Either[TaskInstance, ResourceState] = {
+  def startTask(task: TaskInstance, currentTime: Long): Either[ResourceState.Busy, ResourceState] = {
     currentTask match {
       case None => {
         Right(this.copy(currentTask = Some(currentTime, task)))
       }
-      case Some((_, runningTask)) => {
-        Left(runningTask)
+      case Some((start, runningTask)) => {
+        Left(ResourceState.Busy(resource, runningTask, start))
       }
     }
   }
@@ -94,6 +94,11 @@ case class ResourceState(resource: Resource, currentTask: Option[(Long, TaskInst
 }
 
 
+object ResourceState {
+  case class Busy(resource: Resource, task: TaskInstance, start: Long)
+}
+
+
 case class ResourceMap(resources: Map[String, ResourceState]) {
     /**
     * Add a new [[Resource]] to our map of available resources.
@@ -122,9 +127,25 @@ case class ResourceMap(resources: Map[String, ResourceState]) {
     copy(resources = resources.map { (n, r) => n -> r.detach(task.id) } )
   }
 
-  def startTask(task: TaskInstance, time: Long): ResourceMap = {
+  def startTask(task: TaskInstance, time: Long): Either[ResourceState.Busy, ResourceMap] = { 
+    val update = for {
+      name <- task.resources
+      state <- resources.get(name)
+    } yield (
+      state.startTask(task, time)
+        .map { newState => name -> newState }
+    )
 
-    task.resources.flatMap { name => resources.get(name).map { state => state.resource.name -> state.startTask(task, time) } }
-    // TODO how do we deal with the Either here?
+    val folded = update.foldRight(Right(Nil): Either[ResourceState.Busy, List[(String, ResourceState)]]) {
+      (t, states) => for {
+        x <- t
+        xs <- states
+      } yield (x :: xs)
+    }
+
+    folded.map { stateUpdates => copy(resources = resources ++ stateUpdates) }
   }
 }
+
+
+
