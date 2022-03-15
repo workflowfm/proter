@@ -8,6 +8,8 @@ object Dependencies {
 
   val scalaTest = "org.scalatest" %% "scalatest" % "3.2.10" % "test"
 
+  val cats = "org.typelevel" %% "cats-effect" % "3.3.7"
+
   val akkaActor = "com.typesafe.akka" %% "akka-actor" % "2.6.18"
   val akkaTestkit = "com.typesafe.akka" %% "akka-testkit" % "2.6.18" % "test"
 
@@ -16,7 +18,8 @@ object Dependencies {
   val sortImports = "com.nequissimus" %% "sort-imports" % "0.6.1"
 
   val common: Seq[ModuleID] = Seq(
-    apache
+    apache,
+    cats
   )
 
   val testAll: Seq[ModuleID] = Seq(
