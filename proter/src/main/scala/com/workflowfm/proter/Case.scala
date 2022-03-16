@@ -8,6 +8,7 @@ import java.util.UUID
 
 import scala.collection.immutable.{ HashSet, Queue }
 import scala.util.{ Try, Success, Failure }
+import cats.effect.std.UUIDGen
 
 
 /**
@@ -97,12 +98,12 @@ trait CaseRef[F[_], T] {
   /**
     * Starts the case.
     */
-  def run(): Unit
+  def run(): F[Unit]
 
   /**
     * Stops/aborts the case.
     */
-  def stop(): Unit
+  def stop(): F[Unit]
 
   /**
     * Notifies the case that some of its tasks completed.
@@ -170,17 +171,116 @@ trait CaseRef[F[_], T] {
 
 abstract class StatefulCase[F[_] : Monad, S, T](stateRef: Ref[F, S]) extends CaseRef[F,T] {
 
-  def complete(task: TaskInstance, time: Long): S => (S, Seq[CaseResponse])
+  def complete(task: TaskInstance, time: Long): S => (S, F[Seq[CaseResponse]])
 
-  // final : cannot be final because that prevents mockups in scalamock
-  //override 
   def completed(time: Long, tasks: Seq[TaskInstance]): F[CaseResponse] = {
     tasks.foldLeft(CaseResponse.empty(this)) { (acc, task) =>
       for {
         result <- acc
-        updates <- stateRef.modify(complete(task, time))
-      } yield (result ++ updates)
+        update <- stateRef.modify(complete(task, time))
+        responses <- update
+      } yield (result ++ responses)
     }
   }
 
+}
+
+abstract class AsyncCase[F[_] : Monad : UUIDGen, S, T](callbacks: Ref[F, Map[UUID, AsyncCase.Callback[F]]]) extends StatefulCase[F, Map[UUID, AsyncCase.Callback[F]], T](callbacks) {
+
+  type Callback = AsyncCase.Callback[F]
+
+  /**
+    * Creates a simple success callback from a function.
+    *
+    * Does nothing on failure.
+    *
+    * @param f
+    *   The function to call on success.
+    * @return
+    *   The created [[Callback]].
+    */
+  def callback(f: (TaskInstance, Long) => F[Seq[CaseResponse]]): Callback =
+    t => t.map { arg => f(arg._1, arg._2) }.getOrElse(Monad[F].pure(Seq()))
+
+
+  /**
+    * Declare a new [[Task]] that needs to be sent to the [[Coordinator]] for simulation with a
+    * pre-determined ID.
+    *
+    * The provided callback function will be called when the corresponding [[Task]] is completed.
+    *
+    * When it finishes executing, it must notify the [[Coordinator]] either by acknowledging the
+    * completed task using [[ack]] or by completing the simulation using [[done]], [[succeed]] or
+    * [[fail]].
+    *
+    * The [[ready]] method can also be called if there is no need to acknowledge completed tasks
+    * individually. This is unlikely in the current scenario where each task has its own callback,
+    * but it's still worth mentioning.
+    *
+    * @group act
+    *
+    * @param t
+    *   The [[Task]] to send.
+    * @param callback
+    *   The [[Callback]] function to be called when the corresponding [[Task]] completes.
+    */
+  def task(
+      t: Task,
+      callback: Callback
+  ): F[CaseResponse] = for {
+    id <- t.id.map(Monad[F].pure).getOrElse(UUIDGen[F].randomUUID)
+    _ <- callbacks.update( map => map + (id -> callback))
+  } yield (super.task(t.withID(id)))
+
+  /**
+    * @inheritdoc
+    *
+    * Calls the corresponding [[Callback]] in the `tasks` map and then removes the entry.
+    *
+    * @group react
+    *
+    * @param task
+    *   The [[TaskInstance]] that completed.
+    * @param time
+    *   The timestamp of its completion.
+    */
+  override def complete(task: TaskInstance, time: Long): Map[UUID, Callback] => (Map[UUID, Callback], F[Seq[CaseResponse]]) = m => {
+    val updatedMap = m - task.id
+    m.get(task.id) match {
+      case None => (m, Monad[F].pure(Seq()))
+      case Some(f) => (updatedMap, f(Success(task, time)))
+    }
+  }
+
+  /**
+    * @inheritdoc
+    *
+    * Calls respective [[Callback]]s with `Failure`.
+    *
+    * @group act
+    *
+    * @param id
+    *   The `UUID` of the [[Task]]s.
+    */
+  def abortTask(ids: UUID*): F[CaseResponse] = {
+    val response = super.abort(ids: _*)
+    for {
+      fs <- callbacks.modify { m => (m -- ids, ids.flatMap( id => m.get(id) )) }
+      _ = fs.map( f => f(Failure(Simulation.TaskAbortedException())) )
+    } yield (response)
+  }
+
+  /**
+    * @inheritdoc
+    *
+    * Triggers all callbacks with a `Failure`.
+    */
+  override def stop(): F[Unit] = for {
+    fs <- callbacks.modify { m => (Map(), m.values) }
+    _ = fs.map( f => f(Failure(Simulation.SimulationStoppingException())) )
+  } yield ()
+}
+
+object AsyncCase {
+  type Callback[F[_]] = Monad[F] ?=> Try[(TaskInstance, Long)] => F[Seq[CaseResponse]]
 }
