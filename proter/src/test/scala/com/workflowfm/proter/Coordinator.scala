@@ -1,5 +1,5 @@
 package com.workflowfm.proter
-
+/*
 import java.util.UUID
 
 import scala.concurrent._
@@ -824,3 +824,4 @@ class CoordinatorTests extends MockSimulationCallMatcher with AnyWordSpecLike wi
     }
   }
 }
+ */

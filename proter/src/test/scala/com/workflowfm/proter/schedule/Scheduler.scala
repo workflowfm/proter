@@ -1,5 +1,6 @@
 package com.workflowfm.proter.schedule
 
+/*
 import com.workflowfm.proter.{
   Task,
   TaskTester,
@@ -431,3 +432,4 @@ class SchedulerTests extends TaskTester with ScheduleTester {
     }
   }
 }
+ */
