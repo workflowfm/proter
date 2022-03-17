@@ -98,7 +98,7 @@ trait CaseRef[F[_], T] {
   /**
     * Starts the case.
     */
-  def run(): F[Unit]
+  def run(): F[CaseResponse]
 
   /**
     * Stops/aborts the case.

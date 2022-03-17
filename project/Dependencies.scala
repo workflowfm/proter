@@ -9,7 +9,7 @@ object Dependencies {
   val scalaTest = "org.scalatest" %% "scalatest" % "3.2.10" % "test"
 
   val cats = "org.typelevel" %% "cats-effect" % "3.3.7"
-  val catsTest = "org.typelevel" %% "cats-effect-testing-specs2" % "1.2.0" % Test
+  val catsTest = "org.typelevel" %% "cats-effect-testing-scalatest" % "1.4.0" % Test
 
   val akkaActor = "com.typesafe.akka" %% "akka-actor" % "2.6.18"
   val akkaTestkit = "com.typesafe.akka" %% "akka-testkit" % "2.6.18" % Test
