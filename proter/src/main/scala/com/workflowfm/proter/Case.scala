@@ -9,6 +9,7 @@ import java.util.UUID
 import scala.collection.immutable.{ HashSet, Queue }
 import scala.util.{ Try, Success, Failure }
 import cats.effect.std.UUIDGen
+import cats.effect.kernel.Sync
 
 
 /**
@@ -22,7 +23,7 @@ sealed trait CaseResponse {
     * @return
     *   The [[CaseRef]].
     */
-  val caseRef: CaseRef[?,?]
+  val caseRef: CaseRef[?]
 
   def +(response: CaseResponse): CaseResponse = (this, response) match {
     case (CaseReady(ref, t1, a1, _), CaseReady(_, t2, a2, l)) => CaseReady(ref, t1 ++ t2, a1 ++ a2, l)
@@ -36,9 +37,9 @@ sealed trait CaseResponse {
 
 
 object CaseResponse {
-  def apply(ref: CaseRef[?, ?]): CaseResponse = CaseReady(ref)
+  def apply(ref: CaseRef[?]): CaseResponse = CaseReady(ref)
 
-  def empty[F[_] : Monad](ref: CaseRef[?, ?]): F[CaseResponse] = Monad[F].pure(CaseResponse(ref))
+  def empty[F[_] : Monad](ref: CaseRef[?]): F[CaseResponse] = Monad[F].pure(CaseResponse(ref))
 }
 
 
@@ -56,14 +57,14 @@ object CaseResponse {
   *   An updated [[Lookahead]] structure.
   */
 case class CaseReady(
-    override val caseRef: CaseRef[?,?],
+    override val caseRef: CaseRef[?],
     tasks: Queue[Task],
     abort: HashSet[UUID],
     lookahead: Lookahead
 ) extends CaseResponse 
 
 object CaseReady {
-  def apply(ref: CaseRef[?, ?]): CaseReady = CaseReady(ref, Queue(), HashSet(), NoLookahead)
+  def apply(ref: CaseRef[?]): CaseReady = CaseReady(ref, Queue(), HashSet(), NoLookahead)
 }
 /**
   * Response issued when the case has completed.
@@ -73,7 +74,7 @@ object CaseReady {
   * @param result
   *   The (successful or failed) result of the case.
   */
-case class CaseDone(override val caseRef: CaseRef[?,?], result: Try[Any]) extends CaseResponse
+case class CaseDone(override val caseRef: CaseRef[?], result: Try[Any]) extends CaseResponse
 
 
 
@@ -86,7 +87,7 @@ case class CaseDone(override val caseRef: CaseRef[?,?], result: Try[Any]) extend
   *   1. Notifying when tasks complete.
   *   1. Stopping/aborting the case.
   */
-trait CaseRef[F[_], T] {
+trait CaseRef[F[_]] {
   /**
     * A unique name for the case.
     *
@@ -166,10 +167,42 @@ trait CaseRef[F[_], T] {
 
 }
 
+trait Case[F[_], T] {
+  def init(name: String, t: T): F[CaseRef[F]]
+}
+
+
+given [F[_]](using Monad[F], UUIDGen[F]): Case[F, Task] with {
+
+  override def init(name: String, t: Task): F[CaseRef[F]] = for {
+    uuid <- UUIDGen[F].randomUUID
+  } yield new CaseRef[F] {
+
+    val id: UUID = t.id.getOrElse(uuid)
+    val theTask: Task = t.withID(id)
+
+    override val caseName: String = name
+    override def run(): F[CaseResponse] = Monad[F].pure(task(theTask))
+    override def stop(): F[Unit] = Monad[F].pure(())
+    override def completed(time: Long, tasks: Seq[TaskInstance]): F[CaseResponse] =
+      tasks.find(_.id == id) match {
+        case None => CaseResponse.empty(this)
+        case Some(ti) => Monad[F].pure(succeed((ti, time)))
+      }
+  }
+}
 
 
 
-abstract class StatefulCase[F[_] : Monad, S, T](stateRef: Ref[F, S]) extends CaseRef[F,T] {
+abstract class StatefulCaseRef[F[_] : Monad, S](stateRef: Ref[F, S]) extends CaseRef[F] {
+
+  override def run(): F[CaseResponse] = stateRef.modify(runState).flatten
+
+  override def stop(): F[Unit] = stateRef.modify(stopState).flatten
+
+  def runState: S => (S, F[CaseResponse])
+
+  def stopState: S => (S, F[Unit])
 
   def complete(task: TaskInstance, time: Long): S => (S, F[Seq[CaseResponse]])
 
@@ -185,9 +218,35 @@ abstract class StatefulCase[F[_] : Monad, S, T](stateRef: Ref[F, S]) extends Cas
 
 }
 
-abstract class AsyncCase[F[_] : Monad : UUIDGen, S, T](callbacks: Ref[F, Map[UUID, AsyncCase.Callback[F]]]) extends StatefulCase[F, Map[UUID, AsyncCase.Callback[F]], T](callbacks) {
+/*
+trait SyncCase[F[_] : Sync, T, S] extends Case[F, T] { self =>
+  override def init(name: String, t: T): F[CaseRef[F]] = for {
+    ref <- Ref[F].of(initState(t))
+  } yield new StatefulCaseRef[F, S](ref) {
+    override val caseName: String = name
 
-  type Callback = AsyncCase.Callback[F]
+    override def runState: S =>(S, F[CaseResponse]) = self.runState(this)
+
+    override def stopState: S => (S, F[Unit]) = self.stopState
+
+    override def complete(task: TaskInstance, time: Long): S => (S, F[Seq[CaseResponse]]) = self.complete(this, task, time)
+
+  }
+
+  def initState(t: T) : S
+
+  def runState(ref: CaseRef[F]): S => (S, F[CaseResponse])
+
+  def stopState: S => (S, F[Unit])
+
+  def complete(ref: CaseRef[F], task: TaskInstance, time: Long): S => (S, F[Seq[CaseResponse]])
+
+}
+ */
+
+abstract class AsyncCaseRef[F[_] : Monad : UUIDGen](callbacks: Ref[F, Map[UUID, AsyncCaseRef.Callback[F]]]) extends StatefulCaseRef[F, Map[UUID, AsyncCaseRef.Callback[F]]](callbacks) {
+
+  type Callback = AsyncCaseRef.Callback[F]
 
   /**
     * Creates a simple success callback from a function.
@@ -281,6 +340,7 @@ abstract class AsyncCase[F[_] : Monad : UUIDGen, S, T](callbacks: Ref[F, Map[UUI
   } yield ()
 }
 
-object AsyncCase {
+object AsyncCaseRef {
   type Callback[F[_]] = Monad[F] ?=> Try[(TaskInstance, Long)] => F[Seq[CaseResponse]]
 }
+ 

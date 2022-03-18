@@ -13,11 +13,15 @@ import scala.util.{ Failure, Success }
 import org.scalatest.Inside
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
+import org.scalatest.LoneElement
+import cats.effect.std.Random
+import cats.Monad
+import cats.effect.std.UUIDGen
 
 class CaseTests extends CaseTester {
 
-  import MockManager._
-  given ExecutionContextExecutor = ExecutionContext.global
+//  import MockManager._
+//  given ExecutionContextExecutor = ExecutionContext.global
 
   "Cases" should {
 
@@ -28,27 +32,41 @@ class CaseTests extends CaseTester {
       } yield (result should be (CaseDone(c1, Success(()))))
     }
 
-//    "interact correctly having one task" in {
-//      val sim = new SingleTaskSimulation("sim", manager, Seq("r1"), Constant(2L))
-//
-//      val ti1 = sim.theTask.create("sim", 0L)
-//
-//      manager.reactions += sim.theTask -> Complete(sim, 2L, Seq(ti1))
-//      manager.expected ++= Seq(
-//        SimReady("sim", Seq(sim.theTask)),
-//        SimDone("sim", Success((ti1, 2L)))
-//      )
-//
-//      sim.run()
-//      manager should comply
-//    }
+    "interact correctly having one task" in {
+      val task = Task("OneTask", 2L)
+        .withPriority(10)
+        .withCost(6)
+        .withResources(Seq("R"))
+
+      for {
+        random <- Random.scalaUtilRandom[IO]
+        t1id <- UUIDGen[IO].randomUUID
+        t1 = task.withID(t1id)
+
+        ref <- summon[Case[IO, Task]].init("Case", t1)
+
+        r1 <- ref.run()
+        _ <- IO (inside(r1) { case CaseReady(r, tasks, abort, _ ) => {
+          r.caseName should be (ref.caseName)
+          tasks.loneElement should be (t1)
+          abort shouldBe empty
+        } } )
+
+        ti1 <- t1.create[IO]("Case", 0L)(using Monad[IO], random)
+        r2 <- ref.completed(ti1.duration, Seq(ti1))
+        _ <- IO ( inside(r2) { case CaseDone(r, result) => {
+          r.caseName should be (ref.caseName)
+          result should be (Success((ti1, ti1.duration)))
+        } } )
+      } yield ()
+    }
 
   }
 }
 
-trait CaseTester extends AsyncWordSpec with AsyncIOSpec with Matchers {
+trait CaseTester extends AsyncWordSpec with AsyncIOSpec with Matchers with Inside with LoneElement {
 
-  class NoTasks[F[_]](override val caseName: String)(using F: MonadError[F, Throwable]) extends CaseRef[F,NoTasks[F]] {
+  class NoTasks[F[_]](override val caseName: String)(using F: MonadError[F, Throwable]) extends CaseRef[F] {
     override def run(): F[CaseResponse] = F.pure(succeed(())) // finish instantly
     override def completed(time: Long, tasks: Seq[TaskInstance]): F[CaseResponse] = 
       F.raiseError(new Exception(s"Test Case $caseName with no tasks received call to `completed`: $time - $tasks"))
