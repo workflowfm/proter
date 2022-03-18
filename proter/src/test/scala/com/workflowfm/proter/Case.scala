@@ -17,6 +17,7 @@ import org.scalatest.LoneElement
 import cats.effect.std.Random
 import cats.Monad
 import cats.effect.std.UUIDGen
+import cats.effect.kernel.Ref
 
 class CaseTests extends CaseTester {
 
@@ -61,6 +62,38 @@ class CaseTests extends CaseTester {
       } yield ()
     }
 
+    "interact correctly having 2 tasks in sequence with callback" in {
+      for {
+        x <- twoTasks("Case")
+        (t1, t2, c1) = x
+        random <- Random.scalaUtilRandom[IO]
+
+        ti1 <- t1.create[IO]("Case", 0L)(using Monad[IO], random)
+        ti2 <- t2.create[IO]("Case", 2L)(using Monad[IO], random)
+
+        r1 <- c1.run()
+        _ <- IO (inside(r1) { case CaseReady(r, tasks, abort, _ ) => {
+          r.caseName should be (c1.caseName)
+          tasks.loneElement should be (t1)
+          abort shouldBe empty
+        } } )
+
+        r2 <- c1.completed(2L, Seq(ti1))
+        _ <- IO (inside(r2) { case CaseReady(r, tasks, abort, _ ) => {
+          r.caseName should be (c1.caseName)
+          tasks.loneElement should be (t2)
+          abort shouldBe empty
+        } } )
+
+        r3 <- c1.completed(4L, Seq(ti2))
+        _ <- IO ( inside(r3) { case CaseDone(r, result) => {
+          r.caseName should be (c1.caseName)
+          result should be (Success((ti2, 4L)))
+        } } )
+
+      } yield ()
+    }
+
   }
 }
 
@@ -72,6 +105,36 @@ trait CaseTester extends AsyncWordSpec with AsyncIOSpec with Matchers with Insid
       F.raiseError(new Exception(s"Test Case $caseName with no tasks received call to `completed`: $time - $tasks"))
     override def stop(): F[Unit] = F.pure(())
   }
+
+  def twoTasks(
+      name: String,
+      onFail: Throwable => IO[Seq[CaseResponse]] = _ => IO.pure(Seq()),
+      d1: Long = 2L,
+      d2: Long = 2L
+  ): IO[(Task, Task, AsyncCaseRef[IO])] = for {
+
+    id1 <- UUIDGen[IO].randomUUID
+    id2 <- UUIDGen[IO].randomUUID
+
+    t1: Task = Task("task1", d1) withID id1 withResources Seq("r1")
+    t2: Task = Task("task2", d2) withID id2 withResources Seq("r1")
+
+    state <- Ref[IO].of[Map[UUID, AsyncCaseRef.Callback[IO]]](Map()) 
+
+    myCase = new AsyncCaseRef[IO](state) {
+      val caseName: String = name
+
+      val t1callback: Callback = {
+        case Success((t, _)) => {
+          task(t2, r => IO.pure(Seq(done(r)))).map(r => Seq(r))
+        }
+        case Failure(ex) => onFail(ex)
+      }
+
+      override def run(): IO[CaseResponse] = task(t1, t1callback)
+    }
+  } yield ((t1, t2, myCase))
+
 /*
   class ThreeFutureTasks(
       override val name: String,

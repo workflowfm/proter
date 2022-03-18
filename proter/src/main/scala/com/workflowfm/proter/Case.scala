@@ -196,6 +196,7 @@ given [F[_]](using Monad[F], UUIDGen[F]): Case[F, Task] with {
 
 abstract class StatefulCaseRef[F[_] : Monad, S](stateRef: Ref[F, S]) extends CaseRef[F] {
 
+/*
   override def run(): F[CaseResponse] = stateRef.modify(runState).flatten
 
   override def stop(): F[Unit] = stateRef.modify(stopState).flatten
@@ -203,7 +204,7 @@ abstract class StatefulCaseRef[F[_] : Monad, S](stateRef: Ref[F, S]) extends Cas
   def runState: S => (S, F[CaseResponse])
 
   def stopState: S => (S, F[Unit])
-
+ */
   def complete(task: TaskInstance, time: Long): S => (S, F[Seq[CaseResponse]])
 
   def completed(time: Long, tasks: Seq[TaskInstance]): F[CaseResponse] = {
