@@ -1,83 +1,14 @@
 package com.workflowfm.proter
+package cases
 
 import cats.Monad
 import cats.implicits._
 import cats.effect.Ref
+import cats.effect.std.UUIDGen
 
 import java.util.UUID
-
 import scala.collection.immutable.{ HashSet, Queue }
 import scala.util.{ Try, Success, Failure }
-import cats.effect.std.UUIDGen
-import cats.effect.kernel.Sync
-
-
-/**
-  * A responses of a case to an event.
-  *
-  */
-sealed trait CaseResponse {
-  /**
-    * The case that issues the response.
-    *
-    * @return
-    *   The [[CaseRef]].
-    */
-  val caseRef: CaseRef[?]
-
-  def +(response: CaseResponse): CaseResponse = (this, response) match {
-    case (CaseReady(ref, t1, a1, _), CaseReady(_, t2, a2, l)) => CaseReady(ref, t1 ++ t2, a1 ++ a2, l)
-    case (CaseReady(_, _, _, _), _) => response
-    case _ => this
-  }
-
-  def ++(responses: Seq[CaseResponse]): CaseResponse = responses.fold(this)(_ + _)
-
-}
-
-
-object CaseResponse {
-  def apply(ref: CaseRef[?]): CaseResponse = CaseReady(ref)
-
-  def empty[F[_] : Monad](ref: CaseRef[?]): F[CaseResponse] = Monad[F].pure(CaseResponse(ref))
-}
-
-
-
-/**
-  * Response issued when the case has finished reacting and is now waiting for virtual time to pass.
-  *
-  * @param caseRef
-  *   The (updated) case that issues the response.
-  * @param tasks
-  *   A sequence of new tasks to be added for scheduling.
-  * @param abort
-  *   A sequence of IDs of existing tasks that need to be aborted.
-  * @param lookahead
-  *   An updated [[Lookahead]] structure.
-  */
-case class CaseReady(
-    override val caseRef: CaseRef[?],
-    tasks: Queue[Task],
-    abort: HashSet[UUID],
-    lookahead: Lookahead
-) extends CaseResponse 
-
-object CaseReady {
-  def apply(ref: CaseRef[?]): CaseReady = CaseReady(ref, Queue(), HashSet(), NoLookahead)
-}
-/**
-  * Response issued when the case has completed.
-  *
-  * @param case
-  *   The completed case.
-  * @param result
-  *   The (successful or failed) result of the case.
-  */
-case class CaseDone(override val caseRef: CaseRef[?], result: Try[Any]) extends CaseResponse
-
-
-
 
 /**
   * An abstract reference to simulation caselogic.
@@ -166,33 +97,6 @@ trait CaseRef[F[_]] {
   def fail(exception: Throwable): CaseResponse = CaseDone(this, Failure(exception))
 
 }
-
-trait Case[F[_], T] {
-  def init(name: String, t: T): F[CaseRef[F]]
-}
-
-
-given [F[_]](using Monad[F], UUIDGen[F]): Case[F, Task] with {
-
-  override def init(name: String, t: Task): F[CaseRef[F]] = for {
-    uuid <- UUIDGen[F].randomUUID
-  } yield new CaseRef[F] {
-
-    val id: UUID = t.id.getOrElse(uuid)
-    val theTask: Task = t.withID(id)
-
-    override val caseName: String = name
-    override def run(): F[CaseResponse] = Monad[F].pure(task(theTask))
-    override def stop(): F[Unit] = Monad[F].pure(())
-    override def completed(time: Long, tasks: Seq[TaskInstance]): F[CaseResponse] =
-      tasks.find(_.id == id) match {
-        case None => CaseResponse.empty(this)
-        case Some(ti) => Monad[F].pure(succeed((ti, time)))
-      }
-  }
-}
-
-
 
 abstract class StatefulCaseRef[F[_] : Monad, S](stateRef: Ref[F, S]) extends CaseRef[F] {
 
