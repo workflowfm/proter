@@ -4,6 +4,7 @@ package cases
 import cats.MonadError
 import cats.implicits._
 import cats.effect.IO
+import cats.effect.implicits._
 import cats.effect.testing.scalatest.AsyncIOSpec
 
 import java.util.UUID
@@ -19,11 +20,18 @@ import cats.effect.std.Random
 import cats.Monad
 import cats.effect.std.UUIDGen
 import cats.effect.kernel.Ref
+import cats.effect.kernel.Sync
+import scala.reflect.ClassTag
+import org.scalatest.compatible.Assertion
+import org.scalatest.Assertions
+import scala.util.Try
 
 class CaseTests extends CaseTester {
 
 //  import MockManager._
 //  given ExecutionContextExecutor = ExecutionContext.global
+
+  given ClassTag[Simulation.SimulationStoppingException] = ClassTag(classOf[Simulation.SimulationStoppingException])
 
   "Cases" should {
 
@@ -63,7 +71,7 @@ class CaseTests extends CaseTester {
       } yield ()
     }
 
-    "interact correctly having 2 tasks in sequence with callback" in {
+    "interact correctly having 2 tasks in sequence" in {
       for {
         x <- twoTasks("Case")
         (t1, t2, c1) = x
@@ -95,6 +103,72 @@ class CaseTests extends CaseTester {
       } yield ()
     }
 
+    "interact correctly having 3 tasks in sequence" in {
+      for {
+        x <- threeTasks("Case")
+        (t1, t2, t3, c1) = x
+        random <- Random.scalaUtilRandom[IO]
+
+        ti1 <- t1.create[IO]("Case", 0L)(using Monad[IO], random)
+        ti2 <- t2.create[IO]("Case", 2L)(using Monad[IO], random)
+        ti3 <- t3.create[IO]("Case", 4L)(using Monad[IO], random)
+
+        r1 <- c1.run()
+        _ <- IO (inside(r1) { case CaseReady(r, tasks, abort, _ ) => {
+          r.caseName should be (c1.caseName)
+          tasks.loneElement should be (t1)
+          abort shouldBe empty
+        } } )
+
+        r2 <- c1.completed(2L, Seq(ti1))
+        _ <- IO (inside(r2) { case CaseReady(r, tasks, abort, _ ) => {
+          r.caseName should be (c1.caseName)
+          tasks.loneElement should be (t2)
+          abort shouldBe empty
+        } } )
+
+        r3 <- c1.completed(4L, Seq(ti2))
+        _ <- IO (inside(r3) { case CaseReady(r, tasks, abort, _ ) => {
+          r.caseName should be (c1.caseName)
+          tasks.loneElement should be (t3)
+          abort shouldBe empty
+        } } )
+
+        r4 <- c1.completed(6L, Seq(ti3))
+        _ <- IO ( inside(r4) { case CaseDone(r, result) => {
+          r.caseName should be (c1.caseName)
+          result should be (Success((ti3, 6L)))
+        } } )
+
+      } yield ()
+    }
+
+    "stop between 2 tasks in sequence" in {
+      for {
+        x <- twoTasksStopping("Case")
+        (t1, t2, c1) = x
+        random <- Random.scalaUtilRandom[IO]
+
+        ti1 <- t1.create[IO]("Case", 0L)(using Monad[IO], random)
+        ti2 <- t2.create[IO]("Case", 2L)(using Monad[IO], random)
+
+        r1 <- c1.run()
+        _ <- IO (inside(r1) { case CaseReady(r, tasks, abort, _ ) => {
+          r.caseName should be (c1.caseName)
+          tasks.loneElement should be (t1)
+          abort shouldBe empty
+        } } )
+
+        r2 <- c1.completed(2L, Seq(ti1))
+        _ <- IO (inside(r2) { case CaseReady(r, tasks, abort, _ ) => {
+          r.caseName should be (c1.caseName)
+          tasks.loneElement should be (t2)
+          abort shouldBe empty
+        } } )
+
+        u <- c1.stop().assertThrows[CallbackCalledException.type]
+      } yield (u)
+    }
   }
 }
 
@@ -108,10 +182,9 @@ trait CaseTester extends AsyncWordSpec with AsyncIOSpec with Matchers with Insid
   }
 
   def twoTasks(
-      name: String,
-      onFail: Throwable => IO[Seq[CaseResponse]] = _ => IO.pure(Seq()),
-      d1: Long = 2L,
-      d2: Long = 2L
+    name: String,
+    d1: Long = 2L,
+    d2: Long = 2L
   ): IO[(Task, Task, AsyncCaseRef[IO])] = for {
 
     id1 <- UUIDGen[IO].randomUUID
@@ -127,85 +200,105 @@ trait CaseTester extends AsyncWordSpec with AsyncIOSpec with Matchers with Insid
 
       val t1callback: Callback = {
         case Success((t, _)) => {
-          task(t2, r => IO.pure(Seq(done(r)))).map(r => Seq(r))
+          task(t2, t2callback).map(r => Seq(r))
         }
-        case Failure(ex) => onFail(ex)
+        case Failure(ex) => Assertions.fail("Failure on t1 callback")
+      }
+
+      val t2callback: Callback = {
+        case Success((task, time)) => {
+          IO.pure(Seq(done(Success(task, time))))
+        }
+        case Failure(ex) => Assertions.fail("Failure on t2 callback")
       }
 
       override def run(): IO[CaseResponse] = task(t1, t1callback)
     }
   } yield ((t1, t2, myCase))
 
-/*
-  class ThreeFutureTasks(
-      override val name: String,
-      override protected val manager: Manager,
-      onFail: Throwable => Unit = _ => (),
-      d1: Long = 2L,
-      d2: Long = 2L,
-      d3: Long = 3L
-  )(
-      using ExecutionContext
-  ) extends AsyncSimulation
-      with FutureTasks {
+  def twoTasksStopping(
+    name: String,
+    onFail: Throwable => IO[Assertion] = _ => IO.pure(succeed),
+    d1: Long = 2L,
+    d2: Long = 2L
+  ): IO[(Task, Task, AsyncCaseRef[IO])] = for {
 
-    val id1 = UUID.randomUUID
-    val id2 = UUID.randomUUID
-    val id3 = UUID.randomUUID
+    id1 <- UUIDGen[IO].randomUUID
+    id2 <- UUIDGen[IO].randomUUID
 
-    val t1: Task = Task("task1", d1) withID id1 withResources Seq("r1")
-    val t2: Task = Task("task2", d2) withID id2 withResources Seq("r1")
-    val t3: Task = Task("task3", d3) withID id3 withResources Seq("r1")
+    t1: Task = Task("task1", d1) withID id1 withResources Seq("r1")
+    t2: Task = Task("task2", d2) withID id2 withResources Seq("r1")
 
-    override def run(): Unit = {
-      val task1 = futureTask(t1)
-      ready()
-      val task2 = task1 flatMap { _ =>
-        val t = futureTask(t2)
-        ack(Seq(id1))
-        t
+    state <- Ref[IO].of[Map[UUID, AsyncCaseRef.Callback[IO]]](Map()) 
+
+    myCase = new AsyncCaseRef[IO](state) {
+      val caseName: String = name
+
+      val t1callback: Callback = {
+        case Success((t, _)) => {
+          task(t2, t2callback).map(r => Seq(r))
+        }
+        case Failure(ex) => Assertions.fail("Failure on t1 callback")
       }
-      val task3 = task2 flatMap { _ =>
-        val t = futureTask(t3)
-        ack(Seq(id2))
-        t
+
+      val t2callback: Callback = {
+        case Success((task, time)) => Assertions.fail("Unexpected success on stopped t2 callback")
+        case Failure(ex) => {
+          ex shouldBe a [Simulation.SimulationStoppingException]
+          IO.raiseError(CallbackCalledException)
+        }
       }
-      task3.onComplete {
-        case Failure(ex) => onFail(ex)
-        case _ => ()
-      }
-      task3.onComplete(done)
+
+      override def run(): IO[CaseResponse] = task(t1, t1callback)
     }
-  }
+  } yield ((t1, t2, myCase))
 
-  class TwoTasks(
-      override val name: String,
-      override protected val manager: Manager,
-      onFail: Throwable => Unit = _ => (),
-      d1: Long = 2L,
-      d2: Long = 2L
-  ) extends AsyncSimulation {
+  def threeTasks(
+    name: String,
+    onFail: Throwable => IO[Assertion] = _ => IO.pure(succeed),
+    d1: Long = 2L,
+    d2: Long = 2L,
+    d3: Long = 3L
+  ): IO[(Task, Task, Task, AsyncCaseRef[IO])] = for {
 
-    val id1 = UUID.randomUUID
-    val id2 = UUID.randomUUID
+    id1 <- UUIDGen[IO].randomUUID
+    id2 <- UUIDGen[IO].randomUUID
+    id3 <- UUIDGen[IO].randomUUID
 
-    val t1: Task = Task("task1", d1) withID id1 withResources Seq("r1")
-    val t2: Task = Task("task2", d2) withID id2 withResources Seq("r1")
+    t1: Task = Task("task1", d1) withID id1 withResources Seq("r1")
+    t2: Task = Task("task2", d2) withID id2 withResources Seq("r1")
+    t3: Task = Task("task3", d2) withID id2 withResources Seq("r1")
 
-    val callback: Callback = {
-      case Success((t, _)) => {
-        task(t2, r => done(r))
-        ack(Seq(t.id))
+    state <- Ref[IO].of[Map[UUID, AsyncCaseRef.Callback[IO]]](Map())
+
+    myCase = new AsyncCaseRef[IO](state) {
+      val caseName: String = name
+
+      val t1callback: Callback = {
+        case Success((t, _)) => {
+          task(t2, t2callback).map(r => Seq(r))
+        }
+        case Failure(ex) => Assertions.fail("Failure on t1 callback")
       }
-      case Failure(ex) => onFail(ex)
-    }
 
-    override def run(): Unit = {
-      task(t1, callback)
-      ready()
+      val t2callback: Callback = {
+        case Success((t, _)) => {
+          task(t3, t3callback).map(r => Seq(r))
+        }
+        case Failure(ex) => Assertions.fail("Failure on t2 callback")
+      }
+
+      val t3callback: Callback = {
+        case Success((task, time)) => {
+          IO.pure(Seq(done(Success(task, time))))
+        }
+        case Failure(ex) => Assertions.fail("Failure on t3 callback")
+      }
+
+      override def run(): IO[CaseResponse] = task(t1, t1callback)
     }
-  }
- */
+  } yield ((t1, t2, t3, myCase))
+
   // class SimLookaheadSeq(name: String, coordinator: ActorRef)
   // (implicit executionContext: ExecutionContext)
   // extends AsyncSimulation(name,coordinator) with Lookahead {
@@ -235,5 +328,9 @@ trait CaseTester extends AsyncWordSpec with AsyncIOSpec with Matchers with Insid
   //     }
   // }
 
+  case object CallbackCalledException extends Exception("Callback called!")
 }
+
+
+
 

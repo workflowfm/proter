@@ -241,8 +241,9 @@ abstract class AsyncCaseRef[F[_] : Monad : UUIDGen](callbacks: Ref[F, Map[UUID, 
     */
   override def stop(): F[Unit] = for {
     fs <- callbacks.modify { m => (Map(), m.values) }
-    _ = fs.map( f => f(Failure(Simulation.SimulationStoppingException())) )
-  } yield ()
+    ios = fs.map( f => f(Failure(Simulation.SimulationStoppingException())) ).toList
+    u <- ios.foldRight(Monad[F].pure(())) { (i, u) => i.flatMap(_ => u)  } // sequence_ didn't work here!
+  } yield (u)
 }
 
 object AsyncCaseRef {
