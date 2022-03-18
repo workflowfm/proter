@@ -1,37 +1,26 @@
 package com.workflowfm.proter
 package cases
 
-import cats.MonadError
+import cats.{ Monad, MonadError }
 import cats.implicits._
 import cats.effect.IO
 import cats.effect.implicits._
+import cats.effect.kernel.Ref
+import cats.effect.std.{ Random, UUIDGen }
 import cats.effect.testing.scalatest.AsyncIOSpec
 
 import java.util.UUID
 
 import scala.concurrent._
-import scala.util.{ Failure, Success }
+import scala.util.{ Failure, Success, Try }
 
 import org.scalatest.Inside
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
-import org.scalatest.LoneElement
-import cats.effect.std.Random
-import cats.Monad
-import cats.effect.std.UUIDGen
-import cats.effect.kernel.Ref
-import cats.effect.kernel.Sync
-import scala.reflect.ClassTag
-import org.scalatest.compatible.Assertion
-import org.scalatest.Assertions
-import scala.util.Try
+import org.scalatest.{ Assertions, LoneElement }
+
 
 class CaseTests extends CaseTester {
-
-//  import MockManager._
-//  given ExecutionContextExecutor = ExecutionContext.global
-
-  given ClassTag[Simulation.SimulationStoppingException] = ClassTag(classOf[Simulation.SimulationStoppingException])
 
   "Cases" should {
 
@@ -62,7 +51,7 @@ class CaseTests extends CaseTester {
           abort shouldBe empty
         } } )
 
-        ti1 <- t1.create[IO]("Case", 0L)(using Monad[IO], random)
+        ti1 <- t1.create[IO]("Case", 0L)(using random, Monad[IO])
         r2 <- ref.completed(ti1.duration, Seq(ti1))
         _ <- IO ( inside(r2) { case CaseDone(r, result) => {
           r.caseName should be (ref.caseName)
@@ -77,8 +66,8 @@ class CaseTests extends CaseTester {
         (t1, t2, c1) = x
         random <- Random.scalaUtilRandom[IO]
 
-        ti1 <- t1.create[IO]("Case", 0L)(using Monad[IO], random)
-        ti2 <- t2.create[IO]("Case", 2L)(using Monad[IO], random)
+        ti1 <- t1.create[IO]("Case", 0L)(using random, Monad[IO])
+        ti2 <- t2.create[IO]("Case", 2L)(using random, Monad[IO])
 
         r1 <- c1.run()
         _ <- IO (inside(r1) { case CaseReady(r, tasks, abort, _ ) => {
@@ -109,9 +98,9 @@ class CaseTests extends CaseTester {
         (t1, t2, t3, c1) = x
         random <- Random.scalaUtilRandom[IO]
 
-        ti1 <- t1.create[IO]("Case", 0L)(using Monad[IO], random)
-        ti2 <- t2.create[IO]("Case", 2L)(using Monad[IO], random)
-        ti3 <- t3.create[IO]("Case", 4L)(using Monad[IO], random)
+        ti1 <- t1.create[IO]("Case", 0L)(using random, Monad[IO])
+        ti2 <- t2.create[IO]("Case", 2L)(using random, Monad[IO])
+        ti3 <- t3.create[IO]("Case", 4L)(using random, Monad[IO])
 
         r1 <- c1.run()
         _ <- IO (inside(r1) { case CaseReady(r, tasks, abort, _ ) => {
@@ -149,8 +138,8 @@ class CaseTests extends CaseTester {
         (t1, t2, c1) = x
         random <- Random.scalaUtilRandom[IO]
 
-        ti1 <- t1.create[IO]("Case", 0L)(using Monad[IO], random)
-        ti2 <- t2.create[IO]("Case", 2L)(using Monad[IO], random)
+        ti1 <- t1.create[IO]("Case", 0L)(using random, Monad[IO])
+        ti2 <- t2.create[IO]("Case", 2L)(using random, Monad[IO])
 
         r1 <- c1.run()
         _ <- IO (inside(r1) { case CaseReady(r, tasks, abort, _ ) => {
@@ -218,7 +207,6 @@ trait CaseTester extends AsyncWordSpec with AsyncIOSpec with Matchers with Insid
 
   def twoTasksStopping(
     name: String,
-    onFail: Throwable => IO[Assertion] = _ => IO.pure(succeed),
     d1: Long = 2L,
     d2: Long = 2L
   ): IO[(Task, Task, AsyncCaseRef[IO])] = for {
@@ -255,7 +243,6 @@ trait CaseTester extends AsyncWordSpec with AsyncIOSpec with Matchers with Insid
 
   def threeTasks(
     name: String,
-    onFail: Throwable => IO[Assertion] = _ => IO.pure(succeed),
     d1: Long = 2L,
     d2: Long = 2L,
     d3: Long = 3L
