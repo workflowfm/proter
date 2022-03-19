@@ -145,6 +145,15 @@ case class ResourceMap(resources: Map[String, ResourceState]) {
 
     folded.map { stateUpdates => copy(resources = resources ++ stateUpdates) }
   }
+
+  def isIdle(r: String): Boolean = resources.get(r) match {
+    case None => false
+    case Some(resourceState) => resourceState.isIdle
+  }
+
+  def getIdle(): ResourceMap = copy(resources = resources.filter(_._2.isIdle))
+
+  def --(toRemove: Seq[String]): ResourceMap = copy(resources = resources -- toRemove)
 }
 
 

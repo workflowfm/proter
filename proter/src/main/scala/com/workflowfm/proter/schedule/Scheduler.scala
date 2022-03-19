@@ -1,19 +1,13 @@
-package com.workflowfm.proter.schedule
+package com.workflowfm.proter
+package schedule
 
 import java.util.UUID
 
 import scala.annotation.tailrec
 import scala.collection.immutable.Map
-import scala.collection.mutable.SortedSet
+import scala.collection.immutable.Queue
 
-import com.workflowfm.proter.{ TaskInstance, TaskResource, Lookahead, NoLookahead }
-
-/*
-/**
-  * A scheduler selects the next [[TaskInstance]]s to be started by the [[Coordinator]] at a given
-  * time.
-  */
-trait Scheduler {
+trait Scheduler[C[_]] {
 
   /**
     * Determines which [[TaskInstance]]s to start next.
@@ -30,171 +24,10 @@ trait Scheduler {
     *   The sequence of [[TaskInstance]]s to start now.
     */
   def getNextTasks(
-      currentTime: Long,
-      resourceMap: Map[String, TaskResource]
-  ): Seq[TaskInstance]
-
-  /**
-    * Checks if a named [[TaskResource]] is idle.
-    *
-    * @param r
-    *   The name of the [[TaskResource]].
-    * @param resourceMap
-    *   The map of available [[TaskResource]]s.
-    * @return
-    *   true if the resource is idle, false otherwise.
-    */
-  def isIdleResource(r: String, resourceMap: Map[String, TaskResource]): Boolean =
-    resourceMap.get(r) match {
-      case None => false
-      case Some(s) => s.isIdle
-    }
-
-  /**
-    * Sets the lookahead structure for the specified actor.
-    *
-    * @param actor
-    *   The actor that created this lookahead structure.
-    * @param obj
-    *   The lookahead structure.
-    */
-  def setLookahead(simulation: String, obj: Lookahead): Unit = ()
-
-  /**
-    * Removes the lookahead structure associated with the given actor.
-    *
-    * @param actor
-    *   The actor corresponding to the lookahead structure.
-    */
-  def removeLookahead(simulation: String): Unit = ()
-
-  /**
-    * Adds an Task described by an (ID,time) pair to the list of completed IDs
-    *
-    * @param id
-    *   The ID to be added
-    * @param time
-    *   The time at which the task completed
-    * @return
-    *   A LookaheadStructure with this (ID,time) pair added to the list of completed tasks
-    */
-  def complete(task: TaskInstance, time: Long): Unit = ()
-
-  /**
-    * Retrieves an iterable collection of queued [[TaskInstance]]s.
-    *
-    * @return
-    *   The [[TaskInstance]]s in the scheduling queue.
-    */
-  def getTasks(): Iterable[TaskInstance]
-
-  /**
-    * Adds a [[TaskInstance]] to be scheduled.
-    *
-    * @param task
-    *   The [[TaskInstance]] to add.
-    */
-  def addTask(task: TaskInstance): Unit
-
-  /**
-    * Removes a [[TaskInstance]] that no longer needs scheduling.
-    *
-    * @param task
-    *   The [[TaskInstance]] to remove.
-    */
-  def removeTask(task: TaskInstance): Unit
-
-  /**
-    * Removes all [[TaskInstance]]s belonging to an (presumably aborted) simulation.
-    *
-    * @param simulation
-    *   The name of the simulation that was aborted.
-    */
-  def removeSimulation(simulation: String): Unit
-
-  /**
-    * Checks if all [[Task]]s have been scheduled.
-    *
-    * @return
-    *   true if there are no [[Task]]s remaining.
-    */
-  def noMoreTasks(): Boolean
-
-}
-
-trait QueueScheduler extends Scheduler {
-  import scala.collection.mutable.Queue
-
-  /**
-    * A queue of tasks that need to be run.
-    */
-  val tasks: Queue[TaskInstance] = Queue()
-
-  /**
-    * @inheritdoc
-    */
-  override def getTasks(): Iterable[TaskInstance] = tasks
-
-  /**
-    * @inheritdoc
-    */
-  override def addTask(task: TaskInstance): Unit = tasks += task
-
-  /**
-    * @inheritdoc
-    */
-  override def removeTask(task: TaskInstance): Unit = tasks.dequeueFirst(_.id.equals(task.id))
-
-  /**
-    * @inheritdoc
-    */
-  override def removeSimulation(simulation: String): Unit =
-    tasks.dequeueAll(_.simulation == simulation)
-
-  /**
-    * @inheritdoc
-    */
-  override def noMoreTasks(): Boolean = tasks.isEmpty
-
-}
-
-/**
-  * A [[Scheduler]] trait that uses a `SortedSet`.
-  *
-  * Forms the basis for priority-based schedulers.
-  */
-abstract class PriorityScheduler(using ordering: Ordering[TaskInstance]) extends Scheduler {
-
-  /**
-    * A sorted queue of tasks that need to be run.
-    */
-  val tasks: SortedSet[TaskInstance] = SortedSet()(ordering)
-
-  /**
-    * @inheritdoc
-    */
-  override def getTasks(): Iterable[TaskInstance] = tasks
-
-  /**
-    * @inheritdoc
-    */
-  override def addTask(task: TaskInstance): Unit = tasks += task
-
-  /**
-    * @inheritdoc
-    */
-  override def removeTask(task: TaskInstance): Unit = tasks -= task
-
-  /**
-    * @inheritdoc
-    */
-  override def removeSimulation(simulation: String): Unit =
-    tasks --= tasks.filter(_.simulation == simulation)
-
-  /**
-    * @inheritdoc
-    */
-  override def noMoreTasks(): Boolean = tasks.isEmpty
+    currentTime: Long,
+    tasks: C[TaskInstance],
+    resourceMap: ResourceMap
+  ): (Seq[TaskInstance],C[TaskInstance])
 
 }
 
@@ -206,14 +39,14 @@ abstract class PriorityScheduler(using ordering: Ordering[TaskInstance]) extends
   * This means a lower priority task may start now and block a higher priority task which is
   * currently blocked, but could have started soon.
   */
-trait GreedyScheduler extends Scheduler {
-  import scala.collection.immutable.Queue
+trait GreedyScheduler extends Scheduler[Queue] {
 
   override def getNextTasks(
-      currentTime: Long,
-      resourceMap: Map[String, TaskResource]
-  ): Seq[TaskInstance] = {
-    findNextTasks(resourceMap.filter(_._2.isIdle), getTasks(), Queue())
+    currentTime: Long,
+    tasks: Queue[TaskInstance],
+    resourceMap: ResourceMap
+  ): (Seq[TaskInstance],Queue[TaskInstance]) = {
+    findNextTasks(resourceMap.getIdle(), tasks, Queue())
   }
 
   /**
@@ -233,8 +66,8 @@ trait GreedyScheduler extends Scheduler {
     */
   @tailrec
   final protected def findNextTasks(
-      idleResources: Map[String, TaskResource],
-      tasks: Iterable[TaskInstance],
+      idleResources: ResourceMap,
+      tasks: Queue[TaskInstance],
       result: Queue[TaskInstance]
   ): Seq[TaskInstance] =
     if tasks.isEmpty then result
@@ -245,7 +78,7 @@ trait GreedyScheduler extends Scheduler {
       else findNextTasks(idleResources, tasks.tail, result)
     }
 }
-
+/*
 /**
   * A strict [[Scheduler]].
   *
