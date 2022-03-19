@@ -80,18 +80,6 @@ class TaskInstance(
   }
 
   /**
-    * The actual [[TaskResource]]s required. Retrieves the actual objects (instead of just their
-    * names) from a map.
-    *
-    * @param resourceMap
-    *   The map of available [[TaskResource]]s
-    * @return
-    *   The [[TaskResource]]s required for this task.
-    */
-  def taskResources(resourceMap: collection.Map[String, TaskResource]): Seq[TaskResource] =
-    resources flatMap (resourceMap.get(_))
-
-  /**
     * Ordering of tasks.
     *
     * This method essentially dictates the priority of tasks in the queue, highest to lowest.

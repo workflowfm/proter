@@ -154,6 +154,19 @@ case class ResourceMap(resources: Map[String, ResourceState]) {
   def getIdle(): ResourceMap = copy(resources = resources.filter(_._2.isIdle))
 
   def --(toRemove: Seq[String]): ResourceMap = copy(resources = resources -- toRemove)
+
+  /**
+    * The actual [[TaskResource]]s required. Retrieves the actual objects (instead of just their
+    * names) from a map.
+    *
+    * @param resourceMap
+    *   The map of available [[TaskResource]]s
+    * @return
+    *   The [[TaskResource]]s required for this task.
+    */
+  def get(task: TaskInstance): Seq[ResourceState] =
+    task.resources flatMap (resources.get(_))
+
 }
 
 

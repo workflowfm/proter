@@ -4,10 +4,9 @@ package schedule
 import java.util.UUID
 
 import scala.annotation.tailrec
-import scala.collection.immutable.Map
-import scala.collection.immutable.Queue
+import scala.collection.immutable.{ Map, SortedSet, Queue }
 
-trait Scheduler[C[_]] {
+trait Scheduler {
 
   /**
     * Determines which [[TaskInstance]]s to start next.
@@ -25,9 +24,9 @@ trait Scheduler[C[_]] {
     */
   def getNextTasks(
     currentTime: Long,
-    tasks: C[TaskInstance],
+    tasks: Iterable[TaskInstance],
     resourceMap: ResourceMap
-  ): (Seq[TaskInstance],C[TaskInstance])
+  ): Seq[TaskInstance]
 
 }
 
@@ -39,13 +38,13 @@ trait Scheduler[C[_]] {
   * This means a lower priority task may start now and block a higher priority task which is
   * currently blocked, but could have started soon.
   */
-trait GreedyScheduler extends Scheduler[Queue] {
+case class GreedyScheduler(strict: Boolean) extends Scheduler {
 
   override def getNextTasks(
     currentTime: Long,
-    tasks: Queue[TaskInstance],
+    tasks: Iterable[TaskInstance],
     resourceMap: ResourceMap
-  ): (Seq[TaskInstance],Queue[TaskInstance]) = {
+  ): Seq[TaskInstance] = {
     findNextTasks(resourceMap.getIdle(), tasks, Queue())
   }
 
@@ -66,133 +65,20 @@ trait GreedyScheduler extends Scheduler[Queue] {
     */
   @tailrec
   final protected def findNextTasks(
-      idleResources: ResourceMap,
-      tasks: Queue[TaskInstance],
-      result: Queue[TaskInstance]
+    idleResources: ResourceMap,
+    tasks: Iterable[TaskInstance],
+    result: Queue[TaskInstance]
   ): Seq[TaskInstance] =
     if tasks.isEmpty then result
     else {
       val t = tasks.head
-      if t.resources.forall(idleResources.contains) then
+      if t.resources.forall(idleResources.resources.contains) then
         findNextTasks(idleResources -- t.resources, tasks.tail, result :+ t)
+      else if strict then 
+        findNextTasks(idleResources -- t.resources, tasks.tail, result)
+
       else findNextTasks(idleResources, tasks.tail, result)
     }
-}
-/*
-/**
-  * A strict [[Scheduler]].
-  *
-  * Starts all tasks whose resources are currently idle, in the given order/priority.
-  *
-  * Does not consider resources of higher priority tasks. This means that idle resources may be
-  * blocked by queued high priority tasks that cannot start yet.
-  */
-trait StrictScheduler extends Scheduler {
-  import scala.collection.immutable.Queue
-
-  override def getNextTasks(
-      currentTime: Long,
-      resourceMap: Map[String, TaskResource]
-  ): Seq[TaskInstance] = {
-    findNextTasks(resourceMap.filter(_._2.isIdle), getTasks(), Queue())
-  }
-
-  /**
-    * Finds the [[Task]]s that can be started now.
-    *
-    * Goes through the priority list of tasks and returns those whose resources are idle (even after
-    * any queued higher priority task).
-    *
-    * @param idleResources
-    *   The map of idle [[TaskResource]]s.
-    * @param tasks
-    *   The set of [[TaskInstance]]s that need to start.
-    * @param result
-    *   The accumulated [[TaskInstance]]s so far (for tail recursion).
-    * @return
-    *   The sequence of [[TaskInstance]]s to start now.
-    */
-  @tailrec
-  final protected def findNextTasks(
-      idleResources: Map[String, TaskResource],
-      tasks: Iterable[TaskInstance],
-      result: Queue[TaskInstance]
-  ): Seq[TaskInstance] =
-    if tasks.isEmpty then result
-    else {
-      val t = tasks.head
-      if t.resources.forall(idleResources.contains) then
-        findNextTasks(idleResources -- t.resources, tasks.tail, result :+ t)
-      else findNextTasks(idleResources -- t.resources, tasks.tail, result)
-    }
-}
-
-/**
-  * A greedy First-Come-First-Served [[Scheduler]].
-  *
-  * Starts all tasks whose resources are currently idle, in order of arrival in the queue.
-  *
-  * This means a task that arrived later may start now and block an earlier task which is currently
-  * blocked, but could have started soon.
-  *
-  * Ignores creation time. Only cares about order in the queue.
-  *
-  * @param initialTasks
-  *   Initial [[TaskInstance]]s in the queue, if any.
-  */
-class GreedyFCFSScheduler(initialTasks: TaskInstance*) extends QueueScheduler with GreedyScheduler {
-  tasks ++= initialTasks
-}
-
-/**
-  * A strict First-Come-First-Served [[Scheduler]].
-  *
-  * Starts all tasks whose resources are currently idle, in order of arrival in the queue.
-  *
-  * Considers resources of earlier tasks as busy even if they are not. This means that idle
-  * resources may be blocked by tasks earlier in the queue that cannot start yet.
-  *
-  * Ignores creation time. Only cares about order in the queue.
-  *
-  * @param initialTasks
-  *   Initial [[TaskInstance]]s in the queue, if any.
-  */
-class StrictFCFSScheduler(initialTasks: TaskInstance*) extends QueueScheduler with StrictScheduler {
-  tasks ++= initialTasks
-}
-
-/**
-  * A greedy priority [[Scheduler]].
-  *
-  * Starts all tasks whose resources are currently idle, in order of priority.
-  *
-  * This means a lower priority task may start now and block a higher priority task which is
-  * currently blocked, but could have started soon.
-  *
-  * @param initialTasks
-  *   Initial [[TaskInstance]]s in the queue, if any.
-  */
-class GreedyPriorityScheduler(initialTasks: TaskInstance*)
-    extends PriorityScheduler
-    with GreedyScheduler {
-  tasks ++= initialTasks
-}
-
-/**
-  * A strict priority [[Scheduler]].
-  *
-  * Starts all tasks whose resources are currently idle, in order of priority.
-  *
-  * Considers resources of higher priority tasks as busy even if they are not. This means that idle
-  * resources may be blocked by queued high priority tasks that cannot start yet.
-  *
-  * @param initialTasks
-  *   Initial [[TaskInstance]]s in the queue, if any.
-  */
-class StrictPriorityScheduler(initialTasks: TaskInstance*)
-    extends PriorityScheduler
-    with StrictScheduler {
-  tasks ++= initialTasks
 }
 
 /**
@@ -206,10 +92,7 @@ class StrictPriorityScheduler(initialTasks: TaskInstance*)
   * @param initialTasks
   *   Initial [[TaskInstance]]s in the queue, if any.
   */
-class ProterScheduler(initialTasks: TaskInstance*) extends PriorityScheduler {
-  import scala.collection.immutable.Queue
-
-  tasks ++= initialTasks
+case object ProterScheduler extends Scheduler {
 
   /**
     * @inheritdoc
@@ -228,13 +111,14 @@ class ProterScheduler(initialTasks: TaskInstance*) extends PriorityScheduler {
     *   The sequence of [[TaskInstance]]s to start now.
     */
   override def getNextTasks(
-      currentTime: Long,
-      resourceMap: Map[String, TaskResource]
+    currentTime: Long,
+    tasks: Iterable[TaskInstance],
+    resourceMap: ResourceMap
   ): Seq[TaskInstance] =
     findNextTasks(
       currentTime,
       resourceMap,
-      resourceMap.view.mapValues(Schedule(_)).toMap,
+      resourceMap.resources.view.mapValues(Schedule(_)).toMap,
       tasks,
       Queue()
     )
@@ -270,9 +154,9 @@ class ProterScheduler(initialTasks: TaskInstance*) extends PriorityScheduler {
   @tailrec
   final protected def findNextTasks(
       currentTime: Long,
-      resourceMap: Map[String, TaskResource],
+      resourceMap: ResourceMap,
       schedules: Map[String, Schedule],
-      tasks: SortedSet[TaskInstance],
+      tasks: Iterable[TaskInstance],
       result: Queue[TaskInstance]
   ): Seq[TaskInstance] =
     if tasks.isEmpty then result
@@ -283,12 +167,13 @@ class ProterScheduler(initialTasks: TaskInstance*) extends PriorityScheduler {
         s + (r -> (s.getOrElse(r, Schedule()) +> (start, t)))
       }
       val result2 =
-        if start == currentTime && t.taskResources(resourceMap).forall(_.isIdle) then result :+ t
+        if start == currentTime && resourceMap.get(t).forall(_.isIdle) then result :+ t
         else result
       findNextTasks(currentTime, resourceMap, schedules2, tasks.tail, result2)
     }
 }
 
+/*
 /**
   * A [[Scheduler]] to be used for look-ahead.
   *

@@ -1,15 +1,14 @@
-package com.workflowfm.proter.schedule
+package com.workflowfm.proter
+package schedule
 
 import scala.annotation.tailrec
 
-import com.workflowfm.proter.{ TaskInstance, TaskResource }
-
 /**
-  * A list of time intervals during which a [[TaskResource]] is scheduled to be busy.
+  * A list of time intervals during which a [[Resource]] is scheduled to be busy.
   *
   * Each interval is represented as a pair of timestamps.
   * @example
-  *   Schedule(List( (1L,2L), (3L,4L) )) // The corresponding [[TaskResource]] is scheduled to be
+  *   Schedule(List( (1L,2L), (3L,4L) )) // The corresponding [[Resource]] is scheduled to be
   *   busy between `1L` and `2L` and between `3L` and `4L`, and idle between `0L` and `1L`, between
   *   `2L` and `3L` and after `4L`.
   *
@@ -170,15 +169,15 @@ object Schedule {
   def apply(): Schedule = Schedule(List.empty[(Long, Long)])
 
   /**
-    * Creates a [[Schedule]] from a [[TaskResource]] based on its currently running [[TaskInstance]]
+    * Creates a [[Schedule]] from a [[ResourceState]] based on its currently running [[TaskInstance]]
     * (if any).
     *
     * @param r
-    *   The [[TaskResource]] to schedule for.
+    *   The [[ResourceState]] to schedule for.
     * @return
     *   The initialised schedule.
     */
-  def apply(r: TaskResource): Schedule = r.currentTask match {
+  def apply(r: ResourceState): Schedule = r.currentTask match {
     case None => Schedule()
     case Some((s, t)) => Schedule((s, s + t.estimatedDuration) :: Nil)
   }
