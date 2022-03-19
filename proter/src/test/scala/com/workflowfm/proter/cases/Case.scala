@@ -158,6 +158,39 @@ class CaseTests extends CaseTester {
         u <- c1.stop().assertThrows[CallbackCalledException.type]
       } yield (u)
     }
+
+    "stop between 1+2 tasks in an AsyncCase" in {
+      for {
+        x <- threeTasksStoppingCase(2L, 2L, 2L)
+        (t1, t2, t3, c) = x
+        c1 <- c.init("Case", ())
+        random <- Random.scalaUtilRandom[IO]
+
+        ti1 <- t1.create[IO]("Case", 0L)(using random, Monad[IO])
+        ti2 <- t2.create[IO]("Case", 2L)(using random, Monad[IO])
+
+        r1 <- c1.run()
+        _ <- IO (inside(r1) { case CaseReady(r, tasks, abort, _ ) => {
+          r.caseName should be (c1.caseName)
+          tasks.loneElement should be (t1)
+          abort shouldBe empty
+        } } )
+
+        r2 <- c1.completed(2L, Seq(ti1))
+        _ <- IO (inside(r2) { case CaseReady(r, tasks, abort, _ ) => {
+          r.caseName should be (c1.caseName)
+          tasks.size should be (2)
+          tasks should contain (t2)
+          tasks should contain (t3)
+          abort shouldBe empty
+        } } )
+
+        u <- c1.stop().assertThrows[CallbackCalledException.type]
+      } yield (u)
+    }
+
+
+
   }
 }
 
@@ -254,7 +287,7 @@ trait CaseTester extends AsyncWordSpec with AsyncIOSpec with Matchers with Insid
 
     t1: Task = Task("task1", d1) withID id1 withResources Seq("r1")
     t2: Task = Task("task2", d2) withID id2 withResources Seq("r1")
-    t3: Task = Task("task3", d2) withID id2 withResources Seq("r1")
+    t3: Task = Task("task3", d3) withID id3 withResources Seq("r1")
 
     state <- Ref[IO].of[Map[UUID, AsyncCaseRef.Callback[IO]]](Map())
 
@@ -283,6 +316,43 @@ trait CaseTester extends AsyncWordSpec with AsyncIOSpec with Matchers with Insid
       }
 
       override def run(): IO[CaseResponse] = task(t1, t1callback)
+    }
+  } yield ((t1, t2, t3, myCase))
+
+
+  def threeTasksStoppingCase(
+    d1: Long = 2L,
+    d2: Long = 2L,
+    d3: Long = 3L
+  ): IO[(Task, Task, Task, AsyncCase[IO, Unit])] = for {
+
+    id1 <- UUIDGen[IO].randomUUID
+    id2 <- UUIDGen[IO].randomUUID
+    id3 <- UUIDGen[IO].randomUUID
+
+    t1: Task = Task("task1", d1) withID id1 withResources Seq("r1")
+    t2: Task = Task("task2", d2) withID id2 withResources Seq("r1")
+    t3: Task = Task("task3", d3) withID id3 withResources Seq("r1")
+
+    myCase = new AsyncCase[IO, Unit] {
+
+      def t1callback(cs: AsyncCaseRef[IO]): Callback = {
+        case Success((t, _)) => Seq(
+          cs.task(t2, t2callback),
+          cs.task(t3, t2callback)
+        ).sequence
+        case Failure(ex) => Assertions.fail("Failure on t1 callback")
+      }
+
+      val t2callback: Callback = {
+        case Success((task, time)) => Assertions.fail("Unexpected success on stopped t2 callback")
+        case Failure(ex) => {
+          ex shouldBe a [Simulation.SimulationStoppingException]
+          IO.raiseError(CallbackCalledException)
+        }
+      }
+
+      override def run(cs: AsyncCaseRef[IO], t: Unit): IO[CaseResponse] = cs.task(t1, t1callback(cs))
     }
   } yield ((t1, t2, t3, myCase))
 

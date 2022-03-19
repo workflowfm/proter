@@ -123,32 +123,6 @@ abstract class StatefulCaseRef[F[_] : Monad, S](stateRef: Ref[F, S]) extends Cas
 
 }
 
-/*
-trait SyncCase[F[_] : Sync, T, S] extends Case[F, T] { self =>
-  override def init(name: String, t: T): F[CaseRef[F]] = for {
-    ref <- Ref[F].of(initState(t))
-  } yield new StatefulCaseRef[F, S](ref) {
-    override val caseName: String = name
-
-    override def runState: S =>(S, F[CaseResponse]) = self.runState(this)
-
-    override def stopState: S => (S, F[Unit]) = self.stopState
-
-    override def complete(task: TaskInstance, time: Long): S => (S, F[Seq[CaseResponse]]) = self.complete(this, task, time)
-
-  }
-
-  def initState(t: T) : S
-
-  def runState(ref: CaseRef[F]): S => (S, F[CaseResponse])
-
-  def stopState: S => (S, F[Unit])
-
-  def complete(ref: CaseRef[F], task: TaskInstance, time: Long): S => (S, F[Seq[CaseResponse]])
-
-}
- */
-
 abstract class AsyncCaseRef[F[_] : Monad : UUIDGen](callbacks: Ref[F, Map[UUID, AsyncCaseRef.Callback[F]]]) extends StatefulCaseRef[F, Map[UUID, AsyncCaseRef.Callback[F]]](callbacks) {
 
   type Callback = AsyncCaseRef.Callback[F]

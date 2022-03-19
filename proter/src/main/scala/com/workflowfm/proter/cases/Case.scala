@@ -3,6 +3,7 @@ package cases
 
 import cats.Monad
 import cats.implicits._
+import cats.effect.kernel.{ Ref, Sync }
 import cats.effect.std.UUIDGen
 
 import java.util.UUID
@@ -31,5 +32,18 @@ given [F[_]](using Monad[F], UUIDGen[F]): Case[F, Task] with {
   }
 }
 
+
+trait AsyncCase[F[_] : Sync : UUIDGen, T] extends Case[F, T] { self =>
+  type Callback = AsyncCaseRef.Callback[F]
+
+  def init(name: String, t: T): F[CaseRef[F]] = for {
+    state <- Ref[F].of[Map[UUID, Callback]](Map())
+  } yield new AsyncCaseRef[F](state) {
+    override val caseName: String = name
+    override def run(): F[CaseResponse] = self.run(this, t)
+  }
+
+  def run(cs: AsyncCaseRef[F], t: T): F[CaseResponse]
+}
 
 
