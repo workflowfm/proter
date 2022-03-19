@@ -120,7 +120,7 @@ case class ResourceMap(resources: Map[String, ResourceState]) {
     * @param resources
     *   The sequence of [[Resource]]s to be added.
     */
-  def addResources(resourcesToAdd: Seq[Resource]): Unit =       
+  def addResources(resourcesToAdd: Seq[Resource]): ResourceMap =       
     copy(resources ++ (resourcesToAdd.map { r => r.name -> r.start } ))
 
   def finishTask(task: TaskInstance): ResourceMap = {
