@@ -1,7 +1,9 @@
 package com.workflowfm.proter.events
 
 import java.text.SimpleDateFormat
-import java.util.UUID
+
+import cats.Monad
+import cats.implicits._
 
 import scala.collection.mutable.HashSet
 import scala.concurrent.Promise
@@ -12,13 +14,6 @@ import scala.concurrent.Promise
   * Handles a stream of events from a [[Publisher]].
   */
 trait EventHandler {
-  /**
-    * A unique identifier for the handler.
-    *
-    * @return
-    *   a unique identifier
-    */
-  val id: UUID = UUID.randomUUID
 
   /**
     * Handles the initialisation of a new event stream.
@@ -26,7 +21,7 @@ trait EventHandler {
     * @param publisher
     *   The [[Publisher]] that started the stream.
     */
-  def onInit(publisher: Publisher): Unit = ()
+  def onInit[F[_]: Monad](publisher: Publisher[_]): F[Unit] = Monad[F].pure(())
 
   /**
     * Handles an [[Event]] in the stream.
@@ -34,7 +29,7 @@ trait EventHandler {
     * @param event
     *   The [[Event]] to handle.
     */
-  def onEvent(event: Event): Unit = ()
+  def onEvent[F[_]: Monad](event: Event): F[Unit] = Monad[F].pure(())
 
   /**
     * Handles the end of a stream.
@@ -42,7 +37,7 @@ trait EventHandler {
     * @param publisher
     *   The [[Publisher]] that ended the stream.
     */
-  def onDone(publisher: Publisher): Unit = ()
+  def onDone[F[_]: Monad](publisher: Publisher[F]): F[Unit] = Monad[F].pure(())
 
   /**
     * Handles an error in the stream.
@@ -52,9 +47,10 @@ trait EventHandler {
     * @param publisher
     *   The [[Publisher]] that threw the error.
     */
-  def onFail(e: Throwable, publisher: Publisher): Unit = ()
+  def onFail[F[_]: Monad](e: Throwable, publisher: Publisher[F]): F[Unit] = Monad[F].pure(())
 }
 
+/*
 /**
   * An [[EventHandler]] for a pool of [[Coordinator]]s.
   */
@@ -285,3 +281,4 @@ class SimulationResultHandler(name: String, callback: String => Unit = { _ => ()
     */
   override def result = simResult
 }
+ */

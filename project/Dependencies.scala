@@ -11,6 +11,8 @@ object Dependencies {
   val cats = "org.typelevel" %% "cats-effect" % "3.3.7"
   val catsTest = "org.typelevel" %% "cats-effect-testing-scalatest" % "1.4.0" % Test
 
+  val fs2 = "co.fs2" %% "fs2-core" % "3.2.5"
+
   val akkaActor = "com.typesafe.akka" %% "akka-actor" % "2.6.18"
   val akkaTestkit = "com.typesafe.akka" %% "akka-testkit" % "2.6.18" % Test
 
@@ -21,6 +23,7 @@ object Dependencies {
   val common: Seq[ModuleID] = Seq(
     apache,
     cats,
+    fs2,
   )
 
   val testAll: Seq[ModuleID] = Seq(

@@ -33,32 +33,7 @@ trait Manager {
   def simResponse(response: SimResponse): Unit
 }
 /*
-/**
-  * Provides coordination for discrete event simulation of multiple asynchronous simulations.
-  *
-  * Default implementation of [[Manager]].
-  *
-  * It can run in a single thread or multi-threaded depending on the `singleThread` constructor
-  * parameter. In the multi-threaded setting, task completions are reported to the simulations
-  * asynchronously through a new thread (`Future`) each time. This allows simulations to run things
-  * concurrently, with the added overhead of thread spawning.
-  *
-  * @groupname tasks
-  *   Managing tasks
-  * @groupname simulations
-  *   Managing simulations
-  * @groupname resources
-  *   Managing resources
-  * @groupname toplevel
-  *   Top level
-  *
-  * @param scheduler
-  *   The [[schedule.Scheduler Scheduler]] responsible for task allocation at any given time.
-  * @param singleThread
-  *   Flag to run everything in a single thread or else use `Future`s.
-  * @param startingTime
-  *   The starting timestamp of the entire simulation.
-  */
+
 class Coordinator(
     scheduler: Scheduler,
     singleThread: Boolean = false,
