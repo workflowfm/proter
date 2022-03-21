@@ -46,8 +46,12 @@ case class Publisher[F[_]](topic: Topic[F, Either[Throwable, Event]], maxQueued:
     } yield sub.evalMap ( 
       evt => evt match {
         case Left(e) => subscriber.onFail(e, this)
-        case Right(e) => subscriber.onEvent(e)
-      }
+        case Right(e) => {
+          e match {
+            case EDone(_, _) => subscriber.onEvent(e) >> subscriber.onDone(this)
+            case _ => subscriber.onEvent(e)
+          }
+      }}
     ).handleErrorWith (
       ex => Stream.eval(subscriber.onFail(ex, this))
     )
