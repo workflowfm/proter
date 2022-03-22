@@ -28,6 +28,7 @@ object MockHandler {
 
   def of(expected: Event*): IO[MockHandler] = withCalls(Init +: (expected.map(OnEvent(_))) :+ Done *)
 
+  def failing(ex: Throwable, expected: Event*): IO[MockHandler] = withCalls(Init +: (expected.map(OnEvent(_))) :+ OnFail(ex) *)
 }
 
 
