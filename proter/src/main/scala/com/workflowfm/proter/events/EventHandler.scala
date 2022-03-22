@@ -166,9 +166,9 @@ class CaseResultHandler[F[_]: Monad](caseName: String, r: Deferred[F, String]) e
     * result in [[simResult]], unsubscribe, and call the callback function.
     */
   override def onEvent(evt: Event): F[Unit] = evt match {
-    case ESimEnd(_, _, n, r) if n == caseName => {
+    case ECaseEnd(_, _, n, r) if n == caseName => {
 //      publisher.map(_.unsubscribe(this))
-      result.complete(r).void
+      result.complete(r.toString).void
     }
     case _ => super.onEvent(evt)
   }

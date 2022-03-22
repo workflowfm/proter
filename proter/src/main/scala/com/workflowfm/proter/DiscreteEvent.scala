@@ -1,5 +1,7 @@
 package com.workflowfm.proter
 
+import cases.CaseRef
+
 /**
   * Discrete Events that need to be handled by the [[Coordinator]]..
   */
@@ -73,11 +75,11 @@ case class FinishingTask(override val time: Long, task: TaskInstance) extends Di
   * @param simulation
   *   The [[Simulation]] that needs to start.
   */
-case class StartingSim(override val time: Long, simulation: SimulationRef) extends DiscreteEvent {
+case class StartingCase(override val time: Long, caseRef: CaseRef[?]) extends DiscreteEvent {
   override val classOrder: Short = 10
 
   override def sameClassCompare(that: DiscreteEvent): Int = that match {
-    case StartingSim(_, s) => simulation.name.compareTo(s.name)
+    case StartingCase(_, c) => caseRef.caseName.compareTo(c.caseName)
     case _ => 0
   }
 }

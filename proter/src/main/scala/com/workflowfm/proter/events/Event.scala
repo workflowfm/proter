@@ -12,7 +12,7 @@ import com.workflowfm.proter.TaskInstance
   */
 sealed trait Event {
   /**
-    * A string representing the [[Publisher]] that generated the event.
+    * A string representing the [[State]] that generated the event.
     */
   val source: String
 
@@ -45,14 +45,14 @@ case class EResourceAdd(
 ) extends Event
 
 /**
-  * A simulation was added.
+  * A case was added.
   *
   * @param name
-  *   The name of the simulation.
+  *   The name of the case.
   * @param start
-  *   The timestamp when this simulation is scheduled to start.
+  *   The timestamp when this case is scheduled to start.
   */
-case class ESimAdd(
+case class ECaseAdd(
     override val source: String,
     override val time: Long,
     name: String,
@@ -60,23 +60,23 @@ case class ESimAdd(
 ) extends Event
 
 /**
-  * A simulation was started.
+  * A case was started.
   *
   * @param name
-  *   The name of the simulation.
+  *   The name of the case.
   */
-case class ESimStart(override val source: String, override val time: Long, name: String)
+case class ECaseStart(override val source: String, override val time: Long, name: String)
     extends Event
 
 /**
-  * A simulation was finished.
+  * A case was completed.
   *
   * @param name
-  *   The name of the simulation.
+  *   The name of the case.
   * @param result
-  *   The output of the simulation (if any).
+  *   The output of the case (if any).
   */
-case class ESimEnd(
+case class ECaseEnd(
     override val source: String,
     override val time: Long,
     name: String,
@@ -191,9 +191,9 @@ object Event {
     case EStart(src, t) => s"[$t $src] === Simulation started! ==="
     case EDone(src, t) => s"[$t $src] === Simulation complete! ==="
     case EResourceAdd(src, t, n, c) => s"[$t $src] Added resource: $n (CPT:$c)"
-    case ESimAdd(src, t, a, s) => s"[$t $src] Added simulation actor [$a] to be run at: $s"
-    case ESimStart(src, t, n) => s"[$t $src] Starting simulation: $n"
-    case ESimEnd(src, t, n, r) => s"[$t $src] Simulation [$n] completed. Result: $r"
+    case ECaseAdd(src, t, a, s) => s"[$t $src] Added case [$a] to be run at: $s"
+    case ECaseStart(src, t, n) => s"[$t $src] Starting case: $n"
+    case ECaseEnd(src, t, n, r) => s"[$t $src] Case [$n] completed. Result: $r"
     case ETaskAdd(src, t, task) =>
       s"[$t $src] Added task [${task.name}](${task.simulation}) created at [${task.created}]. (id:${task.id})"
     case ETaskStart(src, t, task) =>
