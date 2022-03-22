@@ -1,15 +1,21 @@
 package com.workflowfm.proter
+package state
 
 import cases.CaseRef
+import events.*
 import schedule.Scheduler
+
+import cats.Monad
+import cats.implicits.*
 
 import scala.collection.immutable.HashSet
 import java.util.UUID
 
 
-case class State[F[_], C[T] <: Iterable[T]](
-  time: Long, 
+case class State[F[_] : Monad, C[T] <: Iterable[T]](
+  id: String,
   scheduler: Scheduler,
+  time: Long, 
   events: EventQueue,
   tasks: C[TaskInstance],
   cases: Map[String, CaseRef[F]], 
@@ -21,12 +27,21 @@ case class State[F[_], C[T] <: Iterable[T]](
   def +(r: Resource): State[F, C] = copy(resources = resources.addResource(r))
   def ++(r: Seq[Resource]): State[F, C] = copy(resources = resources.addResources(r))
 
-/*
-  final def tick(): Either[Unit, State[F, C]] = {
-    if !waiting.isEmpty then { // This should never happen, but we add it here as a safeguard for
-      // future extensions.
-      publish(EError(id, time, s"Called `tick()` even though I am still waiting for: $waiting"))
-    } else if !events.isEmpty then { // Are events pending?
+
+  def tick(publisher: Publisher[F]): F[StateResult[F, C]] = {
+    if !waiting.isEmpty // still waiting for responses!
+    then for {
+      _ <- publisher.publish(
+        EError(id, time, s"Called `tick()` even though I am still waiting for: $waiting") 
+      ) } yield (StateDone(this))
+
+    else if (events.isEmpty && tasks.isEmpty && cases.isEmpty) // finished!
+    then for {
+      _ <- publisher.publish(EDone(id, time)) 
+    } yield (StateDone(this)) 
+/*  
+    else if !events.isEmpty // Are events pending?
+    then { 
       processing = true
 
       // Grab the first event
@@ -55,15 +70,14 @@ case class State[F[_], C[T] <: Iterable[T]](
         }
       }
 
-    } else if scheduler.noMoreTasks() && simulations.isEmpty && !promise.isCompleted then {
-      finish()
     } else if waiting.isEmpty && !scheduler.noMoreTasks() then { // this may happen if handleDiscreteEvent fails
       allocateTasks()
       tick()
     } // else {
     // publish(EError(self, time, "No tasks left to run, but simulations have not finished."))
-    // }
+    // }*/
+    else Monad[F].pure(StateDone(this))
   }
- */
+
 
 }

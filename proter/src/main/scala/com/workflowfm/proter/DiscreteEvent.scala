@@ -155,4 +155,6 @@ case class EventQueue(events: SortedMap[Long, SortedSet[DiscreteEvent]]) {
   }
 
   def size: Int = events.size
+
+  def isEmpty: Boolean = events.isEmpty
 }

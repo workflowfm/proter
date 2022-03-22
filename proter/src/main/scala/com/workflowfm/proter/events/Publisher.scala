@@ -1,7 +1,7 @@
 package com.workflowfm.proter.events
 
 import cats.Monad
-import cats.effect.kernel.{ Resource, MonadCancel }
+import cats.effect.{ Resource, MonadCancel }
 import cats.implicits.*
 import fs2.Stream
 import fs2.concurrent.Topic
@@ -21,7 +21,7 @@ case class Publisher[F[_]](topic: Topic[F, Either[Throwable, Event]], maxQueued:
   def publish(evt: Event): F[Either[Topic.Closed, Unit]] = {
     val pub = topic.publish1(Right(evt))
     evt match {
-      case EError(_, _, _) => pub >> stop()
+      // case EError(_, _, _) => pub >> stop()
       case EDone(_, _) => pub >> stop()
       case _ => pub
     }
