@@ -27,13 +27,32 @@ class PublisherTests extends PublisherTester {
         publisher = Publisher[IO](topic, 10)
         handler <- MockHandler.of(EDone("Test", 0L))
         subresource = publisher.subscribe(handler)
-        _ <- subresource.use { stream => for {
-          subio <- IO.delay(stream.compile.drain)
-          pubio <- IO.delay(publisher.publish(EDone("Test", 0L)))
-          _ <- (pubio, subio).parMapN { (_, _) => () }
-        } yield () }
+        _ <- subresource.use { stream => {
+          val subio = stream.compile.drain
+          val pubio = publisher.publish(EDone("Test", 0L))
+          (pubio, subio).parTupled
+        } }
         assertion <- handler.complies()
       } yield (assertion)
+    }
+
+    "Init and Done multiple subscribers" in {
+      val subs = 4
+      val handlersIO = (for (i <- 1 to subs) yield MockHandler.of(EDone("Test", 0L))).toList.sequence
+
+      for {
+        topic <- Topic[IO, Either[Throwable, Event]]
+        publisher = Publisher[IO](topic, 10)
+        handlers <- handlersIO
+        subresource = handlers.map(publisher.subscribe(_)).sequence
+        _ <- subresource.use { streams => {
+          val subio = streams.map(_.compile.drain).sequence
+          val pubio = publisher.publish(EDone("Test", 0L))
+          (pubio, subio).parTupled
+        } }
+        assertions <- handlers.map(_.complies()).sequence
+      } yield (assertions.last) // Just calculating all assertions is enough. 
+                                // They throw exceptions if they fail.
     }
 
   }
