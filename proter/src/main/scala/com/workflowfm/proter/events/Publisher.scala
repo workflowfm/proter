@@ -40,7 +40,7 @@ case class Publisher[F[_]](topic: Topic[F, Either[Throwable, Event]], maxQueued:
     * @param subscriber
     *   The [[EventHandler]] to subscribe.
     */
-  def subscribe(subscriber: EventHandler): F[Unit] = topic.subscribeAwait(maxQueued).use { sub => 
+  def subscribe(subscriber: EventHandler[F]): F[Unit] = topic.subscribeAwait(maxQueued).use { sub => 
     for {
       _ <- subscriber.onInit(this)
     } yield sub.evalMap ( 
