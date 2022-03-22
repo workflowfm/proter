@@ -8,7 +8,8 @@ import schedule.Scheduler
 import cats.Monad
 import cats.implicits.*
 
-import scala.collection.immutable.HashSet
+import scala.annotation.tailrec
+import scala.collection.immutable.{ HashSet, Map }
 import java.util.UUID
 
 
@@ -20,12 +21,83 @@ case class State[F[_] : Monad, C[T] <: Iterable[T]](
   tasks: C[TaskInstance],
   cases: Map[String, CaseRef[F]], 
   resources: ResourceMap,
-  waiting: HashSet[String], 
+  waiting: Map[CaseRef[F], Seq[TaskInstance]], 
   abortedTasks: HashSet[UUID],
 ) {
 
-  def +(r: Resource): State[F, C] = copy(resources = resources.addResource(r))
-  def ++(r: Seq[Resource]): State[F, C] = copy(resources = resources.addResources(r))
+  private def publishThen[T](publisher: Publisher[F], events: Event*) (v: T): F[T] =
+    for {
+      _ <- events.map(publisher.publish(_)).sequence
+    } yield (v)
+
+  private def errorThen[T](publisher: Publisher[F], error: String) (v: T): F[T] = publishThen(publisher, EError(id, time, error))(v)
+
+
+  def addResource(publisher: Publisher[F], r: Resource): F[State[F, C]] = 
+    publishThen(publisher, EResourceAdd(id, time, r.name, r.costPerTick))(
+      copy(resources = resources.addResource(r))
+    )
+  def addResources(publisher: Publisher[F], rs: Seq[Resource]): F[State[F, C]] = {
+    val events = rs.map { r => EResourceAdd(id, time, r.name, r.costPerTick) }
+    publishThen(publisher, events *)(
+      copy(resources = resources.addResources(rs))
+    )
+  }
+
+  /**
+    * Add a new simulation to be run.
+    *
+    * Publishes a [[com.workflowfm.proter.events.ESimAdd ESimAdd]].
+    *
+    * @group simulations
+    * @param t
+    *   The timestamp when the simulation needs to start. Must be greater or equal to the current
+    *   time.
+    * @param simulation
+    *   The [[Simulation]] to run.
+    */
+  def addCase(publisher: Publisher[F], t: Long, caseRef: CaseRef[F]): F[State[F, C]] = 
+    if t >= time
+    then publishThen(publisher, ECaseAdd(id, time, caseRef.caseName, t))(
+      copy(events = events + StartingCase(t, caseRef))
+    )
+    else errorThen(publisher, s"Attempted to start case [${caseRef.caseName}] in the past: $t")(this)
+
+  /**
+    * Add a new simulation to be run in the current virtual time.
+    *
+    * Publishes a [[com.workflowfm.proter.events.ESimAdd ESimAdd]] for each simulation.
+    *
+    * @group simulations
+    * @param simulation
+    *   The [[Simulation]] to run.
+    */
+  def addCaseNow(publisher: Publisher[F], caseRef: CaseRef[F]): F[State[F, C]] = addCase(publisher, time, caseRef)
+
+  /**
+    * Adds multiple simulations at the same time.
+    *
+    * This is equivalent to mapping [[addSimulation]] over the given sequence, but more efficient.
+    *
+    * @group simulations
+    * @param sims
+    *   A sequence of pairs, each consisting of a starting timestamp and a [[Simulation]].
+    *   Timestamps must be greater or equal to the current time.
+    */
+  def addCases(publisher: Publisher[F], cases: Seq[(Long, CaseRef[F])]): F[State[F, C]] = cases match {
+    case Nil => Monad[F].pure(this)
+    case (t, c) :: cs => addCase(publisher, t, c).flatMap(_.addCases(publisher,cs)) // TODO this can be more efficient
+  }
+
+
+  /**
+    * Add multiple simulations to be run in the current virtual time.
+    *
+    * @group simulations
+    * @param sims
+    *   A sequence of [[Simulation]]s.
+    */
+  def addCasesNow(publisher: Publisher[F], cases: Seq[CaseRef[F]]): F[State[F, C]] = addCases(publisher, cases.map((time, _)))
 
 
   def tick(publisher: Publisher[F]): F[StateResult[F, C]] = {
