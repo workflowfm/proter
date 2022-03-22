@@ -1,6 +1,6 @@
 package com.workflowfm.proter.flows
 
-import com.workflowfm.proter._
+import com.workflowfm.proter.*
 
 /*
 /**

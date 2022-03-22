@@ -3,7 +3,7 @@ package com.workflowfm.proter.events
 import java.text.SimpleDateFormat
 
 import cats.Monad
-import cats.implicits._
+import cats.implicits.*
 import cats.effect.{ Ref, Deferred }
 import cats.effect.std.Console
 

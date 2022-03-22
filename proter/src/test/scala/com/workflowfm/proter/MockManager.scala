@@ -7,7 +7,7 @@ import org.scalatest.matchers.MatchResult
 import org.scalatest.matchers.Matcher
 
 class MockManager extends Manager {
-  import MockManager._
+  import MockManager.*
   import collection.mutable.{ Queue, Map }
 
   val responses: Queue[SimResponse] = Queue()

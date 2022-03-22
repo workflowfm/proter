@@ -119,7 +119,7 @@ case class Arrival(
 
   import cats.effect.std.Random
   import cats.Applicative
-  import cats.implicits._
+  import cats.implicits.*
 
   override val classOrder: Short = 11
 

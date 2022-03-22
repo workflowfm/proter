@@ -4,8 +4,8 @@ import java.util.UUID
 
 import scala.collection.mutable
 
-import com.workflowfm.proter._
-import com.workflowfm.proter.events._
+import com.workflowfm.proter.*
+import com.workflowfm.proter.events.*
 
 /**
   * Collects/aggregates metrics across multiple tasks, resources, and simulations.
@@ -254,6 +254,7 @@ class SimMetricsAggregator {
     taskMap.values.toSeq.filter(_.simulation.equals(s.name)).sortBy(_.started)
 }
 
+/*
 /**
   * A [[com.workflowfm.proter.events.ResultHandler ResultHandler]] that collects simulation metrics
   * to a [[SimMetricsAggregator]].
@@ -298,3 +299,4 @@ class SimMetricsHandler(output: SimMetricsOutput = SimNoOutput)
 
   override def result = metrics
 }
+ */

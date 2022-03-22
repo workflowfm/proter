@@ -2,7 +2,7 @@ package com.workflowfm.proter
 package cases
 
 import cats.Monad
-import cats.implicits._
+import cats.implicits.*
 import cats.effect.kernel.{ Ref, Sync }
 import cats.effect.std.UUIDGen
 

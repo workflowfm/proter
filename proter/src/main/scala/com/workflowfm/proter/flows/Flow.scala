@@ -4,7 +4,7 @@ import java.util.UUID
 
 import scala.util.Success
 
-import com.workflowfm.proter._
+import com.workflowfm.proter.*
 
 sealed trait Flow {
   val id: UUID = UUID.randomUUID
@@ -336,7 +336,7 @@ class FlowLookahead(
             val results = functions map (_._1(m))
             if results.contains(None) then None else results.max
           },
-          functions.map(_._2).fold(NoLookahead) { (a, b) => a and b }
+          functions.map(_._2).fold(NoLookahead) { (a, b) => a `and` b }
         )
       }
       case f: Or => {
@@ -349,7 +349,7 @@ class FlowLookahead(
             val results = functions.map(_._1(m)).flatten
             results.headOption
           },
-          functions.map(_._2).fold(NoLookahead) { (a, b) => a and b }
+          functions.map(_._2).fold(NoLookahead) { (a, b) => a `and` b }
         )
       }
     }

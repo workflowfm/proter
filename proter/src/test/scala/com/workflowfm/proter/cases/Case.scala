@@ -2,16 +2,16 @@ package com.workflowfm.proter
 package cases
 
 import cats.{ Monad, MonadError }
-import cats.implicits._
+import cats.implicits.*
 import cats.effect.IO
-import cats.effect.implicits._
+import cats.effect.implicits.*
 import cats.effect.kernel.Ref
 import cats.effect.std.{ Random, UUIDGen }
 import cats.effect.testing.scalatest.AsyncIOSpec
 
 import java.util.UUID
 
-import scala.concurrent._
+import scala.concurrent.*
 import scala.util.{ Failure, Success, Try }
 
 import org.scalatest.Inside
@@ -28,7 +28,7 @@ class CaseTests extends CaseTester {
       val c1 = new NoTasks[IO]("c1")
       for {
         result <- c1.run()
-      } yield (result should be (CaseDone(c1, Success(()))))
+      } yield (result `should` be (CaseDone(c1, Success(()))))
     }
 
     "interact correctly having one task" in {
@@ -46,16 +46,16 @@ class CaseTests extends CaseTester {
 
         r1 <- ref.run()
         _ <- IO (inside(r1) { case CaseReady(r, tasks, abort, _ ) => {
-          r.caseName should be (ref.caseName)
-          tasks.loneElement should be (t1)
-          abort shouldBe empty
+          r.caseName `should` be (ref.caseName)
+          tasks.loneElement `should` be (t1)
+          abort `shouldBe` empty
         } } )
 
         ti1 <- t1.create[IO]("Case", 0L)(using random, Monad[IO])
         r2 <- ref.completed(ti1.duration, Seq(ti1))
         _ <- IO ( inside(r2) { case CaseDone(r, result) => {
-          r.caseName should be (ref.caseName)
-          result should be (Success((ti1, ti1.duration)))
+          r.caseName `should` be (ref.caseName)
+          result `should` be (Success((ti1, ti1.duration)))
         } } )
       } yield ()
     }
@@ -71,22 +71,22 @@ class CaseTests extends CaseTester {
 
         r1 <- c1.run()
         _ <- IO (inside(r1) { case CaseReady(r, tasks, abort, _ ) => {
-          r.caseName should be (c1.caseName)
-          tasks.loneElement should be (t1)
-          abort shouldBe empty
+          r.caseName `should` be (c1.caseName)
+          tasks.loneElement `should` be (t1)
+          abort `shouldBe` empty
         } } )
 
         r2 <- c1.completed(2L, Seq(ti1))
         _ <- IO (inside(r2) { case CaseReady(r, tasks, abort, _ ) => {
-          r.caseName should be (c1.caseName)
-          tasks.loneElement should be (t2)
-          abort shouldBe empty
+          r.caseName `should` be (c1.caseName)
+          tasks.loneElement `should` be (t2)
+          abort `shouldBe` empty
         } } )
 
         r3 <- c1.completed(4L, Seq(ti2))
         _ <- IO ( inside(r3) { case CaseDone(r, result) => {
-          r.caseName should be (c1.caseName)
-          result should be (Success((ti2, 4L)))
+          r.caseName `should` be (c1.caseName)
+          result `should` be (Success((ti2, 4L)))
         } } )
 
       } yield ()
@@ -104,29 +104,29 @@ class CaseTests extends CaseTester {
 
         r1 <- c1.run()
         _ <- IO (inside(r1) { case CaseReady(r, tasks, abort, _ ) => {
-          r.caseName should be (c1.caseName)
-          tasks.loneElement should be (t1)
-          abort shouldBe empty
+          r.caseName `should` be (c1.caseName)
+          tasks.loneElement `should` be (t1)
+          abort `shouldBe` empty
         } } )
 
         r2 <- c1.completed(2L, Seq(ti1))
         _ <- IO (inside(r2) { case CaseReady(r, tasks, abort, _ ) => {
-          r.caseName should be (c1.caseName)
-          tasks.loneElement should be (t2)
-          abort shouldBe empty
+          r.caseName `should` be (c1.caseName)
+          tasks.loneElement `should` be (t2)
+          abort `shouldBe` empty
         } } )
 
         r3 <- c1.completed(4L, Seq(ti2))
         _ <- IO (inside(r3) { case CaseReady(r, tasks, abort, _ ) => {
-          r.caseName should be (c1.caseName)
-          tasks.loneElement should be (t3)
-          abort shouldBe empty
+          r.caseName `should` be (c1.caseName)
+          tasks.loneElement `should` be (t3)
+          abort `shouldBe` empty
         } } )
 
         r4 <- c1.completed(6L, Seq(ti3))
         _ <- IO ( inside(r4) { case CaseDone(r, result) => {
-          r.caseName should be (c1.caseName)
-          result should be (Success((ti3, 6L)))
+          r.caseName `should` be (c1.caseName)
+          result `should` be (Success((ti3, 6L)))
         } } )
 
       } yield ()
@@ -143,16 +143,16 @@ class CaseTests extends CaseTester {
 
         r1 <- c1.run()
         _ <- IO (inside(r1) { case CaseReady(r, tasks, abort, _ ) => {
-          r.caseName should be (c1.caseName)
-          tasks.loneElement should be (t1)
-          abort shouldBe empty
+          r.caseName `should` be (c1.caseName)
+          tasks.loneElement `should` be (t1)
+          abort `shouldBe` empty
         } } )
 
         r2 <- c1.completed(2L, Seq(ti1))
         _ <- IO (inside(r2) { case CaseReady(r, tasks, abort, _ ) => {
-          r.caseName should be (c1.caseName)
-          tasks.loneElement should be (t2)
-          abort shouldBe empty
+          r.caseName `should` be (c1.caseName)
+          tasks.loneElement `should` be (t2)
+          abort `shouldBe` empty
         } } )
 
         u <- c1.stop().assertThrows[CallbackCalledException.type]
@@ -171,18 +171,18 @@ class CaseTests extends CaseTester {
 
         r1 <- c1.run()
         _ <- IO (inside(r1) { case CaseReady(r, tasks, abort, _ ) => {
-          r.caseName should be (c1.caseName)
-          tasks.loneElement should be (t1)
-          abort shouldBe empty
+          r.caseName `should` be (c1.caseName)
+          tasks.loneElement `should` be (t1)
+          abort `shouldBe` empty
         } } )
 
         r2 <- c1.completed(2L, Seq(ti1))
         _ <- IO (inside(r2) { case CaseReady(r, tasks, abort, _ ) => {
-          r.caseName should be (c1.caseName)
-          tasks.size should be (2)
-          tasks should contain (t2)
-          tasks should contain (t3)
-          abort shouldBe empty
+          r.caseName `should` be (c1.caseName)
+          tasks.size `should` be (2)
+          tasks `should` contain (t2)
+          tasks `should` contain (t3)
+          abort `shouldBe` empty
         } } )
 
         u <- c1.stop().assertThrows[CallbackCalledException.type]
@@ -212,8 +212,8 @@ trait CaseTester extends AsyncWordSpec with AsyncIOSpec with Matchers with Insid
     id1 <- UUIDGen[IO].randomUUID
     id2 <- UUIDGen[IO].randomUUID
 
-    t1: Task = Task("task1", d1) withID id1 withResources Seq("r1")
-    t2: Task = Task("task2", d2) withID id2 withResources Seq("r1")
+    t1: Task = Task("task1", d1) `withID` id1 `withResources` Seq("r1")
+    t2: Task = Task("task2", d2) `withID` id2 `withResources` Seq("r1")
 
     state <- Ref[IO].of[Map[UUID, AsyncCaseRef.Callback[IO]]](Map()) 
 
@@ -247,8 +247,8 @@ trait CaseTester extends AsyncWordSpec with AsyncIOSpec with Matchers with Insid
     id1 <- UUIDGen[IO].randomUUID
     id2 <- UUIDGen[IO].randomUUID
 
-    t1: Task = Task("task1", d1) withID id1 withResources Seq("r1")
-    t2: Task = Task("task2", d2) withID id2 withResources Seq("r1")
+    t1: Task = Task("task1", d1) `withID` id1 `withResources` Seq("r1")
+    t2: Task = Task("task2", d2) `withID` id2 `withResources` Seq("r1")
 
     state <- Ref[IO].of[Map[UUID, AsyncCaseRef.Callback[IO]]](Map()) 
 
@@ -265,7 +265,7 @@ trait CaseTester extends AsyncWordSpec with AsyncIOSpec with Matchers with Insid
       val t2callback: Callback = {
         case Success((task, time)) => Assertions.fail("Unexpected success on stopped t2 callback")
         case Failure(ex) => {
-          ex shouldBe a [Simulation.SimulationStoppingException]
+          ex `shouldBe` a [Simulation.SimulationStoppingException]
           IO.raiseError(CallbackCalledException)
         }
       }
@@ -285,9 +285,9 @@ trait CaseTester extends AsyncWordSpec with AsyncIOSpec with Matchers with Insid
     id2 <- UUIDGen[IO].randomUUID
     id3 <- UUIDGen[IO].randomUUID
 
-    t1: Task = Task("task1", d1) withID id1 withResources Seq("r1")
-    t2: Task = Task("task2", d2) withID id2 withResources Seq("r1")
-    t3: Task = Task("task3", d3) withID id3 withResources Seq("r1")
+    t1: Task = Task("task1", d1) `withID` id1 `withResources` Seq("r1")
+    t2: Task = Task("task2", d2) `withID` id2 `withResources` Seq("r1")
+    t3: Task = Task("task3", d3) `withID` id3 `withResources` Seq("r1")
 
     state <- Ref[IO].of[Map[UUID, AsyncCaseRef.Callback[IO]]](Map())
 
@@ -330,9 +330,9 @@ trait CaseTester extends AsyncWordSpec with AsyncIOSpec with Matchers with Insid
     id2 <- UUIDGen[IO].randomUUID
     id3 <- UUIDGen[IO].randomUUID
 
-    t1: Task = Task("task1", d1) withID id1 withResources Seq("r1")
-    t2: Task = Task("task2", d2) withID id2 withResources Seq("r1")
-    t3: Task = Task("task3", d3) withID id3 withResources Seq("r1")
+    t1: Task = Task("task1", d1) `withID` id1 `withResources` Seq("r1")
+    t2: Task = Task("task2", d2) `withID` id2 `withResources` Seq("r1")
+    t3: Task = Task("task3", d3) `withID` id3 `withResources` Seq("r1")
 
     myCase = new AsyncCase[IO, Unit] {
 
@@ -347,7 +347,7 @@ trait CaseTester extends AsyncWordSpec with AsyncIOSpec with Matchers with Insid
       val t2callback: Callback = {
         case Success((task, time)) => Assertions.fail("Unexpected success on stopped t2 callback")
         case Failure(ex) => {
-          ex shouldBe a [Simulation.SimulationStoppingException]
+          ex `shouldBe` a [Simulation.SimulationStoppingException]
           IO.raiseError(CallbackCalledException)
         }
       }

@@ -2,7 +2,7 @@ package com.workflowfm.proter.events
 
 import cats.Monad
 import cats.effect.kernel.{ Resource, MonadCancel }
-import cats.implicits._
+import cats.implicits.*
 import fs2.Stream
 import fs2.concurrent.Topic
 import java.util.UUID

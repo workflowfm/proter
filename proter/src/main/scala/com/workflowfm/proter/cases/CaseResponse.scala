@@ -2,7 +2,7 @@ package com.workflowfm.proter
 package cases
 
 import cats.Monad
-import cats.implicits._
+import cats.implicits.*
 
 import java.util.UUID
 import scala.collection.immutable.{ HashSet, Queue }

@@ -2,7 +2,7 @@ package com.workflowfm.proter
 
 import cats.effect.std.Random
 import cats.Applicative
-import cats.implicits._
+import cats.implicits.*
 
 /**
   * A random function sampling some probability distribution to produce a `Long` value.

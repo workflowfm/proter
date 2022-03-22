@@ -2,7 +2,7 @@ package com.workflowfm.proter
 package cases
 
 import cats.Monad
-import cats.implicits._
+import cats.implicits.*
 import cats.effect.Ref
 import cats.effect.std.UUIDGen
 
@@ -65,7 +65,7 @@ trait CaseRef[F[_]] {
     * @param ids
     *   The `UUID`s of the [[TaskInstance]]s.
     */
-  def abort(ids: UUID*): CaseResponse = CaseReady(this).copy(abort = HashSet(ids:_*))
+  def abort(ids: UUID*): CaseResponse = CaseReady(this).copy(abort = HashSet(ids *))
 
 
   /**
@@ -201,7 +201,7 @@ abstract class AsyncCaseRef[F[_] : Monad : UUIDGen](callbacks: Ref[F, Map[UUID, 
     *   The `UUID` of the [[Task]]s.
     */
   def abortTask(ids: UUID*): F[CaseResponse] = {
-    val response = super.abort(ids: _*)
+    val response = super.abort(ids *)
     for {
       fs <- callbacks.modify { m => (m -- ids, ids.flatMap( id => m.get(id) )) }
       _ = fs.map( f => f(Failure(Simulation.TaskAbortedException())) )

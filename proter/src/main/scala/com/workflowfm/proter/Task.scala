@@ -3,7 +3,7 @@ package com.workflowfm.proter
 import java.util.UUID
 import cats.effect.std.Random
 import cats.Monad
-import cats.implicits._
+import cats.implicits.*
 
 /**
   * An instance of a task to be performed in virtual time.

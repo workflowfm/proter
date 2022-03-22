@@ -464,7 +464,7 @@ trait AsyncSimulation extends Simulation {
     *   The `UUID` of the [[Task]]s.
     */
   override def abort(ids: UUID*): Unit = {
-    super.abort(ids: _*)
+    super.abort(ids *)
     ids map { id => tasks.get(id).map(_(Failure(Simulation.TaskAbortedException()))) }
   }
 

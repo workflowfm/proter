@@ -12,7 +12,7 @@ import org.apache.commons.lang3.time.DurationFormatUtils
   *   Move somewhere else as a utility?
   */
 trait FileOutput {
-  import java.io._
+  import java.io.*
 
   def writeToFile(filePath: String, output: String): Unit = try {
     val file = new File(filePath)

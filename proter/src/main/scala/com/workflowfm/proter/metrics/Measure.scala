@@ -2,7 +2,7 @@ package com.workflowfm.proter.metrics
 
 import java.util.UUID
 
-import com.workflowfm.proter._
+import com.workflowfm.proter.*
 
 /**
   * Metrics for a simulated [[TaskInstance]] that consumed virtual time.
