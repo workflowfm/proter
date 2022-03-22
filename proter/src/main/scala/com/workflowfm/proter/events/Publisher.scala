@@ -40,21 +40,22 @@ case class Publisher[F[_]](topic: Topic[F, Either[Throwable, Event]], maxQueued:
     * @param subscriber
     *   The [[EventHandler]] to subscribe.
     */
-  def subscribe(subscriber: EventHandler[F]): F[Unit] = topic.subscribeAwait(maxQueued).use { sub => 
-    for {
-      _ <- subscriber.onInit(this)
-    } yield sub.evalMap ( 
-      evt => evt match {
-        case Left(e) => subscriber.onFail(e, this)
-        case Right(e) => {
-          e match {
-            case EDone(_, _) => subscriber.onEvent(e) >> subscriber.onDone(this)
-            case _ => subscriber.onEvent(e)
-          }
-      }}
-    ).handleErrorWith (
-      ex => Stream.eval(subscriber.onFail(ex, this))
-    )
-  }
+  def subscribe(subscriber: EventHandler[F]): Resource[F, Stream[F, Unit]] = 
+    topic.subscribeAwait(maxQueued).evalMap { sub =>
+      for {
+        _ <- subscriber.onInit(this)
+      } yield sub.evalMap (
+        evt => evt match {
+          case Left(e) => subscriber.onFail(e, this)
+          case Right(e) => {
+            e match {
+              case EDone(_, _) => subscriber.onEvent(e) >> subscriber.onDone(this)
+              case _ => subscriber.onEvent(e)
+            }
+          }}
+      ).handleErrorWith (
+        ex => Stream.eval(subscriber.onFail(ex, this))
+      )
+    }
 }
 

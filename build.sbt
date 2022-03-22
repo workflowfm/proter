@@ -76,6 +76,7 @@ lazy val commonSettings = Seq(
 //      "-source:3.0-migration",
 //      "-rewrite",
 //      "-new-syntax"
+//      "-source:future",
       )
   },
 
