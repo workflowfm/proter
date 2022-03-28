@@ -1,5 +1,7 @@
 FROM adoptopenjdk:8u292-b10-jre-openj9-0.26.0-focal
 
+EXPOSE 8080
+
 WORKDIR /usr/app/proteronline
 
 ADD src/ /usr/app/proteronline/src
