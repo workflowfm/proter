@@ -23,8 +23,11 @@ import org.http4s.{Request, Response }
 
 object Main extends IOApp {
   def run(args: List[String]): IO[ExitCode] =
-    StreamingServer.serverBuilder.serve.compile.drain.as(ExitCode.Success)
-    //StandardServer.stream[IO].compile.drain.as(ExitCode.Success)
+    if (args.length > 0) {
+      return StreamingServer.serverBuilder.serve.compile.drain.as(ExitCode.Success)
+    } else {
+      return StandardServer.stream[IO].compile.drain.as(ExitCode.Success)
+    }    
 }
 
 object StreamingServer {
