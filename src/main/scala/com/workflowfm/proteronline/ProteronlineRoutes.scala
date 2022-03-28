@@ -37,10 +37,11 @@ object ProteronlineRoutes {
     val parse: SimulationRunner = new SimulationRunner()
     HttpRoutes.of[F] {
       case req @ POST -> Root / "API" =>
-        for {
-          request <- req.as[IRequest]
-          resp <- Ok(parse.process(request).asJson)
-        } yield resp
+        req.as[IRequest].flatMap { decReq =>
+          Ok(parse.process(decReq).asJson)
+        }.handleErrorWith {
+          case _: Throwable => BadRequest("Issue with your request".asJson)
+        }
       }
   }
 
@@ -52,10 +53,11 @@ object ProteronlineRoutes {
     val parse: SimulationRunner = new SimulationRunner()
     HttpRoutes.of[IO] {
       case req @ POST -> Root / "stream" =>
-        for {
-          request <- req.as[IRequest]
-          resp <- Ok(parse.streamHandler(request).map(_.toString()))
-        } yield resp
+        req.as[IRequest].flatMap { decReq =>
+          Ok(parse.streamHandler(decReq).map(_.toString()))
+        }.handleErrorWith {
+          case _: Throwable => BadRequest("Issue with your request".asJson)
+        }
       }
   }
 }
