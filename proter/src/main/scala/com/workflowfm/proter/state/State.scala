@@ -6,43 +6,46 @@ import events.*
 import schedule.Scheduler
 
 import cats.Monad
+import cats.data.State
 import cats.implicits.*
 
 import scala.annotation.tailrec
-import scala.collection.immutable.{ HashSet, Map }
+import scala.collection.immutable.{ HashSet, Set, Map }
 import java.util.UUID
 
 
-case class State[F[_] : Monad, C[T] <: Iterable[T]](
+case class Simulationx[F[_]](
   id: String,
   scheduler: Scheduler,
   time: Long, 
   events: EventQueue,
-  tasks: C[TaskInstance],
+  tasks: Set[TaskInstance],
   cases: Map[String, CaseRef[F]], 
   resources: ResourceMap,
   waiting: Map[String, Seq[TaskInstance]], 
   abortedTasks: HashSet[UUID],
 ) {
+  def error(description: String): EError = EError(id, time, description)
+}
 
+object Simulationx {
+/*
   private def publishThen[T](publisher: Publisher[F], events: Event*) (v: T): F[T] =
     for {
       _ <- events.map(publisher.publish(_)).sequence
     } yield (v)
 
   private def errorThen[T](publisher: Publisher[F], error: String) (v: T): F[T] = publishThen(publisher, EError(id, time, error))(v)
+ */
 
+  def addResource(r: Resource): State[Simulationx[?], Event] = State( sim =>
+    (sim.copy(resources = sim.resources.addResource(r)), EResourceAdd(sim.id, sim.time, r.name, r.costPerTick))
+  )
 
-  def addResource(publisher: Publisher[F], r: Resource): F[State[F, C]] = 
-    publishThen(publisher, EResourceAdd(id, time, r.name, r.costPerTick))(
-      copy(resources = resources.addResource(r))
-    )
-  def addResources(publisher: Publisher[F], rs: Seq[Resource]): F[State[F, C]] = {
-    val events = rs.map { r => EResourceAdd(id, time, r.name, r.costPerTick) }
-    publishThen(publisher, events *)(
-      copy(resources = resources.addResources(rs))
-    )
-  }
+  def addResources(rs: Seq[Resource]): State[Simulationx[?], Seq[Event]] = State( sim => {
+    val events = rs.map { r => EResourceAdd(sim.id, sim.time, r.name, r.costPerTick) }
+    (sim.copy(resources = sim.resources.addResources(rs)), events)
+  })
 
   /**
     * Add a new simulation to be run.
@@ -56,12 +59,11 @@ case class State[F[_] : Monad, C[T] <: Iterable[T]](
     * @param simulation
     *   The [[Simulation]] to run.
     */
-  def addCase(publisher: Publisher[F], t: Long, caseRef: CaseRef[F]): F[State[F, C]] = 
-    if t >= time
-    then publishThen(publisher, ECaseAdd(id, time, caseRef.caseName, t))(
-      copy(events = events + StartingCase(t, caseRef))
-    )
-    else errorThen(publisher, s"Attempted to start case [${caseRef.caseName}] in the past: $t")(this)
+  def addCase[F[_]](t: Long, caseRef: CaseRef[F]): State[Simulationx[F], Event] = State( sim =>
+    if t >= sim.time
+    then (sim.copy(events = sim.events + StartingCase(t, caseRef)), ECaseAdd(sim.id, sim.time, caseRef.caseName, t))
+    else (sim, sim.error(s"Attempted to start case [${caseRef.caseName}] in the past: $t"))
+  )
 
   /**
     * Add a new simulation to be run in the current virtual time.
@@ -72,7 +74,9 @@ case class State[F[_] : Monad, C[T] <: Iterable[T]](
     * @param simulation
     *   The [[Simulation]] to run.
     */
-  def addCaseNow(publisher: Publisher[F], caseRef: CaseRef[F]): F[State[F, C]] = addCase(publisher, time, caseRef)
+  def addCaseNow[F[_]](caseRef: CaseRef[F]): State[Simulationx[F], Event] = State ( sim => 
+    addCase(sim.time, caseRef).run(sim).value
+  )
 
   /**
     * Adds multiple simulations at the same time.
@@ -84,11 +88,13 @@ case class State[F[_] : Monad, C[T] <: Iterable[T]](
     *   A sequence of pairs, each consisting of a starting timestamp and a [[Simulation]].
     *   Timestamps must be greater or equal to the current time.
     */
-  def addCases(publisher: Publisher[F], cases: Seq[(Long, CaseRef[F])]): F[State[F, C]] = cases match {
-    case Nil => Monad[F].pure(this)
+  def addCases[F[_]](cases: Seq[(Long, CaseRef[F])]): State[Simulationx[F], Seq[Event]] =
+    cases.map( (t, c) => addCase(t, c) ).sequence
+
+/*    case Nil => Monad[F].pure(this)
     case (t, c) :: cs => addCase(publisher, t, c).flatMap(_.addCases(publisher,cs)) // TODO this can be more efficient
   }
-
+ *//*
 
   /**
     * Add multiple simulations to be run in the current virtual time.
@@ -97,7 +103,7 @@ case class State[F[_] : Monad, C[T] <: Iterable[T]](
     * @param sims
     *   A sequence of [[Simulation]]s.
     */
-  def addCasesNow(publisher: Publisher[F], cases: Seq[CaseRef[F]]): F[State[F, C]] = addCases(publisher, cases.map((time, _)))
+  def addCasesNow(publisher: Publisher[F], cases: Seq[CaseRef[F]]): F[Simulation[F, C]] = addCases(publisher, cases.map((time, _)))
 
 
 
@@ -114,7 +120,7 @@ case class State[F[_] : Monad, C[T] <: Iterable[T]](
     * @param caseRef
     *   The [[CaseRef]] to start.
     */
-  protected def startCase(publisher: Publisher[F], caseRef: CaseRef[F]): F[State[F, C]] = 
+  protected def startCase(publisher: Publisher[F], caseRef: CaseRef[F]): F[Simulation[F, C]] = 
     publishThen(publisher, ECaseStart(id, time, caseRef.caseName))(
       copy(
         waiting = waiting + (caseRef.caseName -> Seq()),
@@ -136,7 +142,7 @@ case class State[F[_] : Monad, C[T] <: Iterable[T]](
     * @param result
     *   A string representation of the output of the simulation.
     */
-  protected def stopCase(publisher: Publisher[F], name: String, result: String): F[State[F, C]] = 
+  protected def stopCase(publisher: Publisher[F], name: String, result: String): F[Simulation[F, C]] = 
     publishThen(publisher, ECaseEnd(id, time, name, result))(
       copy(
         waiting = waiting - name,
@@ -221,5 +227,5 @@ case class State[F[_] : Monad, C[T] <: Iterable[T]](
     else Monad[F].pure(StateDone(this))
   }
 
-
+ */
 }
