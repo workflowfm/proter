@@ -40,7 +40,7 @@ object ProteronlineRoutes {
         req.as[IRequest].flatMap { decReq =>
           Ok(parse.process(decReq).asJson)
         }.handleErrorWith {
-          case _: Throwable => BadRequest("Issue with your request".asJson)
+          case e: Throwable => UnprocessableEntity(e.getMessage().asJson)
         }
       }
   }
