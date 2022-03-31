@@ -1,8 +1,7 @@
-package com.workflowfm.proter.events
+package com.workflowfm.proter
+package events
 
 import java.util.UUID
-
-import com.workflowfm.proter.TaskInstance
 
 /**
   * Output events generated from a [[Publisher]] during a simulation.
@@ -28,6 +27,18 @@ sealed trait Event {
   * The entire simulation started.
   */
 case class EStart(override val source: String, override val time: Long) extends Event {}
+
+/**
+  * A time limit was set.
+  *
+  * @param limit
+  *   The limit in time units/
+  */
+case class ETimeLimit(
+    override val source: String,
+    override val time: Long,
+    limit: Long,
+) extends Event
 
 /**
   * A [[TaskResource]] was added.
@@ -139,6 +150,18 @@ case class ETaskDetach(
     resource: String,
     cost: Double
 ) extends Event
+
+object ETaskDetach {
+  def resourceState(source: String, time: Long)(resourceState: ResourceState): Option[ETaskDetach] = resourceState.currentTask.map { (start, task) =>
+    ETaskDetach(
+      source,
+      time,
+      task,
+      resourceState.resource.name,
+      resourceState.resource.costPerTick * (time - start)
+    )
+  }
+}
 
 /**
   * A [[TaskInstance]] has finished.

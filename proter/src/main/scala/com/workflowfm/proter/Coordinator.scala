@@ -404,42 +404,6 @@ class Coordinator(
   }
 
   /**
-    * Aborts one or more [[TaskInstance]]s.
-    *
-    *   - Detaches all associated [[TaskResource]]s publishing a
-    *     [[com.workflowfm.proter.events.ETaskDetach ETaskDetach]] each time.
-    *   - Adds the task ID to the [[abortedTasks]] set.
-    *   - Publishes a [[com.workflowfm.proter.events.ETaskAbort ETaskAbort]].
-    *
-    * @group tasks
-    * @param id
-    *   The `UUID`s of the [[TaskInstance]]s that need to be aborted.
-    */
-  protected def abortTask(ids: Seq[UUID]): Unit = ids foreach { id =>
-    {
-      // val tasks =
-      resourceMap.flatMap { case (_, resource) =>
-        resource.abortTask(id).map {
-          case (start, task) => {
-            publish(
-              ETaskDetach(
-                this.id,
-                time,
-                task,
-                resource.name,
-                resource.costPerTick * (time - start)
-              )
-            )
-            task
-          }
-        }
-      }
-      abortedTasks += id
-      publish(ETaskAbort(this.id, time, id))
-    }
-  }
-
-  /**
     * Reacts to the fact that we no longer need to wait for a simulation.
     *
     * This can happen when the simulation has responded and we finished handling the response. We
@@ -534,18 +498,6 @@ class Coordinator(
     finish()
   }
 
-  /**
-    * Sets a time limit in virtual time for the simulation to end.
-    *
-    * @note
-    *   Once a time limit is placed it cannot be removed. Multiple time limits can be set so that
-    *   the earliest one will be triggered.
-    *
-    * @group toplevel
-    * @param t
-    *   The virtual timestamp to end the simulation.
-    */
-  def limit(t: Long): Unit = if t >= time then events += TimeLimit(t)
 
   /**
     * Adds a new infinite arrival process to the coordinator.

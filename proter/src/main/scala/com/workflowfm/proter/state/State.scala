@@ -64,7 +64,7 @@ object Simulationx {
     * @param result
     *   A string representation of the output of the simulation.
     */
-  def stopCase[F[_]](name: String, result: String): State[Simulationx[F], Event] = State ( sim => 
+  def stopCase(name: String, result: String): State[Simulationx[?], Event] = State ( sim => 
     (sim.copy(
       waiting = sim.waiting - name,
       cases = sim.cases - name,
@@ -75,6 +75,25 @@ object Simulationx {
     // log.debug(s"[COORD:$time] Finished: [$name]")
     //ready(name)
   
+
+  /**
+    * Aborts one or more [[TaskInstance]]s.
+    *
+    *   - Detaches all associated [[TaskResource]]s publishing a
+    *     [[com.workflowfm.proter.events.ETaskDetach ETaskDetach]] each time.
+    *   - Adds the task ID to the [[abortedTasks]] set.
+    *   - Publishes a [[com.workflowfm.proter.events.ETaskAbort ETaskAbort]].
+    *
+    * @group tasks
+    * @param id
+    *   The `UUID`s of the [[TaskInstance]]s that need to be aborted.
+    */
+  def abortTasks(ids: Seq[UUID]): State[Simulationx[?], Seq[Event]] = State ( sim => {
+    val (abortMap, abortResources) = sim.resources.abortTasks(ids)
+    val abortEvents = ids.map { taskid => ETaskAbort(sim.id, sim.time, taskid) }
+    val detachEvents = abortResources.flatMap(ETaskDetach.resourceState(sim.id, sim.time))
+    (sim.copy(resources = abortMap, abortedTasks = sim.abortedTasks ++ ids), abortEvents ++ detachEvents)
+  })
 
 /*
   /**
@@ -219,5 +238,23 @@ trait CaseState {
     */
   def addCasesNow[F[_]](cases: Seq[CaseRef[F]]): State[Simulationx[F], Seq[Event]] = State ( sim => 
     addCases(cases.map((sim.time, _))).run(sim).value
+  )
+
+
+  /**
+    * Sets a time limit in virtual time for the simulation to end.
+    *
+    * @note
+    *   Once a time limit is placed it cannot be removed. Multiple time limits can be set so that
+    *   the earliest one will be triggered.
+    *
+    * @group toplevel
+    * @param t
+    *   The virtual timestamp to end the simulation.
+    */
+  def limit(t: Long):  State[Simulationx[?], Event] = State ( sim => 
+    if t >= sim.time
+    then (sim.copy(events = sim.events + TimeLimit(t)), ETimeLimit(sim.id, sim.time, t))
+    else (sim, sim.error(s"Attempted to set time limit in the past. Limit: [$t] < Current time: [${sim.time}]."))
   )
 }

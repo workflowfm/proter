@@ -62,14 +62,20 @@ case class ResourceState(resource: Resource, currentTask: Option[(Long, TaskInst
       } else None
   }
 
+
   def detach(taskID: UUID): ResourceState = currentTask match {
     case Some((_, someTask)) if taskID == someTask.id => copy(currentTask = None)
     case _ => this
   }
-
+ 
   def detach(taskIDs: Seq[UUID]): ResourceState = currentTask match {
     case Some((_, someTask)) if taskIDs.contains(someTask.id) => copy(currentTask = None)
     case _ => this
+  }
+
+  def runningAnyOf(taskIDs: Seq[UUID]): Boolean = currentTask match {
+    case Some((_, someTask)) if taskIDs.contains(someTask.id) => true
+    case _ => false  
   }
 
   /**
@@ -144,6 +150,12 @@ case class ResourceMap(resources: Map[String, ResourceState]) {
     }
 
     folded.map { stateUpdates => copy(resources = resources ++ stateUpdates) }
+  }
+
+  def abortTasks(ids: Seq[UUID]): (ResourceMap, Iterable[ResourceState]) = { 
+    val aborting = resources.filter  { (_, r) => r.runningAnyOf(ids) }
+    val result = copy( resources ++ aborting.map { (n, r) => n -> r.copy(currentTask = None) } )
+    (result, aborting.values)
   }
 
   def isIdle(r: String): Boolean = resources.get(r) match {
