@@ -312,47 +312,7 @@ class Coordinator(
     }
   }
 
-  /**
-    * Start a [[TaskInstance]] at the current timestamp.
-    *
-    * A [[TaskInstance]] is started when scheduled by the [[schedule.Scheduler Scheduler]]. This
-    * assumes all the [[TaskResource]]s it needs are available.
-    *
-    *   - Publishes a [[com.workflowfm.proter.events.ETaskAdd ETaskAdd]].
-    *   - Calls [[TaskResource.startTask]] for each involved [[TaskResource]] to attach this
-    *     [[TaskInstance]] to them. Publishes a
-    *     [[com.workflowfm.proter.events.ETaskAttach ETaskAttach]] for each successful attachment.
-    *     Otherwise publishes an appropriate [[com.workflowfm.proter.events.EError EError]]. The
-    *     latter would only happen if the [[schedule.Scheduler Scheduler]] tried to schedule a
-    *     [[Task]] to a busy [[TaskResource]].
-    *   - Creates a [[FinishingTask]] event for this [[Task]] based on its duration, and adds it to
-    *     the even queue.
-    *
-    * @group tasks
-    * @param task
-    *   The [[TaskInstance]] to be started.
-    */
-  protected def startTask(task: TaskInstance): Unit = {
-    publish(ETaskStart(id, time, task))
-    // Mark the start of the task in the metrics
-    task.taskResources(resourceMap) map { r =>
-      // Bind each resource to this task
-      r.startTask(task, time) match {
-        case None =>
-          publish(ETaskAttach(id, time, task, r.name))
-        case Some(other) =>
-          publish(
-            EError(
-              id,
-              time,
-              s"Tried to attach task [${task.name}](${task.simulation}) to [${r.name}], but it was already attached to [${other.name}](${other.simulation}) "
-            )
-          )
-      }
-    }
-    // Generate a FinishTask event to be triggered at the end of the event
-    events += FinishingTask(time + task.duration, task)
-  }
+
 
   /**
     * Detaches the task attached to the given [[TaskResource]].

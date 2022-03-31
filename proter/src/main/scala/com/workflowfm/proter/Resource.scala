@@ -152,10 +152,10 @@ case class ResourceMap(resources: Map[String, ResourceState]) {
     folded.map { stateUpdates => copy(resources = resources ++ stateUpdates) }
   }
 
-  def abortTasks(ids: Seq[UUID]): (ResourceMap, Iterable[ResourceState]) = { 
-    val aborting = resources.filter  { (_, r) => r.runningAnyOf(ids) }
-    val result = copy( resources ++ aborting.map { (n, r) => n -> r.copy(currentTask = None) } )
-    (result, aborting.values)
+  def stopTasks(ids: Seq[UUID]): (ResourceMap, Iterable[ResourceState]) = { 
+    val stopping = resources.filter  { (_, r) => r.runningAnyOf(ids) }
+    val result = copy( resources ++ stopping.map { (n, r) => n -> r.copy(currentTask = None) } )
+    (result, stopping.values)
   }
 
   def isIdle(r: String): Boolean = resources.get(r) match {

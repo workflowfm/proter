@@ -75,6 +75,39 @@ object Simulationx {
     // log.debug(s"[COORD:$time] Finished: [$name]")
     //ready(name)
   
+  /**
+    * Start a [[TaskInstance]] at the current timestamp.
+    *
+    * A [[TaskInstance]] is started when scheduled by the [[schedule.Scheduler Scheduler]]. This
+    * assumes all the [[TaskResource]]s it needs are available.
+    *
+    *   - Publishes a [[com.workflowfm.proter.events.ETaskAdd ETaskAdd]].
+    *   - Calls [[TaskResource.startTask]] for each involved [[TaskResource]] to attach this
+    *     [[TaskInstance]] to them. Publishes a
+    *     [[com.workflowfm.proter.events.ETaskAttach ETaskAttach]] for each successful attachment.
+    *     Otherwise publishes an appropriate [[com.workflowfm.proter.events.EError EError]]. The
+    *     latter would only happen if the [[schedule.Scheduler Scheduler]] tried to schedule a
+    *     [[Task]] to a busy [[TaskResource]].
+    *   - Creates a [[FinishingTask]] event for this [[Task]] based on its duration, and adds it to
+    *     the even queue.
+    *
+    * @group tasks
+    * @param task
+    *   The [[TaskInstance]] to be started.
+    */
+  def startTask(task: TaskInstance): State[Simulationx[?], Seq[Event]] = State ( sim =>
+    sim.resources.startTask(task, sim.time) match {
+      case Left(busy) => (
+        sim, 
+        Seq(sim.error(s"Tried to attach task [${task.name}](${task.simulation}) to [${busy.resource.name}], but it was already attached to [${busy.task.name}](${busy.task.simulation}) since time [${busy.start}]."))
+      )
+      case Right(startedMap) => 
+        (sim.copy(
+          events = sim.events + FinishingTask(sim.time + task.duration, task),
+          tasks = sim.tasks - task),
+          ETaskStart(sim.id, sim.time, task) :: task.resources.map { r => ETaskAttach(sim.id, sim.time, task, r) }.toList
+        )
+    })
 
   /**
     * Aborts one or more [[TaskInstance]]s.
@@ -89,10 +122,41 @@ object Simulationx {
     *   The `UUID`s of the [[TaskInstance]]s that need to be aborted.
     */
   def abortTasks(ids: Seq[UUID]): State[Simulationx[?], Seq[Event]] = State ( sim => {
-    val (abortMap, abortResources) = sim.resources.abortTasks(ids)
+    val (abortMap, abortResources) = sim.resources.stopTasks(ids)
     val abortEvents = ids.map { taskid => ETaskAbort(sim.id, sim.time, taskid) }
-    val detachEvents = abortResources.flatMap(ETaskDetach.resourceState(sim.id, sim.time))
-    (sim.copy(resources = abortMap, abortedTasks = sim.abortedTasks ++ ids), abortEvents ++ detachEvents)
+    val detachEvents = abortResources.flatMap(ETaskDetach.resourceState(sim.id, sim.time)).toSeq
+    (sim.copy(
+      resources = abortMap, 
+      abortedTasks = sim.abortedTasks ++ ids), 
+      detachEvents ++ abortEvents)
+  })
+
+  /**
+    * Handles a group of [[TaskInstance]]s of the same simulation that has just finished.
+    *
+    * Assumes all instances belong to the same simulation.
+    *
+    *   - Notifies the [[schedule.Scheduler Scheduler]] about each task comleting.
+    *   - Publishes a [[com.workflowfm.proter.events.ETaskDone ETaskDone]].
+    *   - Notifies the [[Simulation]] that its [[TaskInstance]]s have finished. This happens in the
+    *     same thread if `singleThread` is `true` or using a `Future` otherwise.
+    *
+    * Note that resources are detached before this in [[tick]] using [[filterFinishingTasks]].
+    *
+    * @group tasks
+    * @param taskGroup
+    *   The simulation name paired with the [[TaskInstance]]s that need to be stopped.
+    */
+  def stopTasks(tasks: Seq[TaskInstance]): State[Simulationx[?], Seq[Event]] = State ( sim => {
+    val (stopMap, detachedResources) = sim.resources.stopTasks(tasks.map(_.id))
+    val stopEvents = tasks.map { task => ETaskDone(sim.id, sim.time, task) }
+    val detachEvents = detachedResources.flatMap(ETaskDetach.resourceState(sim.id, sim.time)).toSeq
+    val waits = tasks.groupBy(_.simulation)
+    (sim.copy(
+      resources = stopMap, 
+      tasks = sim.tasks -- tasks, // don't they get removed when they are scheduled? 
+      waiting = sim.waiting ++ waits), 
+      detachEvents ++ stopEvents)
   })
 
 /*
@@ -257,4 +321,6 @@ trait CaseState {
     then (sim.copy(events = sim.events + TimeLimit(t)), ETimeLimit(sim.id, sim.time, t))
     else (sim, sim.error(s"Attempted to set time limit in the past. Limit: [$t] < Current time: [${sim.time}]."))
   )
+
+  def abortTasks(ids: Seq[UUID]): State[Simulationx[?], Seq[Event]] = Simulationx.abortTasks(ids)
 }
