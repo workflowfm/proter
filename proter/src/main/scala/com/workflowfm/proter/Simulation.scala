@@ -536,7 +536,7 @@ trait LookingAhead extends Simulation {
     */
   override def complete(task: TaskInstance, time: Long): Unit = {
     completedTasks += ((task.id, time))
-    lookahead = lookahead - task.id
+    lookahead = getLookahead() - task.id
     lookahead.getTaskData(completedTasks).flatMap(_._1.id) foreach { id =>
       lookahead = lookahead - id
     }
