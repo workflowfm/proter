@@ -314,7 +314,7 @@ trait CaseState {
     * @param simulation
     *   The [[Simulation]] to run.
     */
-  def addCase[F[_]](t: Long, caseRef: CaseRef[F]): State[Simulationx[F], Event] = State( sim =>
+  def addCase[F[+T]](t: Long, caseRef: CaseRef[F]): State[Simulationx[F], Event] = State( sim =>
     if t >= sim.time
     then (sim.copy(events = sim.events + StartingCase(t, caseRef)), ECaseAdd(sim.id, sim.time, caseRef.caseName, t))
     else (sim, sim.error(s"Attempted to start case [${caseRef.caseName}] in the past: $t"))

@@ -10,28 +10,6 @@ import scala.util.{ Try, Success, Failure }
 import com.workflowfm.proter.events.*
 //import com.workflowfm.proter.schedule.Scheduler
 
-/**
-  * Abstract simulation manager.
-  */
-trait Manager {
-  /**
-    * Adds a simulation to the waiting list.
-    *
-    * The manager needs to wait for that simulation to send a [[SimResponse]].
-    *
-    * @param simulation
-    *   The name of the [[SimulationRef]] we need to wait for.
-    */
-  def waitFor(simulation: String): Unit
-
-  /**
-    * Handles a [[SimResponse]] from a simulation.
-    *
-    * @param response
-    *   The [[SimResponse]] to handle.
-    */
-  def simResponse(response: SimResponse): Unit
-}
 /*
 
 class Coordinator(

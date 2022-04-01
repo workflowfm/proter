@@ -1,10 +1,16 @@
-package com.workflowfm.proter.flows
+package com.workflowfm.proter
+package flows
+
+import cases.*
+
+import cats.Monad
+import cats.data.StateT
+import cats.implicits.*
+import cats.effect.std.{ Random, UUIDGen }
 
 import java.util.UUID
 
 import scala.util.Success
-
-import com.workflowfm.proter.*
 
 sealed trait Flow {
   def +(f: Flow): Flow = f match {
@@ -21,9 +27,11 @@ sealed trait Flow {
 
   def copy(): Flow
 
+/* TODO
   def simulation(name: String, manager: Manager): FlowSimulation = FlowSimulation(name, manager, this)
 
   def simGenerator(name: String): FlowSimulationGenerator = FlowSimulationGenerator(name, this)
+ */
 }
 
 case object NoTask extends Flow { 
@@ -103,22 +111,19 @@ object Flow {
   *   The flow which describes how the simulation behaves
   * @param executionContext
   */
-class FlowSimulation(
-    override val name: String,
-    override protected val manager: Manager,
-    protected val flow: Flow
-) extends AsyncSimulation {
 
-  /**
-    * Initiates the execution of the simulation.
-    */
-  override def run(): Unit = {
-    val id = UUID.randomUUID
-    val cback = callback((_, _) => succeed(()))
-    tasks += id -> cback
-    execute(id, flow)
-    ready()
-  }
+
+case class FlowCaseRef[F[_] : Monad : UUIDGen : Random](override val caseName: String, flow: Flow, override val callbacks: CallbackMap[F]) extends AsyncCaseRef[F](callbacks) {
+  override def update(callbackUpdate: CallbackMap[F]): AsyncCaseRef[F] = copy(callbacks = callbackUpdate)
+
+  override def stop(): F[Unit] = Monad[F].pure(())
+
+  override def run(): F[(CaseRef[F], CaseResponse[F])] = for {
+    uuid <- UUIDGen[F].randomUUID
+    cback = callback((_, _) => succeedState(()))
+    updated = callbacks + (uuid -> cback)
+    result <- execute(uuid, flow).modify(update).run(updated)
+  } yield (result)
 
   /**
     * Completes an id by executing its callback and then removing it from the map
@@ -129,12 +134,16 @@ class FlowSimulation(
     * @param id
     *   The id to complete
     */
-  protected def complete(id: UUID): Unit = {
-    val callback = tasks.get(id)
-    tasks -= id
-    callback.map(_(Success(null, 0L)))
-  }
-
+  protected def complete(id: UUID): StateT[F, CallbackMap[F], CaseResponse[F]] = StateT( m => {
+    m.get(id) match {
+      case None => Monad[F].pure((m, CaseResponse.empty))
+      case Some(f) => {
+        val dummyTask = new TaskInstance(id, "", caseName, 0L, 0L, Seq(), 0L, 0L, 0, 0, 0)
+        f(Success(dummyTask, 0L)).run(m - id)
+      }
+    }
+  })
+ 
   /**
     * Executes a flow by translating from a flow object to its sub-parts and appropriate callbacks,
     * then calling `runFlow`.
@@ -142,45 +151,62 @@ class FlowSimulation(
     * @param flow
     *   The flow to be executed
     */
-  final def execute(id: UUID, flow: Flow): Unit = {
+  final def execute(id: UUID, flow: Flow): StateT[F, CallbackMap[F], CaseResponse[F]] = {
     flow match {
       case NoTask => complete(id)
 
       case FlowTask(someTask) => {
-        val taskCallback =  callback((t, l) => { 
+        val taskCallback = callback((t, l) => { 
           complete(id)
-          ack(Seq(t.id))
         })
         task(someTask, taskCallback)
       }
 
-      case Then(left, right) => {
-        val leftID: UUID = UUID.randomUUID
-        val leftCallback: Callback = callback((_, _) => execute(id, right))
-        tasks += leftID -> leftCallback
-        execute(leftID, left)
-      }
+      case Then(left, right) => StateT( m => for {
+        leftID <- UUIDGen[F].randomUUID
+        leftCallback: Callback = callback((_, _) => execute(id, right))
+        update = m + (leftID -> leftCallback)
+        result <- execute(leftID, left).run(update)
+      } yield (result))
 
-      case And(left, right) => {
-        val leftID: UUID = UUID.randomUUID
-        val rightID: UUID = UUID.randomUUID
+      case And(left, right) =>  StateT( m => for {
+        leftID: UUID <- UUIDGen[F].randomUUID
+        rightID: UUID <- UUIDGen[F].randomUUID
 
-        val leftCallback: Callback =
-          callback((_, _) => (if !tasks.contains(rightID) then complete(id)))
-        val rightCallback: Callback =
-          callback((_, _) => (if !tasks.contains(leftID) then complete(id)))
+        leftCallback: Callback =
+          callback((_, _) => (
+            if !m.contains(rightID)
+            then complete(id)
+            else StateT.pure(CaseResponse.empty)
+          ))
+        rightCallback: Callback =
+          callback((_, _) => (
+            if !m.contains(leftID) 
+            then complete(id)
+            else StateT.pure(CaseResponse.empty)
+          ))
 
-        tasks += leftID -> leftCallback
-        tasks += rightID -> rightCallback
+        update = m + (leftID -> leftCallback) + (rightID -> rightCallback)
 
-        execute(leftID, left)
-        execute(rightID, right)
-      }
+        state = composeStates(execute(leftID, left), execute(rightID, right))
+        result <- state.run(update)
+      } yield (result))
 
     }
   }
+
 }
 
+given [F[_]](using Monad[F], UUIDGen[F], Random[F]): Case[F, Flow]  with {
+  override def init(name: String, flow: Flow): F[CaseRef[F]] = Monad[F].pure(
+    FlowCaseRef(
+      name, 
+      flow, 
+      CallbackMap(Map())
+    ))
+}
+
+/*
 /**
   * A trait which provides Lookahead compatibility to [[FlowSimulation]]s.
   *
@@ -315,3 +341,4 @@ case class FlowSimulationGenerator(baseName: String, flow: Flow) extends Simulat
     new FlowSimulation(name, manager, flow.copy())
   }
 }
+ */

@@ -1,3 +1,4 @@
+/*
 package com.workflowfm.proter
 
 /**
@@ -78,3 +79,4 @@ class SingleTaskSimulationGenerator(
     new SingleTaskSimulation(name, manager, resources, duration, cost, interrupt, priority)
   }
 }
+ */

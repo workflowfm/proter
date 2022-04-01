@@ -6,6 +6,7 @@ import scala.collection.mutable.{ Map, HashSet, Queue }
 import scala.concurrent.{ Future, Promise }
 import scala.util.{ Try, Success, Failure }
 
+/*
 /**
   * Captures the potential responses of a simulation case to an event.
   *
@@ -293,23 +294,6 @@ trait Simulation extends SimulationRef {
 
 object Simulation {
 
-  /**
-    * Exception used when aborting a [[Task]].
-    *
-    * @param cause
-    *   An optional underlying cause.
-    */
-  final case class TaskAbortedException(private val cause: Throwable = None.orNull)
-      extends Exception("Task has been aborted", cause)
-
-  /**
-    * Exception used when the simulation is stopping.
-    *
-    * @param cause
-    *   An optional underlying cause.
-    */
-  final case class SimulationStoppingException(private val cause: Throwable = None.orNull)
-      extends Exception("Simulation is stopping", cause)
 }
 
 /**
@@ -543,3 +527,4 @@ trait LookingAhead extends Simulation {
     super.complete(task, time)
   }
 }
+ */
