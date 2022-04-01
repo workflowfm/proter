@@ -5,13 +5,15 @@ import cases.CaseRef
 import events.*
 import schedule.Scheduler
 
-import cats.Monad
-import cats.data.State
+import cats.{ Monad, Applicative }
+import cats.data.{ State, StateT }
+import cats.effect.std.Random
 import cats.implicits.*
 
 import scala.annotation.tailrec
 import scala.collection.immutable.{ HashSet, Set, Map }
 import java.util.UUID
+
 
 
 case class Simulationx[F[_]](
@@ -26,6 +28,9 @@ case class Simulationx[F[_]](
   abortedTasks: HashSet[UUID],
 ) {
   def error(description: String): EError = EError(id, time, description)
+
+  def ready(name: String): Simulationx[F] = copy(waiting = waiting - name)
+
 }
 
 object Simulationx {
@@ -64,7 +69,7 @@ object Simulationx {
     * @param result
     *   A string representation of the output of the simulation.
     */
-  def stopCase(name: String, result: String): State[Simulationx[?], Event] = State ( sim => 
+  def stopCase[F[_]](name: String, result: String): State[Simulationx[F], Event] = State ( sim => 
     (sim.copy(
       waiting = sim.waiting - name,
       cases = sim.cases - name,
@@ -76,7 +81,44 @@ object Simulationx {
     //ready(name)
   
   /**
-    * Start a [[TaskInstance]] at the current timestamp.
+    * Stops/aborts a simulation before it is done.
+    *
+    *   - Removes the simulation from the list of running simulations and from the waiting list.
+    *   - Detaches all tasks of the simulation from the resources and adds them to the abort list.
+    *   - Publishes a [[com.workflowfm.proter.events.ETaskAbort ETaskAbort]] for each aborted task
+    *     and associated [[com.workflowfm.proter.events.ETaskDetach ETaskDetach]] for each released
+    *     resource.
+    *   - Removes all queued tasks of the simulation from the scheduler.
+    *   - Publishes a [[com.workflowfm.proter.events.ESimEnd ESimEnd]].
+    *   - Asks the simulation to stop.
+    *   - Does '''not''' progress time.
+    *
+    * The bookkeeping assumes the rest of the simulation(s) can still proceed.
+    *
+    * @group simulations
+    * @param simulation
+    *   The [[Simulation]] to stop.
+    */
+  def abortCase[F[_] : Applicative](caseRef: CaseRef[F]): StateT[F, Simulationx[F], Seq[Event]] = StateT ( sim => {
+    val name = caseRef.caseName
+    val tasksToAbort = sim.events.tasksOf(name)
+
+    val (abortedTasks, abortEvents) = abortTasks(tasksToAbort.toSeq).run(sim).value
+
+    val result = abortedTasks.copy(
+      cases = abortedTasks.cases - name,
+      waiting = abortedTasks.waiting - name,
+      tasks = abortedTasks.tasks.filter(_.simulation != name)
+    )
+
+    val events = ECaseEnd(sim.id, sim.time, name, "[Simulation Aborted]") :: abortEvents.toList
+    
+    caseRef.stop().map(_ => (result, events))
+  })
+
+
+  /**
+    * Start a [[TaskInstance]] at the  current timestamp.
     *
     * A [[TaskInstance]] is started when scheduled by the [[schedule.Scheduler Scheduler]]. This
     * assumes all the [[TaskResource]]s it needs are available.
@@ -95,7 +137,7 @@ object Simulationx {
     * @param task
     *   The [[TaskInstance]] to be started.
     */
-  def startTask(task: TaskInstance): State[Simulationx[?], Seq[Event]] = State ( sim =>
+  def startTask[F[_]](task: TaskInstance): State[Simulationx[F], Seq[Event]] = State ( sim =>
     sim.resources.startTask(task, sim.time) match {
       case Left(busy) => (
         sim, 
@@ -121,7 +163,7 @@ object Simulationx {
     * @param id
     *   The `UUID`s of the [[TaskInstance]]s that need to be aborted.
     */
-  def abortTasks(ids: Seq[UUID]): State[Simulationx[?], Seq[Event]] = State ( sim => {
+  def abortTasks[F[_]](ids: Seq[UUID]): State[Simulationx[F], Seq[Event]] = State ( sim => {
     val (abortMap, abortResources) = sim.resources.stopTasks(ids)
     val abortEvents = ids.map { taskid => ETaskAbort(sim.id, sim.time, taskid) }
     val detachEvents = abortResources.flatMap(ETaskDetach.resourceState(sim.id, sim.time)).toSeq
@@ -147,7 +189,7 @@ object Simulationx {
     * @param taskGroup
     *   The simulation name paired with the [[TaskInstance]]s that need to be stopped.
     */
-  def stopTasks(tasks: Seq[TaskInstance]): State[Simulationx[?], Seq[Event]] = State ( sim => {
+  def stopTasks[F[_]](tasks: Seq[TaskInstance]): State[Simulationx[F], Seq[Event]] = State ( sim => {
     val (stopMap, detachedResources) = sim.resources.stopTasks(tasks.map(_.id))
     val stopEvents = tasks.map { task => ETaskDone(sim.id, sim.time, task) }
     val detachEvents = detachedResources.flatMap(ETaskDetach.resourceState(sim.id, sim.time)).toSeq
@@ -240,11 +282,11 @@ trait CaseState {
   private def errorThen[T](publisher: Publisher[F], error: String) (v: T): F[T] = publishThen(publisher, EError(id, time, error))(v)
  */
 
-  def addResource(r: Resource): State[Simulationx[?], Event] = State( sim =>
+  def addResource[F[_]](r: Resource): State[Simulationx[F], Event] = State( sim =>
     (sim.copy(resources = sim.resources.addResource(r)), EResourceAdd(sim.id, sim.time, r.name, r.costPerTick))
   )
 
-  def addResources(rs: Seq[Resource]): State[Simulationx[?], Seq[Event]] = State( sim => {
+  def addResources[F[_]](rs: Seq[Resource]): State[Simulationx[F], Seq[Event]] = State( sim => {
     val events = rs.map { r => EResourceAdd(sim.id, sim.time, r.name, r.costPerTick) }
     (sim.copy(resources = sim.resources.addResources(rs)), events)
   })
@@ -316,11 +358,42 @@ trait CaseState {
     * @param t
     *   The virtual timestamp to end the simulation.
     */
-  def limit(t: Long):  State[Simulationx[?], Event] = State ( sim => 
+  def limit[F[_]](t: Long): State[Simulationx[F], Event] = State ( sim => 
     if t >= sim.time
     then (sim.copy(events = sim.events + TimeLimit(t)), ETimeLimit(sim.id, sim.time, t))
     else (sim, sim.error(s"Attempted to set time limit in the past. Limit: [$t] < Current time: [${sim.time}]."))
   )
 
-  def abortTasks(ids: Seq[UUID]): State[Simulationx[?], Seq[Event]] = Simulationx.abortTasks(ids)
+
+  /**
+    * Adds new [[Task]](s) for a simulation.
+    *
+    *   - Uses [[Task.create]] to create a [[TaskInstance]], which will now have a fixed duration
+    *     and cost.
+    *   - Publishes a [[com.workflowfm.proter.events.ETaskAdd ETaskAdd]].
+    *   - If the task does not require any resources, it is started immediately using [[startTask]].
+    *     Otherwise, we add it to the [[schedule.Scheduler Scheduler]].
+    *
+    * @group tasks
+    * @param simulation
+    *   The name of the [[Simulation]] that owns the task(s).
+    * @param task
+    *   The list of [[Task]]s to be added.
+    */
+  def addTask[F[_]: Random : Monad](caseName: String)(task: Task): StateT[F, Simulationx[F], Seq[Event]] = StateT ( sim => {
+    task.create(caseName, sim.time).map { inst => {
+      val event = ETaskAdd(sim.id, sim.time, inst)
+      if task.resources.length > 0
+      then (sim.copy(tasks = sim.tasks + inst), Seq(event))
+      else Simulationx.startTask(inst).run(sim).value match { // if the task does not require resources, start it now
+        case (s, events) => (s, event +: events)
+      }
+    }}
+  })
+
+  def addTasks[F[_]: Random : Monad](caseName: String, tasks: Seq[Task]): StateT[F, Simulationx[F], Seq[Event]] =
+    tasks.traverse(addTask(caseName)).map(_.flatten)
+
+  def abortTasks[F[_]](ids: Seq[UUID]): State[Simulationx[F], Seq[Event]] = Simulationx.abortTasks(ids)
+
 }

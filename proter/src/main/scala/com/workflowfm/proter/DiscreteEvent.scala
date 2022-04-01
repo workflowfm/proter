@@ -2,6 +2,8 @@ package com.workflowfm.proter
 
 import cases.CaseRef
 
+import java.util.UUID
+
 /**
   * Discrete Events that need to be handled by the [[Coordinator]]..
   */
@@ -159,4 +161,13 @@ case class EventQueue(events: SortedMap[Long, SortedSet[DiscreteEvent]]) {
   def size: Int = events.size
 
   def isEmpty: Boolean = events.isEmpty
+
+  def tasksOf(caseName: String): Iterable[UUID] = {
+    def matchingTask(evt: DiscreteEvent): Option[UUID] = evt match {
+      case FinishingTask(_, task) if task.simulation == caseName => Some(task.id)
+      case _ => None
+    }
+
+    events.values.flatMap(_.flatMap(matchingTask))
+  }
 }
