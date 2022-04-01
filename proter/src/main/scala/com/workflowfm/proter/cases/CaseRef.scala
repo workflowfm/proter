@@ -11,7 +11,7 @@ import scala.collection.immutable.{ HashSet, Queue }
 import scala.util.{ Try, Success, Failure }
 
 /**
-  * An abstract reference to simulation caselogic.
+  * An abstract reference to simulation case logic.
   *
   * Includes the basic interface that we expect from a simulation case:
   *   1. Starting the case.
@@ -204,7 +204,7 @@ abstract class AsyncCaseRef[F[_] : Monad : UUIDGen](callbacks: Ref[F, Map[UUID, 
     val response = super.abort(ids *)
     for {
       fs <- callbacks.modify { m => (m -- ids, ids.flatMap( id => m.get(id) )) }
-      _ = fs.map( f => f(Failure(Simulation.TaskAbortedException())) )
+      _ = fs.map( f => f(Failure(Case.TaskAbortedException())) )
     } yield (response)
   }
 
@@ -215,7 +215,7 @@ abstract class AsyncCaseRef[F[_] : Monad : UUIDGen](callbacks: Ref[F, Map[UUID, 
     */
   override def stop(): F[Unit] = for {
     fs <- callbacks.modify { m => (Map(), m.values) }
-    ios = fs.map( f => f(Failure(Simulation.SimulationStoppingException())) ).toList
+    ios = fs.map( f => f(Failure(Case.CaseStoppingException())) ).toList
     u <- ios.foldRight(Monad[F].pure(())) { (i, u) => i.flatMap(_ => u)  } // sequence_ didn't work here!
   } yield (u)
 }

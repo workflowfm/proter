@@ -32,6 +32,27 @@ given [F[_]](using Monad[F], UUIDGen[F]): Case[F, Task] with {
   }
 }
 
+object Case {
+    /**
+    * Exception used when aborting a [[Task]].
+    *
+    * @param cause
+    *   An optional underlying cause.
+    */
+  final case class TaskAbortedException(private val cause: Throwable = None.orNull)
+      extends Exception("Task has been aborted", cause)
+
+  /**
+    * Exception used when the case is stopping.
+    *
+    * @param cause
+    *   An optional underlying cause.
+    */
+  final case class CaseStoppingException(private val cause: Throwable = None.orNull)
+      extends Exception("Simulation is stopping", cause)
+
+}
+
 
 trait AsyncCase[F[_] : Sync : UUIDGen, T] extends Case[F, T] { self =>
   type Callback = AsyncCaseRef.Callback[F]
