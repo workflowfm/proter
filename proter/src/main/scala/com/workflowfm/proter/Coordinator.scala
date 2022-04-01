@@ -183,17 +183,6 @@ class Coordinator(
 
 
   /**
-    * Aborts all currently running simulations.
-    *
-    * Calls [[abortSimulation]] for each of them.
-    * @group simulations
-    */
-  protected def abortAllSimulations(): Unit = {
-    simulations.map(s => abortSimulation(s._2))
-  }
-
-
-  /**
     * Sets or updates the [[Lookahead]] structure for a given simulation.
     *
     * @group simulations

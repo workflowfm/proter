@@ -116,6 +116,17 @@ object Simulationx {
     caseRef.stop().map(_ => (result, events))
   })
 
+  /**
+    * Aborts all currently running simulations.
+    *
+    * Calls [[abortSimulation]] for each of them.
+    * @group simulations
+    */
+  protected def abortAll[F[_] : Monad](): StateT[F, Simulationx[F], Seq[Event]] = StateT ( sim => {
+    sim.cases.values.toSeq.traverse(abortCase[F]).map(_.flatten).run(sim)
+  })
+
+
 
   /**
     * Start a [[TaskInstance]] at the  current timestamp.
