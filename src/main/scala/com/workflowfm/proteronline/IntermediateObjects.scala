@@ -15,7 +15,7 @@ import com.workflowfm.proter.metrics._
   * @param arrival Defines how simulations arrive
   * @param resources Contains the definitions of resources that are referenced in the arrival
   */
-case class IRequest(arrival: IArrival, resources: List[IResource])
+case class IRequest(arrivals: List[IArrival], resources: List[IResource])
 
 
 /**

@@ -51,7 +51,7 @@ class SimulationRunner {
 
     val coordinator : Coordinator = new Coordinator(new ProterScheduler)
 
-    val promiseHandler = new PromiseHandler(new SimMetricsHandler) //(new SimMetricsPrinter)
+    val promiseHandler = new PromiseHandler(new SimMetricsHandler)//(new SimMetricsPrinter))
     val agg = promiseHandler.future
 
     coordinator.subscribe(promiseHandler)
@@ -143,32 +143,35 @@ class SimulationRunner {
     val resources: List[TaskResource] = requestObj.resources.map(_.toProterResource()) //Build the task resources
     coord.addResources(resources) //Task Resources added
 
-    //If multiple simulations are to be implemented a loop over simulations should include all lines down to, but excluding, the if statements
+    //For each arrival in the request
+    requestObj.arrivals.foreach{ arrival =>
 
-    val order: Array[String] = requestObj.arrival.simulation.flow.ordering.split("->")
+      val order: Array[String] = arrival.simulation.flow.ordering.split("->")
 
-    val iTasks: List[ITask] = requestObj.arrival.simulation.flow.tasks
+      val iTasks: List[ITask] = arrival.simulation.flow.tasks
 
-    val orderedTasks: List[ITask] = order.map(x => iTasks.filter(y => y.name == x).head).toList
+      val orderedTasks: List[ITask] = order.map(x => iTasks.filter(y => y.name == x).head).toList
 
-    val tasks: List[FlowTask] = orderedTasks.map(_.toProterTask()).map(new FlowTask(_))
-    
-    val taskFlow: Flow = Flow.seq(tasks)
+      val tasks: List[FlowTask] = orderedTasks.map(_.toProterTask()).map(new FlowTask(_))
+      
+      val taskFlow: Flow = Flow.seq(tasks)
 
-    val simGen = new FlowSimulationGenerator(requestObj.arrival.simulation.name, taskFlow)
+      val simGen = new FlowSimulationGenerator(arrival.simulation.name, taskFlow)
 
-    if (requestObj.arrival.infinite) {
-      coord.addInfiniteArrivalNow(
-        requestObj.arrival.rate.toProterDistribution(),
-        simGen
-      )
-      coord.limit(requestObj.arrival.timeLimit.get.toLong) //If its infinite then we add a timer to stop it running forever
-    } else {
-      coord.addArrivalNow(
-        requestObj.arrival.simulationLimit.get, //If its finite then its this limit on the number of simulations that stops it
-        requestObj.arrival.rate.toProterDistribution(),
-        simGen
-      )
+      if (arrival.infinite) {
+        coord.addInfiniteArrivalNow(
+          arrival.rate.toProterDistribution(),
+          simGen
+        )
+        coord.limit(arrival.timeLimit.get.toLong) //If its infinite then we add a timer to stop it running forever
+      } else {
+        coord.addArrivalNow(
+          arrival.simulationLimit.get, //If its finite then its this limit on the number of simulations that stops it
+          arrival.rate.toProterDistribution(),
+          simGen
+        )
+      }
+
     }
   }
 
@@ -198,7 +201,7 @@ class SimulationRunner {
     */
   def matchingResources(request: IRequest): Boolean = {
     val definedResources: Set[String] = request.resources.map(_.name).toSet
-    val referencedResources: Set[String] = request.arrival.simulation.flow.tasks.flatMap(_.resources.split(",")).toSet
+    val referencedResources: Set[String] = request.arrivals.flatMap(arrival => arrival.simulation.flow.tasks.flatMap(_.resources.split(","))).toSet
     if (referencedResources.subsetOf(definedResources)) {
       true
     } else {
@@ -214,8 +217,8 @@ class SimulationRunner {
     * @return Boolean
     */
   def matchingTasks(request: IRequest): Boolean = {
-    val definedTasks: Set[String] = request.arrival.simulation.flow.tasks.map(_.name).toSet
-    val referencedTasks: Set[String] = request.arrival.simulation.flow.ordering.split("->").toSet
+    val definedTasks: Set[String] = request.arrivals.flatMap(arrival => arrival.simulation.flow.tasks.map(_.name)).toSet
+    val referencedTasks: Set[String] = request.arrivals.flatMap(arrival => arrival.simulation.flow.ordering.split("->")).toSet
     if (referencedTasks.subsetOf(definedTasks)) {
       true
     } else {
