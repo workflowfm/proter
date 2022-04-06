@@ -1,0 +1,72 @@
+-------------------------------------------------- 
+Top Level Request:
+
+{ 
+
+arrivals : [ 
+
+	simulation : { 
+
+		name : String //Must be unique
+
+		flow : {
+
+			tasks: [Task] 
+
+			ordering: String //task1Name -> task2Name -> etc.
+
+		}
+	},
+
+	infinite: Boolean //Is this an infinite arrival
+
+	rate: Distribution //How often a simulation arrives
+
+	simulationLimit: Int //Limit on the total number of simulation that will be run, required if not infinite otherwise null
+
+	timeLimit: Int //Limit on the length of time the simulation run, required if infinite otherwise null
+], 
+
+resources: {[Resource]} 
+
+} 
+
+ 
+
+----------------------------------------------- 
+
+Task : { 
+
+	name: String 
+
+	duration : Distribution 
+
+	cost : Distribution 
+
+	resources : [String] //just the names of the resources
+
+	priority: Int //Value between -2 (Lowest) and 2 (Highest)
+
+} 
+
+-------------------------------------------------- 
+
+Resource: { 
+
+	name: String 
+
+	costPerTick : Double 
+
+} 
+
+------------------------------------------------------ 
+
+Distribution: { 
+
+	distType: String //Should be one from C, E or U
+
+	value1: Double 
+
+	value2: Double //For distType C or E should be null
+
+} 

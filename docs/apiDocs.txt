@@ -1,0 +1,16 @@
+Streaming Server
+
+POST \stream
+
+Request: Expects body containing JSON that corresponds to the format found in the requestFormat.txt document
+
+Response: A stream of strings that are in the Proter event .toString() format
+
+
+Standard Server
+
+POST \API
+
+Request: Expects body containing JSON that corresponds to the format found in the jsonFormat.txt document
+
+Response: A JSON response that corresponds to the format found in responseFormat.txt
