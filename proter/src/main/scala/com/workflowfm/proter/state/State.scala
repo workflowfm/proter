@@ -1,7 +1,7 @@
 package com.workflowfm.proter
 package state
 
-import cases.CaseRef
+import cases.{ Case, CaseRef, CaseResponse } 
 import events.*
 import schedule.Scheduler
 
@@ -314,10 +314,20 @@ trait CaseState {
     * @param simulation
     *   The [[Simulation]] to run.
     */
-  def addCase[F[+T]](t: Long, caseRef: CaseRef[F]): State[Simulationx[F], Event] = State( sim =>
+  def addCaseRef[F[_]](t: Long, caseRef: CaseRef[F]): State[Simulationx[F], Event] = State( sim =>
     if t >= sim.time
     then (sim.copy(events = sim.events + StartingCase(t, caseRef)), ECaseAdd(sim.id, sim.time, caseRef.caseName, t))
     else (sim, sim.error(s"Attempted to start case [${caseRef.caseName}] in the past: $t"))
+  )
+
+
+  def addCase[F[_] : Monad, T](time: Long, name: String, t: T)(using ct: Case[F, T]): StateT[F, Simulationx[F], Event] = StateT( sim => 
+    if time >= sim.time
+    then {
+      ct.init(name, t).map { caseRef =>
+        (sim.copy(events = sim.events + StartingCase(time, caseRef)), ECaseAdd(sim.id, sim.time, caseRef.caseName, time))
+      }}
+    else Monad[F].pure((sim, sim.error(s"Attempted to start case [$name] in the past: $t")))
   )
 
   /**
@@ -329,9 +339,8 @@ trait CaseState {
     * @param simulation
     *   The [[Simulation]] to run.
     */
-  def addCaseNow[F[_]](caseRef: CaseRef[F]): State[Simulationx[F], Event] = State ( sim => 
-    addCase(sim.time, caseRef).run(sim).value
-  )
+  def addCaseNow[F[_] : Monad, T](name: String, t: T)(using ct: Case[F, T]): StateT[F, Simulationx[F], Event] = 
+    StateT.inspect[F, Simulationx[F], Long](_.time).flatMap { time => addCase(time, name, t) }
 
   /**
     * Adds multiple simulations at the same time.
@@ -343,8 +352,8 @@ trait CaseState {
     *   A sequence of pairs, each consisting of a starting timestamp and a [[Simulation]].
     *   Timestamps must be greater or equal to the current time.
     */
-  def addCases[F[_]](cases: Seq[(Long, CaseRef[F])]): State[Simulationx[F], Seq[Event]] =
-    cases.map( (t, c) => addCase(t, c) ).sequence
+  def addCases[F[_] : Monad, T](cases: Seq[(Long, String, T)])(using ct: Case[F, T]): StateT[F, Simulationx[F], Seq[Event]] =
+    cases.map( (t, n, c) => addCase(t, n, c) ).sequence
 
   /**
     * Add multiple simulations to be run in the current virtual time.
@@ -353,9 +362,8 @@ trait CaseState {
     * @param sims
     *   A sequence of [[Simulation]]s.
     */
-  def addCasesNow[F[_]](cases: Seq[CaseRef[F]]): State[Simulationx[F], Seq[Event]] = State ( sim => 
-    addCases(cases.map((sim.time, _))).run(sim).value
-  )
+  def addCasesNow[F[_] : Monad, T](cases: Seq[(String, T)])(using ct: Case[F, T]): StateT[F, Simulationx[F], Seq[Event]] =
+    cases.map( (n, c) => addCaseNow(n, c) ).sequence
 
 
   /**
