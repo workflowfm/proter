@@ -12,6 +12,7 @@ import cats.implicits.*
 
 import scala.annotation.tailrec
 import scala.collection.immutable.{ HashSet, Set, Map }
+import scala.util.{ Try, Success, Failure }
 import java.util.UUID
 
 
@@ -27,6 +28,9 @@ case class Simulationx[F[_]](
   waiting: Map[String, Seq[TaskInstance]], 
   abortedTasks: HashSet[UUID],
 ) {
+
+  def start(): EStart = EStart(id, time)
+
   def error(description: String): EError = EError(id, time, description)
 
   def ready(name: String): Simulationx[F] = copy(waiting = waiting - name)
@@ -34,6 +38,12 @@ case class Simulationx[F[_]](
 }
 
 object Simulationx {
+
+//  def lift[F[_] : Monad](state: State[Simulationx[F], Event]): StateT[F, Simulationx[F], Seq[Event]] = StateT.fromState(state.map(e => Monad[F].pure(Seq(e))) )
+
+//  def lift[F[_] : Monad](state: State[Simulationx[F], Seq[Event]]): StateT[F, Simulationx[F], Seq[Event]] = StateT.fromState(state.map(Monad[F].pure))
+
+//  def lift[F[_] : Monad](state: StateT[F, Simulationx[F], Event]): StateT[F, Simulationx[F], Seq[Event]] = state.map(Seq(_))
 
   /**
     * Start a [[CaseRef]].
@@ -212,7 +222,7 @@ object Simulationx {
       detachEvents ++ stopEvents)
   })
 
-/*
+
   /**
     * Handles a [[SimDone]] response from a simulation, indicating that it has completed.
     *
@@ -224,17 +234,17 @@ object Simulationx {
     * @param result
     *   The result of completion
     */
-  protected def caseDone(caseName: String, result: Try[Any]): Unit = {
+  def caseDone[F[_]](caseName: String, result: Try[Any]): State[Simulationx[F], Event] = {
     result match {
       case Success(res) => {
-        stopSimulation(simulation, res.toString)
+        stopCase(caseName, res.toString)
       }
       case Failure(ex) => {
-        stopSimulation(simulation, ex.getLocalizedMessage)
+        stopCase(caseName, ex.getLocalizedMessage)
       }
     }
   }
- */
+
   def tick[F[_]](): State[Simulationx[F], Seq[Event]] = State ( sim => 
     if !sim.waiting.isEmpty // still waiting for responses!
     then (sim, Seq(sim.error(s"Called `tick()` even though I am still waiting for: ${sim.waiting}")))
@@ -279,6 +289,43 @@ object Simulationx {
     // }*/
     else (sim, Seq())
   )
+
+/*
+ /**
+    * Starts the entire simulation scenario.
+    *
+    * Publishes a [[com.workflowfm.proter.events.EStart EStart]].
+    *
+    * @group toplevel
+    */
+  def start(): StateT[F, Simulationx[F], Seq[Event]] = 
+    tick().map { events =>  }
+      publish()
+      tick()
+ */
+
+  /**
+    * Aborts all simulations and stops immediately.
+    *
+    * @group toplevel
+    */
+  def stop[F[_]: Monad](): StateT[F, Simulationx[F], Seq[Event]] =
+    abortAll()
+      .modify(_.copy(events = EventQueue()))
+      .flatMap { events => StateT.fromState(finish().map(e => Monad[F].pure(events :+ e)) )}
+
+  /**
+    * Shuts down the entire simulation and shuts down the actor.
+    *
+    * Publishes a [[com.workflowfm.proter.events.EDone EDone]].
+    *
+    * Fulfils the completion [[promise]].
+    *
+    * @group toplevel
+    */
+  def finish[F[_]](): State[Simulationx[F], Event] = State { sim =>
+    (sim, EDone(sim.id, sim.time)) // TODO do we want to mark the simulation as done?
+  }
 
 }
 

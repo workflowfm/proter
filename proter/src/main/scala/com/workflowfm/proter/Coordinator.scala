@@ -192,46 +192,8 @@ class Coordinator(
     }
   }
 
-  /**
-    * Starts the entire simulation scenario.
-    *
-    * Publishes a [[com.workflowfm.proter.events.EStart EStart]].
-    *
-    * @group toplevel
-    */
-  def start(): Future[Any] = if started then promise.future
-  else {
-    started = true
-    Future {
-      publish(EStart(id, time))
-      tick()
-    }.flatMap(_ => promise.future)
-  }
+ 
 
-  /**
-    * Shuts down the entire simulation and shuts down the actor.
-    *
-    * Publishes a [[com.workflowfm.proter.events.EDone EDone]].
-    *
-    * Fulfils the completion [[promise]].
-    *
-    * @group toplevel
-    */
-  protected def finish(): Unit = {
-    publish(EDone(id, time))
-    promise.success(())
-  }
-
-  /**
-    * Aborts all simulations and stops immediately.
-    *
-    * @group toplevel
-    */
-  def stop(): Unit = {
-    abortAllSimulations()
-    events.clear()
-    finish()
-  }
 
 
   /**
@@ -309,7 +271,7 @@ class Coordinator(
   def addArrival(
       t: Long,
       limit: Int,
-      rate: Distribution,
+\      rate: Distribution,
       simulationGenerator: SimulationRefGenerator
   ): Unit = {
     if t >= time then events += Arrival(t, rate, simulationGenerator, Some(limit))
@@ -351,22 +313,5 @@ class Coordinator(
     events += Arrival(time + rate.get.round, rate, simulationGenerator, Some(limit))
   }
 
-  /**
-    * Checks if a given [[com.workflowfm.proter.events.Event Event]] in the output stream is the
-    * final one.
-    *
-    * Causes the stream to shutdown after [[com.workflowfm.proter.events.EDone EDone]] is published.
-    *
-    * @group toplevel
-    * @param e
-    *   The [[com.workflowfm.proter.events.Event Event]] to check.
-    * @return
-    *   true if it is a [[com.workflowfm.proter.events.EDone EDone]], otherwise false.
-    */
-  override def isFinalEvent(e: Event): Boolean = e match {
-    case EDone(_, _) => true
-    case _ => false
-  }
 
-}
  */

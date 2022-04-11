@@ -171,3 +171,7 @@ case class EventQueue(events: SortedMap[Long, SortedSet[DiscreteEvent]]) {
     events.values.flatMap(_.flatMap(matchingTask))
   }
 }
+
+object EventQueue {
+  def apply(): EventQueue = EventQueue(SortedMap())
+}
