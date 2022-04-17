@@ -37,13 +37,15 @@ case class Simulationx[F[_]](
 
   def nextTasks(): Iterable[TaskInstance] = scheduler.getNextTasks(time, tasks, resources)
 
-  def notify(waiting: (String, Seq[TaskInstance])) = waiting match { 
+  def notifyCase(waiting: (String, Seq[TaskInstance]))(using Monad[F]): F[Simulationx.SimState[F]] = waiting match { 
     case (caseName, tasks) => cases.get(caseName) match {
-      case None => ()
+      case None => Simulationx.idStateM
       case Some(c) => if tasks.isEmpty then c.run() else c.completed(time, tasks)
     }
   }
 
+  def notifyCases(using Monad[F]): F[(Simulationx[F], Seq[Event])] =
+    waiting.map(notifyCase).toSeq.sequence.map(Simulationx.compose(_ :_*).run(this)).flatten
 }
 
 object Simulationx {
@@ -57,9 +59,12 @@ object Simulationx {
 
   def liftSingleStateT[F[_] : Monad](state: StateT[F, Simulationx[F], Event]): StateT[F, Simulationx[F], Seq[Event]] = state.map(Seq(_))
 
-  def compose[F[_] : Monad](s1: SimState[F], l: SimState[F]*): SimState[F] =
-    l.foldLeft(s1) { (a, b) => a.flatMap( e1 => b.map( e2 => e1 ++ e2 ) ) }
+  def compose[F[_] : Monad](l: SimState[F]*): SimState[F] =
+    l.foldLeft(idState) { (a, b) => a.flatMap( e1 => b.map( e2 => e1 ++ e2 ) ) }
 
+  def idState[F[_] : Monad]: SimState[F] = StateT.pure(Seq())
+
+  def idStateM[F[_] : Monad]: F[SimState[F]] = Monad[F].pure(StateT.pure(Seq()))
 
   /**
     * Start a [[CaseRef]].
