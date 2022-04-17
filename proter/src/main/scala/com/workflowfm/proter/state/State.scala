@@ -11,7 +11,7 @@ import cats.effect.std.Random
 import cats.implicits.*
 
 import scala.annotation.tailrec
-import scala.collection.immutable.{ HashSet, Set, Map }
+import scala.collection.immutable.{ HashSet, Set, Map, Queue }
 import scala.util.{ Try, Success, Failure }
 import java.util.UUID
 
@@ -35,15 +35,18 @@ case class Simulationx[F[_]](
 
   def ready(name: String): Simulationx[F] = copy(waiting = waiting - name)
 
+  def nextTasks(): Iterable[TaskInstance] = scheduler.getNextTasks(time, tasks, resources)
+
 }
 
 object Simulationx {
 
-//  def lift[F[_] : Monad](state: State[Simulationx[F], Event]): StateT[F, Simulationx[F], Seq[Event]] = StateT.fromState(state.map(e => Monad[F].pure(Seq(e))) )
+  def liftSingleState[F[_] : Monad](state: State[Simulationx[F], Event]): StateT[F, Simulationx[F], Seq[Event]] = StateT.fromState(state.map(e => Monad[F].pure(Seq(e))) )
 
-//  def lift[F[_] : Monad](state: State[Simulationx[F], Seq[Event]]): StateT[F, Simulationx[F], Seq[Event]] = StateT.fromState(state.map(Monad[F].pure))
+  def liftSeqState[F[_] : Monad](state: State[Simulationx[F], Seq[Event]]): StateT[F, Simulationx[F], Seq[Event]] = StateT.fromState(state.map(Monad[F].pure))
 
-//  def lift[F[_] : Monad](state: StateT[F, Simulationx[F], Event]): StateT[F, Simulationx[F], Seq[Event]] = state.map(Seq(_))
+  def liftSingleStateT[F[_] : Monad](state: StateT[F, Simulationx[F], Event]): StateT[F, Simulationx[F], Seq[Event]] = state.map(Seq(_))
+
 
   /**
     * Start a [[CaseRef]].
@@ -211,14 +214,16 @@ object Simulationx {
     *   The simulation name paired with the [[TaskInstance]]s that need to be stopped.
     */
   def stopTasks[F[_]](tasks: Seq[TaskInstance]): State[Simulationx[F], Seq[Event]] = State ( sim => {
-    val (stopMap, detachedResources) = sim.resources.stopTasks(tasks.map(_.id))
-    val stopEvents = tasks.map { task => ETaskDone(sim.id, sim.time, task) }
+    val (someAbortedTasks, nonAbortedTasks) = tasks.partition(t => sim.abortedTasks.contains(t.id))
+    val (stopMap, detachedResources) = sim.resources.stopTasks(nonAbortedTasks.map(_.id))
+    val stopEvents = nonAbortedTasks.map { task => ETaskDone(sim.id, sim.time, task) }
     val detachEvents = detachedResources.flatMap(ETaskDetach.resourceState(sim.id, sim.time)).toSeq
-    val waits = tasks.groupBy(_.simulation)
+    val waits = nonAbortedTasks.groupBy(_.simulation)
     (sim.copy(
       resources = stopMap, 
-      tasks = sim.tasks -- tasks, // don't they get removed when they are scheduled? 
-      waiting = sim.waiting ++ waits), 
+      waiting = sim.waiting ++ waits,
+      abortedTasks = sim.abortedTasks -- someAbortedTasks.map(_.id)
+    ),
       detachEvents ++ stopEvents)
   })
 
@@ -245,51 +250,78 @@ object Simulationx {
     }
   }
 
-  def tick[F[_]](): State[Simulationx[F], Seq[Event]] = State ( sim => 
-    if !sim.waiting.isEmpty // still waiting for responses!
-    then (sim, Seq(sim.error(s"Called `tick()` even though I am still waiting for: ${sim.waiting}")))
-    else if (sim.events.isEmpty && sim.tasks.isEmpty && sim.cases.isEmpty) // finished!
-    then (sim, Seq(EDone(sim.id, sim.time))) 
-/*  
-    else if !events.isEmpty // Are events pending?
-    then { 
-      processing = true
 
-      // Grab the first event
-      val firstEvent = events.head
+  def allocateTasks[F[_] : Monad](): StateT[F, Simulationx[F], Seq[Event]] = StateT { sim => 
+    StateT.fromState(
+      sim.nextTasks().map(startTask[F]).toSeq.sequence.map( e =>
+        Monad[F].pure(e.flatten)
+      )
+    ).run(sim)
+  }
 
-      // Did we somehow go past the event time? This should never happen.
-      if firstEvent.time < time then {
-        publish(EError(id, time, s"Unable to handle past event for time: [${firstEvent.time}]"))
-      } else {
-        // Jump ahead to the event time. This is a priority queue so we shouldn't skip any events
-        time = firstEvent.time
+  /**
+    * Handles all [[DiscreteEvent]]s other than [[FinishingTask]].
+    *
+    * @param event
+    */
+  protected def handleDiscreteEvent[F[_] : Monad](acc: (StateT[F, Simulationx[F], Queue[Event]], Queue[TaskInstance]), event: DiscreteEvent): (StateT[F, Simulationx[F], Queue[Event]], Queue[TaskInstance]) =
+    acc match {
+      case (state, tasks) =>
+        // TODO check time?
+        event match {
+          // A task is finished, but we handle this elsewhere
+          case FinishingTask(_, t) => (state, tasks :+ t)
 
-        // Dequeue all the events that need to happen now
-        val eventsToHandle = dequeueEvents(firstEvent.time)
+          // A simulation (workflow) is starting now
+          case e: StartingCase[F] => (
+            state.flatMap(events => 
+              StateT.fromState(startCase(e.caseRef).map(e => Monad[F].pure(events :+ e)))
+            ), tasks)
 
-        eventsToHandle.flatMap(filterFinishingTasks).groupBy(_.simulation).foreach(stopTasks)
+          case TimeLimit(_) => (
+            state.flatMap(events =>
+              stop().map(e => events ++ e)
+            ), tasks)
 
-        // Handle the event
-        eventsToHandle foreach handleDiscreteEvent
-
-        processing = false
-        // If we are not waiting for anything, continue
-        if waiting.isEmpty then {
-          allocateTasks()
-          tick()
+          /*
+           case arrival @ Arrival(t, _, simulationGenerator, limit, count) if (t == time) =>
+           if limit.map(_ > count).getOrElse(true) then {
+           events += arrival.next() // replicate self
+           startSimulation(simulationGenerator.build(this, count))
+           }
+           */
+          case _ => (
+            state.flatMap(events =>
+              StateT { sim => Monad[F].pure((sim, events :+ sim.error(s"Failed to handle event: $event")) ) }
+            ), tasks)
         }
+    }
+
+
+  def tick[F[_] : Monad](): StateT[F, Simulationx[F], Seq[Event]] = StateT { sim => 
+    if !sim.waiting.isEmpty // still waiting for responses!
+    then Monad[F].pure((sim, Seq(sim.error(s"Called `tick()` even though I am still waiting for: ${sim.waiting}"))))
+    else if (sim.events.isEmpty && sim.tasks.isEmpty && sim.cases.isEmpty) // finished!
+    then Monad[F].pure((sim, Seq(EDone(sim.id, sim.time))))
+    else sim.events.next() match {
+      case Some((toHandle, updatedEventQueue)) => { // Are events pending?
+        val updateEventQueue: StateT[F, Simulationx[F], Queue[Event]] = StateT { 
+          sim => Monad[F].pure((sim.copy(events = updatedEventQueue), Queue[Event]())) 
+        }
+        val (state, tasks) = toHandle.foldLeft((updateEventQueue, Queue[TaskInstance]()))(handleDiscreteEvent)
+
+        state.flatMap(events => 
+          StateT.fromState(stopTasks[F](tasks).map(e =>
+            Monad[F].pure((events ++ e).toSeq)
+          ))
+        ).run(sim)
       }
-
-    } else if waiting.isEmpty && !scheduler.noMoreTasks() then { // this may happen if handleDiscreteEvent fails
-      allocateTasks()
-      tick()
-    } // else {
-    // publish(EError(self, time, "No tasks left to run, but simulations have not finished."))
-    // }*/
-    else (sim, Seq())
-  )
-
+      case None =>
+        if !sim.tasks.isEmpty // this may happen if handleDiscreteEvent fails
+        then Monad[F].pure((sim, Seq()))
+        else Monad[F].pure((sim, Seq(sim.error(s"No tasks or events left, but cases have not finished: ${sim.cases.keys}"))))
+    }
+  }
 /*
  /**
     * Starts the entire simulation scenario.
