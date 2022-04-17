@@ -1,9 +1,11 @@
 package com.workflowfm.proter
 package cases
 
+import state.Simulationx.SimState
+
 import cats.Monad
 import cats.implicits.*
-import cats.effect.kernel.{ Ref, Sync }
+import cats.data.StateT
 import cats.effect.std.{ Random, UUIDGen }
 
 import java.util.UUID
@@ -22,12 +24,12 @@ given [F[_]](using Monad[F], UUIDGen[F], Random[F]): Case[F, Task] with {
     val theTask: Task = t.withID(id)
 
     override val caseName: String = name
-    override def run(): F[(CaseRef[F], CaseResponse[F])] = Monad[F].pure(this, CaseUpdate.task(caseName, theTask))
+    override def run(): F[SimState[F]] = Monad[F].pure(addTask(caseName)(theTask))
     override def stop(): F[Unit] = Monad[F].pure(())
-    override def completed(time: Long, tasks: Seq[TaskInstance]): F[(CaseRef[F], CaseResponse[F])] =
+    override def completed(time: Long, tasks: Seq[TaskInstance]): F[SimState[F]] =
       tasks.find(_.id == id) match {
-        case None => Monad[F].pure((this, CaseResponse.empty))
-        case Some(ti) => Monad[F].pure((this, succeed((ti, time))))
+        case None => Monad[F].pure(StateT.pure(Seq()))
+        case Some(ti) => Monad[F].pure(succeed((ti, time)))
       }
   }
 }

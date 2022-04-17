@@ -2,6 +2,7 @@ package com.workflowfm.proter
 package flows
 
 import cases.*
+import state.Simulationx.SimState
 
 import cats.Monad
 import cats.data.StateT
@@ -114,15 +115,15 @@ object Flow {
 
 
 case class FlowCaseRef[F[_] : Monad : UUIDGen : Random](override val caseName: String, flow: Flow, callbackMap: CallbackMap[F]) extends AsyncCaseRef[F](callbackMap) {
-  override def update(callbackUpdate: CallbackMap[F]): AsyncCaseRef[F] = copy(callbackMap = callbackUpdate)
+  override def updateState(callbackUpdate: CallbackMap[F]): AsyncCaseRef[F] = copy(callbackMap = callbackUpdate)
 
   override def stop(): F[Unit] = Monad[F].pure(())
 
-  override def run(): F[(CaseRef[F], CaseResponse[F])] = for {
+  override def run(): F[SimState[F]] = for {
     uuid <- UUIDGen[F].randomUUID
     cback = callback((_, _) => succeedState(()))
-    updated = callbackMap + (uuid -> cback)
-    result <- execute(uuid, flow).modify(update).run(updated)
+    updated = copy(callbackMap = callbackMap + (uuid -> cback))
+    result <- updated.compose(execute(uuid, flow))
   } yield (result)
 
   /**
@@ -134,9 +135,9 @@ case class FlowCaseRef[F[_] : Monad : UUIDGen : Random](override val caseName: S
     * @param id
     *   The id to complete
     */
-  protected def complete(id: UUID): StateT[F, CallbackMap[F], CaseResponse[F]] = StateT( m => {
+  protected def complete(id: UUID): StateT[F, CallbackMap[F], SimState[F]] = StateT( m => {
     m.get(id) match {
-      case None => Monad[F].pure((m, CaseResponse.empty))
+      case None => Monad[F].pure((m, StateT.pure(Seq())))
       case Some(f) => {
         val dummyTask = new TaskInstance(id, "", caseName, 0L, 0L, Seq(), 0L, 0L, 0, 0, 0)
         f(Success(dummyTask, 0L)).run(m - id)
@@ -151,7 +152,7 @@ case class FlowCaseRef[F[_] : Monad : UUIDGen : Random](override val caseName: S
     * @param flow
     *   The flow to be executed
     */
-  final def execute(id: UUID, flow: Flow): StateT[F, CallbackMap[F], CaseResponse[F]] = {
+  final def execute(id: UUID, flow: Flow): StateT[F, CallbackMap[F], SimState[F]] = {
     flow match {
       case NoTask => complete(id)
 
@@ -177,13 +178,13 @@ case class FlowCaseRef[F[_] : Monad : UUIDGen : Random](override val caseName: S
           callback((_, _) => (
             if !m.contains(rightID)
             then complete(id)
-            else StateT.pure(CaseResponse.empty)
+            else idState
           ))
         rightCallback: Callback =
           callback((_, _) => (
             if !m.contains(leftID) 
             then complete(id)
-            else StateT.pure(CaseResponse.empty)
+            else idState
           ))
 
         update = m + (leftID -> leftCallback) + (rightID -> rightCallback)
