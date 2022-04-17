@@ -41,6 +41,8 @@ case class Simulationx[F[_]](
 
 object Simulationx {
 
+  def apply[F[_]](id: String, scheduler: Scheduler): Simulationx[F] = Simulationx[F](id, scheduler, 0L, EventQueue(), Set(), Map(), ResourceMap(Map()), Map(), HashSet())
+
   def liftSingleState[F[_] : Monad](state: State[Simulationx[F], Event]): StateT[F, Simulationx[F], Seq[Event]] = StateT.fromState(state.map(e => Monad[F].pure(Seq(e))) )
 
   def liftSeqState[F[_] : Monad](state: State[Simulationx[F], Seq[Event]]): StateT[F, Simulationx[F], Seq[Event]] = StateT.fromState(state.map(Monad[F].pure))
@@ -82,13 +84,15 @@ object Simulationx {
     * @param result
     *   A string representation of the output of the simulation.
     */
-  def stopCase[F[_]](name: String, result: String): State[Simulationx[F], Event] = State ( sim => 
-    (sim.copy(
-      waiting = sim.waiting - name,
-      cases = sim.cases - name,
-    ),
-      ECaseEnd(sim.id, sim.time, name, result))
-  )
+  def stopCase[F[_] : Monad](name: String, result: String): StateT[F, Simulationx[F], Seq[Event]] = StateT { sim => 
+    Monad[F].pure((
+      sim.copy(
+        waiting = sim.waiting - name,
+        cases = sim.cases - name,
+      ),
+      Seq(ECaseEnd(sim.id, sim.time, name, result))
+    ))
+  }
     //scheduler.removeLookahead(name)
     // log.debug(s"[COORD:$time] Finished: [$name]")
     //ready(name)
@@ -227,30 +231,6 @@ object Simulationx {
       detachEvents ++ stopEvents)
   })
 
-
-  /**
-    * Handles a [[SimDone]] response from a simulation, indicating that it has completed.
-    *
-    * Calls [[stopSimulation]] according to the reported success or failure result.
-    *
-    * @group simulations
-    * @param simulation
-    *   The name of the simulation
-    * @param result
-    *   The result of completion
-    */
-  def caseDone[F[_]](caseName: String, result: Try[Any]): State[Simulationx[F], Event] = {
-    result match {
-      case Success(res) => {
-        stopCase(caseName, res.toString)
-      }
-      case Failure(ex) => {
-        stopCase(caseName, ex.getLocalizedMessage)
-      }
-    }
-  }
-
-
   def allocateTasks[F[_] : Monad](): StateT[F, Simulationx[F], Seq[Event]] = StateT { sim => 
     StateT.fromState(
       sim.nextTasks().map(startTask[F]).toSeq.sequence.map( e =>
@@ -363,14 +343,6 @@ object Simulationx {
 
 
 trait CaseState {
-/*
-  private def publishThen[T](publisher: Publisher[F], events: Event*) (v: T): F[T] =
-    for {
-      _ <- events.map(publisher.publish(_)).sequence
-    } yield (v)
-
-  private def errorThen[T](publisher: Publisher[F], error: String) (v: T): F[T] = publishThen(publisher, EError(id, time, error))(v)
- */
 
   def addResource[F[_]](r: Resource): State[Simulationx[F], Event] = State( sim =>
     (sim.copy(resources = sim.resources.addResource(r)), EResourceAdd(sim.id, sim.time, r.name, r.costPerTick))
@@ -493,5 +465,29 @@ trait CaseState {
     tasks.traverse(addTask(caseName)).map(_.flatten)
 
   def abortTasks[F[_]](ids: Seq[UUID]): State[Simulationx[F], Seq[Event]] = Simulationx.abortTasks(ids)
+
+
+  /**
+    * Handles a [[SimDone]] response from a simulation, indicating that it has completed.
+    *
+    * Calls [[stopSimulation]] according to the reported success or failure result.
+    *
+    * @group simulations
+    * @param simulation
+    *   The name of the simulation
+    * @param result
+    *   The result of completion
+    */
+  def caseDone[F[_] : Monad](caseName: String, result: Try[Any]): StateT[F, Simulationx[F], Seq[Event]] = {
+    result match {
+      case Success(res) => {
+        Simulationx.stopCase(caseName, res.toString)
+      }
+      case Failure(ex) => {
+        Simulationx.stopCase(caseName, ex.getLocalizedMessage)
+      }
+    }
+  }
+
 
 }

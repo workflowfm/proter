@@ -1,7 +1,7 @@
 package com.workflowfm.proter.events
 
 import cats.Monad
-import cats.effect.{ Resource, MonadCancel }
+import cats.effect.{ Resource, MonadCancel, Concurrent }
 import cats.implicits.*
 import fs2.Stream
 import fs2.concurrent.Topic
@@ -59,3 +59,8 @@ case class Publisher[F[_]](topic: Topic[F, Either[Throwable, Event]], maxQueued:
     }
 }
 
+object Publisher {
+  def build[F[_] : Concurrent](maxQueued: Int = 10): F[Publisher[F]] = for {
+    topic <- Topic[F, Either[Throwable, Event]]
+  } yield(Publisher[F](topic, 10))
+}
