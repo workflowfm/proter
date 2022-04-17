@@ -199,7 +199,7 @@ abstract class AsyncCaseRef[F[_] : Monad : UUIDGen : Random](callbackMap: Callba
     *
     * Triggers all callbacks with a `Failure`.
     */
-  override def stop(state: CallbackMap[F]): F[Unit] = {
+  override def stop(): F[Unit] = {
     val update = state.m.map( (_, f) => f(Failure(Case.CaseStoppingException())) ).toList.sequence
     update.run(state).map( _ => () )
   }

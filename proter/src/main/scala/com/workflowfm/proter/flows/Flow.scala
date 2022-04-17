@@ -113,15 +113,15 @@ object Flow {
   */
 
 
-case class FlowCaseRef[F[_] : Monad : UUIDGen : Random](override val caseName: String, flow: Flow, override val callbacks: CallbackMap[F]) extends AsyncCaseRef[F](callbacks) {
-  override def update(callbackUpdate: CallbackMap[F]): AsyncCaseRef[F] = copy(callbacks = callbackUpdate)
+case class FlowCaseRef[F[_] : Monad : UUIDGen : Random](override val caseName: String, flow: Flow, callbackMap: CallbackMap[F]) extends AsyncCaseRef[F](callbackMap) {
+  override def update(callbackUpdate: CallbackMap[F]): AsyncCaseRef[F] = copy(callbackMap = callbackUpdate)
 
   override def stop(): F[Unit] = Monad[F].pure(())
 
   override def run(): F[(CaseRef[F], CaseResponse[F])] = for {
     uuid <- UUIDGen[F].randomUUID
     cback = callback((_, _) => succeedState(()))
-    updated = callbacks + (uuid -> cback)
+    updated = callbackMap + (uuid -> cback)
     result <- execute(uuid, flow).modify(update).run(updated)
   } yield (result)
 

@@ -113,6 +113,7 @@ case class TimeLimit(override val time: Long) extends DiscreteEvent {
   * @param count
   *   A counter of the next simulation instance that will be generated
   */
+/*
 case class Arrival(
     override val time: Long,
     rate: Distribution,
@@ -131,7 +132,7 @@ case class Arrival(
     // case Arrival(_, r) => rate.compareTo(r) TODO Need to figure out a way to sort arrivals!
     case _ => 0
   }
-
+ 
   /**
     * Generates the next arrival event to be queued.
     *
@@ -141,7 +142,7 @@ case class Arrival(
   def next[F[_] : Applicative : Random](): F[Arrival] = 
     rate.get.map { r => copy(time = time + r.round, count = count + 1) }
 }
-
+*/
 
 
 import collection.immutable.{ SortedMap, SortedSet }
