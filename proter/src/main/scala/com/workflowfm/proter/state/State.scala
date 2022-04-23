@@ -46,6 +46,38 @@ case class Simulationx[F[_]](
 
   def notifyCases(using Monad[F]): F[(Simulationx[F], Seq[Event])] =
     waiting.map(notifyCase).toSeq.sequence.map(Simulationx.compose(_ :_*).run(this)).flatten
+
+
+  def tick(using Monad[F]): F[(Either[Simulationx[F], Unit], Seq[Event])] = { 
+    if !waiting.isEmpty // still waiting for responses!
+    then Monad[F].pure((Right(()), Seq(error(s"Called `tick()` even though I am still waiting for: ${waiting}"))))
+    else if (events.isEmpty && tasks.isEmpty && cases.isEmpty) // finished!
+    then Monad[F].pure((Right(()), Seq(EDone(id, time))))
+    else events.next() match {
+      case Some((toHandle, updatedEventQueue)) => { // Are events pending?
+        val updateEventQueue: StateT[F, Simulationx[F], Queue[Event]] = StateT { 
+          sim => Monad[F].pure((sim.copy(events = updatedEventQueue), Queue[Event]())) 
+        }
+        val (handledState, tasks) = toHandle.foldLeft((updateEventQueue, Queue[TaskInstance]()))(Simulationx.handleDiscreteEvent)
+
+        val stopState = StateT.fromState(Simulationx.stopTasks[F](tasks).map(Monad[F].pure))
+
+        val notifyState = StateT { (sim: Simulationx[F]) => sim.notifyCases }
+
+        val allocateState = Simulationx.allocateTasks()
+
+        Seq(handledState.map(_.toSeq), stopState, notifyState, allocateState)
+          .sequence
+          .bimap(Left(_), _.flatten)
+          .run(this)
+      }
+      case None =>
+        if !tasks.isEmpty // this may happen if handleDiscreteEvent fails
+        then Monad[F].pure((Left(this), Seq()))
+        else Monad[F].pure((Right(()), Seq(error(s"No tasks or events left, but cases have not finished: ${cases.keys}"))))
+    }
+  }
+
 }
 
 object Simulationx {
