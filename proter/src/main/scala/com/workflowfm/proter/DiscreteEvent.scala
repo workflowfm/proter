@@ -155,8 +155,8 @@ case class EventQueue(events: SortedMap[Long, SortedSet[DiscreteEvent]]) {
     })
   }
 
-  def next(): Option[(SortedSet[DiscreteEvent], EventQueue)] = events.headOption.map { (k,v) => 
-    (v, copy(events = events - k))
+  def next(): Option[(Long, SortedSet[DiscreteEvent], EventQueue)] = events.headOption.map { (k, v) => 
+    (k, v, copy(events = events - k))
   }
 
   def size: Int = events.size

@@ -56,9 +56,9 @@ case class Simulationx[F[_]](
     else*/ if (events.isEmpty && tasks.isEmpty && cases.isEmpty) // finished!
     then Monad[F].pure((Right(()), Seq(EDone(id, time))))
     else events.next() match {
-      case Some((toHandle, updatedEventQueue)) => { // Are events pending?
+      case Some((nextTick, toHandle, updatedEventQueue)) => { // Are events pending?
         val updateEventQueue: StateT[F, Simulationx[F], Queue[Event]] = StateT { 
-          sim => Monad[F].pure((sim.copy(events = updatedEventQueue), Queue[Event]())) 
+          sim => Monad[F].pure((sim.copy(time = nextTick, events = updatedEventQueue, waiting = Map()), Queue[Event]())) 
         }
         val (handledState, tasks) = toHandle.foldLeft((updateEventQueue, Queue[TaskInstance]()))(Simulationx.handleDiscreteEvent)
 
@@ -71,7 +71,7 @@ case class Simulationx[F[_]](
         Seq(handledState.map(_.toSeq), stopState, notifyState, allocateState)
           .sequence
           .bimap(Left(_), _.flatten)
-          .run(this.copy(waiting = Map()))
+          .run(this)
       }
       case None =>
         if !tasks.isEmpty // this may happen if handleDiscreteEvent fails
@@ -335,7 +335,7 @@ object Simulationx {
         }
     }
 
-
+/*
   def tick[F[_] : Monad](): StateT[F, Simulationx[F], Seq[Event]] = StateT { sim => 
     if !sim.waiting.isEmpty // still waiting for responses!
     then Monad[F].pure((sim, Seq(sim.error(s"Called `tick()` even though I am still waiting for: ${sim.waiting}"))))
@@ -359,7 +359,7 @@ object Simulationx {
         then Monad[F].pure((sim, Seq()))
         else Monad[F].pure((sim, Seq(sim.error(s"No tasks or events left, but cases have not finished: ${sim.cases.keys}"))))
     }
-  }
+  }*/
 /*
  /**
     * Starts the entire simulation scenario.
