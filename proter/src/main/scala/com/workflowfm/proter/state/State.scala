@@ -33,13 +33,15 @@ case class Simulationx[F[_]](
 
   def error(description: String): EError = EError(id, time, description)
 
+  def fatalError(description: String): Seq[Event] = Seq(EError(id, time, description), EDone(id, time))
+
   def ready(name: String): Simulationx[F] = copy(waiting = waiting - name)
 
   def nextTasks(): Iterable[TaskInstance] = scheduler.getNextTasks(time, tasks, resources)
 
   def notifyCase(waiting: (String, Seq[TaskInstance]))(using Monad[F]): F[Simulationx.SimState[F]] = waiting match { 
     case (caseName, tasks) => cases.get(caseName) match {
-      case None => Simulationx.idStateM
+      case None => Monad[F].pure(Simulationx.unknownCase(caseName))
       case Some(c) => if tasks.isEmpty then c.run() else c.completed(time, tasks)
     }
   }
@@ -49,9 +51,9 @@ case class Simulationx[F[_]](
 
 
   def tick(using Monad[F]): F[(Either[Simulationx[F], Unit], Seq[Event])] = { 
-    if !waiting.isEmpty // still waiting for responses!
-    then Monad[F].pure((Right(()), Seq(error(s"Called `tick()` even though I am still waiting for: ${waiting}"))))
-    else if (events.isEmpty && tasks.isEmpty && cases.isEmpty) // finished!
+   /* if !waiting.isEmpty // still waiting for responses!
+    then Monad[F].pure((Right(()), fatalError(s"Called `tick()` even though I am still waiting for: ${waiting}")))
+    else*/ if (events.isEmpty && tasks.isEmpty && cases.isEmpty) // finished!
     then Monad[F].pure((Right(()), Seq(EDone(id, time))))
     else events.next() match {
       case Some((toHandle, updatedEventQueue)) => { // Are events pending?
@@ -69,12 +71,12 @@ case class Simulationx[F[_]](
         Seq(handledState.map(_.toSeq), stopState, notifyState, allocateState)
           .sequence
           .bimap(Left(_), _.flatten)
-          .run(this)
+          .run(this.copy(waiting = Map()))
       }
       case None =>
         if !tasks.isEmpty // this may happen if handleDiscreteEvent fails
         then Monad[F].pure((Left(this), Seq()))
-        else Monad[F].pure((Right(()), Seq(error(s"No tasks or events left, but cases have not finished: ${cases.keys}"))))
+        else Monad[F].pure((Right(()), fatalError(s"No tasks or events left, but cases have not finished: ${cases.keys}")))
     }
   }
 
@@ -97,6 +99,14 @@ object Simulationx {
   def idState[F[_] : Monad]: SimState[F] = StateT.pure(Seq())
 
   def idStateM[F[_] : Monad]: F[SimState[F]] = Monad[F].pure(StateT.pure(Seq()))
+
+  def applyState[F[_] : Monad](r: Either[Simulationx[F], Unit], s: StateT[F, Simulationx[F], Seq[Event]]): F[(Either[Simulationx[F], Unit], Seq[Event])] = r match {
+    case Left(sim) => for {
+      result <- s.run(sim)
+      (update, events) = result
+    } yield((Left(update), events))
+    case Right(u) => Monad[F].pure((r, Seq()))
+  }
 
   /**
     * Start a [[CaseRef]].
@@ -385,6 +395,10 @@ object Simulationx {
     */
   def finish[F[_]](): State[Simulationx[F], Event] = State { sim =>
     (sim, EDone(sim.id, sim.time)) // TODO do we want to mark the simulation as done?
+  }
+
+  def unknownCase[F[_]: Monad](caseName: String): StateT[F, Simulationx[F], Seq[Event]] = StateT { sim =>
+    Monad[F].pure((sim.ready(caseName), Seq(sim.error(s"Skipping waiting for unknown case: $caseName"))))
   }
 
 }
