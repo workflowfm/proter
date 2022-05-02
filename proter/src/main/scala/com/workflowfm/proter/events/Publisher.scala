@@ -10,15 +10,18 @@ trait Publisher {
   /**
     * Checks if an event signifies the end of the stream.
     *
-    * @param e The event to check.
-    * @return `true` if it is a final event.
+    * @param e
+    *   The event to check.
+    * @return
+    *   `true` if it is a final event.
     */
   def isFinalEvent(e: Event): Boolean = false
 
   /**
     * Publishes an event into the stream.
     *
-    * @param evt The event to publish.
+    * @param evt
+    *   The event to publish.
     */
   def doPublish(evt: Event): Unit
 
@@ -30,14 +33,16 @@ trait Publisher {
   /**
     * Subscribes an [[EventHandler]] to the stream so they can receive events.
     *
-    * @param subscriber The [[EventHandler]] to subscribe.
+    * @param subscriber
+    *   The [[EventHandler]] to subscribe.
     */
   def subscribe(subscriber: EventHandler): Unit
 
   /**
     * Unsubscribes an [[EventHandler]] to the stream so they can stop receiving events.
     *
-    * @param subscriber The [[EventHandler]] to unsubscribe.
+    * @param subscriber
+    *   The [[EventHandler]] to unsubscribe.
     */
   def unsubscribe(subscriber: EventHandler): Unit
 
@@ -48,7 +53,7 @@ trait Publisher {
     */
   def publish(evt: Event): Unit = {
     doPublish(evt)
-    if (isFinalEvent(evt)) stopStream()
+    if isFinalEvent(evt) then stopStream()
   }
 }
 
@@ -84,8 +89,8 @@ trait HashMapPublisher extends Publisher {
   /**
     * @inheritdoc
     *
-    * Notifies all subscribers that the stream is done and clears the `HashMap` to prevent
-    * any further events being delivered.
+    * Notifies all subscribers that the stream is done and clears the `HashMap` to prevent any
+    * further events being delivered.
     */
   override def stopStream(): Unit = {
     subscribers foreach (_._2.onDone(this))

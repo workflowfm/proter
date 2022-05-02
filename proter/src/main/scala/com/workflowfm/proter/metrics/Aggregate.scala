@@ -10,21 +10,28 @@ import com.workflowfm.proter.events._
 /**
   * Collects/aggregates metrics across multiple tasks, resources, and simulations.
   *
-  * @groupprio Values 1
-  * @groupprio Start/End 2
-  * @groupprio Set 3
-  * @groupprio Update 4
-  * @groupprio Get 5
+  * @groupprio Values
+  *   1
+  * @groupprio Start/End
+  *   2
+  * @groupprio Set
+  *   3
+  * @groupprio Update
+  *   4
+  * @groupprio Get
+  *   5
   */
 class SimMetricsAggregator {
 
   /**
-    * The '''real''' (system) time that measurement started, or [[scala.None]] if it has not started yet.
+    * The '''real''' (system) time that measurement started, or [[scala.None]] if it has not started
+    * yet.
     * @group Start/End
     */
   var start: Option[Long] = None
   /**
-    * The '''real''' (system) time that measurement finished, or [[scala.None]] if it has not finished yet.
+    * The '''real''' (system) time that measurement finished, or [[scala.None]] if it has not
+    * finished yet.
     * @group Start/End
     */
   var end: Option[Long] = None
@@ -67,20 +74,20 @@ class SimMetricsAggregator {
   // Set
 
   /**
-    * Adds a new [[TaskMetrics]] instance, taking care of indexing automatically
-    * Overwrites a previous instance with the same IDs
+    * Adds a new [[TaskMetrics]] instance, taking care of indexing automatically Overwrites a
+    * previous instance with the same IDs
     * @group Set
     */
   def +=(m: TaskMetrics): TaskMetrics = { taskMap += (m.id -> m); m }
   /**
-    * Adds a new [[SimulationMetrics]] instance, taking care of indexing automatically
-    * Overwrites a previous instance with the same IDs
+    * Adds a new [[SimulationMetrics]] instance, taking care of indexing automatically Overwrites a
+    * previous instance with the same IDs
     * @group Set
     */
   def +=(m: SimulationMetrics): SimulationMetrics = { simMap += (m.name -> m); m }
   /**
-    * Adds a new [[ResourceMetrics]] instance, taking care of indexing automatically
-    * Overwrites a previous instance with the same IDs
+    * Adds a new [[ResourceMetrics]] instance, taking care of indexing automatically Overwrites a
+    * previous instance with the same IDs
     * @group Set
     */
   def +=(m: ResourceMetrics): ResourceMetrics = { resourceMap += (m.name -> m); m }
@@ -91,8 +98,8 @@ class SimMetricsAggregator {
     */
   def addTask(task: TaskInstance): TaskMetrics = this += TaskMetrics(task)
   /**
-    * Initializes and adds a new [[SimulationMetrics]] instance given the name of the simulation starting now
-    * and the current virtual time.
+    * Initializes and adds a new [[SimulationMetrics]] instance given the name of the simulation
+    * starting now and the current virtual time.
     * @group Set
     */
   def addSim(s: String, t: Long): SimulationMetrics = this += SimulationMetrics(s, t)
@@ -105,41 +112,57 @@ class SimMetricsAggregator {
     this += ResourceMetrics(r, costPerTick)
 
   // Update
-  /** Updates a [[TaskMetrics]] instance.
+  /**
+    * Updates a [[TaskMetrics]] instance.
     *
-    * @return the updated [[TaskMetrics]] or [[scala.None]] if the identified instance does not exist
+    * @return
+    *   the updated [[TaskMetrics]] or [[scala.None]] if the identified instance does not exist
     *
-    * @param taskID the task ID for the involved [[TaskInstance]]
-    * @param u a function to update the [[TaskMetrics]] instance
+    * @param taskID
+    *   the task ID for the involved [[TaskInstance]]
+    * @param u
+    *   a function to update the [[TaskMetrics]] instance
     *
-    * @see [[com.workflowfm.pew.metrics.MetricsAggregator]] for examples in a similar context
+    * @see
+    *   [[com.workflowfm.pew.metrics.MetricsAggregator]] for examples in a similar context
     * @group Update
     */
   def task(taskID: UUID)(u: TaskMetrics => TaskMetrics): Option[TaskMetrics] =
     taskMap.get(taskID).map { m => this += u(m) }
 
-  /** Updates a [[TaskMetrics]] instance.
+  /**
+    * Updates a [[TaskMetrics]] instance.
     *
-    * @return the updated [[TaskMetrics]] or [[scala.None]] if the identified instance does not exist
+    * @return
+    *   the updated [[TaskMetrics]] or [[scala.None]] if the identified instance does not exist
     *
-    * @param task the involved [[TaskInstance]]
-    * @param u a function to update the [[TaskMetrics]] instance
+    * @param task
+    *   the involved [[TaskInstance]]
+    * @param u
+    *   a function to update the [[TaskMetrics]] instance
     *
-    * @see [[com.workflowfm.pew.metrics.MetricsAggregator]] for examples in a similar context
+    * @see
+    *   [[com.workflowfm.pew.metrics.MetricsAggregator]] for examples in a similar context
     *
     * @group Update
     */
   def task(task: TaskInstance)(u: TaskMetrics => TaskMetrics): Option[TaskMetrics] =
     taskMap.get(task.id).map { m => this += u(m) }
 
-  /** Updates a [[SimulationMetrics]] instance.
+  /**
+    * Updates a [[SimulationMetrics]] instance.
     *
-    * @return the updated [[SimulationMetrics]] or [[scala.None]] if the identified instance does not exist
+    * @return
+    *   the updated [[SimulationMetrics]] or [[scala.None]] if the identified instance does not
+    *   exist
     *
-    * @param simulation the name of the involved simulation
-    * @param u a function to update the [[SimulationMetrics]] instance
+    * @param simulation
+    *   the name of the involved simulation
+    * @param u
+    *   a function to update the [[SimulationMetrics]] instance
     *
-    * @see [[com.workflowfm.pew.metrics.MetricsAggregator]] for examples in a similar context
+    * @see
+    *   [[com.workflowfm.pew.metrics.MetricsAggregator]] for examples in a similar context
     *
     * @group Update
     */
@@ -148,25 +171,33 @@ class SimMetricsAggregator {
   )(u: SimulationMetrics => SimulationMetrics): Option[SimulationMetrics] =
     simMap.get(simulation).map { m => this += u(m) }
 
-  /** Updates a [[ResourceMetrics]] instance.
+  /**
+    * Updates a [[ResourceMetrics]] instance.
     *
-    * @return the updated [[ResourceMetrics]] or [[scala.None]] if the identified instance does not exist
+    * @return
+    *   the updated [[ResourceMetrics]] or [[scala.None]] if the identified instance does not exist
     *
-    * @param resource the involved [[TaskResource]]
-    * @param u a function to update the [[ResourceMetrics]] instance
+    * @param resource
+    *   the involved [[TaskResource]]
+    * @param u
+    *   a function to update the [[ResourceMetrics]] instance
     *
-    * @see [[com.workflowfm.pew.metrics.MetricsAggregator]] for examples in a similar context
+    * @see
+    *   [[com.workflowfm.pew.metrics.MetricsAggregator]] for examples in a similar context
     *
     * @group Update
     */
   def resource(resource: String)(u: ResourceMetrics => ResourceMetrics): Option[ResourceMetrics] =
     resourceMap.get(resource).map { m => this += u(m) }
 
-  /** Updates all [[ResourceMetrics]] instances.
+  /**
+    * Updates all [[ResourceMetrics]] instances.
     *
-    * @return the updated [[resourceMap]]
+    * @return
+    *   the updated [[resourceMap]]
     *
-    * @param u a function to update the [[ResourceMetrics]] instances
+    * @param u
+    *   a function to update the [[ResourceMetrics]] instances
     *
     * @group Update
     */
@@ -195,15 +226,17 @@ class SimMetricsAggregator {
     */
   def resourceMetrics: Seq[ResourceMetrics] = resourceMap.values.toSeq.sortBy(_.name)
   /**
-    * Returns a [[scala.collection.immutable.Set]] of all task names being tracked.
-    * This is useful when using task names as a category, for example to colour code tasks in the timeline.
+    * Returns a [[scala.collection.immutable.Set]] of all task names being tracked. This is useful
+    * when using task names as a category, for example to colour code tasks in the timeline.
     * @group Get
     */
   def taskSet: Set[String] = taskMap.values.map(_.task).toSet[String]
 
   /**
-    * Returns all the tracked instances of [[TaskMetrics]] associated with a particular [[TaskResource]], sorted by starting time.
-    * @param r the tracked [[ResourceMetrics]] of the resource
+    * Returns all the tracked instances of [[TaskMetrics]] associated with a particular
+    * [[TaskResource]], sorted by starting time.
+    * @param r
+    *   the tracked [[ResourceMetrics]] of the resource
     * @group Get
     */
   // TODO: we used to have 2 levels of sorting!
@@ -211,8 +244,10 @@ class SimMetricsAggregator {
     taskMap.values.toSeq.filter(_.resources.contains(r.name)).sortBy(_.started)
 
   /**
-    * Returns all the tracked instances of [[TaskMetrics]] associated with a particular simulation, sorted by starting time.
-    * @param r the tracked [[SimulationMetrics]] of the resource
+    * Returns all the tracked instances of [[TaskMetrics]] associated with a particular simulation,
+    * sorted by starting time.
+    * @param r
+    *   the tracked [[SimulationMetrics]] of the resource
     * @group Get
     */
   def taskMetricsOf(s: SimulationMetrics): Seq[TaskMetrics] =
@@ -220,44 +255,45 @@ class SimMetricsAggregator {
 }
 
 /**
-  * A [[com.workflowfm.proter.events.ResultHandler ResultHandler]] that collects simulation
-  * metrics to a [[SimMetricsAggregator]].
+  * A [[com.workflowfm.proter.events.ResultHandler ResultHandler]] that collects simulation metrics
+  * to a [[SimMetricsAggregator]].
   *
   * Returns the [[SimMetricsAggregator]] with all the data as a result when done.
   *
   * Outputs the result using an (optional) [[SimMetricsOutput]].
   *
-  * @param output The [[SimMetricsOutput]] to use, if any.
+  * @param output
+  *   The [[SimMetricsOutput]] to use, if any.
   */
 class SimMetricsHandler(output: SimMetricsOutput = SimNoOutput)
     extends ResultHandler[SimMetricsAggregator] {
   val metrics = new SimMetricsAggregator()
 
   override def onEvent(evt: Event): Unit = evt match {
-    case EStart(src, t) => metrics.started
-    case EDone(src, t) => {
+    case EStart(_, _) => metrics.started
+    case EDone(_, t) => {
       metrics.allResources(_.idle(t))
       metrics.ended
       output(t, metrics)
     }
-    case EResourceAdd(src, t, n, c) => metrics.addResource(n, c)
-    case ESimAdd(src, t, a, s) => Unit
-    case ESimStart(src, t, n) => metrics.addSim(n, t)
-    case ESimEnd(src, t, n, r) => metrics.simulation(n)(_.done(r, t))
-    case ETaskAdd(src, t, task) => metrics.addTask(task)
-    case ETaskStart(src, t, task) => {
+    case EResourceAdd(_, _, n, c) => metrics.addResource(n, c)
+    case ESimAdd(_, _, _, _) => ()
+    case ESimStart(_, t, n) => metrics.addSim(n, t)
+    case ESimEnd(_, t, n, r) => metrics.simulation(n)(_.done(r, t))
+    case ETaskAdd(_, _, task) => metrics.addTask(task)
+    case ETaskStart(_, t, task) => {
       metrics.task(task)(_.start(t))
       metrics.simulation(task.simulation)(_.task(task).addDelay(t - task.created))
     }
-    case ETaskAttach(src, t, task, r) => metrics.resource(r)(_.task(t, task))
-    case ETaskDetach(src, t, task, r, c) => {
+    case ETaskAttach(_, t, task, r) => metrics.resource(r)(_.task(t, task))
+    case ETaskDetach(_, _, task, _, c) => {
       metrics.task(task)(_.addCost(c))
       metrics.simulation(task.simulation)(_.addCost(c))
     }
-    case ETaskDone(src, t, task) => Unit
-    case ETaskAbort(src, t, id) => metrics.task(id)(_.abort(t))
+    case ETaskDone(_, _, _) => ()
+    case ETaskAbort(_, t, id) => metrics.task(id)(_.abort(t))
 
-    case EError(src, t, error) => Unit
+    case EError(_, _, _) => ()
   }
 
   override def result = metrics

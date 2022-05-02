@@ -5,14 +5,12 @@ import java.util.UUID
 import scala.concurrent._
 import scala.concurrent.duration._
 
-import org.junit.runner.RunWith
-import org.scalatest.{ Matchers, WordSpecLike }
-import org.scalatest.junit.JUnitRunner
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
-@RunWith(classOf[JUnitRunner])
 class TaskTests extends TaskTester {
 
-  "Task priority" must {
+  "Task priority" should {
 
     "prioritize higher priority" in {
       t(2L, Seq("A"), Task.High, 2L, 1L, 0) < t(
@@ -68,9 +66,9 @@ class TaskTests extends TaskTester {
   }
 }
 
-class TaskTester extends WordSpecLike with Matchers {
-  implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
-  implicit val timeout: FiniteDuration = 10.seconds
+class TaskTester extends AnyWordSpecLike with Matchers {
+  given ExecutionContextExecutor = ExecutionContext.global
+  given timeout: FiniteDuration = 10.seconds
 
   def t(
       id: Long,
@@ -86,7 +84,7 @@ class TaskTester extends WordSpecLike with Matchers {
       name,
       "Test",
       created,
-      0L, //todo add tests for minStartTime
+      0L, // todo add tests for minStartTime
       resources,
       duration,
       duration,

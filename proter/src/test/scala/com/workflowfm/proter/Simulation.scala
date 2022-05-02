@@ -5,217 +5,131 @@ import java.util.UUID
 import scala.concurrent._
 import scala.util.{ Failure, Success }
 
-import org.scalamock.scalatest.MockFactory
-import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
+import org.scalatest.Inside
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
-class SimulationTests extends SimulationTester with MockFactory {
+class SimulationTests extends SimulationTester with MockManagerResponseMatcher {
 
-  implicit val executionContext: ExecutionContextExecutor = ExecutionContext.global
+  import MockManager._
+  given ExecutionContextExecutor = ExecutionContext.global
 
-  "Simulations" must {
+  "Simulations" should {
 
     "interact correctly having no tasks" in {
-      val mockinator: Coordinator = mock[Coordinator]
-      val sim = new NoTasks("sim", mockinator)
+      val manager: MockManager = new MockManager
+      val sim = new NoTasks("sim", manager)
 
-      (mockinator.simResponse _).expects(SimDone("sim", Success(Unit))).once()
+      manager.expected += SimDone("sim", Success(()))
 
       sim.run()
+      manager should comply
     }
 
     "interact correctly having one task" in {
-      val mockinator: Coordinator = mock[Coordinator]
-      val sim = new SingleTaskSimulation("sim", mockinator, Seq("r1"), Constant(2L))
+      val manager: MockManager = new MockManager
+      val sim = new SingleTaskSimulation("sim", manager, Seq("r1"), Constant(2L))
 
       val ti1 = sim.theTask.create("sim", 0L)
 
-      inSequence {
-        mockinator.simResponse _ expects (where { (r: SimResponse) =>
-              r match {
-                case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.theTask
-                case _ => false
-              }
-            }) onCall { _ => sim.complete(ti1, 2L) } once
-
-        mockinator.simResponse _ expects (SimDone("sim", Success((ti1, 2L)))) once ()
-      }
+      manager.reactions += sim.theTask -> Complete(sim, 2L, Seq(ti1))
+      manager.expected ++= Seq(
+        SimReady("sim", Seq(sim.theTask)),
+        SimDone("sim", Success((ti1, 2L)))
+      )
 
       sim.run()
+      manager should comply
     }
 
     "interact correctly having 2 tasks in sequence with callback" in {
-      val mockinator: Coordinator = mock[Coordinator]
-      val sim = new TwoTasks("sim", mockinator)
+      val manager: MockManager = new MockManager
+      val sim = new TwoTasks("sim", manager)
 
       val ti1 = sim.t1.create("sim", 0L)
       val ti2 = sim.t2.create("sim", 2L)
 
-      inSequence {
-        mockinator.simResponse _ expects (where { (r: SimResponse) =>
-              r match {
-                case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t1
-                case _ => false
-              }
-            }) onCall { _ => sim.complete(ti1, 2L) } once
+      manager.reactions += sim.t1 -> Complete(sim, 2L, Seq(ti1))
+      manager.reactions += sim.t2 -> Complete(sim, 4L, Seq(ti2))
 
-        mockinator.simResponse _ expects (where { (r: SimResponse) =>
-              r match {
-                case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t2
-                case _ => false
-              }
-            }) onCall { _ => sim.complete(ti2, 4L) } once
-
-        mockinator.simResponse _ expects (SimDone("sim", Success((ti2, 4L)))) once ()
-      }
+      manager.expected += SimReady("sim", Seq(sim.t1))
+      manager.expected += SimReady("sim", Seq(sim.t2))
+      manager.expected += SimDone("sim", Success((ti2, 4L)))
 
       sim.run()
+      manager should comply
     }
 
     "interact correctly having 3 tasks in sequence with Futures" in {
-      val mockinator: Coordinator = mock[Coordinator]
-      val sim = new ThreeFutureTasks("sim", mockinator)
+      val manager: MockManager = new MockManager
+      val sim = new ThreeFutureTasks("sim", manager)
 
       val ti1 = sim.t1.create("sim", 0L)
       val ti2 = sim.t2.create("sim", 2L)
       val ti3 = sim.t3.create("sim", 4L)
 
-      inSequence {
-        mockinator.simResponse _ expects (where { (r: SimResponse) =>
-              r match {
-                case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t1
-                case _ => false
-              }
-            }) onCall { _ => sim.complete(ti1, 2L) } once
+      manager.reactions += sim.t1 -> Complete(sim, 2L, Seq(ti1))
+      manager.reactions += sim.t2 -> Complete(sim, 4L, Seq(ti2))
+      manager.reactions += sim.t3 -> Complete(sim, 6L, Seq(ti3))
 
-        mockinator.simResponse _ expects (where { (r: SimResponse) =>
-              r match {
-                case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t2
-                case _ => false
-              }
-            }) onCall { _ => sim.complete(ti2, 4L) } once
-
-        mockinator.simResponse _ expects (where { (r: SimResponse) =>
-              r match {
-                case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t3
-                case _ => false
-              }
-            }) onCall { _ => sim.complete(ti3, 6L) } once
-
-        mockinator.simResponse _ expects (SimDone("sim", Success((ti3, 6L)))) once ()
-      }
+      manager.expected += SimReady("sim", Seq(sim.t1))
+      manager.expected += SimReady("sim", Seq(sim.t2))
+      manager.expected += SimReady("sim", Seq(sim.t3))
+      manager.expected += SimDone("sim", Success((ti3, 6L)))
 
       sim.run()
-      Thread.sleep(500) //allow futures to complete
+      Thread.sleep(200)
+      manager should comply
     }
 
     "stop between 2 tasks in sequence" in {
-      val mockinator: Coordinator = mock[Coordinator]
-      val sim = new TwoTasks("sim", mockinator)
+      val manager: MockManager = new MockManager
+      val sim = new TwoTasks("sim", manager)
 
       val ti1 = sim.t1.create("sim", 0L)
-      val ti2 = sim.t2.create("sim", 2L)
 
-      inSequence {
-        mockinator.simResponse _ expects (where { (r: SimResponse) =>
-              r match {
-                case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t1
-                case _ => false
-              }
-            }) onCall { _ => sim.complete(ti1, 2L) } once
+      manager.reactions += sim.t1 -> Complete(sim, 2L, Seq(ti1))
+      manager.reactions += sim.t2 -> Stop(sim)
 
-        mockinator.simResponse _ expects (where { (r: SimResponse) =>
-              r match {
-                case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t2
-                case _ => false
-              }
-            }) onCall { _ =>
-          {
-            sim.stop()
-            sim.complete(ti2, 4L)
-          }
-        } once
-
-        mockinator.simResponse _ expects (where { (r: SimResponse) =>
-              r match {
-                case SimDone("sim", Failure(_: Simulation.SimulationStoppingException)) => true
-                case _ => false
-              }
-            }) once
-
-        mockinator.simResponse _ expects (*) never ()
-      }
+      manager.expected += SimReady("sim", Seq(sim.t1))
+      manager.expected += SimReady("sim", Seq(sim.t2))
+      manager.expected += SimDone("sim", Failure(new Exception))
 
       sim.run()
+      manager should comply
     }
 
     "stop after the 1st task in a sequence of 3 tasks with futures" in {
-      val mockinator: Coordinator = mock[Coordinator]
-      val sim = new ThreeFutureTasks("sim", mockinator)
+      val manager: MockManager = new MockManager
+      val sim = new ThreeFutureTasks("sim", manager)
 
-      val ti1 = sim.t1.create("sim", 0L)
+      manager.reactions += sim.t1 -> Stop(sim)
 
-      inSequence {
-        mockinator.simResponse _ expects (where { (r: SimResponse) =>
-              r match {
-                case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t1
-                case _ => false
-              }
-            }) onCall { _ =>
-          {
-            sim.stop()
-            sim.complete(ti1, 4L)
-          }
-        } once
-
-        mockinator.simResponse _ expects (where { (r: SimResponse) =>
-              r match {
-                case SimDone("sim", Failure(_: Simulation.SimulationStoppingException)) => true
-                case _ => false
-              }
-            }) once
-      }
+      manager.expected += SimReady("sim", Seq(sim.t1))
+      manager.expected += SimDone("sim", Failure(new Exception))
 
       sim.run()
-      Thread.sleep(500)
+      Thread.sleep(200) // allow futures to complete
+      manager should comply
     }
 
     "stop after the 2nd task in a sequence of 3 tasks with futures" in {
-      val mockinator: Coordinator = mock[Coordinator]
-      val sim = new ThreeFutureTasks("sim", mockinator)
+      val manager: MockManager = new MockManager
+      val sim = new ThreeFutureTasks("sim", manager)
 
       val ti1 = sim.t1.create("sim", 0L)
       val ti2 = sim.t2.create("sim", 2L)
 
-      inSequence {
-        mockinator.simResponse _ expects (where { (r: SimResponse) =>
-              r match {
-                case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t1
-                case _ => false
-              }
-            }) onCall { _ => sim.complete(ti1, 2L) } once
+      manager.reactions += sim.t1 -> Complete(sim, 2L, Seq(ti1))
+      manager.reactions += sim.t2 -> Stop(sim)
 
-        mockinator.simResponse _ expects (where { (r: SimResponse) =>
-              r match {
-                case SimReady("sim", ts, _, _) => ts.length == 1 && ts.head == sim.t2
-                case _ => false
-              }
-            }) onCall { _ =>
-          {
-            sim.stop()
-            sim.complete(ti2, 4L)
-          }
-        } once
-
-        mockinator.simResponse _ expects (where { (r: SimResponse) =>
-              r match {
-                case SimDone("sim", Failure(_: Simulation.SimulationStoppingException)) => true
-                case _ => false
-              }
-            }) once
-      }
+      manager.expected += SimReady("sim", Seq(sim.t1))
+      manager.expected += SimReady("sim", Seq(sim.t2))
+      manager.expected += SimDone("sim", Failure(new Exception))
 
       sim.run()
-      Thread.sleep(500)
+      Thread.sleep(200) // allow futures to complete
+      manager should comply
     }
 
     // "reply to LookaheadNextItter messages" in {
@@ -273,24 +187,24 @@ class SimulationTests extends SimulationTester with MockFactory {
   }
 }
 
-trait SimulationTester extends WordSpecLike with Matchers with BeforeAndAfterAll {
+trait SimulationTester extends AnyWordSpecLike with Matchers {
 
   class NoTasks(override val name: String, override protected val manager: Manager)
       extends Simulation {
-    override def run(): Unit = succeed(Unit) //finish instantly
-    override def complete(task: TaskInstance, time: Long): Unit = Unit //does nothing
-    override def stop(): Unit = Unit
+    override def run(): Unit = succeed(()) // finish instantly
+    override def complete(task: TaskInstance, time: Long): Unit = () // does nothing
+    override def stop(): Unit = ()
   }
 
   class ThreeFutureTasks(
       override val name: String,
       override protected val manager: Manager,
-      onFail: Throwable => Unit = _ => Unit,
+      onFail: Throwable => Unit = _ => (),
       d1: Long = 2L,
       d2: Long = 2L,
       d3: Long = 3L
   )(
-      implicit executionContext: ExecutionContext
+      using ExecutionContext
   ) extends AsyncSimulation
       with FutureTasks {
 
@@ -315,7 +229,10 @@ trait SimulationTester extends WordSpecLike with Matchers with BeforeAndAfterAll
         ack(Seq(id2))
         t
       }
-      task3.onFailure { case ex => onFail(ex) }
+      task3.onComplete {
+        case Failure(ex) => onFail(ex)
+        case _ => ()
+      }
       task3.onComplete(done)
     }
   }
@@ -323,7 +240,7 @@ trait SimulationTester extends WordSpecLike with Matchers with BeforeAndAfterAll
   class TwoTasks(
       override val name: String,
       override protected val manager: Manager,
-      onFail: Throwable => Unit = _ => Unit,
+      onFail: Throwable => Unit = _ => (),
       d1: Long = 2L,
       d2: Long = 2L
   ) extends AsyncSimulation {

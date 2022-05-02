@@ -2,23 +2,23 @@ package com.workflowfm.proter
 
 import java.util.UUID
 
-import org.junit.runner.RunWith
-import org.scalatest._
-import org.scalatest.junit.JUnitRunner
+import org.scalatest.OptionValues
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 import com.workflowfm.proter.flows._
 import com.workflowfm.proter.schedule.ProterScheduler
+import scala.concurrent.ExecutionContext
 
-@RunWith(classOf[JUnitRunner])
 class FlowLookaheadTests extends FlowLookaheadTester {
-  "Lookahead parseFlow" must {
+  "Lookahead parseFlow" should {
     "Do nothing if given no tasks" in {
       val f = parseFlow(new NoTask())
       f._2 should be(NoLookahead)
     }
     "Do nothing if given a single task" in {
       val t1 = new FlowTask(Task("t", 2))
-      //val t1id = t1.generator.id
+      // val t1id = t1.generator.id
       val f = parseFlow(t1)
       f._2 should be(NoLookahead)
     }
@@ -48,7 +48,7 @@ class FlowLookaheadTests extends FlowLookaheadTester {
       val t1 = new FlowTask(Task("t", 2).withID(UUID.randomUUID))
       val t1id = t1.id
       val dummyID = java.util.UUID.randomUUID()
-      val function = (m: Map[UUID, Long]) => if (m.keySet.contains(dummyID)) Some(0L) else None
+      val function = (m: Map[UUID, Long]) => if m.keySet.contains(dummyID) then Some(0L) else None
       val f = parseFlow(t1, Some(function))
       f._2 should not be (NoLookahead)
       f._2.getTaskData(Seq()).size should be(0)
@@ -78,7 +78,7 @@ class FlowLookaheadTests extends FlowLookaheadTester {
   }
 }
 
-class FlowLookaheadTester extends WordSpecLike with Matchers with OptionValues {
+class FlowLookaheadTester extends AnyWordSpecLike with Matchers with OptionValues {
 
   type IDFunction = Map[UUID, Long] => Option[Long]
 
@@ -91,7 +91,11 @@ class FlowLookaheadTester extends WordSpecLike with Matchers with OptionValues {
 }
 
 class FlowLookaheadTest
-    extends FlowLookahead("testFlow", new Coordinator(new ProterScheduler), new NoTask()) {
+    extends FlowLookahead(
+      "testFlow",
+      new Coordinator(new ProterScheduler)(using ExecutionContext.global),
+      new NoTask()
+    ) {
 
   override def parseFlow(
       flow: Flow,

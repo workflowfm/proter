@@ -35,7 +35,7 @@ inThisBuild(List(
 
 // Publish to Sonatype / Maven Central
 
-publishTo in ThisBuild := sonatypePublishToBundle.value
+ThisBuild / publishTo := sonatypePublishToBundle.value
 pomIncludeRepository := { _ => false }
 publishMavenStyle := true
 sonatypeCredentialHost := "s01.oss.sonatype.org"
@@ -45,13 +45,14 @@ sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
 // Website generation with sbt-site
 
 Hugo / sourceDirectory := file("docs")
-baseURL in Hugo := uri("http://docs.workflowfm.com/proter")
+Hugo / baseURL := uri("http://docs.workflowfm.com/proter")
 //baseURL in Hugo := uri("./")
-includeFilter in Hugo := ("*")
+Hugo / includeFilter := ("*")
 
 ghpagesNoJekyll := true
 previewFixedPort := Some(9999)
 
+//ThisBuild / scalafixScalaBinaryVersion := "3.1"
 
 lazy val commonSettings = Seq(
   scalaVersion := Dependencies.scalaVer,
@@ -59,7 +60,25 @@ lazy val commonSettings = Seq(
   semanticdbEnabled := true,
   semanticdbVersion := scalafixSemanticdb.revision,
 
-  scalacOptions += "-Ywarn-unused", // required by `RemoveUnused` rule
+ // scalacOptions += "-Wunused:imports", // required by `RemoveUnused` rule
+ // scalacOptions += "-deprecation",
+ // scalacOptions += "-feature",
+
+  scalacOptions ++= {
+    Seq(
+      "-encoding",
+      "UTF-8",
+      "-feature",
+      "-deprecation",
+      //"-language:implicitConversions",
+      // "-Xfatal-warnings",
+      "-unchecked",
+//      "-source:3.0-migration",
+//      "-rewrite",
+//      "-new-syntax"
+      )
+  },
+
   autoAPIMappings := true,
   Compile / doc / scalacOptions ++= Seq("-groups", "-implicits", "-diagrams", "-diagrams-debug"),
 
@@ -83,8 +102,8 @@ lazy val root = Project(id = "proter-root", base = file("."))
   .settings(commonSettings)
   .settings( 
     publishArtifact := false,
-    siteSubdirName in ScalaUnidoc := "api",
-    addMappingsToSiteDir(mappings in (ScalaUnidoc, packageDoc), siteSubdirName in ScalaUnidoc)
+    ScalaUnidoc / siteSubdirName := "api",
+    addMappingsToSiteDir(ScalaUnidoc / packageDoc / mappings, ScalaUnidoc / siteSubdirName)
   )
   .aggregate(aggregatedProjects: _*)
   .enablePlugins(ScalaUnidocPlugin)

@@ -3,25 +3,26 @@ package com.workflowfm.proter.akka
 import java.util.UUID
 
 import scala.concurrent._
-import scala.concurrent.duration._
 import scala.util.{ Failure, Success, Try }
 
-import akka.actor.{ ActorRef, ActorSystem, Props }
+import akka.actor.ActorSystem
 import akka.testkit.{ TestKit, TestProbe }
-import org.scalatest.{ BeforeAndAfterAll, Matchers, WordSpecLike }
+import org.scalatest.BeforeAndAfterAll
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 import com.workflowfm.proter._
 
 class SimulationActorTests
     extends TestKit(ActorSystem("SimulationActorTests"))
     with SimulationTester
-    with WordSpecLike
+    with AnyWordSpecLike
     with Matchers
     with BeforeAndAfterAll {
 
-  implicit val executionContext: ExecutionContext = system.dispatcher
+  given ExecutionContext = system.dispatcher
 
-  override def afterAll: Unit = {
+  override def afterAll(): Unit = {
     TestKit.shutdownActorSystem(system)
   }
 
@@ -34,8 +35,8 @@ class SimulationActorTests
       val sim = AkkaSimulationRef.of(new NoTasks("sim", coordinator))
 
       sim.run()
-      probe.expectMsg(CoordinatorActor.Response(SimDone("sim", Success(Unit))))
-      probe.expectNoMsg()
+      probe.expectMsg(CoordinatorActor.Response(SimDone("sim", Success(()))))
+      probe.expectNoMessage()
     }
 
     "interact correctly having one task" in {
@@ -59,7 +60,7 @@ class SimulationActorTests
       sim.completed(2L, Seq(task))
 
       probe.expectMsg(CoordinatorActor.Response(SimDone("sim", Success((task, 2L)))))
-      probe.expectNoMsg()
+      probe.expectNoMessage()
     }
 
     "interact correctly having 2 tasks in sequence with callback" in {
@@ -93,7 +94,7 @@ class SimulationActorTests
       sim.completed(4L, Seq(task2))
 
       probe.expectMsg(CoordinatorActor.Response(SimDone("sim", Success((task2, 4L)))))
-      probe.expectNoMsg()
+      probe.expectNoMessage()
     }
 
     "interact correctly having 3 tasks in sequence with Futures" in {
@@ -138,7 +139,7 @@ class SimulationActorTests
       sim.completed(7L, Seq(task3))
 
       probe.expectMsg(CoordinatorActor.Response(SimDone("sim", Success((task3, 7L)))))
-      probe.expectNoMsg()
+      probe.expectNoMessage()
     }
 
     "stop between 2 tasks in sequence" in {

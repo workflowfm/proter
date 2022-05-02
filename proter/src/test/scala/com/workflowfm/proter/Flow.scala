@@ -4,9 +4,9 @@ import scala.collection.mutable.Map
 import scala.concurrent._
 import scala.concurrent.duration._
 
-import org.junit.runner.RunWith
-import org.scalatest._
-import org.scalatest.junit.JUnitRunner
+import org.scalatest.OptionValues
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 import com.workflowfm.proter._
 import com.workflowfm.proter.events.{ PrintEventHandler, PromiseHandler }
@@ -14,9 +14,10 @@ import com.workflowfm.proter.flows._
 import com.workflowfm.proter.metrics._
 import com.workflowfm.proter.schedule.ProterScheduler
 
-@RunWith(classOf[JUnitRunner])
 class FlowTests extends FlowsTester {
-  "Flows" must {
+  given ExecutionContext = ExecutionContext.global
+
+  "Flows" should {
     "execute a single flow" in {
       val task1 = new FlowTask(Task("task1", 1L))
       val flow1 = task1
@@ -51,7 +52,7 @@ class FlowTests extends FlowsTester {
       val testMetrics = singleFlowTest(flow1, List(r1))
 
       val task1time = testMetrics.get("task1 (sim1)").value.value
-      if (task1time == 1) testMetrics.get("task2 (sim1)").value.value should be(3)
+      if task1time == 1 then testMetrics.get("task2 (sim1)").value.value should be(3)
       else testMetrics.get("task2 (sim1)").value.value should be(2)
 
     }
@@ -323,9 +324,9 @@ class FlowTests extends FlowsTester {
       val flow1 = new Then(new And(task1, task2), task1)
       val testMetrics = singleFlowTest(flow1)
 
-      //testMetrics.get("task1 (sim1)").value.value should be (1)
+      // testMetrics.get("task1 (sim1)").value.value should be (1)
       testMetrics.get("task2 (sim1)").value.value should be(2)
-      //testMetrics.get("task1 (sim1)").value.value should be (5)
+      // testMetrics.get("task1 (sim1)").value.value should be (5)
 
     }
 
@@ -358,8 +359,8 @@ class FlowTests extends FlowsTester {
       coordinator.start()
 
       val metrics = Await.result(smh.future, 3.seconds)
-      val testMetrics = metrics.taskMap.map {
-        case (_, tm) => tm.fullName -> tm.finished
+      val testMetrics = metrics.taskMap.map { case (_, tm) =>
+        tm.fullName -> tm.finished
       }
 
       testMetrics.get("task1 (sim1)").value.value should be(1)
@@ -368,7 +369,7 @@ class FlowTests extends FlowsTester {
     }
 
     "execute two simulations which use the same tasks" in {
-      val coordinator = new Coordinator(new ProterScheduler())
+      val coordinator = new Coordinator(new ProterScheduler())(using ExecutionContext.global)
 
       val smh = new PromiseHandler(new SimMetricsHandler)
       coordinator.subscribe(smh)
@@ -393,18 +394,18 @@ class FlowTests extends FlowsTester {
       coordinator.start()
 
       val metrics = Await.result(smh.future, 3.seconds)
-      val testMetrics = metrics.taskMap.map {
-        case (_, tm) => tm.fullName -> tm.finished
+      val testMetrics = metrics.taskMap.map { case (_, tm) =>
+        tm.fullName -> tm.finished
       }
 
-      //testMetrics.get("task1 (sim1)").value.value should be (1)
+      // testMetrics.get("task1 (sim1)").value.value should be (1)
       testMetrics.get("task2 (sim2)").value.value should be(2)
-      //testMetrics.get("task1 (sim2)").value.value should be (3)
+      // testMetrics.get("task1 (sim2)").value.value should be (3)
     }
   }
 }
 
-class FlowsTester extends WordSpecLike with Matchers with OptionValues {
+class FlowsTester extends AnyWordSpecLike with Matchers with OptionValues {
 
   def singleFlowTest(
       flow: Flow,
@@ -412,7 +413,7 @@ class FlowsTester extends WordSpecLike with Matchers with OptionValues {
       simName: String = "sim1"
   ): Map[String, Option[Long]] = {
 
-    val coordinator = new Coordinator(new ProterScheduler())
+    val coordinator = new Coordinator(new ProterScheduler())(using ExecutionContext.global)
 
     val smh = new PromiseHandler(new SimMetricsHandler)
     coordinator.subscribe(smh)
@@ -425,8 +426,8 @@ class FlowsTester extends WordSpecLike with Matchers with OptionValues {
     coordinator.start()
 
     val metrics = Await.result(smh.future, 3.seconds)
-    metrics.taskMap.map {
-      case (_, tm) => tm.fullName -> tm.finished
+    metrics.taskMap.map { case (_, tm) =>
+      tm.fullName -> tm.finished
     }
   }
 }
