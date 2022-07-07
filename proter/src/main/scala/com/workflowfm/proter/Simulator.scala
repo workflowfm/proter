@@ -1,7 +1,5 @@
 package com.workflowfm.proter
 
-import cases.*
-import cases.given_Case_F_Task
 import events.*
 import schedule.*
 import state.*
@@ -60,6 +58,11 @@ object Simulator {
 
 }
 
+import cases.*
+import cases.given
+import flows.*
+import flows.given
+
 import cats.effect.{ IO, IOApp, ExitCode }
 
 
@@ -71,13 +74,18 @@ object TestSim extends IOApp {
     Random.scalaUtilRandom[IO].flatMap { r =>
       given Random[IO] = r
       val simulator = Simulator[IO](ProterScheduler) withHandler (PrintEventHandler())
-      val scenario = Scenario[IO]("MYSCENARIO").withCases (
-        ("foo1", Task("t", 1)),
-        ("foo2", Task("t", 2)),
-        ("foo3", Task("t", 3)),
-        ("foo4", Task("t", 4)),
-        ("foo4.2", Task("t", 4)),
-      )
+      val scenario = Scenario[IO]("MYSCENARIO")
+        .withCases (
+          ("foo1", Task("t", 1)),
+          ("foo2", Task("t", 2)),
+          ("foo3", Task("t", 3)),
+          ("foo4", Task("t", 4)),
+          ("foo4.2", Task("t", 4)),
+        )
+        .withCases(
+          ("flow1", Flow(Task("f1", 1), Task("f2", 1))),
+          ("flow2", Flow.par(Seq(Task("f2a", 1), Task("f2b", 2), Task("f2c", 3)).map(FlowTask(_))))
+        )
       simulator.simulate(scenario).as(ExitCode(1))
   }
   

@@ -48,6 +48,10 @@ case class FlowTask(val task: Task) extends Flow {
   override def toString(): String = task.name
 }
 
+given Conversion[Task, FlowTask] with
+  def apply(t: Task): FlowTask = FlowTask(t)
+
+
 case class Then(val left: Flow, val right: Flow) extends Flow {
   override def copy(): Flow = Then(left.copy(), right.copy())
   override def toString(): String = "(" + left.toString + " > " + right.toString + ")"
@@ -64,9 +68,6 @@ object Flow {
 //  import scala.language.implicitConversions
 
   def apply(t: Task*): Flow = Flow.seq(t.map(FlowTask(_)))
-
-  given Conversion[Task, FlowTask] with
-    def apply(t: Task): FlowTask = FlowTask(t)
 
   /**
     * Creates a sequence of a collection of [[Flow]]s.
@@ -175,16 +176,16 @@ case class FlowCaseRef[F[_] : Monad : UUIDGen : Random](override val caseName: S
         rightID: UUID <- UUIDGen[F].randomUUID
 
         leftCallback: Callback =
-          callback((_, _) => (
-            if !m.contains(rightID)
-            then complete(id)
-            else idState
+          callback((_, _) => StateT ( mx =>
+            if !mx.contains(rightID)
+            then complete(id).run(mx)
+            else idState.run(mx)
           ))
         rightCallback: Callback =
-          callback((_, _) => (
-            if !m.contains(leftID) 
-            then complete(id)
-            else idState
+          callback((_, _) => StateT ( mx =>
+            if !mx.contains(leftID) 
+            then complete(id).run(mx)
+            else idState.run(mx)
           ))
 
         update = m + (leftID -> leftCallback) + (rightID -> rightCallback)
