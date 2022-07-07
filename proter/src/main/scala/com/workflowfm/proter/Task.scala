@@ -55,31 +55,6 @@ class TaskInstance(
 ) extends Ordered[TaskInstance] {
 
   /**
-    * Finds the soonest this task can start. This is based on the availability of the required
-    * resources. We calculate the minimum possible time when we expect all resources will be free.
-    * We use [[TaskResource.nextAvailableTimestamp]] as the (estimated) next available time of each
-    * resource.
-    *
-    * @param currentTime
-    *   The current timestamp.
-    * @param resourceMap
-    *   A map of all available [[TaskResource]]s
-    * @return
-    *   The (estimated) earliest timestamp when all resources are available.
-    */
-  def nextPossibleStart(
-      currentTime: Long,
-      resourceMap: collection.Map[String, TaskResource]
-  ): Long = {
-    resources.foldLeft(currentTime) { case (i, rN) =>
-      resourceMap.get(rN) match {
-        case None => throw new RuntimeException(s"Resource $rN not found!")
-        case Some(r) => Math.max(i, r.nextAvailableTimestamp(currentTime))
-      }
-    }
-  }
-
-  /**
     * Ordering of tasks.
     *
     * This method essentially dictates the priority of tasks in the queue, highest to lowest.
