@@ -1,6 +1,10 @@
 package com.workflowfm.proter
 
-import cases.CaseRef
+import cases.{ CaseRef, Case }
+
+import cats.effect.std.Random
+import cats.Monad
+import cats.implicits.*
 
 import java.util.UUID
 
@@ -113,18 +117,15 @@ case class TimeLimit(override val time: Long) extends DiscreteEvent {
   * @param count
   *   A counter of the next simulation instance that will be generated
   */
-/*
-case class Arrival(
+
+case class Arrival[F[_] : Monad : Random, T](
     override val time: Long,
-    rate: Distribution,
-    simulationGenerator: SimulationRefGenerator,
+    name: String,
+    t: T,
+    rate: LongDistribution,
     limit: Option[Int] = None,
     count: Int = 0
-) extends DiscreteEvent {
-
-  import cats.effect.std.Random
-  import cats.Applicative
-  import cats.implicits.*
+)(using ct: Case[F, T]) extends DiscreteEvent {
 
   override val classOrder: Short = 11
 
@@ -139,11 +140,18 @@ case class Arrival(
     * @return
     *   The next arrival event.
     */
-  def next[F[_] : Applicative : Random](): F[Arrival] = 
-    rate.get.map { r => copy(time = time + r.round, count = count + 1) }
+  def next(): Option[F[(Arrival[F, T], CaseRef[F])]] = limit.filter(_ <= count) match {
+    case None => Some( for {
+      nextTime <- rate.getLong[F]
+      caseRef <- ct.init(s"$name#${count+1}", t)
+    } yield ((copy(
+        time = time + nextTime,
+        count = count + 1
+      ), caseRef)) 
+    )
+    case _ => None
+  }
 }
-*/
-
 
 import collection.immutable.{ SortedMap, SortedSet }
 

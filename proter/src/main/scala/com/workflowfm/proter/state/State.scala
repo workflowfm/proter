@@ -308,13 +308,21 @@ object Simulationx extends StateOps {
               stop().map(e => events ++ e)
             ), tasks)
 
-          /*
-           case arrival @ Arrival(t, _, simulationGenerator, limit, count) if (t == time) =>
-           if limit.map(_ > count).getOrElse(true) then {
-           events += arrival.next() // replicate self
-           startSimulation(simulationGenerator.build(this, count))
-           }
-           */
+          case arrival: Arrival[F,?] => arrival.next() match {
+            case None => (state,tasks)
+            case Some(f) => {
+              val update: StateT[F, Simulationx[F], Event] = StateT { sim => for {
+                ret <- f
+                (next, caseRef) = ret
+                newsim = sim.copy(events = sim.events + next)
+                
+              } yield (startCase(caseRef).run(newsim).value) }
+              (state.flatMap(events =>
+                update.map(e => events :+ e)
+              ), tasks)
+            }
+          }
+
           case _ => (
             state.flatMap(events =>
               StateT { sim => Monad[F].pure((sim, events :+ sim.error(s"Failed to handle event: $event")) ) }
@@ -464,6 +472,46 @@ trait CaseState {
     */
   def addCasesNow[F[_] : Monad, T](cases: Seq[(String, T)])(using ct: Case[F, T]): StateT[F, Simulationx[F], Seq[Event]] =
     cases.map( (n, c) => addCaseNow(n, c) ).sequence
+
+  /**
+    * Adds a new arrival process to the coordinator.
+    *
+    * @param t
+    *   The virtual timestamp when the arrival process will begin.
+    * @param name
+    *   The name to use 
+    * @param limit
+    *   The number of simulation instances to spawn.
+    * @param rate
+    *   The arrival rate of the simulation instances.
+    * @param simulationGenerator
+    *   The generator used to create new instances.
+    */
+  def addArrival[F[_] : Monad : Random, T](
+    t: Long, 
+    name: String, 
+    item: T,
+    limit: Option[Int],
+    rate: LongDistribution,
+  )(using ct: Case[F, T]): StateT[F, Simulationx[F], Event] = StateT( sim => 
+    if t >= sim.time
+    then {
+      val arrival = Arrival(t, name, item, rate, limit, 0)
+      Monad[F].pure((
+        sim.copy(events = sim.events + arrival), 
+        EArrivalAdd(sim.id, sim.time, name, t, rate, limit)
+      ))
+    }
+    else Monad[F].pure((sim, sim.error(s"Attempted to start arrivals of [$name] in the past: $t")))
+  ) 
+
+  def addArrivalNow[F[_] : Monad : Random, T]( 
+    name: String, 
+    item: T,
+    limit: Option[Int],
+    rate: LongDistribution,
+  )(using ct: Case[F, T]): StateT[F, Simulationx[F], Event] = 
+    StateT.inspect[F, Simulationx[F], Long](_.time).flatMap { time => addArrival(time, name, item, limit, rate) }
 
 
   /**
