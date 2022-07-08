@@ -6,7 +6,7 @@ case class Resource(name: String, costPerTick: Double) {
   def start: ResourceState = ResourceState(this, None)
 }
 
-case class ResourceState(resource: Resource, currentTask: Option[(Long, TaskInstance)] ) {
+case class ResourceState(resource: Resource, currentTask: Option[(Long, TaskInstance)]) {
 
   /**
     * True if the resource is idle, false otherwise.
@@ -27,10 +27,13 @@ case class ResourceState(resource: Resource, currentTask: Option[(Long, TaskInst
     * @param currentTime
     *   The current (virtual) time.
     * @return
-    *   Some [[TaskInstance]] that was already attached before or An updated [[ResourceState]] 
-    *   if the task was attached successfully.
+    *   Some [[TaskInstance]] that was already attached before or An updated [[ResourceState]] if
+    *   the task was attached successfully.
     */
-  def startTask(task: TaskInstance, currentTime: Long): Either[ResourceState.Busy, ResourceState] = {
+  def startTask(
+      task: TaskInstance,
+      currentTime: Long
+  ): Either[ResourceState.Busy, ResourceState] = {
     currentTask match {
       case None => {
         Right(this.copy(currentTask = Some(currentTime, task)))
@@ -40,7 +43,6 @@ case class ResourceState(resource: Resource, currentTask: Option[(Long, TaskInst
       }
     }
   }
-
 
   /**
     * Detaches the current [[TaskInstance]] (if any) if it has completed.
@@ -62,12 +64,11 @@ case class ResourceState(resource: Resource, currentTask: Option[(Long, TaskInst
       } else None
   }
 
-
   def detach(taskID: UUID): ResourceState = currentTask match {
     case Some((_, someTask)) if taskID == someTask.id => copy(currentTask = None)
     case _ => this
   }
- 
+
   def detach(taskIDs: Seq[UUID]): ResourceState = currentTask match {
     case Some((_, someTask)) if taskIDs.contains(someTask.id) => copy(currentTask = None)
     case _ => this
@@ -75,7 +76,7 @@ case class ResourceState(resource: Resource, currentTask: Option[(Long, TaskInst
 
   def runningAnyOf(taskIDs: Seq[UUID]): Boolean = currentTask match {
     case Some((_, someTask)) if taskIDs.contains(someTask.id) => true
-    case _ => false  
+    case _ => false
   }
 
   /**
@@ -99,14 +100,13 @@ case class ResourceState(resource: Resource, currentTask: Option[(Long, TaskInst
   }
 }
 
-
 object ResourceState {
   case class Busy(resource: Resource, task: TaskInstance, start: Long)
 }
 
-
 case class ResourceMap(resources: Map[String, ResourceState]) {
-    /**
+
+  /**
     * Add a new [[Resource]] to our map of available resources.
     *
     * @group resources
@@ -126,35 +126,36 @@ case class ResourceMap(resources: Map[String, ResourceState]) {
     * @param resources
     *   The sequence of [[Resource]]s to be added.
     */
-  def addResources(resourcesToAdd: Seq[Resource]): ResourceMap =       
-    copy(resources ++ (resourcesToAdd.map { r => r.name -> r.start } ))
+  def addResources(resourcesToAdd: Seq[Resource]): ResourceMap =
+    copy(resources ++ (resourcesToAdd.map { r => r.name -> r.start }))
 
   def finishTask(task: TaskInstance): ResourceMap = {
-    copy(resources = resources.map { (n, r) => n -> r.detach(task.id) } )
+    copy(resources = resources.map { (n, r) => n -> r.detach(task.id) })
   }
 
-  def startTask(task: TaskInstance, time: Long): Either[ResourceState.Busy, ResourceMap] = { 
+  def startTask(task: TaskInstance, time: Long): Either[ResourceState.Busy, ResourceMap] = {
     val update = for {
       name <- task.resources
       state <- resources.get(name)
     } yield (
-      state.startTask(task, time)
-        .map { newState => name -> newState }
+      state.startTask(task, time).map { newState => name -> newState }
     )
 
-    val folded = update.foldRight(Right(Nil): Either[ResourceState.Busy, List[(String, ResourceState)]]) {
-      (t, states) => for {
-        x <- t
-        xs <- states
-      } yield (x :: xs)
-    }
+    val folded =
+      update.foldRight(Right(Nil): Either[ResourceState.Busy, List[(String, ResourceState)]]) {
+        (t, states) =>
+          for {
+            x <- t
+            xs <- states
+          } yield (x :: xs)
+      }
 
     folded.map { stateUpdates => copy(resources = resources ++ stateUpdates) }
   }
 
-  def stopTasks(ids: Seq[UUID]): (ResourceMap, Iterable[ResourceState]) = { 
-    val stopping = resources.filter  { (_, r) => r.runningAnyOf(ids) }
-    val result = copy( resources ++ stopping.map { (n, r) => n -> r.copy(currentTask = None) } )
+  def stopTasks(ids: Seq[UUID]): (ResourceMap, Iterable[ResourceState]) = {
+    val stopping = resources.filter { (_, r) => r.runningAnyOf(ids) }
+    val result = copy(resources ++ stopping.map { (n, r) => n -> r.copy(currentTask = None) })
     (result, stopping.values)
   }
 
@@ -180,6 +181,3 @@ case class ResourceMap(resources: Map[String, ResourceState]) {
     task.resources flatMap (resources.get(_))
 
 }
-
-
-

@@ -125,7 +125,8 @@ case class Arrival[F[_] : Monad : Random, T](
     rate: LongDistribution,
     limit: Option[Int] = None,
     count: Int = 0
-)(using ct: Case[F, T]) extends DiscreteEvent {
+)(using ct: Case[F, T])
+    extends DiscreteEvent {
 
   override val classOrder: Short = 11
 
@@ -133,7 +134,7 @@ case class Arrival[F[_] : Monad : Random, T](
     // case Arrival(_, r) => rate.compareTo(r) TODO Need to figure out a way to sort arrivals!
     case _ => 0
   }
- 
+
   /**
     * Generates the next arrival event to be queued.
     *
@@ -141,14 +142,21 @@ case class Arrival[F[_] : Monad : Random, T](
     *   The next arrival event.
     */
   def next(): Option[F[(Arrival[F, T], CaseRef[F])]] = limit.filter(_ <= count) match {
-    case None => Some( for {
-      nextTime <- rate.getLong[F]
-      caseRef <- ct.init(s"$name#${count+1}", t)
-    } yield ((copy(
-        time = time + nextTime,
-        count = count + 1
-      ), caseRef)) 
-    )
+    case None =>
+      Some(
+        for {
+          nextTime <- rate.getLong[F]
+          caseRef <- ct.init(s"$name#${count + 1}", t)
+        } yield (
+          (
+            copy(
+              time = time + nextTime,
+              count = count + 1
+            ),
+            caseRef
+          )
+        )
+      )
     case _ => None
   }
 }
@@ -156,6 +164,7 @@ case class Arrival[F[_] : Monad : Random, T](
 import collection.immutable.{ SortedMap, SortedSet }
 
 case class EventQueue(events: SortedMap[Long, SortedSet[DiscreteEvent]]) {
+
   def +(event: DiscreteEvent): EventQueue = {
     copy(events = events.updatedWith(event.time) {
       case None => Some(SortedSet(event))
@@ -163,8 +172,9 @@ case class EventQueue(events: SortedMap[Long, SortedSet[DiscreteEvent]]) {
     })
   }
 
-  def next(): Option[(Long, SortedSet[DiscreteEvent], EventQueue)] = events.headOption.map { (k, v) => 
-    (k, v, copy(events = events - k))
+  def next(): Option[(Long, SortedSet[DiscreteEvent], EventQueue)] = events.headOption.map {
+    (k, v) =>
+      (k, v, copy(events = events - k))
   }
 
   def size: Int = events.size

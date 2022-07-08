@@ -15,7 +15,7 @@ import scala.concurrent.Promise
   *
   * Handles a stream of events from a [[Publisher]].
   */
-trait EventHandler[F[_]: Monad] {
+trait EventHandler[F[_] : Monad] {
 
   /**
     * Handles the initialisation of a new event stream.
@@ -55,14 +55,15 @@ trait EventHandler[F[_]: Monad] {
 /**
   * An [[EventHandler]] for a pool of [[Coordinator]]s.
   */
-class PoolEventHandler[F[_]: Monad](publishers: Ref[F, HashSet[Publisher[?]]]) extends EventHandler[F] {
+class PoolEventHandler[F[_] : Monad](publishers: Ref[F, HashSet[Publisher[?]]])
+    extends EventHandler[F] {
 
   /**
     * @inheritdoc
     *
     * Adds the publisher to [[publishers]].
     */
-  override def onInit(publisher: Publisher[?]): F[Unit] = 
+  override def onInit(publisher: Publisher[?]): F[Unit] =
     publishers.update(_ + publisher)
 
   /**
@@ -78,14 +79,14 @@ class PoolEventHandler[F[_]: Monad](publishers: Ref[F, HashSet[Publisher[?]]]) e
     *
     * Closes the event stream by removing the publisher from [[publishers]].
     */
-  override def onFail(e: Throwable, publisher: Publisher[?]): F[Unit] = 
+  override def onFail(e: Throwable, publisher: Publisher[?]): F[Unit] =
     publishers.update(_ - publisher)
 }
 
 /**
   * An [[EventHandler]] that prints events to standard error.
   */
-class PrintEventHandler[F[_]: Monad : Console] extends EventHandler[F] {
+class PrintEventHandler[F[_] : Monad : Console] extends EventHandler[F] {
   /**
     * A simple date formatter for printing the current (system) time.
     */
@@ -118,19 +119,20 @@ class PrintEventHandler[F[_]: Monad : Console] extends EventHandler[F] {
   * @tparam R
   *   The type of the result.
   */
-trait ResultHandler[F[_]: Monad, R](val result: Deferred[F, R]) extends EventHandler[F] 
+trait ResultHandler[F[_] : Monad, R](val result: Deferred[F, R]) extends EventHandler[F]
 
 /**
   * A [[ResultHandler]] that counts the events seen.
   */
-class CounterHandler[F[_]: Monad](r: Deferred[F, Int], counter: Ref[F, Int]) extends ResultHandler[F, Int](r) {
+class CounterHandler[F[_] : Monad](r: Deferred[F, Int], counter: Ref[F, Int])
+    extends ResultHandler[F, Int](r) {
 
   /**
     * @inheritdoc
     *
     * Resets the counter to 0.
     */
-  override def onInit(publisher: Publisher[?]): F[Unit] = 
+  override def onInit(publisher: Publisher[?]): F[Unit] =
     counter.set(0)
 
   /**
@@ -138,10 +140,10 @@ class CounterHandler[F[_]: Monad](r: Deferred[F, Int], counter: Ref[F, Int]) ext
     *
     * Increases the counter by one.
     */
-  override def onEvent(e: Event): F[Unit] = 
+  override def onEvent(e: Event): F[Unit] =
     counter.update(_ + 1)
 
-  override def onDone(publisher: Publisher[?]): F[Unit] = 
+  override def onDone(publisher: Publisher[?]): F[Unit] =
     counter.get.flatMap(result.complete).void
 
   override def onFail(e: Throwable, publisher: Publisher[?]): F[Unit] =
@@ -157,7 +159,8 @@ class CounterHandler[F[_]: Monad](r: Deferred[F, Int], counter: Ref[F, Int]) ext
   * @param callback
   *   A function to handle the results of the simulation when it completes.
   */
-class CaseResultHandler[F[_]: Monad](caseName: String, r: Deferred[F, String]) extends ResultHandler[F, String](r) {
+class CaseResultHandler[F[_] : Monad](caseName: String, r: Deferred[F, String])
+    extends ResultHandler[F, String](r) {
 
   /**
     * @inheritdoc

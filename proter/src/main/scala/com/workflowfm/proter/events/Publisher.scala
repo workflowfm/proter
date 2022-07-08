@@ -10,7 +10,9 @@ import java.util.UUID
 /**
   * A publisher of a stream of simulation [[Event]]s.
   */
-case class Publisher[F[_]](topic: Topic[F, Either[Throwable, Event]], maxQueued: Int)(using MonadCancel[F, Throwable]) {
+case class Publisher[F[_]](topic: Topic[F, Either[Throwable, Event]], maxQueued: Int)(
+    using MonadCancel[F, Throwable]
+) {
 
   /**
     * Publishes an event into the stream.
@@ -40,27 +42,29 @@ case class Publisher[F[_]](topic: Topic[F, Either[Throwable, Event]], maxQueued:
     * @param subscriber
     *   The [[EventHandler]] to subscribe.
     */
-  def subscribe(subscriber: EventHandler[F]): Resource[F, Stream[F, Unit]] = 
+  def subscribe(subscriber: EventHandler[F]): Resource[F, Stream[F, Unit]] =
     topic.subscribeAwait(maxQueued).evalMap { sub =>
       for {
         _ <- subscriber.onInit(this)
-      } yield sub.evalMap (
-        evt => evt match {
-          case Left(e) => subscriber.onFail(e, this)
-          case Right(e) => {
-            e match {
-              case EDone(_, _) => subscriber.onEvent(e) >> subscriber.onDone(this)
-              case _ => subscriber.onEvent(e)
+      } yield sub
+        .evalMap(evt =>
+          evt match {
+            case Left(e) => subscriber.onFail(e, this)
+            case Right(e) => {
+              e match {
+                case EDone(_, _) => subscriber.onEvent(e) >> subscriber.onDone(this)
+                case _ => subscriber.onEvent(e)
+              }
             }
-          }}
-      ).handleErrorWith (
-        ex => Stream.eval(subscriber.onFail(ex, this))
-      )
+          }
+        )
+        .handleErrorWith(ex => Stream.eval(subscriber.onFail(ex, this)))
     }
 }
 
 object Publisher {
+
   def build[F[_] : Concurrent](maxQueued: Int = 10): F[Publisher[F]] = for {
     topic <- Topic[F, Either[Throwable, Event]]
-  } yield(Publisher[F](topic, 10))
+  } yield (Publisher[F](topic, 10))
 }

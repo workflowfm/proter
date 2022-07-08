@@ -14,7 +14,6 @@ import java.util.UUID
 import scala.collection.immutable.{ HashSet, Queue }
 import scala.util.{ Try, Success, Failure }
 
-
 /**
   * An abstract reference to simulation case logic.
   *
@@ -61,7 +60,6 @@ trait CaseRef[F[_] : Monad] extends CaseState {
     */
   def done(result: Try[Any]): SimState[F] = caseDone(caseName, result)
 
-
   /**
     * Declares that the simulation completed successfully.
     *
@@ -82,39 +80,40 @@ trait CaseRef[F[_] : Monad] extends CaseState {
 
   def update(c: CaseRef[F]): SimState[F] = updateCase(caseName, c)
 
-
 }
 
-abstract class StatefulCaseRef[F[_] : Monad, S](val state: S) extends CaseRef[F] { 
+abstract class StatefulCaseRef[F[_] : Monad, S](val state: S) extends CaseRef[F] {
 
   def updateState(newState: S): StatefulCaseRef[F, S]
 
   def complete(task: TaskInstance, time: Long): StateT[F, S, SimState[F]]
 
-
   override def completed(time: Long, tasks: Seq[TaskInstance]): F[SimState[F]] = {
-    val fold = tasks.foldLeft(StateT.pure[F, S, SimState[F]](StateT.pure(Seq()))) { (state, task) => 
+    val fold = tasks.foldLeft(StateT.pure[F, S, SimState[F]](StateT.pure(Seq()))) { (state, task) =>
       composeStates(state, complete(task, time))
     }
     compose(fold)
   }
 
-
   def succeedState(result: Any): StateT[F, S, SimState[F]] = StateT.pure(succeed(result))
 
   def failState(exception: Throwable): StateT[F, S, SimState[F]] = StateT.pure(fail(exception))
 
-  def composeStates(s1: StateT[F, S, SimState[F]], s2: StateT[F, S, SimState[F]]): StateT[F, S, SimState[F]] =
+  def composeStates(
+      s1: StateT[F, S, SimState[F]],
+      s2: StateT[F, S, SimState[F]]
+  ): StateT[F, S, SimState[F]] =
     s1.flatMap { r1 => s2.map { r2 => Simulationx.compose(r1, r2) } }
 
-  val idState: StateT[F, S, SimState[F]] = StateT.pure(StateT.pure(Seq())) 
+  val idState: StateT[F, S, SimState[F]] = StateT.pure(StateT.pure(Seq()))
 
-  def compose(s: StateT[F, S, SimState[F]]): F[SimState[F]] = s.modify(s => update(updateState(s))).run(state).map( (s1, s2) => Simulationx.compose(s1, s2))
+  def compose(s: StateT[F, S, SimState[F]]): F[SimState[F]] =
+    s.modify(s => update(updateState(s))).run(state).map((s1, s2) => Simulationx.compose(s1, s2))
 
 }
 
-
-abstract class AsyncCaseRef[F[_] : Monad : UUIDGen : Random](callbackMap: CallbackMap[F]) extends StatefulCaseRef[F, CallbackMap[F]](callbackMap) { 
+abstract class AsyncCaseRef[F[_] : Monad : UUIDGen : Random](callbackMap: CallbackMap[F])
+    extends StatefulCaseRef[F, CallbackMap[F]](callbackMap) {
 
   type Callback = AsyncCaseRef.Callback[F, CallbackMap[F]]
 
@@ -130,7 +129,6 @@ abstract class AsyncCaseRef[F[_] : Monad : UUIDGen : Random](callbackMap: Callba
     */
   def callback(f: (TaskInstance, Long) => StateT[F, CallbackMap[F], SimState[F]]): Callback =
     t => t.map { arg => f(arg._1, arg._2) }.getOrElse(StateT.pure(StateT.pure(Seq())))
-
 
   /**
     * Declare a new [[Task]] that needs to be sent to the [[Coordinator]] for simulation with a
@@ -157,7 +155,7 @@ abstract class AsyncCaseRef[F[_] : Monad : UUIDGen : Random](callbackMap: Callba
   def task(
       t: Task,
       callback: Callback
-  ): StateT[F, CallbackMap[F], SimState[F]] = StateT( m => 
+  ): StateT[F, CallbackMap[F], SimState[F]] = StateT(m =>
     for {
       id <- t.id.map(Monad[F].pure).getOrElse(UUIDGen[F].randomUUID)
       updated = CallbackMap(m.m + (id -> callback))
@@ -177,24 +175,25 @@ abstract class AsyncCaseRef[F[_] : Monad : UUIDGen : Random](callbackMap: Callba
     *   The timestamp of its completion.
     */
 
-  override def complete(task: TaskInstance, time: Long): StateT[F, CallbackMap[F], SimState[F]] = StateT( m => {
-    m.m.get(task.id) match {
-      case None => Monad[F].pure((m, StateT.pure(Seq())))
-      case Some(f) => f(Success(task, time)).run(CallbackMap(m.m - task.id))
-    }
-  })
+  override def complete(task: TaskInstance, time: Long): StateT[F, CallbackMap[F], SimState[F]] =
+    StateT(m => {
+      m.m.get(task.id) match {
+        case None => Monad[F].pure((m, StateT.pure(Seq())))
+        case Some(f) => f(Success(task, time)).run(CallbackMap(m.m - task.id))
+      }
+    })
 
-/*
+  /*
   /**
-    * @inheritdoc
-    *
-    * Calls respective [[Callback]]s with `Failure`.
-    *
-    * @group act
-    *
-    * @param id
-    *   The `UUID` of the [[Task]]s.
-    */
+   * @inheritdoc
+   *
+   * Calls respective [[Callback]]s with `Failure`.
+   *
+   * @group act
+   *
+   * @param id
+   *   The `UUID` of the [[Task]]s.
+   */
   def abortTask(ids: UUID*): F[CaseResponse] = {
     val response = super.abort(ids *)
     for {
@@ -202,7 +201,7 @@ abstract class AsyncCaseRef[F[_] : Monad : UUIDGen : Random](callbackMap: Callba
       _ = fs.map( f => f(Failure(Case.TaskAbortedException())) )
     } yield (response)
   }
- */
+   */
 
   /**
     * @inheritdoc
@@ -210,18 +209,18 @@ abstract class AsyncCaseRef[F[_] : Monad : UUIDGen : Random](callbackMap: Callba
     * Triggers all callbacks with a `Failure`.
     */
   override def stop(): F[Unit] = {
-    val update = state.m.map( (_, f) => f(Failure(Case.CaseStoppingException())) ).toList.sequence
-    update.run(state).map( _ => () )
+    val update = state.m.map((_, f) => f(Failure(Case.CaseStoppingException()))).toList.sequence
+    update.run(state).map(_ => ())
   }
 }
 
 object AsyncCaseRef {
-  type Callback[F[_], S] = Monad[F] ?=> Try[(TaskInstance, Long)] => StateT[F, S, SimState[F]] 
+  type Callback[F[_], S] = Monad[F] ?=> Try[(TaskInstance, Long)] => StateT[F, S, SimState[F]]
 
-//  def idM[F : Monad]: StateT[F, AsyncCaseRef[F], CaseResponse[F]] = StateT.empty ()Monad[F].pure((, CaseResponse.empty[F]))
+/* def idM[F : Monad]: StateT[F, AsyncCaseRef[F], CaseResponse[F]] = StateT.empty
+   * ()Monad[F].pure((, CaseResponse.empty[F])) */
 }
- 
- 
+
 case class CallbackMap[F[_]](m: Map[UUID, AsyncCaseRef.Callback[F, CallbackMap[F]]]) {
   type Callback = AsyncCaseRef.Callback[F, CallbackMap[F]]
   def +(kv: (UUID, Callback)): CallbackMap[F] = copy(m = m + kv)

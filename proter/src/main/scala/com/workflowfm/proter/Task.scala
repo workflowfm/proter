@@ -161,11 +161,11 @@ case class Task(
     * @return
     *   The generated [[TaskInstance]].
     */
-  def create[F[_]: Random : Monad](simulation: String, currentTime: Long): F[TaskInstance] = {
+  def create[F[_] : Random : Monad](simulation: String, currentTime: Long): F[TaskInstance] = {
     val creation = if createTime >= 0 then createTime else currentTime
     for {
       dur <- duration.getLong
-      c <- cost.get 
+      c <- cost.get
     } yield (
       new TaskInstance(
         id.getOrElse(UUID.randomUUID()),

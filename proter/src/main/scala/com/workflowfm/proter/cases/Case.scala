@@ -26,6 +26,7 @@ given [F[_]](using Monad[F], UUIDGen[F], Random[F]): Case[F, Task] with {
     override val caseName: String = name
     override def run(): F[SimState[F]] = Monad[F].pure(addTask(caseName)(theTask))
     override def stop(): F[Unit] = Monad[F].pure(())
+
     override def completed(time: Long, tasks: Seq[TaskInstance]): F[SimState[F]] =
       tasks.find(_.id == id) match {
         case None => Monad[F].pure(StateT.pure(Seq()))
@@ -35,7 +36,8 @@ given [F[_]](using Monad[F], UUIDGen[F], Random[F]): Case[F, Task] with {
 }
 
 object Case {
-    /**
+
+  /**
     * Exception used when aborting a [[Task]].
     *
     * @param cause

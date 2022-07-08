@@ -37,7 +37,7 @@ case class EStart(override val source: String, override val time: Long) extends 
 case class ETimeLimit(
     override val source: String,
     override val time: Long,
-    limit: Long,
+    limit: Long
 ) extends Event
 
 /**
@@ -70,7 +70,6 @@ case class ECaseAdd(
     start: Long
 ) extends Event
 
-
 /**
   * An arrival was added.
   *
@@ -91,7 +90,6 @@ case class EArrivalAdd(
     rate: LongDistribution,
     limit: Option[Int]
 ) extends Event
-
 
 /**
   * A case was started.
@@ -175,15 +173,17 @@ case class ETaskDetach(
 ) extends Event
 
 object ETaskDetach {
-  def resourceState(source: String, time: Long)(resourceState: ResourceState): Option[ETaskDetach] = resourceState.currentTask.map { (start, task) =>
-    ETaskDetach(
-      source,
-      time,
-      task,
-      resourceState.resource.name,
-      resourceState.resource.costPerTick * (time - start)
-    )
-  }
+
+  def resourceState(source: String, time: Long)(resourceState: ResourceState): Option[ETaskDetach] =
+    resourceState.currentTask.map { (start, task) =>
+      ETaskDetach(
+        source,
+        time,
+        task,
+        resourceState.resource.name,
+        resourceState.resource.costPerTick * (time - start)
+      )
+    }
 }
 
 /**
@@ -239,7 +239,8 @@ object Event {
     case ETimeLimit(src, t, l) => s"[$t $src] Set time limit at: $l"
     case EResourceAdd(src, t, n, c) => s"[$t $src] Added resource: $n (CPT:$c)"
     case ECaseAdd(src, t, a, s) => s"[$t $src] Added case [$a] to start at: $s"
-    case EArrivalAdd(src, t, a, s, r, l) => s"[$t $src] Added arrival for cases [$a] with rate [$r] limit [$l] to start at: $s"
+    case EArrivalAdd(src, t, a, s, r, l) =>
+      s"[$t $src] Added arrival for cases [$a] with rate [$r] limit [$l] to start at: $s"
     case ECaseStart(src, t, n) => s"[$t $src] Starting case: $n"
     case ECaseEnd(src, t, n, r) => s"[$t $src] Case [$n] completed. Result: $r"
     case ETaskAdd(src, t, task) =>
