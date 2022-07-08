@@ -40,7 +40,7 @@ import cats.implicits.*
   * @param priority
   *   The explicit priority of the task.
   */
-class TaskInstance(
+final case class TaskInstance(
     val id: UUID,
     val name: String,
     val simulation: String,
@@ -137,7 +137,7 @@ class TaskInstance(
   * @param createTime
   *   A custom creation time. Negative values correspond to the current time.
   */
-case class Task(
+final case class Task(
     name: String,
     id: Option[UUID],
     duration: LongDistribution,
@@ -167,7 +167,7 @@ case class Task(
       dur <- duration.getLong
       c <- cost.get
     } yield (
-      new TaskInstance(
+      TaskInstance(
         id.getOrElse(UUID.randomUUID()),
         name,
         simulation,

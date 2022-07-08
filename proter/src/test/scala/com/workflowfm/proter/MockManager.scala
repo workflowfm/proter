@@ -5,7 +5,7 @@ import scala.util.{ Failure, Success }
 
 import org.scalatest.matchers.MatchResult
 import org.scalatest.matchers.Matcher
-
+/*
 class MockManager extends Manager {
   import MockManager.*
   import collection.mutable.{ Queue, Map }
@@ -90,3 +90,4 @@ trait MockManagerResponseMatcher {
   def tasksMatch(l: Seq[Task], r: Seq[Task]): Boolean =
     l.toSet.equals(r.toSet)
 }
+*/
