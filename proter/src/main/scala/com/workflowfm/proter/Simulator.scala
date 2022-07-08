@@ -37,7 +37,7 @@ final case class Simulator[F[_] : Concurrent](scheduler: Scheduler, eventHandler
   def simulateStateWithPublisher(name: String, state: StateT[F, Simulationx[F], Seq[Event]], publisher: Publisher[F]): F[Unit] = {
     val sim = Simulationx[F](name, scheduler)
     for {
-      sResult <- state.run(sim)
+      sResult <- sim.start(state)
       (updated, events) = sResult
       _ <- events.map(publisher.publish(_)).sequence
       x <- updated.tailRecM(simRec(publisher))
@@ -75,20 +75,21 @@ object TestSim extends IOApp {
       given Random[IO] = r
       val simulator = Simulator[IO](ProterScheduler) withHandler (PrintEventHandler())
       val scenario = Scenario[IO]("MYSCENARIO")
+        .withStartingTime(14)
         .withCases (
-          ("foo1", Task("t", 1)),
+ //         ("foo1", Task("t", 1)),
           ("foo2", Task("t", 2)),
-          ("foo3", Task("t", 3)),
-          ("foo4", Task("t", 4)),
-          ("foo4.2", Task("t", 4)),
+ //         ("foo3", Task("t", 3)),
+ //         ("foo4", Task("t", 4)),
+ //         ("foo4.2", Task("t", 4)),
         )
-        .withCases(
-          ("flow1", Flow(Task("f1", 1), Task("f2", 1))),
-          ("flow2", Flow.par(Seq(Task("f2a", 1), Task("f2b", 2), Task("f2c", 3)).map(FlowTask(_))))
-        )
-        .withArrival("A1", Task("t", 1), ConstantLong(2), 10)
-        .withTimedArrival("A2", 5, Task("t", 1), ConstantLong(2), 1)
-        .withInfiniteArrival("A3", Task("t", 2), ConstantLong(5))
+ //       .withCases(
+ //         ("flow1", Flow(Task("f1", 1), Task("f2", 1))),
+ //         ("flow2", Flow.par(Seq(Task("f2a", 1), Task("f2b", 2), Task("f2c", 3)).map(FlowTask(_))))
+ //       )
+ //       .withArrival("A1", Task("t", 1), ConstantLong(2), 10)
+ //       .withTimedArrival("A2", 5, Task("t", 1), ConstantLong(2), 1)
+ //       .withInfiniteArrival("A3", Task("t", 2), ConstantLong(5))
         .withLimit(15)
 
       simulator.simulate(scenario).as(ExitCode(1))

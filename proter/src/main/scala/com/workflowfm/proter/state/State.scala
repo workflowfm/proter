@@ -29,8 +29,6 @@ case class Simulationx[F[_]](
   abortedTasks: HashSet[UUID],
 ) {
 
-  def start(): EStart = EStart(id, time)
-
   def error(description: String): EError = EError(id, time, description)
 
   def fatalError(description: String): Seq[Event] = Seq(EError(id, time, description), EDone(id, time))
@@ -49,6 +47,13 @@ case class Simulationx[F[_]](
   def notifyCases(using Monad[F]): F[(Simulationx[F], Seq[Event])] =
     waiting.map(notifyCase).toSeq.sequence.map(Simulationx.compose(_ :_*).run(this)).flatten
 
+
+  def start(state: StateT[F, Simulationx[F], Seq[Event]])(using Monad[F]): F[(Simulationx[F], Seq[Event])] = 
+    state.flatMap( events => 
+      // Issue the EStart event at the time set by the initial state 
+      // (e.g. through `Scenario.withStartingTime`)
+      StateT.inspect[F, Simulationx[F], Long](_.time).map( t => events :+ EStart(id, t))
+    ).run(this)
 
   def tick(using Monad[F]): F[(Either[Simulationx[F], Unit], Seq[Event])] = { 
    /* if !waiting.isEmpty // still waiting for responses!
