@@ -308,7 +308,7 @@ object Simulationx extends StateOps {
               stop().map(e => events ++ e)
             ), tasks)
 
-          case arrival: Arrival[F,?] => arrival.next() match {
+          case arrival: Arrival[F, ?] => arrival.next() match {
             case None => (state,tasks)
             case Some(f) => {
               val update: StateT[F, Simulationx[F], Event] = StateT { sim => for {
@@ -491,8 +491,8 @@ trait CaseState {
     t: Long, 
     name: String, 
     item: T,
-    limit: Option[Int],
     rate: LongDistribution,
+    limit: Option[Int],
   )(using ct: Case[F, T]): StateT[F, Simulationx[F], Event] = StateT( sim => 
     if t >= sim.time
     then {
@@ -508,10 +508,10 @@ trait CaseState {
   def addArrivalNow[F[_] : Monad : Random, T]( 
     name: String, 
     item: T,
-    limit: Option[Int],
     rate: LongDistribution,
+    limit: Option[Int],
   )(using ct: Case[F, T]): StateT[F, Simulationx[F], Event] = 
-    StateT.inspect[F, Simulationx[F], Long](_.time).flatMap { time => addArrival(time, name, item, limit, rate) }
+    StateT.inspect[F, Simulationx[F], Long](_.time).flatMap { time => addArrival(time, name, item, rate, limit) }
 
 
   /**

@@ -86,6 +86,11 @@ object TestSim extends IOApp {
           ("flow1", Flow(Task("f1", 1), Task("f2", 1))),
           ("flow2", Flow.par(Seq(Task("f2a", 1), Task("f2b", 2), Task("f2c", 3)).map(FlowTask(_))))
         )
+        .withArrival("A1", Task("t", 1), ConstantLong(2), 10)
+        .withTimedArrival("A2", 5, Task("t", 1), ConstantLong(2), 1)
+        .withInfiniteArrival("A3", Task("t", 2), ConstantLong(5))
+        .withLimit(15)
+
       simulator.simulate(scenario).as(ExitCode(1))
   }
   

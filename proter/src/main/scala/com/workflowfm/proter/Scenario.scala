@@ -2,6 +2,7 @@ package com.workflowfm.proter
 
 import cats.Monad
 import cats.data.{ State, StateT }
+import cats.effect.std.Random
 import cats.implicits.*
 
 import cases.*
@@ -38,6 +39,39 @@ final case class Scenario[F[_] : Monad](name: String, state: Simulationx.SimStat
 
   def withTimedCases[T](cases: (Long, String, T)*)(using ct: Case[F, T]): Scenario[F] =
     and(addCases(cases))
+
+
+  def withArrival[T](
+    n: String, 
+    t: T,
+    rate: LongDistribution,
+    limit: Int
+  )(using ct: Case[F, T], r: Random[F]): Scenario[F] =
+    and(liftSingleStateT(addArrivalNow(n, t, rate, Some(limit))))
+
+  def withTimedArrival[T](
+    n: String, 
+    time: Long,
+    t: T,
+    rate: LongDistribution,
+    limit: Int
+  )(using ct: Case[F, T], r: Random[F]): Scenario[F] =
+    and(liftSingleStateT(addArrival(time, n, t, rate, Some(limit))))
+
+  def withInfiniteArrival[T](
+    n: String, 
+    t: T,
+    rate: LongDistribution
+  )(using ct: Case[F, T], r: Random[F]): Scenario[F] =
+    and(liftSingleStateT(addArrivalNow(n, t, rate, None)))
+
+  def withTimedInifiniteArrival[T](
+    n: String, 
+    time: Long,
+    t: T,
+    rate: LongDistribution
+  )(using ct: Case[F, T], r: Random[F]): Scenario[F] =
+    and(liftSingleStateT(addArrival(time, n, t, rate, None)))
 
 
   def withLimit(t: Long): Scenario[F] = 
