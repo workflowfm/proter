@@ -19,7 +19,7 @@ import cats.effect.kernel.Ref
 import cats.effect.std.{ Random, UUIDGen }
 import cats.effect.testing.scalatest.AsyncIOSpec
 
-class FlowTests extends FlowsTester {
+class FlowTests extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneElement {
 
   "Flows" should {
     "execute no tasks" in {
@@ -31,7 +31,7 @@ class FlowTests extends FlowsTester {
         given Random[IO] = random       
 
         ref <- summon[Case[IO, Flow]].init("Case", flow)
-       
+
         s1 <- ref.run()
         r1 <- s1.run(init)
         (ret1, e1) = r1
@@ -39,7 +39,7 @@ class FlowTests extends FlowsTester {
         _ = ret1 `should` be (init)
       } yield ()
     }
-    
+
     "execute a single flow" in {
       val init = Simulationx[IO]("Test", GreedyScheduler(true))
 
@@ -59,7 +59,7 @@ class FlowTests extends FlowsTester {
         flow = FlowTask(task)
 
         ref <- summon[Case[IO, Flow]].init("Case", flow)
-       
+
         s1 <- ref.run()
         r1 <- s1.run(init)
         (ret1, e1) = r1
@@ -80,7 +80,7 @@ class FlowTests extends FlowsTester {
     }
 
 
-    "execute an AND of two tasks which use different resources" in {     
+    "execute an AND of two tasks finishing at different times" in {     
       val init = Simulationx[IO]("Test", GreedyScheduler(true))
 
       for {
@@ -95,11 +95,11 @@ class FlowTests extends FlowsTester {
         t2id <- gen.randomUUID
         task2 = FlowTask(Task("task2", 2L).withResources(Seq("R")).withID(t2id))
         ti2 <- task2.task.create[IO]("Case", 0L)    
-      
+
         flow = And(task1, task2)
 
         ref <- summon[Case[IO, Flow]].init("Case", flow)
-       
+
         s1 <- ref.run()
         r1 <- s1.run(init)
         (ret1, e1) = r1
@@ -107,7 +107,7 @@ class FlowTests extends FlowsTester {
         _ = ret1.tasks `should` have size (2)
         _ = ret1.tasks `should` contain (ti1)
         _ = ret1.tasks `should` contain (ti2)
-        
+
         ref1 = ret1.cases.get("Case").getOrElse(ref)
 
         sim2 = ret1.copy(time = ti1.duration)
@@ -127,382 +127,659 @@ class FlowTests extends FlowsTester {
       } yield ()
 
     }
-/*
-    "execute an AND of two tasks which use the same resources" in {
-      val r1 = new TaskResource("r1", 0)
-      val task1 = FlowTask(
-        Task("task1", 1L).withResources(
-          Seq("r1")
-        )
-      )
-      val task2 = FlowTask(
-        Task("task2", 2L).withResources(
-          Seq("r1")
-        )
-      )
-      val flow1 = And(task1, task2)
-      val testMetrics = singleFlowTest(flow1, List(r1))
 
-      val task1time = testMetrics.get("task1 (sim1)").value.value
-      if task1time == 1 then testMetrics.get("task2 (sim1)").value.value should be(3)
-      else testMetrics.get("task2 (sim1)").value.value should be(2)
+    "execute an AND of two tasks finishing at the same time" in {     
+      val init = Simulationx[IO]("Test", GreedyScheduler(true))
+
+      for {
+        random <- Random.scalaUtilRandom[IO]
+        given Random[IO] = random     
+        gen = summon[UUIDGen[IO]]  
+
+        t1id <- gen.randomUUID
+        // add resources so that they don't start immediately!
+        task1 = FlowTask(Task("task1", 1L).withResources(Seq("R")).withID(t1id))
+        ti1 <- task1.task.create[IO]("Case", 0L)
+        t2id <- gen.randomUUID
+        task2 = FlowTask(Task("task2", 1L).withResources(Seq("R")).withID(t2id))
+        ti2 <- task2.task.create[IO]("Case", 0L)    
+
+        flow = And(task1, task2)
+
+        ref <- summon[Case[IO, Flow]].init("Case", flow)
+
+        s1 <- ref.run()
+        r1 <- s1.run(init)
+        (ret1, e1) = r1
+
+        _ = ret1.tasks `should` have size (2)
+        _ = ret1.tasks `should` contain (ti1)
+        _ = ret1.tasks `should` contain (ti2)
+
+        ref1 = ret1.cases.get("Case").getOrElse(ref)
+
+        sim2 = ret1.copy(time = ti1.duration)
+        s2 <- ref1.completed(ti1.duration, Seq(ti1, ti2))
+        r2 <- s2.run(sim2)
+        (ret2, e2) = r2
+
+        _ = ret2 `should` be (sim2.copy(
+          waiting = Map(),
+          cases = Map()
+        ))
+      } yield ()
 
     }
 
-    "execute a THEN of two tasks" in {
-      val task1 = FlowTask(
-        Task("task1", 1L)
-      )
-      val task2 = FlowTask(
-        Task("task2", 2L)
-      )
-      val flow1 = Then(task1, task2)
-      val testMetrics = singleFlowTest(flow1)
+    "execute a THEN of two tasks" in {     
+      val init = Simulationx[IO]("Test", GreedyScheduler(true))
 
-      testMetrics.get("task1 (sim1)").value.value should be(1)
-      testMetrics.get("task2 (sim1)").value.value should be(3)
+      for {
+        random <- Random.scalaUtilRandom[IO]
+        given Random[IO] = random     
+        gen = summon[UUIDGen[IO]]  
+
+        t1id <- gen.randomUUID
+        // add resources so that they don't start immediately!
+        task1 = FlowTask(Task("task1", 1L).withResources(Seq("R")).withID(t1id))
+        ti1 <- task1.task.create[IO]("Case", 0L)
+        t2id <- gen.randomUUID
+        task2 = FlowTask(Task("task2", 2L).withResources(Seq("R")).withID(t2id))
+        ti2 <- task2.task.create[IO]("Case", 1L)    
+
+        flow = Then(task1, task2)
+
+        ref <- summon[Case[IO, Flow]].init("Case", flow)
+
+        s1 <- ref.run()
+        r1 <- s1.run(init)
+        (ret1, e1) = r1
+
+        _ = ret1.tasks.loneElement `should` be (ti1)
+        
+        ref1 = ret1.cases.get("Case").getOrElse(ref)
+
+        sim2 = ret1.copy(time = ti1.duration, tasks = Set())
+        s2 <- ref1.completed(ti1.duration, Seq(ti1))
+        r2 <- s2.run(sim2)
+        (ret2, e2) = r2
+
+        _ = ret2.tasks.loneElement `should` be (ti2)
+
+        ref2 = ret2.cases.get("Case").getOrElse(ref)
+
+        sim3 = ret2.copy(time = ti2.duration)
+        s3 <- ref2.completed(ti2.duration, Seq(ti2))
+        r3 <- s3.run(sim3)
+        (ret3, e3) = r3
+
+        _ = ret3 `should` be (sim3.copy(
+          waiting = Map(),
+          cases = Map()
+        ))
+      } yield ()
+
     }
 
     "execute nested ANDs (left associativity)" in {
-      val task1 = FlowTask(
-        Task("task1", 1L)
-      )
-      val task2 = FlowTask(
-        Task("task2", 2L)
-      )
-      val task3 = FlowTask(
-        Task("task3", 4L)
-      )
-      val task4 = FlowTask(
-        Task("task4", 8L)
-      )
-      val task5 = FlowTask(
-        Task("task5", 16L)
-      )
-      val flow1 = And(And(And(And(task1, task2), task3), task4), task5)
-      val testMetrics = singleFlowTest(flow1)
+      val init = Simulationx[IO]("Test", GreedyScheduler(true))
 
-      testMetrics.get("task1 (sim1)").value.value should be(1)
-      testMetrics.get("task2 (sim1)").value.value should be(2)
-      testMetrics.get("task3 (sim1)").value.value should be(4)
-      testMetrics.get("task4 (sim1)").value.value should be(8)
-      testMetrics.get("task5 (sim1)").value.value should be(16)
+      for {
+        random <- Random.scalaUtilRandom[IO]
+        given Random[IO] = random     
+        gen = summon[UUIDGen[IO]]  
+
+        t1id <- gen.randomUUID
+        task1 = FlowTask(Task("task1", 1L).withResources(Seq("R")).withID(t1id))
+        ti1 <- task1.task.create[IO]("Case", 0L)
+        t2id <- gen.randomUUID
+        task2 = FlowTask(Task("task2", 1L).withResources(Seq("R")).withID(t2id))
+        ti2 <- task2.task.create[IO]("Case", 0L)    
+        t3id <- gen.randomUUID
+        task3 = FlowTask(Task("task3", 1L).withResources(Seq("R")).withID(t3id))
+        ti3 <- task3.task.create[IO]("Case", 0L)    
+        t4id <- gen.randomUUID
+        task4 = FlowTask(Task("task4", 2L).withResources(Seq("R")).withID(t4id))
+        ti4 <- task4.task.create[IO]("Case", 0L)    
+        t5id <- gen.randomUUID
+        task5 = FlowTask(Task("task5", 2L).withResources(Seq("R")).withID(t5id))
+        ti5 <- task5.task.create[IO]("Case", 0L)    
+
+        flow = And(And(And(And(task1, task2), task3), task4), task5)
+
+
+        ref <- summon[Case[IO, Flow]].init("Case", flow)
+
+        s1 <- ref.run()
+        r1 <- s1.run(init)
+        (ret1, e1) = r1
+
+        _ = ret1.tasks `should` have size (5)
+        _ = ret1.tasks `should` contain (ti1)
+        _ = ret1.tasks `should` contain (ti2)
+        _ = ret1.tasks `should` contain (ti3)
+        _ = ret1.tasks `should` contain (ti4)
+        _ = ret1.tasks `should` contain (ti5)
+
+        ref1 = ret1.cases.get("Case").getOrElse(ref)
+
+        sim2 = ret1.copy(time = ti1.duration)
+        s2 <- ref1.completed(ti1.duration, Seq(ti1, ti2, ti3))
+        r2 <- s2.run(sim2)
+        (ret2, e2) = r2
+        ref2 = ret2.cases.get("Case").getOrElse(ref)
+        sim3 = ret2.copy(time = ti4.duration)
+        s3 <- ref2.completed(ti2.duration, Seq(ti4, ti5))
+        r3 <- s3.run(sim3)
+        (ret3, e3) = r3
+
+        _ = ret3 `should` be (sim3.copy(
+          waiting = Map(),
+          cases = Map()
+        ))
+      } yield ()
     }
 
     "execute nested ANDs (right associativity)" in {
-      val task1 = FlowTask(
-        Task("task1", 1L)
-      )
-      val task2 = FlowTask(
-        Task("task2", 2L)
-      )
-      val task3 = FlowTask(
-        Task("task3", 4L)
-      )
-      val task4 = FlowTask(
-        Task("task4", 8L)
-      )
-      val task5 = FlowTask(
-        Task("task5", 16L)
-      )
-      val flow1 = And(task1, And(task2, And(task3, And(task4, task5))))
-      val testMetrics = singleFlowTest(flow1)
+      val init = Simulationx[IO]("Test", GreedyScheduler(true))
 
-      testMetrics.get("task1 (sim1)").value.value should be(1)
-      testMetrics.get("task2 (sim1)").value.value should be(2)
-      testMetrics.get("task3 (sim1)").value.value should be(4)
-      testMetrics.get("task4 (sim1)").value.value should be(8)
-      testMetrics.get("task5 (sim1)").value.value should be(16)
+      for {
+        random <- Random.scalaUtilRandom[IO]
+        given Random[IO] = random     
+        gen = summon[UUIDGen[IO]]  
+
+        t1id <- gen.randomUUID
+        task1 = FlowTask(Task("task1", 1L).withResources(Seq("R")).withID(t1id))
+        ti1 <- task1.task.create[IO]("Case", 0L)
+        t2id <- gen.randomUUID
+        task2 = FlowTask(Task("task2", 1L).withResources(Seq("R")).withID(t2id))
+        ti2 <- task2.task.create[IO]("Case", 0L)    
+        t3id <- gen.randomUUID
+        task3 = FlowTask(Task("task3", 1L).withResources(Seq("R")).withID(t3id))
+        ti3 <- task3.task.create[IO]("Case", 0L)    
+        t4id <- gen.randomUUID
+        task4 = FlowTask(Task("task4", 2L).withResources(Seq("R")).withID(t4id))
+        ti4 <- task4.task.create[IO]("Case", 0L)    
+        t5id <- gen.randomUUID
+        task5 = FlowTask(Task("task5", 2L).withResources(Seq("R")).withID(t5id))
+        ti5 <- task5.task.create[IO]("Case", 0L)    
+
+        flow = And(task1, And(task2, And(task3, And(task4, task5))))
+
+
+        ref <- summon[Case[IO, Flow]].init("Case", flow)
+
+        s1 <- ref.run()
+        r1 <- s1.run(init)
+        (ret1, e1) = r1
+
+        _ = ret1.tasks `should` have size (5)
+        _ = ret1.tasks `should` contain (ti1)
+        _ = ret1.tasks `should` contain (ti2)
+        _ = ret1.tasks `should` contain (ti3)
+        _ = ret1.tasks `should` contain (ti4)
+        _ = ret1.tasks `should` contain (ti5)
+
+        ref1 = ret1.cases.get("Case").getOrElse(ref)
+
+        sim2 = ret1.copy(time = ti1.duration)
+        s2 <- ref1.completed(ti1.duration, Seq(ti1, ti2, ti3))
+        r2 <- s2.run(sim2)
+        (ret2, e2) = r2
+        ref2 = ret2.cases.get("Case").getOrElse(ref)
+        sim3 = ret2.copy(time = ti4.duration)
+        s3 <- ref2.completed(ti2.duration, Seq(ti4, ti5))
+        r3 <- s3.run(sim3)
+        (ret3, e3) = r3
+
+        _ = ret3 `should` be (sim3.copy(
+          waiting = Map(),
+          cases = Map()
+        ))
+      } yield ()
     }
 
     "execute nested THENs (left associativity)" in {
-      val task1 = FlowTask(
-        Task("task1", 1L)
-      )
-      val task2 = FlowTask(
-        Task("task2", 2L)
-      )
-      val task3 = FlowTask(
-        Task("task3", 4L)
-      )
-      val task4 = FlowTask(
-        Task("task4", 8L)
-      )
-      val task5 = FlowTask(
-        Task("task5", 16L)
-      )
-      val flow1 = Then(Then(Then(Then(task1, task2), task3), task4), task5)
-      val testMetrics = singleFlowTest(flow1)
+      val init = Simulationx[IO]("Test", GreedyScheduler(true))
 
-      testMetrics.get("task1 (sim1)").value.value should be(1)
-      testMetrics.get("task2 (sim1)").value.value should be(3)
-      testMetrics.get("task3 (sim1)").value.value should be(7)
-      testMetrics.get("task4 (sim1)").value.value should be(15)
-      testMetrics.get("task5 (sim1)").value.value should be(31)
+      for {
+        random <- Random.scalaUtilRandom[IO]
+        given Random[IO] = random     
+        gen = summon[UUIDGen[IO]]  
+
+        t1id <- gen.randomUUID
+        task1 = FlowTask(Task("task1", 1L).withResources(Seq("R")).withID(t1id))
+        ti1 <- task1.task.create[IO]("Case", 0L)
+        t2id <- gen.randomUUID
+        task2 = FlowTask(Task("task2", 1L).withResources(Seq("R")).withID(t2id))
+        ti2 <- task2.task.create[IO]("Case", 1L)    
+        t3id <- gen.randomUUID
+        task3 = FlowTask(Task("task3", 1L).withResources(Seq("R")).withID(t3id))
+        ti3 <- task3.task.create[IO]("Case", 2L)    
+        t4id <- gen.randomUUID
+        task4 = FlowTask(Task("task4", 1L).withResources(Seq("R")).withID(t4id))
+        ti4 <- task4.task.create[IO]("Case", 3L)    
+        t5id <- gen.randomUUID
+        task5 = FlowTask(Task("task5", 1L).withResources(Seq("R")).withID(t5id))
+        ti5 <- task5.task.create[IO]("Case", 4L)    
+
+        flow = Then(Then(Then(Then(task1, task2), task3), task4), task5)
+
+
+        ref <- summon[Case[IO, Flow]].init("Case", flow)
+
+        s1 <- ref.run()
+        r1 <- s1.run(init)
+        (ret1, e1) = r1
+
+        _ = ret1.tasks.loneElement `should` be (ti1)
+
+        ref1 = ret1.cases.get("Case").getOrElse(ref)
+        sim2 = ret1.copy(time = ret1.time + ti1.duration, tasks = Set())
+        s2 <- ref1.completed(ti1.duration, Seq(ti1))
+        r2 <- s2.run(sim2)
+        (ret2, e2) = r2
+
+        _ = ret2.tasks.loneElement `should` be (ti2)
+
+        ref2 = ret2.cases.get("Case").getOrElse(ref)
+        sim3 = ret2.copy(time = ret2.time + ti2.duration, tasks = Set())
+        s3 <- ref2.completed(ti2.duration, Seq(ti2))
+        r3 <- s3.run(sim3)
+        (ret3, e3) = r3
+
+        _ = ret3.tasks.loneElement `should` be (ti3)
+
+        ref3 = ret3.cases.get("Case").getOrElse(ref)
+        sim4 = ret3.copy(time = ret3.time + ti3.duration, tasks = Set())
+        s4 <- ref3.completed(ti3.duration, Seq(ti3))
+        r4 <- s4.run(sim4)
+        (ret4, e4) = r4
+
+        _ = ret4.tasks.loneElement `should` be (ti4)
+
+        ref4 = ret4.cases.get("Case").getOrElse(ref)
+        sim5 = ret4.copy(time = ret4.time + ti4.duration, tasks = Set())
+        s5 <- ref4.completed(ti4.duration, Seq(ti4))
+        r5 <- s5.run(sim5)
+        (ret5, e5) = r5
+
+        _ = ret5.tasks.loneElement `should` be (ti5)
+
+        ref5 = ret5.cases.get("Case").getOrElse(ref)
+        sim6 = ret5.copy(time = ret5.time + ti5.duration, tasks = Set())
+        s6 <- ref5.completed(ti5.duration, Seq(ti5))
+        r6 <- s6.run(sim6)
+        (ret6, e6) = r6
+
+        _ = ret6 `should` be (sim6.copy(
+          waiting = Map(),
+          cases = Map()
+        ))
+      } yield ()
     }
 
     "execute nested THENs (right associativity)" in {
-      val task1 = FlowTask(
-        Task("task1", 1L)
-      )
-      val task2 = FlowTask(
-        Task("task2", 2L)
-      )
-      val task3 = FlowTask(
-        Task("task3", 4L)
-      )
-      val task4 = FlowTask(
-        Task("task4", 8L)
-      )
-      val task5 = FlowTask(
-        Task("task5", 16L)
-      )
-      val flow1 = Then(task1, Then(task2, Then(task3, Then(task4, task5))))
-      val testMetrics = singleFlowTest(flow1)
+      val init = Simulationx[IO]("Test", GreedyScheduler(true))
 
-      testMetrics.get("task1 (sim1)").value.value should be(1)
-      testMetrics.get("task2 (sim1)").value.value should be(3)
-      testMetrics.get("task3 (sim1)").value.value should be(7)
-      testMetrics.get("task4 (sim1)").value.value should be(15)
-      testMetrics.get("task5 (sim1)").value.value should be(31)
+      for {
+        random <- Random.scalaUtilRandom[IO]
+        given Random[IO] = random     
+        gen = summon[UUIDGen[IO]]  
+
+        t1id <- gen.randomUUID
+        task1 = FlowTask(Task("task1", 1L).withResources(Seq("R")).withID(t1id))
+        ti1 <- task1.task.create[IO]("Case", 0L)
+        t2id <- gen.randomUUID
+        task2 = FlowTask(Task("task2", 1L).withResources(Seq("R")).withID(t2id))
+        ti2 <- task2.task.create[IO]("Case", 1L)    
+        t3id <- gen.randomUUID
+        task3 = FlowTask(Task("task3", 1L).withResources(Seq("R")).withID(t3id))
+        ti3 <- task3.task.create[IO]("Case", 2L)    
+        t4id <- gen.randomUUID
+        task4 = FlowTask(Task("task4", 1L).withResources(Seq("R")).withID(t4id))
+        ti4 <- task4.task.create[IO]("Case", 3L)    
+        t5id <- gen.randomUUID
+        task5 = FlowTask(Task("task5", 1L).withResources(Seq("R")).withID(t5id))
+        ti5 <- task5.task.create[IO]("Case", 4L)    
+
+        flow = Then(task1, Then(task2, Then(task3, Then(task4, task5))))
+
+
+        ref <- summon[Case[IO, Flow]].init("Case", flow)
+
+        s1 <- ref.run()
+        r1 <- s1.run(init)
+        (ret1, e1) = r1
+
+        _ = ret1.tasks.loneElement `should` be (ti1)
+
+        ref1 = ret1.cases.get("Case").getOrElse(ref)
+        sim2 = ret1.copy(time = ret1.time + ti1.duration, tasks = Set())
+        s2 <- ref1.completed(ti1.duration, Seq(ti1))
+        r2 <- s2.run(sim2)
+        (ret2, e2) = r2
+
+        _ = ret2.tasks.loneElement `should` be (ti2)
+
+        ref2 = ret2.cases.get("Case").getOrElse(ref)
+        sim3 = ret2.copy(time = ret2.time + ti2.duration, tasks = Set())
+        s3 <- ref2.completed(ti2.duration, Seq(ti2))
+        r3 <- s3.run(sim3)
+        (ret3, e3) = r3
+
+        _ = ret3.tasks.loneElement `should` be (ti3)
+
+        ref3 = ret3.cases.get("Case").getOrElse(ref)
+        sim4 = ret3.copy(time = ret3.time + ti3.duration, tasks = Set())
+        s4 <- ref3.completed(ti3.duration, Seq(ti3))
+        r4 <- s4.run(sim4)
+        (ret4, e4) = r4
+
+        _ = ret4.tasks.loneElement `should` be (ti4)
+
+        ref4 = ret4.cases.get("Case").getOrElse(ref)
+        sim5 = ret4.copy(time = ret4.time + ti4.duration, tasks = Set())
+        s5 <- ref4.completed(ti4.duration, Seq(ti4))
+        r5 <- s5.run(sim5)
+        (ret5, e5) = r5
+
+        _ = ret5.tasks.loneElement `should` be (ti5)
+
+        ref5 = ret5.cases.get("Case").getOrElse(ref)
+        sim6 = ret5.copy(time = ret5.time + ti5.duration, tasks = Set())
+        s6 <- ref5.completed(ti5.duration, Seq(ti5))
+        r6 <- s6.run(sim6)
+        (ret6, e6) = r6
+
+        _ = ret6 `should` be (sim6.copy(
+          waiting = Map(),
+          cases = Map()
+        ))
+      } yield ()
     }
 
-    "execute nested THENs (right associativity) (operator)" in {
-      val task1 = FlowTask(
-        Task("task1", 1L)
-      )
-      val task2 = FlowTask(
-        Task("task2", 2L)
-      )
-      val task3 = FlowTask(
-        Task("task3", 4L)
-      )
-      val task4 = FlowTask(
-        Task("task4", 8L)
-      )
-      val task5 = FlowTask(
-        Task("task5", 16L)
-      )
-      val flow1 = task1 > task2 > task3 > task4 > task5
-      val testMetrics = singleFlowTest(flow1)
+    "execute nested THENs (operator)" in {
+      val init = Simulationx[IO]("Test", GreedyScheduler(true))
 
-      testMetrics.get("task1 (sim1)").value.value should be(1)
-      testMetrics.get("task2 (sim1)").value.value should be(3)
-      testMetrics.get("task3 (sim1)").value.value should be(7)
-      testMetrics.get("task4 (sim1)").value.value should be(15)
-      testMetrics.get("task5 (sim1)").value.value should be(31)
+      for {
+        random <- Random.scalaUtilRandom[IO]
+        given Random[IO] = random     
+        gen = summon[UUIDGen[IO]]  
+
+        t1id <- gen.randomUUID
+        task1 = FlowTask(Task("task1", 1L).withResources(Seq("R")).withID(t1id))
+        ti1 <- task1.task.create[IO]("Case", 0L)
+        t2id <- gen.randomUUID
+        task2 = FlowTask(Task("task2", 1L).withResources(Seq("R")).withID(t2id))
+        ti2 <- task2.task.create[IO]("Case", 1L)    
+        t3id <- gen.randomUUID
+        task3 = FlowTask(Task("task3", 1L).withResources(Seq("R")).withID(t3id))
+        ti3 <- task3.task.create[IO]("Case", 2L)    
+        t4id <- gen.randomUUID
+        task4 = FlowTask(Task("task4", 1L).withResources(Seq("R")).withID(t4id))
+        ti4 <- task4.task.create[IO]("Case", 3L)    
+        t5id <- gen.randomUUID
+        task5 = FlowTask(Task("task5", 1L).withResources(Seq("R")).withID(t5id))
+        ti5 <- task5.task.create[IO]("Case", 4L)    
+
+        flow = task1 > task2 > task3 > task4 > task5
+
+
+        ref <- summon[Case[IO, Flow]].init("Case", flow)
+
+        s1 <- ref.run()
+        r1 <- s1.run(init)
+        (ret1, e1) = r1
+
+        _ = ret1.tasks.loneElement `should` be (ti1)
+
+        ref1 = ret1.cases.get("Case").getOrElse(ref)
+        sim2 = ret1.copy(time = ret1.time + ti1.duration, tasks = Set())
+        s2 <- ref1.completed(ti1.duration, Seq(ti1))
+        r2 <- s2.run(sim2)
+        (ret2, e2) = r2
+
+        _ = ret2.tasks.loneElement `should` be (ti2)
+
+        ref2 = ret2.cases.get("Case").getOrElse(ref)
+        sim3 = ret2.copy(time = ret2.time + ti2.duration, tasks = Set())
+        s3 <- ref2.completed(ti2.duration, Seq(ti2))
+        r3 <- s3.run(sim3)
+        (ret3, e3) = r3
+
+        _ = ret3.tasks.loneElement `should` be (ti3)
+
+        ref3 = ret3.cases.get("Case").getOrElse(ref)
+        sim4 = ret3.copy(time = ret3.time + ti3.duration, tasks = Set())
+        s4 <- ref3.completed(ti3.duration, Seq(ti3))
+        r4 <- s4.run(sim4)
+        (ret4, e4) = r4
+
+        _ = ret4.tasks.loneElement `should` be (ti4)
+
+        ref4 = ret4.cases.get("Case").getOrElse(ref)
+        sim5 = ret4.copy(time = ret4.time + ti4.duration, tasks = Set())
+        s5 <- ref4.completed(ti4.duration, Seq(ti4))
+        r5 <- s5.run(sim5)
+        (ret5, e5) = r5
+
+        _ = ret5.tasks.loneElement `should` be (ti5)
+
+        ref5 = ret5.cases.get("Case").getOrElse(ref)
+        sim6 = ret5.copy(time = ret5.time + ti5.duration, tasks = Set())
+        s6 <- ref5.completed(ti5.duration, Seq(ti5))
+        r6 <- s6.run(sim6)
+        (ret6, e6) = r6
+
+        _ = ret6 `should` be (sim6.copy(
+          waiting = Map(),
+          cases = Map()
+        ))
+      } yield ()
     }
 
-    "execute mixed AND/THEN flows" in {
-      val task1 = FlowTask(
-        Task("task1", 1L)
-      )
-      val task2 = FlowTask(
-        Task("task2", 2L)
-      )
-      val task3 = FlowTask(
-        Task("task3", 4L)
-      )
-      val task4 = FlowTask(
-        Task("task4", 8L)
-      )
-      val task5 = FlowTask(
-        Task("task5", 16L)
-      )
-      val flow1 = Then(And(task1, Then(task2, task3)), And(task4, task5))
-      val testMetrics = singleFlowTest(flow1)
+    "execute a task THEN NoTask" in {
+      val init = Simulationx[IO]("Test", GreedyScheduler(true))
 
-      testMetrics.get("task1 (sim1)").value.value should be(1)
-      testMetrics.get("task2 (sim1)").value.value should be(2)
-      testMetrics.get("task3 (sim1)").value.value should be(6)
-      testMetrics.get("task4 (sim1)").value.value should be(14)
-      testMetrics.get("task5 (sim1)").value.value should be(22)
+      for {
+        random <- Random.scalaUtilRandom[IO]
+        given Random[IO] = random     
+        gen = summon[UUIDGen[IO]]  
+
+        t1id <- gen.randomUUID
+        task1 = FlowTask(Task("task1", 1L).withResources(Seq("R")).withID(t1id))
+        ti1 <- task1.task.create[IO]("Case", 0L)
+
+        flow = task1 > NoTask
+
+
+        ref <- summon[Case[IO, Flow]].init("Case", flow)
+
+        s1 <- ref.run()
+        r1 <- s1.run(init)
+        (ret1, e1) = r1
+
+        _ = ret1.tasks.loneElement `should` be (ti1)
+
+        ref1 = ret1.cases.get("Case").getOrElse(ref)
+        sim2 = ret1.copy(time = ret1.time + ti1.duration, tasks = Set())
+        s2 <- ref1.completed(ti1.duration, Seq(ti1))
+        r2 <- s2.run(sim2)
+        (ret2, e2) = r2
+
+        _ = ret2 `should` be (sim2.copy(
+          waiting = Map(),
+          cases = Map()
+        ))
+      } yield ()
     }
 
-    "execute more mixed AND/THEN flows" in {
-      val task1 = FlowTask(
-        Task("task1", 1L)
-      )
-      val task2 = FlowTask(
-        Task("task2", 2L)
-      )
-      val task3 = FlowTask(
-        Task("task3", 4L)
-      )
-      val task4 = FlowTask(
-        Task("task4", 8L)
-      )
-      val task5 = FlowTask(
-        Task("task5", 16L)
-      )
-      val flow1 = Then(Then(task1, And(task2, task3)), And(task4, task5))
-      val testMetrics = singleFlowTest(flow1)
+    "execute NoTask THEN a task" in {
+      val init = Simulationx[IO]("Test", GreedyScheduler(true))
 
-      testMetrics.get("task1 (sim1)").value.value should be(1)
-      testMetrics.get("task2 (sim1)").value.value should be(3)
-      testMetrics.get("task3 (sim1)").value.value should be(5)
-      testMetrics.get("task4 (sim1)").value.value should be(13)
-      testMetrics.get("task5 (sim1)").value.value should be(21)
+      for {
+        random <- Random.scalaUtilRandom[IO]
+        given Random[IO] = random     
+        gen = summon[UUIDGen[IO]]  
+
+        t1id <- gen.randomUUID
+        task1 = FlowTask(Task("task1", 1L).withResources(Seq("R")).withID(t1id))
+        ti1 <- task1.task.create[IO]("Case", 0L)
+
+        flow = NoTask > task1 
+
+
+        ref <- summon[Case[IO, Flow]].init("Case", flow)
+
+        s1 <- ref.run()
+        r1 <- s1.run(init)
+        (ret1, e1) = r1
+
+        _ = ret1.tasks.loneElement `should` be (ti1)
+
+        ref1 = ret1.cases.get("Case").getOrElse(ref)
+        sim2 = ret1.copy(time = ret1.time + ti1.duration, tasks = Set())
+        s2 <- ref1.completed(ti1.duration, Seq(ti1))
+        r2 <- s2.run(sim2)
+        (ret2, e2) = r2
+
+        _ = ret2 `should` be (sim2.copy(
+          waiting = Map(),
+          cases = Map()
+        ))
+      } yield ()
     }
 
-    "execute multpile tasks of same duration" in {
-      val task1 = FlowTask(
-        Task("task1", 1L)
-      )
-      val task2 = FlowTask(
-        Task("task2", 1L)
-      )
-      val task3 = FlowTask(
-        Task("task3", 1L)
-      )
-      val task4 = FlowTask(
-        Task("task4", 1L)
-      )
-      val task5 = FlowTask(
-        Task("task5", 1L)
-      )
-      val task6 = FlowTask(
-        Task("task6", 1L)
-      )
-      val task7 = FlowTask(
-        Task("task7", 1L)
-      )
-      val task8 = FlowTask(
-        Task("task8", 1L)
-      )
 
-      val flow1 = Then(
-        And(Then(task1, task2), Then(task3, task4)),
-        And(Then(task5, task6), Then(task7, task8))
-      )
+    "execute an AND of THENs" in {
+      val init = Simulationx[IO]("Test", GreedyScheduler(true))
 
-      val testMetrics = singleFlowTest(flow1)
+      for {
+        random <- Random.scalaUtilRandom[IO]
+        given Random[IO] = random     
+        gen = summon[UUIDGen[IO]]  
 
-      testMetrics.get("task1 (sim1)").value.value should be(1)
-      testMetrics.get("task2 (sim1)").value.value should be(2)
-      testMetrics.get("task3 (sim1)").value.value should be(1)
-      testMetrics.get("task4 (sim1)").value.value should be(2)
-      testMetrics.get("task5 (sim1)").value.value should be(3)
-      testMetrics.get("task6 (sim1)").value.value should be(4)
-      testMetrics.get("task7 (sim1)").value.value should be(3)
-      testMetrics.get("task8 (sim1)").value.value should be(4)
+        t1id <- gen.randomUUID
+        task1 = FlowTask(Task("task1", 1L).withResources(Seq("R")).withID(t1id))
+        ti1 <- task1.task.create[IO]("Case", 0L)
+        t2id <- gen.randomUUID
+        task2 = FlowTask(Task("task2", 2L).withResources(Seq("R")).withID(t2id))
+        ti2 <- task2.task.create[IO]("Case", 1L)    
+        t3id <- gen.randomUUID
+        task3 = FlowTask(Task("task3", 2L).withResources(Seq("R")).withID(t3id))
+        ti3 <- task3.task.create[IO]("Case", 0L)    
+        t4id <- gen.randomUUID
+        task4 = FlowTask(Task("task4", 1L).withResources(Seq("R")).withID(t4id))
+        ti4 <- task4.task.create[IO]("Case", 2L)    
+
+        flow = And(Then(task1, task2), Then(task3, task4))
+
+
+        ref <- summon[Case[IO, Flow]].init("Case", flow)
+
+        s1 <- ref.run()
+        r1 <- s1.run(init)
+        (ret1, e1) = r1
+
+        _ = ret1.tasks `should` have size (2)
+        _ = ret1.tasks `should` contain (ti1)
+        _ = ret1.tasks `should` contain (ti3)
+
+        ref1 = ret1.cases.get("Case").getOrElse(ref)
+        sim2 = ret1.copy(time = ti1.duration, tasks = Set())
+        s2 <- ref1.completed(ti1.duration, Seq(ti1))
+        r2 <- s2.run(sim2)
+        (ret2, e2) = r2
+
+        _ = ret2.tasks.loneElement `should` be (ti2)
+
+        ref2 = ret2.cases.get("Case").getOrElse(ref)
+        sim3 = ret2.copy(time = ti3.duration, tasks = Set())
+        s3 <- ref2.completed(ti3.duration, Seq(ti3))
+        r3 <- s3.run(sim3)
+        (ret3, e3) = r3
+
+        _ = ret3.tasks.loneElement `should` be (ti4)
+
+        ref3 = ret3.cases.get("Case").getOrElse(ref)
+        sim4 = ret3.copy(time = 4L, tasks = Set())
+        s4 <- ref3.completed(4L, Seq(ti2, ti4))
+        r4 <- s4.run(sim4)
+        (ret4, e4) = r4
+
+        _ = ret4 `should` be (sim4.copy(
+          waiting = Map(),
+          cases = Map()
+        ))
+      } yield ()
     }
 
-    "execute a flow which uses the same task multiple times" in {
-      val task1 = FlowTask(
-        Task("task1", 1L)
-      )
-      val task2 = FlowTask(
-        Task("task2", 2L)
-      )
-      val flow1 = Then(And(task1, task2), task1)
-      val testMetrics = singleFlowTest(flow1)
+    "execute a THEN of ANDs" in {
+      val init = Simulationx[IO]("Test", GreedyScheduler(true))
 
-      // testMetrics.get("task1 (sim1)").value.value should be (1)
-      testMetrics.get("task2 (sim1)").value.value should be(2)
-      // testMetrics.get("task1 (sim1)").value.value should be (5)
+      for {
+        random <- Random.scalaUtilRandom[IO]
+        given Random[IO] = random     
+        gen = summon[UUIDGen[IO]]  
 
+        t1id <- gen.randomUUID
+        task1 = FlowTask(Task("task1", 1L).withResources(Seq("R")).withID(t1id))
+        ti1 <- task1.task.create[IO]("Case", 0L)
+        t2id <- gen.randomUUID
+        task2 = FlowTask(Task("task2", 2L).withResources(Seq("R")).withID(t2id))
+        ti2 <- task2.task.create[IO]("Case", 0L)    
+        t3id <- gen.randomUUID
+        task3 = FlowTask(Task("task3", 1L).withResources(Seq("R")).withID(t3id))
+        ti3 <- task3.task.create[IO]("Case", 2L)    
+        t4id <- gen.randomUUID
+        task4 = FlowTask(Task("task4", 1L).withResources(Seq("R")).withID(t4id))
+        ti4 <- task4.task.create[IO]("Case", 2L)    
+
+        flow = Then(And(task1, task2), And(task3, task4))
+
+
+        ref <- summon[Case[IO, Flow]].init("Case", flow)
+
+        s1 <- ref.run()
+        r1 <- s1.run(init)
+        (ret1, e1) = r1
+
+        _ = ret1.tasks `should` have size (2)
+        _ = ret1.tasks `should` contain (ti1)
+        _ = ret1.tasks `should` contain (ti2)
+
+        ref1 = ret1.cases.get("Case").getOrElse(ref)
+        sim2 = ret1.copy(time = ti1.duration, tasks = Set())
+        s2 <- ref1.completed(ti1.duration, Seq(ti1))
+        r2 <- s2.run(sim2)
+        (ret2, e2) = r2
+
+        _ = ret2.tasks `shouldBe` empty
+
+        ref2 = ret2.cases.get("Case").getOrElse(ref)
+        sim3 = ret2.copy(time = ti2.duration, tasks = Set())
+        s3 <- ref2.completed(ti2.duration, Seq(ti2))
+        r3 <- s3.run(sim3)
+        (ret3, e3) = r3
+
+        _ = ret3.tasks `should` have size (2)
+        _ = ret3.tasks `should` contain (ti3)
+        _ = ret3.tasks `should` contain (ti4)
+
+        ref3 = ret3.cases.get("Case").getOrElse(ref)
+        sim4 = ret3.copy(time = 4L, tasks = Set())
+        s4 <- ref3.completed(4L, Seq(ti3, ti4))
+        r4 <- s4.run(sim4)
+        (ret4, e4) = r4
+
+        _ = ret4 `should` be (sim4.copy(
+          waiting = Map(),
+          cases = Map()
+        ))
+      } yield ()
     }
 
-    "execute two simulations which use different tasks" in {
-      val coordinator = new Coordinator(new ProterScheduler())
-
-      val smh = new PromiseHandler(new SimMetricsHandler)
-      coordinator.subscribe(smh)
-
-      val task1 = FlowTask(
-        Task("task1", 1L)
-      )
-      val task2 = FlowTask(
-        Task("task2", 2L)
-      )
-      val task3 = FlowTask(
-        Task("task3", 4L)
-      )
-      val flow1 = task1
-      val flow2 = Then(task2, task3)
-
-      coordinator.addSimulation(
-        0L,
-        new FlowSimulation("sim1", coordinator, flow1)
-      )
-      coordinator.addSimulation(
-        0L,
-        new FlowSimulation("sim2", coordinator, flow2)
-      )
-      coordinator.start()
-
-      val metrics = Await.result(smh.future, 3.seconds)
-      val testMetrics = metrics.taskMap.map { case (_, tm) =>
-        tm.fullName -> tm.finished
-      }
-
-      testMetrics.get("task1 (sim1)").value.value should be(1)
-      testMetrics.get("task2 (sim2)").value.value should be(2)
-      testMetrics.get("task3 (sim2)").value.value should be(6)
-    }
-
-    "execute two simulations which use the same tasks" in {
-      val coordinator = new Coordinator(new ProterScheduler())(using ExecutionContext.global)
-
-      val smh = new PromiseHandler(new SimMetricsHandler)
-      coordinator.subscribe(smh)
-
-      val task1 = FlowTask(
-        Task("task1", 1L)
-      )
-      val task2 = FlowTask(
-        Task("task2", 2L)
-      )
-      val flow1 = task1
-      val flow2 = Then(task2, task1)
-
-      coordinator.addSimulation(
-        0L,
-        new FlowSimulation("sim1", coordinator, flow1)
-      )
-      coordinator.addSimulation(
-        0L,
-        new FlowSimulation("sim2", coordinator, flow2)
-      )
-      coordinator.start()
-
-      val metrics = Await.result(smh.future, 3.seconds)
-      val testMetrics = metrics.taskMap.map { case (_, tm) =>
-        tm.fullName -> tm.finished
-      }
-
-      // testMetrics.get("task1 (sim1)").value.value should be (1)
-      testMetrics.get("task2 (sim2)").value.value should be(2)
-      // testMetrics.get("task1 (sim2)").value.value should be (3)
-    }*/
   }
 }
 
-class FlowsTester extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneElement {
-/*
-  def singleFlowTest(
-      flow: Flow,
-      resources: List[TaskResource] = List(),
-      simName: String = "sim1"
-  ): Map[String, Option[Long]] = {
-
-    val coordinator = new Coordinator(new ProterScheduler())(using ExecutionContext.global)
-
-    val smh = new PromiseHandler(new SimMetricsHandler)
-    coordinator.subscribe(smh)
-
-    coordinator.addResources(resources)
-    coordinator.addSimulation(
-      0L,
-      new FlowSimulation(simName, coordinator, flow)
-    )
-    coordinator.start()
-
-    val metrics = Await.result(smh.future, 3.seconds)
-    metrics.taskMap.map { case (_, tm) =>
-      tm.fullName -> tm.finished
-    }
-  }*/
-}
- 
