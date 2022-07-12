@@ -181,3 +181,9 @@ case class ResourceMap(resources: Map[String, ResourceState]) {
     task.resources flatMap (resources.get(_))
 
 }
+
+object ResourceMap {
+  def apply(resources: Seq[Resource]): ResourceMap = ResourceMap(
+    Map() ++ resources.map { r => r.name -> r.start }
+  )
+}
