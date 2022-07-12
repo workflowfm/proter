@@ -1,6 +1,9 @@
 package com.workflowfm.proter
+package cases
 
-/*
+import state.StateOps
+import state.Simulationx.SimState
+
 import java.util.UUID
 
 import scala.annotation.tailrec
@@ -9,44 +12,46 @@ import scala.util.Success
 import org.scalatest.matchers.MatchResult
 import org.scalatest.matchers.Matcher
 
-abstract class MockSimulation(override val name: String) extends SimulationRef {
-  import MockSimulation._
+import cats.effect.IO
+import cats.effect.implicits.*
+import cats.effect.std.{ Random, UUIDGen }
+import cats.implicits.*
+
+
+abstract class MockCaseRef(override val caseName: String) extends CaseRef[IO] {
+  import MockCaseRef._
   import collection.mutable.Queue
 
   val calls: Queue[Call] = Queue()
 
-  override def run(): Unit = {
+  override def run(): IO[SimState[IO]] = {
     calls.enqueue(Run)
     react(Run)
   }
 
-  override def stop(): Unit = {
+  override def stop(): IO[Unit] = {
     calls.enqueue(Stop)
-    react(Stop)
+    react(Stop).void
   }
 
-  override def completed(time: Long, tasks: Seq[TaskInstance]): Unit = {
+  override def completed(time: Long, tasks: Seq[TaskInstance]): IO[SimState[IO]] = {
     calls.enqueue(Complete(time, tasks))
     react(Complete(time, tasks))
   }
 
-  def react(call: Call): Unit
+  def react(call: Call): IO[SimState[IO]]
 
   def expectedCalls: Seq[Call]
 }
 
-trait MockSimulationGenerator extends SimulationRefGenerator {
-  def sims: Iterable[MockSimulation]
-}
+trait MockCaseCallMatcher {
+  import MockCaseRef._
 
-trait MockSimulationCallMatcher {
-  import MockSimulation._
+  def comply: Matcher[MockCaseRef] = MockCaseRefCallComplyMatcher
 
-  def comply: Matcher[MockSimulation] = MockSimulationCallComplyMatcher
+  object MockCaseRefCallComplyMatcher extends Matcher[MockCaseRef] {
 
-  object MockSimulationCallComplyMatcher extends Matcher[MockSimulation] {
-
-    def apply(sim: MockSimulation): MatchResult =
+    def apply(sim: MockCaseRef): MatchResult =
       allCallsMatch(sim.calls.toList, sim.expectedCalls.toList)
   }
 
@@ -76,109 +81,115 @@ trait MockSimulationCallMatcher {
     case _ => false
   }
 }
-
-object MockSimulation {
+ 
+object MockCaseRef extends StateOps {
   sealed trait Call
   case object NoCall extends Call
   case object Run extends Call
   case object Stop extends Call
   case class Complete(time: Long, tasks: Seq[TaskInstance]) extends Call
 
+  val gen = summon[UUIDGen[IO]]
+
   def tasksMatch(l: Seq[TaskInstance], r: Seq[TaskInstance]): Boolean =
     l.sorted.corresponds(r.sorted)(_.compare(_) == 0)
 
   def mockSingleTask(
       name: String,
-      coordinator: Manager,
       expectedCreate: Long,
       duration: Long,
       expectedEnd: Long
-  ): MockSimulation = new MockSimulation(name) {
-    val id = UUID.randomUUID()
-    val tg = Task("T", duration).withID(id)
-    val expected = tg.create(this.name, expectedCreate)
+  ): IO[MockCaseRef] = for {
+    random <- Random.scalaUtilRandom[IO]
+    given Random[IO] = random    
+    id <- gen.randomUUID
+    tg = Task("T", duration).withID(id)
+    expected <- tg.create(name, expectedCreate)
+  } yield ( new MockCaseRef(name) {
 
-    override def react(call: Call): Unit = call match {
-      case Run => coordinator.simResponse(SimReady(this.name, Seq(tg)))
-      case Complete(time, Seq(task)) if time == expectedEnd && task.compare(expected) == 0 =>
-        coordinator.simResponse(SimDone(this.name, Success(())))
-      case _ => ()
+    override def react(call: Call): IO[SimState[IO]] = call match {
+      case Run => IO.pure(addTask(caseName)(tg))
+      case Complete(time, Seq(task)) if time == expectedEnd && task.compare(expected) == 0 => IO.pure(succeed(()))
+      case _ => idStateM
     }
 
     override def expectedCalls: Seq[Call] = Seq(Run, Complete(expectedEnd, Seq(expected)))
-  }
+  })
 
   def mockTwoTasks(
       name: String,
-      coordinator: Manager,
       expectedCreate1: Long,
       duration1: Long,
       expectedEnd1: Long,
       duration2: Long,
       expectedEnd2: Long
-  ): MockSimulation = new MockSimulation(name) {
-    val id1 = UUID.randomUUID()
-    val tg1 = Task("T1", duration1).withID(id1)
-    val expected1 = tg1.create(this.name, expectedCreate1)
+  ): IO[MockCaseRef] = for {
+    random <- Random.scalaUtilRandom[IO]
+    given Random[IO] = random    
+    id1 <- gen.randomUUID
+    tg1 = Task("T1", duration1).withID(id1)
+    expected1 <- tg1.create(name, expectedCreate1)
+    id2 <- gen.randomUUID
+    tg2 = Task("T2", duration2).withID(id2)
+    expected2 <- tg2.create(name, expectedEnd1)
+  } yield ( new MockCaseRef(name) {
 
-    val id2 = UUID.randomUUID()
-    val tg2 = Task("T2", duration2).withID(id2)
-    val expected2 = tg2.create(this.name, expectedEnd1)
-
-    override def react(call: Call): Unit = call match {
-      case Run => coordinator.simResponse(SimReady(this.name, Seq(tg1)))
+    override def react(call: Call): IO[SimState[IO]] = call match {
+      case Run => IO.pure(addTask(caseName)(tg1))
       case Complete(time, Seq(task)) if time == expectedEnd1 && task.compare(expected1) == 0 =>
-        coordinator.simResponse(SimReady(this.name, Seq(tg2)))
+        IO.pure(addTask(caseName)(tg2))
       case Complete(time, Seq(task)) if time == expectedEnd2 && task.compare(expected2) == 0 =>
-        coordinator.simResponse(SimDone(this.name, Success(())))
-      case _ => ()
+        IO.pure(succeed(()))
+      case _ => idStateM
     }
 
     override def expectedCalls: Seq[Call] =
       Seq(Run, Complete(expectedEnd1, Seq(expected1)), Complete(expectedEnd2, Seq(expected2)))
 
-  }
+  })
 
   def mockRepeater(
       name: String,
-      coordinator: Manager,
       expectedCreate: Long,
       duration: Long,
       repeat: Int
-  ): MockSimulation = new MockSimulation(name) {
+  ): IO[MockCaseRef] = for {
+    random <- Random.scalaUtilRandom[IO]
+    given Random[IO] = random
+    ids <- (for i <- 0 to repeat yield gen.randomUUID).toList.sequence
+    tasks = ids.zipWithIndex.map( (id, i) => Task(s"T$i", duration).withID(id) )
+    expected <- tasks.zipWithIndex.map( (t, i) => 
+      t.create(name, expectedCreate + i * duration) 
+        .map(ti => 
+          Complete(
+            expectedCreate + (i + 1) * duration,
+            Seq(ti))
+      )
+    ).sequence
+  } yield ( new MockCaseRef(name) {
 
     var i: Int = 0
 
-    val tasks: Seq[Task] =
-      for i <- 0 to repeat yield Task("T" + i, duration).withID(UUID.randomUUID)
-
-    val expected = tasks.zipWithIndex.map { case (t, i) =>
-      Complete(
-        expectedCreate + (i + 1) * duration,
-        Seq(t.create(this.name, expectedCreate + i * duration))
-      )
-    }
-
-    override def react(call: Call): Unit = call match {
-      case Run => coordinator.simResponse(SimReady(this.name, Seq(tasks(0))))
+    override def react(call: Call): IO[SimState[IO]] = call match {
+      case Run => IO.pure(addTask(caseName)(tasks(0)))
       case Complete(time, Seq(task))
           if time == expected(i).time && task.compare(expected(i).tasks.head) == 0 => {
-        if i < repeat then {
-          i = i + 1
-          coordinator.simResponse(SimReady(this.name, Seq(tasks(i))))
-        } else {
-          coordinator.simResponse(SimDone(this.name, Success(())))
-        }
-      }
-      case _ => ()
+            if i < repeat then {
+              i = i + 1
+              IO.pure(addTask(caseName)(tasks(i)))
+            } else {
+              IO.pure(succeed(()))
+            }
+          }
+      case _ => idStateM
     }
 
     override def expectedCalls: Seq[Call] = Seq(Run) ++ expected
-  }
+  })
+  
 
   def mockTwoPlusOneTasks(
       name: String,
-      coordinator: Manager,
       expectedCreate1: Long,
       duration1: Long,
       expectedEnd1: Long,
@@ -186,40 +197,41 @@ object MockSimulation {
       expectedEnd2: Long,
       duration3: Long,
       expectedEnd3: Long
-  ): MockSimulation = new MockSimulation(name) {
-    val id1 = UUID.randomUUID()
-    val tg1 = Task("T1", duration1).withID(id1)
-    val expected1 = tg1.create(this.name, expectedCreate1)
+  ): IO[MockCaseRef] = for {
+    random <- Random.scalaUtilRandom[IO]
+    given Random[IO] = random    
+    id1 <- gen.randomUUID
+    tg1 = Task("T1", duration1).withID(id1)
+    expected1 <- tg1.create(name, expectedCreate1)
+    id2 <- gen.randomUUID
+    tg2 = Task("T2", duration2).withID(id2)
+    expected2 <- tg2.create(name, expectedCreate1)
+    id3 <- gen.randomUUID
+    tg3 = Task("T3", duration3).withID(id3)
+    expected3 <- tg3.create(name, Math.max(expectedEnd1, expectedEnd2))
+  } yield ( new MockCaseRef(name) {
 
-    val id2 = UUID.randomUUID()
-    val tg2 = Task("T2", duration2).withID(id2)
-    val expected2 = tg2.create(this.name, expectedCreate1)
-
-    val id3 = UUID.randomUUID()
-    val tg3 = Task("T3", duration3).withID(id3)
-    val expected3 = tg3.create(this.name, Math.max(expectedEnd1, expectedEnd2))
-
-    override def react(call: Call): Unit = call match {
-      case Run => coordinator.simResponse(SimReady(this.name, Seq(tg1, tg2)))
+    override def react(call: Call): IO[SimState[IO]] = call match {
+      case Run => IO.pure(addTasks(caseName, Seq(tg1, tg2)))
       case Complete(time, Seq(task)) if time == expectedEnd1 && task.compare(expected1) == 0 => {
-        if expectedEnd1 > expectedEnd2 then coordinator.simResponse(SimReady(this.name, Seq(tg3)))
-        else coordinator.simResponse(SimReady(this.name, Seq()))
+        if expectedEnd1 > expectedEnd2 then IO.pure(addTask(caseName)(tg3))
+        else idStateM
       }
       case Complete(time, Seq(task)) if time == expectedEnd2 && task.compare(expected2) == 0 => {
-        if expectedEnd1 < expectedEnd2 then coordinator.simResponse(SimReady(this.name, Seq(tg3)))
-        else coordinator.simResponse(SimReady(this.name, Seq()))
+        if expectedEnd1 < expectedEnd2 then IO.pure(addTask(caseName)(tg3))
+        else idStateM
       }
       case Complete(time, Seq(task1, task2))
           if time == expectedEnd1 && expectedEnd1 == expectedEnd2 && tasksMatch(
             Seq(task1, task2),
             Seq(expected1, expected2)
           ) =>
-        coordinator.simResponse(SimReady(this.name, Seq(tg3)))
+        IO.pure(addTask(caseName)(tg3))
       case Complete(time, Seq(task)) if time == expectedEnd3 && task.compare(expected3) == 0 =>
-        coordinator.simResponse(SimDone(this.name, Success(())))
-      case _ => ()
+        IO.pure(succeed(()))
+      case _ => idStateM
     }
-
+  
     override def expectedCalls: Seq[Call] =
       if expectedEnd1 < expectedEnd2 then
         Seq(
@@ -241,13 +253,13 @@ object MockSimulation {
           Complete(expectedEnd1, Seq(expected1, expected2)),
           Complete(expectedEnd3, Seq(expected3))
         )
-  }
-
+  })
+/*
   def mockAbort(
       name: String,
       coordinator: Manager,
       resource: Option[TaskResource]
-  ): MockSimulation = new MockSimulation(name) {
+  ): MockCaseRef = new MockCaseRef(name) {
     // T1 0..3 - to be aborted at 2
     val id1 = UUID.randomUUID()
 
@@ -288,7 +300,7 @@ object MockSimulation {
       name: String,
       coordinator: Manager,
       duration: Long
-  ): MockSimulation = new MockSimulation(name) {
+  ): MockCaseRef = new MockCaseRef(name) {
     val id = UUID.randomUUID()
     val tg = Task("T", duration).withID(id)
 
@@ -306,10 +318,10 @@ object MockSimulation {
       interval: Long,
       duration: Long,
       limit: Int
-  ): MockSimulationGenerator = new MockSimulationGenerator {
+  ): MockCaseRefGenerator = new MockCaseRefGenerator {
     import collection.mutable.Queue
 
-    val sims: Queue[MockSimulation] = Queue()
+    val sims: Queue[MockCaseRef] = Queue()
 
     override def build(manager: Manager, count: Int): SimulationRef = {
       val sim = mockSingleTask(
@@ -322,6 +334,6 @@ object MockSimulation {
       sims.enqueue(sim)
       sim
     }
-  }
+  }*/
 }
- */
+ 
