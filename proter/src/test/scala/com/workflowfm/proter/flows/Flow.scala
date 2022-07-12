@@ -1,41 +1,133 @@
 package com.workflowfm.proter
-/*
-import scala.collection.mutable.Map
-import scala.concurrent._
-import scala.concurrent.duration._
+package flows
 
-import org.scalatest.OptionValues
+import flows.given
+import cases.Case
+import schedule.GreedyScheduler
+import state.Simulationx
+
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpecLike
+import org.scalatest.wordspec.AsyncWordSpec
+import org.scalatest.LoneElement
 
-import com.workflowfm.proter._
-import com.workflowfm.proter.events.{ PrintEventHandler, PromiseHandler }
-import com.workflowfm.proter.flows._
-import com.workflowfm.proter.metrics._
-import com.workflowfm.proter.schedule.ProterScheduler
+import cats.{ Monad, MonadError }
+import cats.implicits.*
+import cats.data.StateT
+import cats.effect.IO
+import cats.effect.implicits.*
+import cats.effect.kernel.Ref
+import cats.effect.std.{ Random, UUIDGen }
+import cats.effect.testing.scalatest.AsyncIOSpec
 
 class FlowTests extends FlowsTester {
-  given ExecutionContext = ExecutionContext.global
 
   "Flows" should {
+    "execute no tasks" in {
+      val flow = NoTask
+      val init = Simulationx[IO]("Test", GreedyScheduler(true))
+
+      for {
+        random <- Random.scalaUtilRandom[IO]
+        given Random[IO] = random       
+
+        ref <- summon[Case[IO, Flow]].init("Case", flow)
+       
+        s1 <- ref.run()
+        r1 <- s1.run(init)
+        (ret1, e1) = r1
+
+        _ = ret1 `should` be (init)
+      } yield ()
+    }
+    
     "execute a single flow" in {
-      val task1 = FlowTask(Task("task1", 1L))
-      val flow1 = task1
-      val testMetrics = singleFlowTest(flow1, List())
+      val init = Simulationx[IO]("Test", GreedyScheduler(true))
 
-      testMetrics.get("task1 (sim1)").value.value should be(1)
+      for {
+        random <- Random.scalaUtilRandom[IO]
+        given Random[IO] = random       
+        gen = summon[UUIDGen[IO]]
+
+        t1id <- gen.randomUUID
+        task = Task("OneTask", 2L)
+        .withPriority(10)
+        .withCost(6)
+        .withResources(Seq("R"))
+        .withID(t1id)
+        ti1 <- task.create[IO]("Case", 0L)
+
+        flow = FlowTask(task)
+
+        ref <- summon[Case[IO, Flow]].init("Case", flow)
+       
+        s1 <- ref.run()
+        r1 <- s1.run(init)
+        (ret1, e1) = r1
+
+        _ = ret1.tasks.loneElement `should` be (ti1)
+
+        ref1 = ret1.cases.get("Case").getOrElse(ref)
+
+        sim2 = ret1.copy(time = ti1.duration)
+        s2 <- ref1.completed(ti1.duration, Seq(ti1))
+        r2 <- s2.run(sim2)
+        (ret2, e2) = r2
+        _ = ret2 `should` be (sim2.copy(
+          waiting = Map(),
+          cases = Map()
+        ))
+      } yield ()
     }
 
-    "execute an AND of two tasks which use different resources" in {
-      val task1 = FlowTask(Task("task1", 1L))
-      val task2 = FlowTask(Task("task2", 2L))
-      val flow1 = And(task1, task2)
-      val testMetrics = singleFlowTest(flow1)
 
-      testMetrics.get("task1 (sim1)").value.value should be(1)
-      testMetrics.get("task2 (sim1)").value.value should be(2)
+    "execute an AND of two tasks which use different resources" in {     
+      val init = Simulationx[IO]("Test", GreedyScheduler(true))
+
+      for {
+        random <- Random.scalaUtilRandom[IO]
+        given Random[IO] = random     
+        gen = summon[UUIDGen[IO]]  
+
+        t1id <- gen.randomUUID
+        // add resources so that they don't start immediately!
+        task1 = FlowTask(Task("task1", 1L).withResources(Seq("R")).withID(t1id))
+        ti1 <- task1.task.create[IO]("Case", 0L)
+        t2id <- gen.randomUUID
+        task2 = FlowTask(Task("task2", 2L).withResources(Seq("R")).withID(t2id))
+        ti2 <- task2.task.create[IO]("Case", 0L)    
+      
+        flow = And(task1, task2)
+
+        ref <- summon[Case[IO, Flow]].init("Case", flow)
+       
+        s1 <- ref.run()
+        r1 <- s1.run(init)
+        (ret1, e1) = r1
+
+        _ = ret1.tasks `should` have size (2)
+        _ = ret1.tasks `should` contain (ti1)
+        _ = ret1.tasks `should` contain (ti2)
+        
+        ref1 = ret1.cases.get("Case").getOrElse(ref)
+
+        sim2 = ret1.copy(time = ti1.duration)
+        s2 <- ref1.completed(ti1.duration, Seq(ti1))
+        r2 <- s2.run(sim2)
+        (ret2, e2) = r2
+        ref2 = ret2.cases.get("Case").getOrElse(ref)
+        sim3 = ret2.copy(time = ti2.duration)
+        s3 <- ref2.completed(ti2.duration, Seq(ti2))
+        r3 <- s3.run(sim3)
+        (ret3, e3) = r3
+
+        _ = ret3 `should` be (sim3.copy(
+          waiting = Map(),
+          cases = Map()
+        ))
+      } yield ()
+
     }
-
+/*
     "execute an AND of two tasks which use the same resources" in {
       val r1 = new TaskResource("r1", 0)
       val task1 = FlowTask(
@@ -383,12 +475,12 @@ class FlowTests extends FlowsTester {
       // testMetrics.get("task1 (sim1)").value.value should be (1)
       testMetrics.get("task2 (sim2)").value.value should be(2)
       // testMetrics.get("task1 (sim2)").value.value should be (3)
-    }
+    }*/
   }
 }
 
-class FlowsTester extends AnyWordSpecLike with Matchers with OptionValues {
-
+class FlowsTester extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneElement {
+/*
   def singleFlowTest(
       flow: Flow,
       resources: List[TaskResource] = List(),
@@ -411,6 +503,6 @@ class FlowsTester extends AnyWordSpecLike with Matchers with OptionValues {
     metrics.taskMap.map { case (_, tm) =>
       tm.fullName -> tm.finished
     }
-  }
+  }*/
 }
- */
+ 
