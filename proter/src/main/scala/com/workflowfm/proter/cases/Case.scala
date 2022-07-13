@@ -11,12 +11,12 @@ import cats.effect.std.{ Random, UUIDGen }
 import java.util.UUID
 
 trait Case[F[_], T] {
-  def init(name: String, t: T): F[CaseRef[F]]
+  def init(name: String, count: Int, time: Long, t: T): F[CaseRef[F]]
 }
 
 given [F[_]](using Monad[F], UUIDGen[F], Random[F]): Case[F, Task] with {
 
-  override def init(name: String, t: Task): F[CaseRef[F]] = for {
+  override def init(name: String, count: Int, time: Long, t: Task): F[CaseRef[F]] = for {
     uuid <- UUIDGen[F].randomUUID
   } yield new CaseRef[F] {
 

@@ -146,7 +146,7 @@ case class Arrival[F[_] : Monad : Random, T](
       Some(
         for {
           nextTime <- rate.getLong[F]
-          caseRef <- ct.init(s"$name#${count + 1}", t)
+          caseRef <- ct.init(s"$name#${count + 1}", count, time, t)
         } yield (
           (
             copy(

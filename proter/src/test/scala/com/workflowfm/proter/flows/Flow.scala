@@ -30,7 +30,7 @@ class FlowTests extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneEl
         random <- Random.scalaUtilRandom[IO]
         given Random[IO] = random       
 
-        ref <- summon[Case[IO, Flow]].init("Case", flow)
+        ref <- summon[Case[IO, Flow]].init("Case", 0, 0, flow)
 
         s1 <- ref.run()
         r1 <- s1.run(init)
@@ -58,7 +58,7 @@ class FlowTests extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneEl
 
         flow = FlowTask(task)
 
-        ref <- summon[Case[IO, Flow]].init("Case", flow)
+        ref <- summon[Case[IO, Flow]].init("Case", 0, 0, flow)
 
         s1 <- ref.run()
         r1 <- s1.run(init)
@@ -98,7 +98,7 @@ class FlowTests extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneEl
 
         flow = And(task1, task2)
 
-        ref <- summon[Case[IO, Flow]].init("Case", flow)
+        ref <- summon[Case[IO, Flow]].init("Case", 0, 0, flow)
 
         s1 <- ref.run()
         r1 <- s1.run(init)
@@ -146,7 +146,7 @@ class FlowTests extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneEl
 
         flow = And(task1, task2)
 
-        ref <- summon[Case[IO, Flow]].init("Case", flow)
+        ref <- summon[Case[IO, Flow]].init("Case", 0, 0, flow)
 
         s1 <- ref.run()
         r1 <- s1.run(init)
@@ -189,7 +189,7 @@ class FlowTests extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneEl
 
         flow = Then(task1, task2)
 
-        ref <- summon[Case[IO, Flow]].init("Case", flow)
+        ref <- summon[Case[IO, Flow]].init("Case", 0, 0, flow)
 
         s1 <- ref.run()
         r1 <- s1.run(init)
@@ -248,7 +248,7 @@ class FlowTests extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneEl
         flow = And(And(And(And(task1, task2), task3), task4), task5)
 
 
-        ref <- summon[Case[IO, Flow]].init("Case", flow)
+        ref <- summon[Case[IO, Flow]].init("Case", 0, 0, flow)
 
         s1 <- ref.run()
         r1 <- s1.run(init)
@@ -307,7 +307,7 @@ class FlowTests extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneEl
         flow = And(task1, And(task2, And(task3, And(task4, task5))))
 
 
-        ref <- summon[Case[IO, Flow]].init("Case", flow)
+        ref <- summon[Case[IO, Flow]].init("Case", 0, 0, flow)
 
         s1 <- ref.run()
         r1 <- s1.run(init)
@@ -366,7 +366,7 @@ class FlowTests extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneEl
         flow = Then(Then(Then(Then(task1, task2), task3), task4), task5)
 
 
-        ref <- summon[Case[IO, Flow]].init("Case", flow)
+        ref <- summon[Case[IO, Flow]].init("Case", 0, 0, flow)
 
         s1 <- ref.run()
         r1 <- s1.run(init)
@@ -446,7 +446,7 @@ class FlowTests extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneEl
         flow = Then(task1, Then(task2, Then(task3, Then(task4, task5))))
 
 
-        ref <- summon[Case[IO, Flow]].init("Case", flow)
+        ref <- summon[Case[IO, Flow]].init("Case", 0, 0, flow)
 
         s1 <- ref.run()
         r1 <- s1.run(init)
@@ -526,7 +526,7 @@ class FlowTests extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneEl
         flow = task1 > task2 > task3 > task4 > task5
 
 
-        ref <- summon[Case[IO, Flow]].init("Case", flow)
+        ref <- summon[Case[IO, Flow]].init("Case", 0, 0, flow)
 
         s1 <- ref.run()
         r1 <- s1.run(init)
@@ -594,7 +594,7 @@ class FlowTests extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneEl
         flow = task1 > NoTask
 
 
-        ref <- summon[Case[IO, Flow]].init("Case", flow)
+        ref <- summon[Case[IO, Flow]].init("Case", 0, 0, flow)
 
         s1 <- ref.run()
         r1 <- s1.run(init)
@@ -630,7 +630,7 @@ class FlowTests extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneEl
         flow = NoTask > task1 
 
 
-        ref <- summon[Case[IO, Flow]].init("Case", flow)
+        ref <- summon[Case[IO, Flow]].init("Case", 0, 0, flow)
 
         s1 <- ref.run()
         r1 <- s1.run(init)
@@ -676,7 +676,7 @@ class FlowTests extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneEl
         flow = And(Then(task1, task2), Then(task3, task4))
 
 
-        ref <- summon[Case[IO, Flow]].init("Case", flow)
+        ref <- summon[Case[IO, Flow]].init("Case", 0, 0, flow)
 
         s1 <- ref.run()
         r1 <- s1.run(init)
@@ -739,7 +739,7 @@ class FlowTests extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneEl
         flow = Then(And(task1, task2), And(task3, task4))
 
 
-        ref <- summon[Case[IO, Flow]].init("Case", flow)
+        ref <- summon[Case[IO, Flow]].init("Case", 0, 0, flow)
 
         s1 <- ref.run()
         r1 <- s1.run(init)

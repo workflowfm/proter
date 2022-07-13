@@ -66,7 +66,7 @@ class CaseTests extends CaseTester {
         t1 = task.withID(t1id)
         ti1 <- t1.create[IO]("Case", 0L)
 
-        ref <- summon[Case[IO, Task]].init("Case", t1)
+        ref <- summon[Case[IO, Task]].init("Case", 0, 0, t1)
        
         sim1 = init.copy(
           waiting = init.waiting + ("Case" -> Seq()),

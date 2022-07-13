@@ -54,7 +54,7 @@ trait ScenarioState {
       using ct: Case[F, T]
   ): StateT[F, Simulationx[F], Event] = StateT(sim =>
     if time >= sim.time then {
-      ct.init(name, t).map { caseRef =>
+      ct.init(name, 0, time, t).map { caseRef =>
         (
           sim.copy(events = sim.events + StartingCase(time, caseRef)),
           ECaseAdd(sim.id, sim.time, caseRef.caseName, time)
