@@ -156,6 +156,61 @@ class SimulationTests extends SimulationTester {
       } yield (())
     }
 
+    "correctly execute a case aborting a task without resources" in {
+      for {
+        ref <- mockAbort("test", None)
+        state = liftSingleState(addCaseRef(0L, ref))
+        _ <- sim("Test", state)
+        _ = ref `should` comply
+      } yield (())
+    }
+
+    "correctly execute a case aborting a task with resources" in {
+      val res = Resource("R", 0)
+      for {
+        ref <- mockAbort("test", Some(res))
+        state = compose2[IO](
+          liftSingleState(addResource(res)),
+          liftSingleState(addCaseRef(0L, ref))
+        )
+        _ <- sim("Test", state)
+        _ = ref `should` comply
+      } yield (())
+    }
+
+    "abort 2 simulations when the time limit is hit" in {
+      for {
+        ref1 <- mockSingleTask("test1", 0L, 3L, 3L)
+        ref2 <- mockAborted("test2", 10L)
+        ref3 <- mockAborted("test3", 3L)
+        state = compose[IO] (
+          liftSingleState(addCaseRef(0L, ref1)),
+          liftSingleState(addCaseRef(0L, ref2)),
+          liftSingleState(addCaseRef(4L, ref3)),
+          liftSingleState(limit(5L))
+        )
+        _ <- sim("Test", state)
+        _ = ref1 `should` comply
+        _ = ref2 `should` comply
+        _ = ref3 `should` comply
+      } yield (())
+    }
+
+    "correctly work with a case starting at the time limit" in {
+      for {
+        ref1 <- mockSingleTask("test1", 0L, 3L, 3L)
+        ref2 <- mockAborted("test2", 10L)
+        state = compose[IO] (
+          liftSingleState(addCaseRef(0L, ref1)),
+          liftSingleState(addCaseRef(4L, ref2)),
+          liftSingleState(limit(4L))
+        )
+        _ <- sim("Test", state)
+        _ = ref1 `should` comply
+        _ = ref2 `should` comply
+      } yield (())
+    }
+
   }
 }
 
@@ -169,7 +224,7 @@ trait SimulationTester extends AsyncWordSpec with AsyncIOSpec with Matchers with
     val sim = Simulationx[IO](name, ProterScheduler)
     for {
       sResult <- sim.start(state)
-      (updated, events) = sResult
+      (updated, _) = sResult
       x <- updated.tailRecM(simRec)
     } yield (x)
   }

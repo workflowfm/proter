@@ -76,7 +76,7 @@ case class Simulationx[F[_]](
               )
             )
           }
-          val (handledState, tasks) = toHandle.foldLeft((updateEventQueue, Queue[TaskInstance]()))(
+          val (handledState, tasks, terminate) = toHandle.foldLeft((updateEventQueue, Queue[TaskInstance](), false))(
             Simulationx.handleDiscreteEvent
           )
 
@@ -86,7 +86,9 @@ case class Simulationx[F[_]](
 
           val allocateState = Simulationx.allocateTasks()
 
-          Seq(handledState.map(_.toSeq), stopState, notifyState, allocateState).sequence
+          val terminateState = if terminate then Simulationx.stop() else Simulationx.idState
+
+          Seq(handledState.map(_.toSeq), stopState, notifyState, allocateState, terminateState).sequence
             .bimap(Left(_), _.flatten)
             .run(this)
         }
@@ -343,15 +345,15 @@ object Simulationx extends StateOps {
     * @param event
     */
   protected def handleDiscreteEvent[F[_] : Monad](
-      acc: (StateT[F, Simulationx[F], Queue[Event]], Queue[TaskInstance]),
+      acc: (StateT[F, Simulationx[F], Queue[Event]], Queue[TaskInstance], Boolean),
       event: DiscreteEvent
-  ): (StateT[F, Simulationx[F], Queue[Event]], Queue[TaskInstance]) =
+  ): (StateT[F, Simulationx[F], Queue[Event]], Queue[TaskInstance], Boolean) = 
     acc match {
-      case (state, tasks) =>
+      case (state, tasks, terminate) =>
         // TODO check time?
         event match {
           // A task is finished, but we handle this elsewhere
-          case FinishingTask(_, t) => (state, tasks :+ t)
+          case FinishingTask(_, t) => (state, tasks :+ t, terminate)
 
           // A simulation (workflow) is starting now
           case e: StartingCase[F] =>
@@ -359,14 +361,15 @@ object Simulationx extends StateOps {
               state.flatMap(events =>
                 StateT.fromState(startCase(e.caseRef).map(e => Monad[F].pure(events :+ e)))
               ),
-              tasks
+              tasks,
+              terminate
             )
 
-          case TimeLimit(_) => (state.flatMap(events => stop().map(e => events ++ e)), tasks)
+          case TimeLimit(_) => (state, tasks, true)
 
           case arrival: Arrival[F, ?] =>
             arrival.next() match {
-              case None => (state, tasks)
+              case None => (state, tasks, terminate)
               case Some(f) => {
                 val update: StateT[F, Simulationx[F], Event] = StateT { sim =>
                   for {
@@ -376,7 +379,7 @@ object Simulationx extends StateOps {
 
                   } yield (startCase(caseRef).run(newsim).value)
                 }
-                (state.flatMap(events => update.map(e => events :+ e)), tasks)
+                (state.flatMap(events => update.map(e => events :+ e)), tasks, terminate)
               }
             }
 
@@ -387,7 +390,8 @@ object Simulationx extends StateOps {
                   Monad[F].pure((sim, events :+ sim.error(s"Failed to handle event: $event")))
                 }
               ),
-              tasks
+              tasks,
+              terminate
             )
         }
     }
