@@ -1,7 +1,7 @@
 package com.workflowfm.proter
 package cases
 
-import state.Simulationx.SimState
+import state.Simulation.SimState
 
 import cats.Monad
 import cats.implicits.*

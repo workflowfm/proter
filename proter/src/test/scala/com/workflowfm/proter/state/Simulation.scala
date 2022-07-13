@@ -309,9 +309,9 @@ trait SimulationTester extends AsyncWordSpec with AsyncIOSpec with Matchers with
 
  def sim(
       name: String,
-      state: StateT[IO, Simulationx[IO], Seq[Event]]
+      state: StateT[IO, Simulation[IO], Seq[Event]]
   ): IO[Unit] = {
-    val sim = Simulationx[IO](name, ProterScheduler)
+    val sim = Simulation[IO](name, ProterScheduler)
     for {
       sResult <- sim.start(state)
       (updated, _) = sResult
@@ -319,7 +319,7 @@ trait SimulationTester extends AsyncWordSpec with AsyncIOSpec with Matchers with
     } yield (x)
   }
 
-  protected val simRec: Simulationx[IO] => IO[Either[Simulationx[IO], Unit]] =
+  protected val simRec: Simulation[IO] => IO[Either[Simulation[IO], Unit]] =
     sim =>
       for {
         tResult <- sim.tick

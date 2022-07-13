@@ -2,7 +2,7 @@ package com.workflowfm.proter
 package cases
 
 import state.StateOps
-import state.Simulationx.SimState
+import state.Simulation.SimState
 
 import java.util.UUID
 

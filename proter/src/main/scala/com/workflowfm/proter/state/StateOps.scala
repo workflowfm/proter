@@ -5,7 +5,7 @@ import cats.Monad
 import cats.data.{ State, StateT }
 
 trait StateOps {
-  type SimState[F[_]] = StateT[F, Simulationx[F], Seq[events.Event]]
+  type SimState[F[_]] = StateT[F, Simulation[F], Seq[events.Event]]
 
   def seqM[F[_] : Monad, S[_[_]], E](
       state: State[S[F], E]

@@ -4,7 +4,7 @@ package flows
 import flows.given
 import cases.Case
 import schedule.GreedyScheduler
-import state.Simulationx
+import state.Simulation
 
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
@@ -24,7 +24,7 @@ class FlowTests extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneEl
   "Flows" should {
     "execute no tasks" in {
       val flow = NoTask
-      val init = Simulationx[IO]("Test", GreedyScheduler(true))
+      val init = Simulation[IO]("Test", GreedyScheduler(true))
 
       for {
         random <- Random.scalaUtilRandom[IO]
@@ -41,7 +41,7 @@ class FlowTests extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneEl
     }
 
     "execute a single flow" in {
-      val init = Simulationx[IO]("Test", GreedyScheduler(true))
+      val init = Simulation[IO]("Test", GreedyScheduler(true))
 
       for {
         random <- Random.scalaUtilRandom[IO]
@@ -81,7 +81,7 @@ class FlowTests extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneEl
 
 
     "execute an AND of two tasks finishing at different times" in {     
-      val init = Simulationx[IO]("Test", GreedyScheduler(true))
+      val init = Simulation[IO]("Test", GreedyScheduler(true))
 
       for {
         random <- Random.scalaUtilRandom[IO]
@@ -129,7 +129,7 @@ class FlowTests extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneEl
     }
 
     "execute an AND of two tasks finishing at the same time" in {     
-      val init = Simulationx[IO]("Test", GreedyScheduler(true))
+      val init = Simulation[IO]("Test", GreedyScheduler(true))
 
       for {
         random <- Random.scalaUtilRandom[IO]
@@ -172,7 +172,7 @@ class FlowTests extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneEl
     }
 
     "execute a THEN of two tasks" in {     
-      val init = Simulationx[IO]("Test", GreedyScheduler(true))
+      val init = Simulation[IO]("Test", GreedyScheduler(true))
 
       for {
         random <- Random.scalaUtilRandom[IO]
@@ -222,7 +222,7 @@ class FlowTests extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneEl
     }
 
     "execute nested ANDs (left associativity)" in {
-      val init = Simulationx[IO]("Test", GreedyScheduler(true))
+      val init = Simulation[IO]("Test", GreedyScheduler(true))
 
       for {
         random <- Random.scalaUtilRandom[IO]
@@ -281,7 +281,7 @@ class FlowTests extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneEl
     }
 
     "execute nested ANDs (right associativity)" in {
-      val init = Simulationx[IO]("Test", GreedyScheduler(true))
+      val init = Simulation[IO]("Test", GreedyScheduler(true))
 
       for {
         random <- Random.scalaUtilRandom[IO]
@@ -340,7 +340,7 @@ class FlowTests extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneEl
     }
 
     "execute nested THENs (left associativity)" in {
-      val init = Simulationx[IO]("Test", GreedyScheduler(true))
+      val init = Simulation[IO]("Test", GreedyScheduler(true))
 
       for {
         random <- Random.scalaUtilRandom[IO]
@@ -420,7 +420,7 @@ class FlowTests extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneEl
     }
 
     "execute nested THENs (right associativity)" in {
-      val init = Simulationx[IO]("Test", GreedyScheduler(true))
+      val init = Simulation[IO]("Test", GreedyScheduler(true))
 
       for {
         random <- Random.scalaUtilRandom[IO]
@@ -500,7 +500,7 @@ class FlowTests extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneEl
     }
 
     "execute nested THENs (operator)" in {
-      val init = Simulationx[IO]("Test", GreedyScheduler(true))
+      val init = Simulation[IO]("Test", GreedyScheduler(true))
 
       for {
         random <- Random.scalaUtilRandom[IO]
@@ -580,7 +580,7 @@ class FlowTests extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneEl
     }
 
     "execute a task THEN NoTask" in {
-      val init = Simulationx[IO]("Test", GreedyScheduler(true))
+      val init = Simulation[IO]("Test", GreedyScheduler(true))
 
       for {
         random <- Random.scalaUtilRandom[IO]
@@ -616,7 +616,7 @@ class FlowTests extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneEl
     }
 
     "execute NoTask THEN a task" in {
-      val init = Simulationx[IO]("Test", GreedyScheduler(true))
+      val init = Simulation[IO]("Test", GreedyScheduler(true))
 
       for {
         random <- Random.scalaUtilRandom[IO]
@@ -653,7 +653,7 @@ class FlowTests extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneEl
 
 
     "execute an AND of THENs" in {
-      val init = Simulationx[IO]("Test", GreedyScheduler(true))
+      val init = Simulation[IO]("Test", GreedyScheduler(true))
 
       for {
         random <- Random.scalaUtilRandom[IO]
@@ -716,7 +716,7 @@ class FlowTests extends AsyncWordSpec with AsyncIOSpec with Matchers with LoneEl
     }
 
     "execute a THEN of ANDs" in {
-      val init = Simulationx[IO]("Test", GreedyScheduler(true))
+      val init = Simulation[IO]("Test", GreedyScheduler(true))
 
       for {
         random <- Random.scalaUtilRandom[IO]

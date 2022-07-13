@@ -11,11 +11,11 @@ import events.*
 import schedule.*
 import state.*
 
-final case class Scenario[F[_] : Monad](name: String, state: Simulationx.SimState[F])
+final case class Scenario[F[_] : Monad](name: String, state: Simulation.SimState[F])
     extends ScenarioState
     with StateOps {
 
-  import Simulationx._
+  import Simulation._
 
   def and(s: SimState[F]): Scenario[F] =
     copy(state = compose2(state, s))

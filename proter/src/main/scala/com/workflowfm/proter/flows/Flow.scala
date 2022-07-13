@@ -2,7 +2,7 @@ package com.workflowfm.proter
 package flows
 
 import cases.*
-import state.Simulationx.SimState
+import state.Simulation.SimState
 
 import cats.Monad
 import cats.data.StateT

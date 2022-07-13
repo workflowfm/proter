@@ -17,14 +17,14 @@ import java.util.UUID
 
 trait ScenarioState {
 
-  def addResource[F[_]](r: Resource): State[Simulationx[F], Seq[Event]] = State(sim =>
+  def addResource[F[_]](r: Resource): State[Simulation[F], Seq[Event]] = State(sim =>
     (
       sim.copy(resources = sim.resources.addResource(r)),
       Seq(EResourceAdd(sim.id, sim.time, r.name, r.costPerTick))
     )
   )
 
-  def addResources[F[_]](rs: Seq[Resource]): State[Simulationx[F], Seq[Event]] = State(sim => {
+  def addResources[F[_]](rs: Seq[Resource]): State[Simulation[F], Seq[Event]] = State(sim => {
     val events = rs.map { r => EResourceAdd(sim.id, sim.time, r.name, r.costPerTick) }
     (sim.copy(resources = sim.resources.addResources(rs)), events)
   })
@@ -41,7 +41,7 @@ trait ScenarioState {
     * @param simulation
     *   The [[Simulation]] to run.
     */
-  def addCaseRef[F[_]](t: Long, caseRef: CaseRef[F]): State[Simulationx[F], Seq[Event]] = State(sim =>
+  def addCaseRef[F[_]](t: Long, caseRef: CaseRef[F]): State[Simulation[F], Seq[Event]] = State(sim =>
     if t >= sim.time then
       (
         sim.copy(events = sim.events + StartingCase(t, caseRef)),
@@ -52,7 +52,7 @@ trait ScenarioState {
 
   def addCase[F[_] : Monad, T](time: Long, name: String, t: T)(
       using ct: Case[F, T]
-  ): StateT[F, Simulationx[F], Seq[Event]] = StateT(sim =>
+  ): StateT[F, Simulation[F], Seq[Event]] = StateT(sim =>
     if time >= sim.time then {
       ct.init(name, 0, time, t).map { caseRef =>
         (
@@ -74,8 +74,8 @@ trait ScenarioState {
     */
   def addCaseNow[F[_] : Monad, T](name: String, t: T)(
       using ct: Case[F, T]
-  ): StateT[F, Simulationx[F], Seq[Event]] =
-    StateT.inspect[F, Simulationx[F], Long](_.time).flatMap { time => addCase(time, name, t) }
+  ): StateT[F, Simulation[F], Seq[Event]] =
+    StateT.inspect[F, Simulation[F], Long](_.time).flatMap { time => addCase(time, name, t) }
 
   /**
     * Adds multiple simulations at the same time.
@@ -89,7 +89,7 @@ trait ScenarioState {
     */
   def addCases[F[_] : Monad, T](cases: Seq[(Long, String, T)])(
       using ct: Case[F, T]
-  ): StateT[F, Simulationx[F], Seq[Event]] =
+  ): StateT[F, Simulation[F], Seq[Event]] =
     cases.map((t, n, c) => addCase(t, n, c)).sequence.map(_.flatten)
 
   /**
@@ -101,7 +101,7 @@ trait ScenarioState {
     */
   def addCasesNow[F[_] : Monad, T](cases: Seq[(String, T)])(
       using ct: Case[F, T]
-  ): StateT[F, Simulationx[F], Seq[Event]] =
+  ): StateT[F, Simulation[F], Seq[Event]] =
     cases.map((n, c) => addCaseNow(n, c)).sequence.map(_.flatten)
 
   /**
@@ -124,7 +124,7 @@ trait ScenarioState {
       item: T,
       rate: LongDistribution,
       limit: Option[Int]
-  )(using ct: Case[F, T]): StateT[F, Simulationx[F], Seq[Event]] = StateT(sim =>
+  )(using ct: Case[F, T]): StateT[F, Simulation[F], Seq[Event]] = StateT(sim =>
     if t >= sim.time then {
       val arrival = Arrival(t, name, item, rate, limit, 0)
       Monad[F].pure(
@@ -142,8 +142,8 @@ trait ScenarioState {
       item: T,
       rate: LongDistribution,
       limit: Option[Int]
-  )(using ct: Case[F, T]): StateT[F, Simulationx[F], Seq[Event]] =
-    StateT.inspect[F, Simulationx[F], Long](_.time).flatMap { time =>
+  )(using ct: Case[F, T]): StateT[F, Simulation[F], Seq[Event]] =
+    StateT.inspect[F, Simulation[F], Long](_.time).flatMap { time =>
       addArrival(time, name, item, rate, limit)
     }
 
@@ -158,7 +158,7 @@ trait ScenarioState {
     * @param t
     *   The virtual timestamp to end the simulation.
     */
-  def limit[F[_]](t: Long): State[Simulationx[F], Seq[Event]] = State(sim =>
+  def limit[F[_]](t: Long): State[Simulation[F], Seq[Event]] = State(sim =>
     if t >= sim.time then
       (sim.copy(events = sim.events + TimeLimit(t)), Seq(ETimeLimit(sim.id, sim.time, t)))
     else

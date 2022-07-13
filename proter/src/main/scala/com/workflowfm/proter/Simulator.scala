@@ -25,7 +25,7 @@ final case class Simulator[F[_] : Concurrent](
   def simulate(scenario: Scenario[F]): F[Unit] =
     simulateState(scenario.name, scenario.state)
 
-  def simulateState(name: String, state: StateT[F, Simulationx[F], Seq[Event]]): F[Unit] = for {
+  def simulateState(name: String, state: StateT[F, Simulation[F], Seq[Event]]): F[Unit] = for {
     publisher <- Publisher.build[F]()
     subresource = eventHandlers.map(publisher.subscribe(_)).sequence
     _ <- subresource.use { streams =>
@@ -39,10 +39,10 @@ final case class Simulator[F[_] : Concurrent](
 
   def simulateStateWithPublisher(
       name: String,
-      state: StateT[F, Simulationx[F], Seq[Event]],
+      state: StateT[F, Simulation[F], Seq[Event]],
       publisher: Publisher[F]
   ): F[Unit] = {
-    val sim = Simulationx[F](name, scheduler)
+    val sim = Simulation[F](name, scheduler)
     for {
       sResult <- sim.start(state)
       (updated, events) = sResult
@@ -51,7 +51,7 @@ final case class Simulator[F[_] : Concurrent](
     } yield (x)
   }
 
-  protected def simRec(publisher: Publisher[F]): Simulationx[F] => F[Either[Simulationx[F], Unit]] =
+  protected def simRec(publisher: Publisher[F]): Simulation[F] => F[Either[Simulation[F], Unit]] =
     sim =>
       for {
         tResult <- sim.tick

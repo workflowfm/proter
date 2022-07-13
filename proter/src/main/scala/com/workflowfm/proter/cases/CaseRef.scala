@@ -2,8 +2,8 @@ package com.workflowfm.proter
 package cases
 
 import events.Event
-import state.{ Simulationx, CaseState }
-import state.Simulationx.SimState
+import state.{ Simulation, CaseState }
+import state.Simulation.SimState
 
 import cats.{ Monad, Monoid }
 import cats.data.{ StateT, State }
@@ -103,12 +103,12 @@ abstract class StatefulCaseRef[F[_] : Monad, S](val state: S) extends CaseRef[F]
       s1: StateT[F, S, SimState[F]],
       s2: StateT[F, S, SimState[F]]
   ): StateT[F, S, SimState[F]] =
-    s1.flatMap { r1 => s2.map { r2 => Simulationx.compose(r1, r2) } }
+    s1.flatMap { r1 => s2.map { r2 => Simulation.compose(r1, r2) } }
 
   val idState: StateT[F, S, SimState[F]] = StateT.pure(StateT.pure(Seq()))
 
   def compose(s: StateT[F, S, SimState[F]]): F[SimState[F]] =
-    s.modify(s => update(updateState(s))).run(state).map((s1, s2) => Simulationx.compose(s1, s2))
+    s.modify(s => update(updateState(s))).run(state).map((s1, s2) => Simulation.compose(s1, s2))
 
 }
 

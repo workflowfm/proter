@@ -4,8 +4,8 @@ package cases
 import cases.given
 import events.*
 import schedule.GreedyScheduler
-import state.Simulationx
-import state.Simulationx.SimState
+import state.Simulation
+import state.Simulation.SimState
 
 import cats.{ Monad, MonadError }
 import cats.implicits.*
@@ -34,7 +34,7 @@ class CaseTests extends CaseTester {
 
     "interact correctly having no tasks" in {
       val c1 = new NoTasks[IO]("c1")
-      val init = Simulationx[IO]("Test", GreedyScheduler(true))
+      val init = Simulation[IO]("Test", GreedyScheduler(true))
       val sim = init.copy(
           waiting = init.waiting + ("c1" -> Seq()),
           cases = init.cases + ("c1" -> c1)
@@ -56,7 +56,7 @@ class CaseTests extends CaseTester {
         .withCost(6)
         .withResources(Seq("R"))
       
-      val init = Simulationx[IO]("Test", GreedyScheduler(true))
+      val init = Simulation[IO]("Test", GreedyScheduler(true))
 
       for {
         random <- Random.scalaUtilRandom[IO]
@@ -93,7 +93,7 @@ class CaseTests extends CaseTester {
     }
 
     "interact correctly having 2 tasks in sequence" in {
-      val init = Simulationx[IO]("Test", GreedyScheduler(true))
+      val init = Simulation[IO]("Test", GreedyScheduler(true))
 
       for {
         random <- Random.scalaUtilRandom[IO]
@@ -146,7 +146,7 @@ class CaseTests extends CaseTester {
     }
 
     "interact correctly having 3 tasks in sequence" in {
-      val init = Simulationx[IO]("Test", GreedyScheduler(true))
+      val init = Simulation[IO]("Test", GreedyScheduler(true))
 
       for {
         random <- Random.scalaUtilRandom[IO]
@@ -212,7 +212,7 @@ class CaseTests extends CaseTester {
     }
 
     "stop after 2 tasks in sequence" in {
-      val init = Simulationx[IO]("Test", GreedyScheduler(true))
+      val init = Simulation[IO]("Test", GreedyScheduler(true))
 
       for {
         random <- Random.scalaUtilRandom[IO]
