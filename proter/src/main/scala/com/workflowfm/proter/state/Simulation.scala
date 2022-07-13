@@ -404,7 +404,7 @@ object Simulationx extends StateOps {
   def stop[F[_] : Monad](): StateT[F, Simulationx[F], Seq[Event]] =
     abortAll()
       .modify(_.copy(events = EventQueue()))
-      .flatMap { events => StateT.fromState(finish().map(e => Monad[F].pure(events :+ e))) }
+      .flatMap { events => StateT.fromState(finish().map(e => Monad[F].pure(events ++ e))) }
 
   /**
     * Shuts down the entire simulation and shuts down the actor.
@@ -415,8 +415,8 @@ object Simulationx extends StateOps {
     *
     * @group toplevel
     */
-  def finish[F[_]](): State[Simulationx[F], Event] = State { sim =>
-    (sim, EDone(sim.id, sim.time)) // TODO do we want to mark the simulation as done?
+  def finish[F[_]](): State[Simulationx[F], Seq[Event]] = State { sim =>
+    (sim, Seq(EDone(sim.id, sim.time))) // TODO do we want to mark the simulation as done?
   }
 
   def unknownCase[F[_] : Monad](caseName: String): StateT[F, Simulationx[F], Seq[Event]] = StateT {
