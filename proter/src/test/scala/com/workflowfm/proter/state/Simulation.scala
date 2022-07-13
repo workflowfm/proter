@@ -15,9 +15,11 @@ import scala.util.Success
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AsyncWordSpec
 
+import cats.Monad
 import cats.data.StateT
 import cats.effect.IO
 import cats.effect.implicits.*
+import cats.effect.std.Random
 import cats.effect.testing.scalatest.AsyncIOSpec
 import cats.implicits.*
 
@@ -25,7 +27,7 @@ import cats.implicits.*
 class SimulationTests extends SimulationTester {
   import MockCaseRef._
 
-  "A full Simulation run" must {
+  "A full Simulation run" should {
 /*
     "interact correctly with a simulation with no tasks" in {
       val coordinator = new Coordinator(new ProterScheduler())
@@ -196,7 +198,7 @@ class SimulationTests extends SimulationTester {
       } yield (())
     }
 
-    "correctly work with a case starting at the time limit" in {
+    "correctly execute a case starting at the time limit" in {
       for {
         ref1 <- mockSingleTask("test1", 0L, 3L, 3L)
         ref2 <- mockAborted("test2", 10L)
@@ -208,6 +210,105 @@ class SimulationTests extends SimulationTester {
         _ <- sim("Test", state)
         _ = ref1 `should` comply
         _ = ref2 `should` comply
+      } yield (())
+    }
+
+    "correctly execute an arrival" in {
+      for {
+        random <- Random.scalaUtilRandom[IO]
+        arrival = MockSingleTaskArrival(0L, 3L, 2L)
+
+        state = liftSingleStateT(
+          addArrivalNow("test", (), ConstantLong(arrival.interval), Some(5))(using Monad[IO], random, arrival)
+        )
+        _ <- sim("Test", state)
+        _ = arrival.cases.length `should` be (5)
+        _ = arrival.cases.foreach(c => c `should` comply)
+      } yield (())
+    }
+
+    "correctly execute 2 arrivals" in {
+      for {
+        random <- Random.scalaUtilRandom[IO]
+        arrival1 = MockSingleTaskArrival(0L, 3L, 2L)
+        arrival2 = MockSingleTaskArrival(1L, 3L, 2L)
+
+        state = compose2(
+          liftSingleStateT(
+            addArrivalNow("test1", (), ConstantLong(arrival1.interval), Some(5))(using Monad[IO], random, arrival1)
+          ),
+          liftSingleStateT(
+            addArrival(1L, "test2", (), ConstantLong(arrival2.interval), Some(4))(using Monad[IO], random, arrival2)
+          )
+        )
+        _ <- sim("Test", state)
+        _ = arrival1.cases.length `should` be (5)
+        _ = arrival1.cases.foreach(c => c `should` comply)
+        _ = arrival2.cases.length `should` be (4)
+        _ = arrival2.cases.foreach(c => c `should` comply)
+      } yield (())
+    }
+
+ /*   "correctly execute 2 arrivals using `addArrivalNext`" in {
+      for {
+        random <- Random.scalaUtilRandom[IO]
+        arrival1 = MockSingleTaskArrival(3L, 3L, 2L)
+        arrival2 = MockSingleTaskArrival(2L, 3L, 2L)
+
+        state = compose2(
+          liftSingleStateT(
+            addArrivalNext("test1", (), ConstantLong(arrival1.interval), Some(4))(using Monad[IO], random, arrival1)
+          ),
+          liftSingleStateT(
+            addArrivalNext("test2", (), ConstantLong(arrival2.interval), Some(3))(using Monad[IO], random, arrival2)
+          )
+        )
+        _ <- sim("Test", state)
+        _ = arrival1.cases.length `should` be (5)
+        _ = arrival1.cases.foreach(c => c `should` comply)
+        _ = arrival2.cases.length `should` be (4)
+        _ = arrival2.cases.foreach(c => c `should` comply)
+      } yield (())
+    }
+*/
+
+    "correctly execute an infinite arrival" in {
+      for {
+        random <- Random.scalaUtilRandom[IO]
+        arrival = MockSingleTaskArrival(0L, 3L, 1L)
+
+        state = compose2(
+          liftSingleStateT(
+            addArrivalNow("test", (), ConstantLong(arrival.interval), Some(5))(using Monad[IO], random, arrival)
+          ),
+          liftSingleState(limit(16L))
+        )
+        _ <- sim("Test", state)
+        _ = arrival.cases.length `should` be (5)
+        _ = arrival.cases.foreach(c => c `should` comply)
+      } yield (())
+    }
+
+    "correctly execute 2 infinite arrivals" in {
+      for {
+        random <- Random.scalaUtilRandom[IO]
+        arrival1 = MockSingleTaskArrival(0L, 3L, 1L)
+        arrival2 = MockSingleTaskArrival(3L, 4L, 1L)
+
+        state = compose(
+          liftSingleStateT(
+            addArrivalNow("test1", (), ConstantLong(arrival1.interval), None)(using Monad[IO], random, arrival1)
+          ),
+          liftSingleStateT(
+            addArrival(3L, "test2", (), ConstantLong(arrival2.interval), None)(using Monad[IO], random, arrival2)
+          ),
+          liftSingleState(limit(14L))
+        )
+        _ <- sim("Test", state)
+        _ = arrival1.cases.length `should` be (5)
+        _ = arrival1.cases.foreach(c => c `should` comply)
+        _ = arrival2.cases.length `should` be (3)
+        _ = arrival2.cases.foreach(c => c `should` comply)
       } yield (())
     }
 

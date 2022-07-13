@@ -315,29 +315,22 @@ object MockCaseRef extends StateOps {
 
     override def expectedCalls: Seq[Call] = Seq(Run, Stop)
   })
-/*
-  def mockSingleTaskGenerator(
-      name: String,
-      start: Long,
-      interval: Long,
-      duration: Long,
-      limit: Int
-  ): MockCaseRefGenerator = new MockCaseRefGenerator {
+
+
+  case class MockSingleTaskArrival(start: Long, interval: Long, duration: Long) extends Case[IO, Unit] {
     import collection.mutable.Queue
+    val cases: Queue[MockCaseRef] = Queue()
 
-    val sims: Queue[MockCaseRef] = Queue()
-
-    override def build(manager: Manager, count: Int): SimulationRef = {
-      val sim = mockSingleTask(
-        name + ":" + count,
-        manager,
+    override def init(name: String, count: Int, time: Long, t: Unit): IO[CaseRef[IO]] = for {
+      c <- mockSingleTask(
+        name, 
         start + interval * count,
         duration,
         start + interval * count + duration
       )
-      sims.enqueue(sim)
-      sim
-    }
-  }*/
+      _ = cases.enqueue(c)
+    } yield (c)
+  }
+
 }
  
