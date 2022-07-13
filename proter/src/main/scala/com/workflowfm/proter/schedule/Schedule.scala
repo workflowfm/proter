@@ -8,9 +8,9 @@ import scala.annotation.tailrec
   *
   * Each interval is represented as a pair of timestamps.
   * @example
-  *   Schedule(List( (1L,2L), (3L,4L) )) // The corresponding [[Resource]] is scheduled to be
-  *   busy between `1L` and `2L` and between `3L` and `4L`, and idle between `0L` and `1L`, between
-  *   `2L` and `3L` and after `4L`.
+  *   Schedule(List( (1L,2L), (3L,4L) )) // The corresponding [[Resource]] is scheduled to be busy
+  *   between `1L` and `2L` and between `3L` and `4L`, and idle between `0L` and `1L`, between `2L`
+  *   and `3L` and after `4L`.
   *
   * @param tasks
   *   Busy time intervals as pairs of timestamps.
@@ -169,8 +169,8 @@ object Schedule {
   def apply(): Schedule = Schedule(List.empty[(Long, Long)])
 
   /**
-    * Creates a [[Schedule]] from a [[ResourceState]] based on its currently running [[TaskInstance]]
-    * (if any).
+    * Creates a [[Schedule]] from a [[ResourceState]] based on its currently running
+    * [[TaskInstance]] (if any).
     *
     * @param r
     *   The [[ResourceState]] to schedule for.

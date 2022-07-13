@@ -256,16 +256,16 @@ class SimMetricsAggregator {
 
 /*
 /**
-  * A [[com.workflowfm.proter.events.ResultHandler ResultHandler]] that collects simulation metrics
-  * to a [[SimMetricsAggregator]].
-  *
-  * Returns the [[SimMetricsAggregator]] with all the data as a result when done.
-  *
-  * Outputs the result using an (optional) [[SimMetricsOutput]].
-  *
-  * @param output
-  *   The [[SimMetricsOutput]] to use, if any.
-  */
+ * A [[com.workflowfm.proter.events.ResultHandler ResultHandler]] that collects simulation metrics
+ * to a [[SimMetricsAggregator]].
+ *
+ * Returns the [[SimMetricsAggregator]] with all the data as a result when done.
+ *
+ * Outputs the result using an (optional) [[SimMetricsOutput]].
+ *
+ * @param output
+ *   The [[SimMetricsOutput]] to use, if any.
+ */
 class SimMetricsHandler(output: SimMetricsOutput = SimNoOutput)
     extends ResultHandler[SimMetricsAggregator] {
   val metrics = new SimMetricsAggregator()

@@ -1,8 +1,7 @@
-package com.workflowfm.proter.events
+package com.workflowfm.proter
+package events
 
 import java.util.UUID
-
-import com.workflowfm.proter.TaskInstance
 
 /**
   * Output events generated from a [[Publisher]] during a simulation.
@@ -28,6 +27,18 @@ sealed trait Event {
   * The entire simulation started.
   */
 case class EStart(override val source: String, override val time: Long) extends Event {}
+
+/**
+  * A time limit was set.
+  *
+  * @param limit
+  *   The limit in time units/
+  */
+case class ETimeLimit(
+    override val source: String,
+    override val time: Long,
+    limit: Long
+) extends Event
 
 /**
   * A [[TaskResource]] was added.
@@ -57,6 +68,27 @@ case class ECaseAdd(
     override val time: Long,
     name: String,
     start: Long
+) extends Event
+
+/**
+  * An arrival was added.
+  *
+  * @param name
+  *   The name of the arriving cases.
+  * @param start
+  *   The timestamp when arrivals is scheduled to start.
+  * @param rate
+  *   The arrival rate.
+  * @param limit
+  *   The optional limit of the number of cases to generate.
+  */
+case class EArrivalAdd(
+    override val source: String,
+    override val time: Long,
+    name: String,
+    start: Long,
+    rate: LongDistribution,
+    limit: Option[Int]
 ) extends Event
 
 /**
@@ -140,6 +172,20 @@ case class ETaskDetach(
     cost: Double
 ) extends Event
 
+object ETaskDetach {
+
+  def resourceState(source: String, time: Long)(resourceState: ResourceState): Option[ETaskDetach] =
+    resourceState.currentTask.map { (start, task) =>
+      ETaskDetach(
+        source,
+        time,
+        task,
+        resourceState.resource.name,
+        resourceState.resource.costPerTick * (time - start)
+      )
+    }
+}
+
 /**
   * A [[TaskInstance]] has finished.
   *
@@ -190,8 +236,11 @@ object Event {
   def asString(e: Event): String = e match {
     case EStart(src, t) => s"[$t $src] === Simulation started! ==="
     case EDone(src, t) => s"[$t $src] === Simulation complete! ==="
+    case ETimeLimit(src, t, l) => s"[$t $src] Set time limit at: $l"
     case EResourceAdd(src, t, n, c) => s"[$t $src] Added resource: $n (CPT:$c)"
-    case ECaseAdd(src, t, a, s) => s"[$t $src] Added case [$a] to be run at: $s"
+    case ECaseAdd(src, t, a, s) => s"[$t $src] Added case [$a] to start at: $s"
+    case EArrivalAdd(src, t, a, s, r, l) =>
+      s"[$t $src] Added arrival for cases [$a] with rate [$r] limit [$l] to start at: $s"
     case ECaseStart(src, t, n) => s"[$t $src] Starting case: $n"
     case ECaseEnd(src, t, n, r) => s"[$t $src] Case [$n] completed. Result: $r"
     case ETaskAdd(src, t, task) =>

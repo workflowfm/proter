@@ -57,7 +57,7 @@ trait Distribution extends LongDistribution {
     * @return
     *   A sample value.
     */
-  def get[F[_]: Applicative : Random]: F[Double]
+  def get[F[_] : Applicative : Random]: F[Double]
 
   /**
     * Provides an estimate of the values that can be generated. This could be the mean of the
@@ -78,7 +78,8 @@ trait Distribution extends LongDistribution {
     * @return
     *   A sample `Long` value.
     */
-  override def getLong[F[_]: Applicative : Random]: F[Long] = Applicative[F].map(get[F])(_.floor.round)
+  override def getLong[F[_] : Applicative : Random]: F[Long] =
+    Applicative[F].map(get[F])(_.floor.round)
 
   /**
     * Provides an estimate of the `Long` values that can be generated.
@@ -110,7 +111,7 @@ case class ConstantLong(value: Long) extends LongDistribution {
     * @return
     *   The constant value.
     */
-  override def getLong[F[_]: Applicative : Random]: F[Long] = Applicative[F].pure(value)
+  override def getLong[F[_] : Applicative : Random]: F[Long] = Applicative[F].pure(value)
 
   /**
     * Provides an estimate of the constant value, i.e. the value itself.
@@ -136,7 +137,7 @@ case class Constant(value: Double) extends Distribution {
     * @return
     *   The constant value.
     */
-  override def get[F[_]: Applicative : Random]: F[Double] = Applicative[F].pure(value)
+  override def get[F[_] : Applicative : Random]: F[Double] = Applicative[F].pure(value)
 
   /**
     * Provides an estimate of the constant value, i.e. the value itself.
@@ -164,7 +165,7 @@ case class UniformLong(min: Long, max: Long) extends LongDistribution {
     * @return
     *   The random value.
     */
-  override def getLong[F[_]: Applicative : Random]: F[Long] = Random[F].betweenLong(min, max)
+  override def getLong[F[_] : Applicative : Random]: F[Long] = Random[F].betweenLong(min, max)
 
   /**
     * Provides an estimate of the values that can be generated.
@@ -194,7 +195,7 @@ case class Uniform(min: Double, max: Double) extends Distribution {
     * @return
     *   The random value.
     */
-  override def get[F[_]: Applicative : Random]: F[Double] = Random[F].betweenDouble(min, max)
+  override def get[F[_] : Applicative : Random]: F[Double] = Random[F].betweenDouble(min, max)
 
   /**
     * Provides an estimate of the values that can be generated.
@@ -216,7 +217,7 @@ case class Exponential(mean: Double) extends Distribution {
     * @return
     *   The random value.
     */
-  override def get[F[_]: Applicative : Random]: F[Double] = Random[F].nextDouble.map { rand =>
+  override def get[F[_] : Applicative : Random]: F[Double] = Random[F].nextDouble.map { rand =>
     /* Density function:
      * fx(t) = le^(-lt) , where l is lambda, t is time
      *

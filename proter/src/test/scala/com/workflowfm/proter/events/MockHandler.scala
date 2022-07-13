@@ -5,13 +5,16 @@ import cats.effect.implicits.*
 
 import scala.collection.immutable.Queue
 
-case class MockHandler(calls: Ref[IO, Queue[MockHandler.Call]], expected: Seq[MockHandler.Call]) extends EventHandler[IO] {
+case class MockHandler(calls: Ref[IO, Queue[MockHandler.Call]], expected: Seq[MockHandler.Call])
+    extends EventHandler[IO] {
   import MockHandler.*
 
   override def onInit(publisher: Publisher[?]): IO[Unit] = calls.update(_ :+ Init)
-  override def onEvent(event: Event): IO[Unit] =  calls.update(_ :+ OnEvent(event))
-  override def onDone(publisher: Publisher[?]): IO[Unit] =  calls.update(_ :+ Done)
-  override def onFail(e: Throwable, publisher: Publisher[?]): IO[Unit] = calls.update(_ :+ OnFail(e))
+  override def onEvent(event: Event): IO[Unit] = calls.update(_ :+ OnEvent(event))
+  override def onDone(publisher: Publisher[?]): IO[Unit] = calls.update(_ :+ Done)
+
+  override def onFail(e: Throwable, publisher: Publisher[?]): IO[Unit] =
+    calls.update(_ :+ OnFail(e))
 }
 
 object MockHandler {
@@ -26,9 +29,9 @@ object MockHandler {
     ref <- Ref[IO].of(Queue[Call]())
   } yield MockHandler(ref, expected)
 
-  def of(expected: Event*): IO[MockHandler] = withCalls(Init +: (expected.map(OnEvent(_))) :+ Done *)
+  def of(expected: Event*): IO[MockHandler] = withCalls(Init +: (expected.map(OnEvent(_))) :+ Done*)
 
-  def failing(ex: Throwable, expected: Event*): IO[MockHandler] = withCalls(Init +: (expected.map(OnEvent(_))) :+ OnFail(ex) *)
+  def failing(ex: Throwable, expected: Event*): IO[MockHandler] = withCalls(
+    Init +: (expected.map(OnEvent(_))) :+ OnFail(ex)*
+  )
 }
-
-
