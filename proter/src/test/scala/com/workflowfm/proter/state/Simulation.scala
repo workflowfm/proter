@@ -51,7 +51,7 @@ class SimulationTests extends SimulationTester {
     "correctly execute a case with just one task" in {
       for {
         ref <- mockSingleTask("test", 1L, 2L, 3L)
-        state = liftSingleState(addCaseRef(1L, ref))
+        state = seqM(addCaseRef(1L, ref))
         _ <- sim("Test", state)
         _ = ref `should` comply
       } yield (())
@@ -60,7 +60,7 @@ class SimulationTests extends SimulationTester {
     "correctly execute a case with 2 tasks in sequence" in {
       for {
         ref <- mockTwoTasks("test", 0L, 2L, 2L, 3L, 5L)
-        state = liftSingleState(addCaseRef(0L, ref))
+        state = seqM(addCaseRef(0L, ref))
         _ <- sim("Test", state)
         _ = ref `should` comply
       } yield (())
@@ -69,7 +69,7 @@ class SimulationTests extends SimulationTester {
     "correctly execute a case with multiple tasks in sequence" in {
       for {
         ref <- mockRepeater("test", 0L, 2L, 10)
-        state = liftSingleState(addCaseRef(0L, ref))
+        state = seqM(addCaseRef(0L, ref))
         _ <- sim("Test", state)
         _ = ref `should` comply
       } yield (())
@@ -78,7 +78,7 @@ class SimulationTests extends SimulationTester {
     "correctly execute a case with 2+1 tasks" in {
       for {
         ref <- mockTwoPlusOneTasks("test", 0L, 2L, 2L, 2L, 2L, 3L, 5L)
-        state = liftSingleState(addCaseRef(0L, ref))
+        state = seqM(addCaseRef(0L, ref))
         _ <- sim("Test", state)
         _ = ref `should` comply
       } yield (())
@@ -88,8 +88,8 @@ class SimulationTests extends SimulationTester {
       for {
         ref1 <- mockSingleTask("test1", 0L, 2L, 2L)
         ref2 <- mockSingleTask("test2", 1L, 2L, 3L)
-        state1 = liftSingleState(addCaseRef(0L, ref1))
-        state2 = liftSingleState(addCaseRef(1L, ref2))
+        state1 = seqM(addCaseRef(0L, ref1))
+        state2 = seqM(addCaseRef(1L, ref2))
         _ <- sim("Test", compose2(state1, state2))
         _ = ref1 `should` comply
         _ = ref2 `should` comply
@@ -100,8 +100,8 @@ class SimulationTests extends SimulationTester {
       for {
         ref1 <- mockSingleTask("test1", 0L, 10L, 10L)
         ref2 <- mockSingleTask("test2", 1L, 1L, 2L)
-        state1 = liftSingleState(addCaseRef(0L, ref1))
-        state2 = liftSingleState(addCaseRef(1L, ref2))
+        state1 = seqM(addCaseRef(0L, ref1))
+        state2 = seqM(addCaseRef(1L, ref2))
         _ <- sim("Test", compose2(state1, state2))
         _ = ref1 `should` comply
         _ = ref2 `should` comply
@@ -112,8 +112,8 @@ class SimulationTests extends SimulationTester {
       for {
         ref1 <- mockTwoPlusOneTasks("test1", 0L, 2L, 2L, 2L, 2L, 3L, 5L)
         ref2 <- mockTwoPlusOneTasks("test2", 1L, 1L, 2L, 1L, 2L, 3L, 5L)
-        state1 = liftSingleState(addCaseRef(0L, ref1))
-        state2 = liftSingleState(addCaseRef(1L, ref2))
+        state1 = seqM(addCaseRef(0L, ref1))
+        state2 = seqM(addCaseRef(1L, ref2))
         _ <- sim("Test", compose2(state1, state2))
         _ = ref1 `should` comply
         _ = ref2 `should` comply
@@ -133,7 +133,7 @@ class SimulationTests extends SimulationTester {
               start + 2L,
               3L,
               start + 5L
-            ).map(ref => (ref, liftSingleState(addCaseRef(start, ref)))))
+            ).map(ref => (ref, seqM(addCaseRef(start, ref)))))
           .toList.sequence
         
         _ <- sim("Test", compose(refs.map(_._2) :_*))
@@ -150,7 +150,7 @@ class SimulationTests extends SimulationTester {
               start,
               2L,
               10
-            ).map(ref => (ref, liftSingleState(addCaseRef(start, ref)))))
+            ).map(ref => (ref, seqM(addCaseRef(start, ref)))))
           .toList.sequence
         
         _ <- sim("Test", compose(refs.map(_._2) :_*))
@@ -161,7 +161,7 @@ class SimulationTests extends SimulationTester {
     "correctly execute a case aborting a task without resources" in {
       for {
         ref <- mockAbort("test", None)
-        state = liftSingleState(addCaseRef(0L, ref))
+        state = seqM(addCaseRef(0L, ref))
         _ <- sim("Test", state)
         _ = ref `should` comply
       } yield (())
@@ -171,9 +171,9 @@ class SimulationTests extends SimulationTester {
       val res = Resource("R", 0)
       for {
         ref <- mockAbort("test", Some(res))
-        state = compose2[IO](
-          liftSingleState(addResource(res)),
-          liftSingleState(addCaseRef(0L, ref))
+        state = compose2(
+          seqM(addResource[IO](res)),
+          seqM(addCaseRef(0L, ref))
         )
         _ <- sim("Test", state)
         _ = ref `should` comply
@@ -185,11 +185,11 @@ class SimulationTests extends SimulationTester {
         ref1 <- mockSingleTask("test1", 0L, 3L, 3L)
         ref2 <- mockAborted("test2", 10L)
         ref3 <- mockAborted("test3", 3L)
-        state = compose[IO] (
-          liftSingleState(addCaseRef(0L, ref1)),
-          liftSingleState(addCaseRef(0L, ref2)),
-          liftSingleState(addCaseRef(4L, ref3)),
-          liftSingleState(limit(5L))
+        state = compose (
+          seqM(addCaseRef(0L, ref1)),
+          seqM(addCaseRef(0L, ref2)),
+          seqM(addCaseRef(4L, ref3)),
+          seqM(limit(5L))
         )
         _ <- sim("Test", state)
         _ = ref1 `should` comply
@@ -202,10 +202,10 @@ class SimulationTests extends SimulationTester {
       for {
         ref1 <- mockSingleTask("test1", 0L, 3L, 3L)
         ref2 <- mockAborted("test2", 10L)
-        state = compose[IO] (
-          liftSingleState(addCaseRef(0L, ref1)),
-          liftSingleState(addCaseRef(4L, ref2)),
-          liftSingleState(limit(4L))
+        state = compose (
+          seqM(addCaseRef(0L, ref1)),
+          seqM(addCaseRef(4L, ref2)),
+          seqM(limit(4L))
         )
         _ <- sim("Test", state)
         _ = ref1 `should` comply
@@ -218,7 +218,7 @@ class SimulationTests extends SimulationTester {
         random <- Random.scalaUtilRandom[IO]
         arrival = MockSingleTaskArrival(0L, 3L, 2L)
 
-        state = liftSingleStateT(
+        state = seq(
           addArrivalNow("test", (), ConstantLong(arrival.interval), Some(5))(using Monad[IO], random, arrival)
         )
         _ <- sim("Test", state)
@@ -234,10 +234,10 @@ class SimulationTests extends SimulationTester {
         arrival2 = MockSingleTaskArrival(1L, 3L, 2L)
 
         state = compose2(
-          liftSingleStateT(
+          seq(
             addArrivalNow("test1", (), ConstantLong(arrival1.interval), Some(5))(using Monad[IO], random, arrival1)
           ),
-          liftSingleStateT(
+          seq(
             addArrival(1L, "test2", (), ConstantLong(arrival2.interval), Some(4))(using Monad[IO], random, arrival2)
           )
         )
@@ -278,10 +278,10 @@ class SimulationTests extends SimulationTester {
         arrival = MockSingleTaskArrival(0L, 3L, 1L)
 
         state = compose2(
-          liftSingleStateT(
+          seq(
             addArrivalNow("test", (), ConstantLong(arrival.interval), Some(5))(using Monad[IO], random, arrival)
           ),
-          liftSingleState(limit(16L))
+          seqM(limit(16L))
         )
         _ <- sim("Test", state)
         _ = arrival.cases.length `should` be (5)
@@ -296,13 +296,13 @@ class SimulationTests extends SimulationTester {
         arrival2 = MockSingleTaskArrival(3L, 4L, 1L)
 
         state = compose(
-          liftSingleStateT(
+          seq(
             addArrivalNow("test1", (), ConstantLong(arrival1.interval), None)(using Monad[IO], random, arrival1)
           ),
-          liftSingleStateT(
+          seq(
             addArrival(3L, "test2", (), ConstantLong(arrival2.interval), None)(using Monad[IO], random, arrival2)
           ),
-          liftSingleState(limit(14L))
+          seqM(limit(14L))
         )
         _ <- sim("Test", state)
         _ = arrival1.cases.length `should` be (5)

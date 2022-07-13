@@ -288,7 +288,7 @@ object MockCaseRef extends StateOps {
     override def react(call: Call): SimState[IO] = call match {
       case Run => addTasks(caseName, Seq(tg1, tg2, tg3))
       case Complete(time, Seq(task)) if time == 2L && task.compare(expected2) == 0 =>
-        liftSeqState(abortTasks(Seq(id1)))
+        lift(abortTasks(Seq(id1)))
       case Complete(time, Seq(task)) if time == expectedTime && task.compare(expected3) == 0 =>
         succeed(())
       case _ => idState

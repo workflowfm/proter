@@ -21,16 +21,16 @@ final case class Scenario[F[_] : Monad](name: String, state: Simulationx.SimStat
     copy(state = compose2(state, s))
 
   def withResource(r: Resource): Scenario[F] =
-    and(liftSingleState(addResource(r)))
+    and(seqM(addResource(r)))
 
   def withResources(rs: Seq[Resource]): Scenario[F] =
-    and(liftSeqState(addResources(rs)))
+    and(lift(addResources(rs)))
 
   def withCase[T](n: String, t: T)(using ct: Case[F, T]): Scenario[F] =
-    and(liftSingleStateT(addCaseNow(n, t)))
+    and(seq(addCaseNow(n, t)))
 
   def withTimedCase[T](n: String, time: Long, t: T)(using ct: Case[F, T]): Scenario[F] =
-    and(liftSingleStateT(addCase(time, n, t)))
+    and(seq(addCase(time, n, t)))
 
   def withCases[T](cases: (String, T)*)(using ct: Case[F, T]): Scenario[F] =
     and(addCasesNow(cases))
@@ -44,7 +44,7 @@ final case class Scenario[F[_] : Monad](name: String, state: Simulationx.SimStat
       rate: LongDistribution,
       limit: Int
   )(using ct: Case[F, T], r: Random[F]): Scenario[F] =
-    and(liftSingleStateT(addArrivalNow(n, t, rate, Some(limit))))
+    and(seq(addArrivalNow(n, t, rate, Some(limit))))
 
   def withTimedArrival[T](
       n: String,
@@ -53,14 +53,14 @@ final case class Scenario[F[_] : Monad](name: String, state: Simulationx.SimStat
       rate: LongDistribution,
       limit: Int
   )(using ct: Case[F, T], r: Random[F]): Scenario[F] =
-    and(liftSingleStateT(addArrival(time, n, t, rate, Some(limit))))
+    and(seq(addArrival(time, n, t, rate, Some(limit))))
 
   def withInfiniteArrival[T](
       n: String,
       t: T,
       rate: LongDistribution
   )(using ct: Case[F, T], r: Random[F]): Scenario[F] =
-    and(liftSingleStateT(addArrivalNow(n, t, rate, None)))
+    and(seq(addArrivalNow(n, t, rate, None)))
 
   def withTimedInifiniteArrival[T](
       n: String,
@@ -68,10 +68,10 @@ final case class Scenario[F[_] : Monad](name: String, state: Simulationx.SimStat
       t: T,
       rate: LongDistribution
   )(using ct: Case[F, T], r: Random[F]): Scenario[F] =
-    and(liftSingleStateT(addArrival(time, n, t, rate, None)))
+    and(seq(addArrival(time, n, t, rate, None)))
 
   def withLimit(t: Long): Scenario[F] =
-    and(liftSingleState(limit(t)))
+    and(seqM(limit(t)))
 
   def withStartingTime(t: Long): Scenario[F] =
     and(StateT(sim => Monad[F].pure((sim.copy(time = t), Seq()))))

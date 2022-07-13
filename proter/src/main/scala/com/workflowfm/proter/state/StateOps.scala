@@ -4,30 +4,29 @@ package state
 import cats.Monad
 import cats.data.{ State, StateT }
 
-import events.Event
-
 trait StateOps {
-  type SimState[F[_]] = StateT[F, Simulationx[F], Seq[Event]]
+  type SimState[F[_]] = StateT[F, Simulationx[F], Seq[events.Event]]
 
-  def liftSingleState[F[_] : Monad](
-      state: State[Simulationx[F], Event]
-  ): StateT[F, Simulationx[F], Seq[Event]] = StateT.fromState(state.map(e => Monad[F].pure(Seq(e))))
+  def seqM[F[_] : Monad, S[_[_]], E](
+      state: State[S[F], E]
+  ): StateT[F, S[F], Seq[E]] = StateT.fromState(state.map(e => Monad[F].pure(Seq(e))))
 
-  def liftSeqState[F[_] : Monad](
-      state: State[Simulationx[F], Seq[Event]]
-  ): StateT[F, Simulationx[F], Seq[Event]] = StateT.fromState(state.map(Monad[F].pure))
+  def lift[F[_] : Monad, S[_[_]], E](
+      state: State[S[F], Seq[E]]
+  ): StateT[F, S[F], Seq[E]] = StateT.fromState(state.map(Monad[F].pure))
 
-  def liftSingleStateT[F[_] : Monad](
-      state: StateT[F, Simulationx[F], Event]
-  ): StateT[F, Simulationx[F], Seq[Event]] = state.map(Seq(_))
+  def seq[F[_] : Monad, S[_[_]], E](
+      state: StateT[F, S[F], E]
+  ): StateT[F, S[F], Seq[E]] = state.map(Seq(_))
 
-  def compose[F[_] : Monad](l: SimState[F]*): SimState[F] =
+  def compose[F[_] : Monad, S[_[_]], E](l: StateT[F, S[F], Seq[E]]*): StateT[F, S[F], Seq[E]] =
     l.foldLeft(idState)(compose2)
 
-  def compose2[F[_] : Monad](a: SimState[F], b: SimState[F]): SimState[F] =
+  def compose2[F[_] : Monad, S[_[_]], E](a: StateT[F, S[F], Seq[E]], b: StateT[F, S[F], Seq[E]]): StateT[F, S[F], Seq[E]] =
     a.flatMap(e1 => b.map(e2 => e1 ++ e2))
 
-  def idState[F[_] : Monad]: SimState[F] = StateT.pure(Seq())
+  def idState[F[_] : Monad, S[_[_]], E]: StateT[F, S[F], Seq[E]] = StateT.pure(Seq())
 
-  def idStateM[F[_] : Monad]: F[SimState[F]] = Monad[F].pure(StateT.pure(Seq()))
+  def idStateM[F[_] : Monad, S[_[_]], E]: F[StateT[F, S[F], Seq[E]]] = Monad[F].pure(StateT.pure(Seq()))
+
 }
