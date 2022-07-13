@@ -76,9 +76,10 @@ case class Simulation[F[_]](
               )
             )
           }
-          val (handledState, tasks, terminate) = toHandle.foldLeft((updateEventQueue, Queue[TaskInstance](), false))(
-            Simulation.handleDiscreteEvent
-          )
+          val (handledState, tasks, terminate) =
+            toHandle.foldLeft((updateEventQueue, Queue[TaskInstance](), false))(
+              Simulation.handleDiscreteEvent
+            )
 
           val stopState = StateT.fromState(Simulation.stopTasks[F](tasks).map(Monad[F].pure))
 
@@ -88,7 +89,13 @@ case class Simulation[F[_]](
 
           val terminateState = if terminate then Simulation.stop() else Simulation.idState
 
-          Seq(handledState.map(_.toSeq), stopState, notifyState, allocateState, terminateState).sequence
+          Seq(
+            handledState.map(_.toSeq),
+            stopState,
+            notifyState,
+            allocateState,
+            terminateState
+          ).sequence
             .bimap(Left(_), _.flatten)
             .run(this)
         }
@@ -347,7 +354,7 @@ object Simulation extends StateOps {
   protected def handleDiscreteEvent[F[_] : Monad](
       acc: (StateT[F, Simulation[F], Queue[Event]], Queue[TaskInstance], Boolean),
       event: DiscreteEvent
-  ): (StateT[F, Simulation[F], Queue[Event]], Queue[TaskInstance], Boolean) = 
+  ): (StateT[F, Simulation[F], Queue[Event]], Queue[TaskInstance], Boolean) =
     acc match {
       case (state, tasks, terminate) =>
         // TODO check time?

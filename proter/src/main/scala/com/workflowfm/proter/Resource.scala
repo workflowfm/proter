@@ -183,6 +183,7 @@ case class ResourceMap(resources: Map[String, ResourceState]) {
 }
 
 object ResourceMap {
+
   def apply(resources: Seq[Resource]): ResourceMap = ResourceMap(
     Map() ++ resources.map { r => r.name -> r.start }
   )

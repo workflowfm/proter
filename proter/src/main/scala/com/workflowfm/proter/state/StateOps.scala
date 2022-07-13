@@ -22,11 +22,15 @@ trait StateOps {
   def compose[F[_] : Monad, S[_[_]], E](l: StateT[F, S[F], Seq[E]]*): StateT[F, S[F], Seq[E]] =
     l.foldLeft(idState)(compose2)
 
-  def compose2[F[_] : Monad, S[_[_]], E](a: StateT[F, S[F], Seq[E]], b: StateT[F, S[F], Seq[E]]): StateT[F, S[F], Seq[E]] =
+  def compose2[F[_] : Monad, S[_[_]], E](
+      a: StateT[F, S[F], Seq[E]],
+      b: StateT[F, S[F], Seq[E]]
+  ): StateT[F, S[F], Seq[E]] =
     a.flatMap(e1 => b.map(e2 => e1 ++ e2))
 
   def idState[F[_] : Monad, S[_[_]], E]: StateT[F, S[F], Seq[E]] = StateT.pure(Seq())
 
-  def idStateM[F[_] : Monad, S[_[_]], E]: F[StateT[F, S[F], Seq[E]]] = Monad[F].pure(StateT.pure(Seq()))
+  def idStateM[F[_] : Monad, S[_[_]], E]: F[StateT[F, S[F], Seq[E]]] =
+    Monad[F].pure(StateT.pure(Seq()))
 
 }

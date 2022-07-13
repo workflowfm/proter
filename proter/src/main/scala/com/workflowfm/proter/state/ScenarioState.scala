@@ -41,14 +41,15 @@ trait ScenarioState {
     * @param simulation
     *   The [[Simulation]] to run.
     */
-  def addCaseRef[F[_]](t: Long, caseRef: CaseRef[F]): State[Simulation[F], Seq[Event]] = State(sim =>
-    if t >= sim.time then
-      (
-        sim.copy(events = sim.events + StartingCase(t, caseRef)),
-        Seq(ECaseAdd(sim.id, sim.time, caseRef.caseName, t))
-      )
-    else (sim, Seq(sim.error(s"Attempted to start case [${caseRef.caseName}] in the past: $t")))
-  )
+  def addCaseRef[F[_]](t: Long, caseRef: CaseRef[F]): State[Simulation[F], Seq[Event]] =
+    State(sim =>
+      if t >= sim.time then
+        (
+          sim.copy(events = sim.events + StartingCase(t, caseRef)),
+          Seq(ECaseAdd(sim.id, sim.time, caseRef.caseName, t))
+        )
+      else (sim, Seq(sim.error(s"Attempted to start case [${caseRef.caseName}] in the past: $t")))
+    )
 
   def addCase[F[_] : Monad, T](time: Long, name: String, t: T)(
       using ct: Case[F, T]
@@ -134,7 +135,9 @@ trait ScenarioState {
         )
       )
     } else
-      Monad[F].pure((sim, Seq(sim.error(s"Attempted to start arrivals of [$name] in the past: $t"))))
+      Monad[F].pure(
+        (sim, Seq(sim.error(s"Attempted to start arrivals of [$name] in the past: $t")))
+      )
   )
 
   def addArrivalNow[F[_] : Monad : Random, T](
@@ -164,9 +167,11 @@ trait ScenarioState {
     else
       (
         sim,
-        Seq(sim.error(
-          s"Attempted to set time limit in the past. Limit: [$t] < Current time: [${sim.time}]."
-        ))
+        Seq(
+          sim.error(
+            s"Attempted to set time limit in the past. Limit: [$t] < Current time: [${sim.time}]."
+          )
+        )
       )
   )
 

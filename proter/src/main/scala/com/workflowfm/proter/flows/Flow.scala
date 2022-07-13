@@ -213,13 +213,14 @@ case class FlowCaseRef[F[_] : Monad : UUIDGen : Random](
 
 given [F[_]](using Monad[F], UUIDGen[F], Random[F]): Case[F, Flow] with {
 
-  override def init(name: String, count: Int, time: Long, flow: Flow): F[CaseRef[F]] = Monad[F].pure(
-    FlowCaseRef(
-      name,
-      flow,
-      CallbackMap(Map())
+  override def init(name: String, count: Int, time: Long, flow: Flow): F[CaseRef[F]] =
+    Monad[F].pure(
+      FlowCaseRef(
+        name,
+        flow,
+        CallbackMap(Map())
+      )
     )
-  )
 }
 
 /*

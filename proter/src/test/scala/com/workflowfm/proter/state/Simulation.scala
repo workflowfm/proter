@@ -1,7 +1,7 @@
 package com.workflowfm.proter
 package state
 
-import cases.{ MockCaseCallMatcher, MockCaseRef } 
+import cases.{ MockCaseCallMatcher, MockCaseRef }
 import events.Event
 import schedule.ProterScheduler
 import state.{ StateOps, ScenarioState }
@@ -22,7 +22,6 @@ import cats.effect.implicits.*
 import cats.effect.std.Random
 import cats.effect.testing.scalatest.AsyncIOSpec
 import cats.implicits.*
-
 
 class SimulationTests extends SimulationTester {
   import MockCaseRef._
@@ -123,7 +122,7 @@ class SimulationTests extends SimulationTester {
     "correctly execute 100x 2+1 cases" in {
       for {
         refs <- (for i <- 1 to 100 yield (i, i % 10))
-          .map((i, start) => 
+          .map((i, start) =>
             mockTwoPlusOneTasks(
               "test" + i + "(" + start + ")",
               start,
@@ -133,10 +132,12 @@ class SimulationTests extends SimulationTester {
               start + 2L,
               3L,
               start + 5L
-            ).map(ref => (ref, lift(addCaseRef(start, ref)))))
-          .toList.sequence
-        
-        _ <- sim("Test", compose(refs.map(_._2) :_*))
+            ).map(ref => (ref, lift(addCaseRef(start, ref))))
+          )
+          .toList
+          .sequence
+
+        _ <- sim("Test", compose(refs.map(_._2): _*))
         _ = refs.foreach(_._1 `should` comply)
       } yield (())
     }
@@ -144,16 +145,18 @@ class SimulationTests extends SimulationTester {
     "correctly execute 100x 10-task cases" in {
       for {
         refs <- (for i <- 1 to 100 yield (i, i % 10))
-          .map((i, start) => 
+          .map((i, start) =>
             mockRepeater(
               "test" + i + "(" + start + ")",
               start,
               2L,
               10
-            ).map(ref => (ref, lift(addCaseRef(start, ref)))))
-          .toList.sequence
-        
-        _ <- sim("Test", compose(refs.map(_._2) :_*))
+            ).map(ref => (ref, lift(addCaseRef(start, ref))))
+          )
+          .toList
+          .sequence
+
+        _ <- sim("Test", compose(refs.map(_._2): _*))
         _ = refs.foreach(_._1 `should` comply)
       } yield (())
     }
@@ -185,7 +188,7 @@ class SimulationTests extends SimulationTester {
         ref1 <- mockSingleTask("test1", 0L, 3L, 3L)
         ref2 <- mockAborted("test2", 10L)
         ref3 <- mockAborted("test3", 3L)
-        state = compose (
+        state = compose(
           lift(addCaseRef(0L, ref1)),
           lift(addCaseRef(0L, ref2)),
           lift(addCaseRef(4L, ref3)),
@@ -202,7 +205,7 @@ class SimulationTests extends SimulationTester {
       for {
         ref1 <- mockSingleTask("test1", 0L, 3L, 3L)
         ref2 <- mockAborted("test2", 10L)
-        state = compose (
+        state = compose(
           lift(addCaseRef(0L, ref1)),
           lift(addCaseRef(4L, ref2)),
           lift(limit(4L))
@@ -218,10 +221,14 @@ class SimulationTests extends SimulationTester {
         random <- Random.scalaUtilRandom[IO]
         arrival = MockSingleTaskArrival(0L, 3L, 2L)
 
-        state = addArrivalNow("test", (), ConstantLong(arrival.interval), Some(5))(using Monad[IO], random, arrival)
+        state = addArrivalNow("test", (), ConstantLong(arrival.interval), Some(5))(
+          using Monad[IO],
+          random,
+          arrival
+        )
 
         _ <- sim("Test", state)
-        _ = arrival.cases.length `should` be (5)
+        _ = arrival.cases.length `should` be(5)
         _ = arrival.cases.foreach(c => c `should` comply)
       } yield (())
     }
@@ -233,39 +240,35 @@ class SimulationTests extends SimulationTester {
         arrival2 = MockSingleTaskArrival(1L, 3L, 2L)
 
         state = compose2(
-          addArrivalNow("test1", (), ConstantLong(arrival1.interval), Some(5))(using Monad[IO], random, arrival1),
-          addArrival(1L, "test2", (), ConstantLong(arrival2.interval), Some(4))(using Monad[IO], random, arrival2)
-        )
-        _ <- sim("Test", state)
-        _ = arrival1.cases.length `should` be (5)
-        _ = arrival1.cases.foreach(c => c `should` comply)
-        _ = arrival2.cases.length `should` be (4)
-        _ = arrival2.cases.foreach(c => c `should` comply)
-      } yield (())
-    }
-
- /*   "correctly execute 2 arrivals using `addArrivalNext`" in {
-      for {
-        random <- Random.scalaUtilRandom[IO]
-        arrival1 = MockSingleTaskArrival(3L, 3L, 2L)
-        arrival2 = MockSingleTaskArrival(2L, 3L, 2L)
-
-        state = compose2(
-          liftSingleStateT(
-            addArrivalNext("test1", (), ConstantLong(arrival1.interval), Some(4))(using Monad[IO], random, arrival1)
+          addArrivalNow("test1", (), ConstantLong(arrival1.interval), Some(5))(
+            using Monad[IO],
+            random,
+            arrival1
           ),
-          liftSingleStateT(
-            addArrivalNext("test2", (), ConstantLong(arrival2.interval), Some(3))(using Monad[IO], random, arrival2)
+          addArrival(1L, "test2", (), ConstantLong(arrival2.interval), Some(4))(
+            using Monad[IO],
+            random,
+            arrival2
           )
         )
         _ <- sim("Test", state)
-        _ = arrival1.cases.length `should` be (5)
+        _ = arrival1.cases.length `should` be(5)
         _ = arrival1.cases.foreach(c => c `should` comply)
-        _ = arrival2.cases.length `should` be (4)
+        _ = arrival2.cases.length `should` be(4)
         _ = arrival2.cases.foreach(c => c `should` comply)
       } yield (())
     }
-*/
+
+    /* "correctly execute 2 arrivals using `addArrivalNext`" in { for { random <-
+     * Random.scalaUtilRandom[IO] arrival1 = MockSingleTaskArrival(3L, 3L, 2L) arrival2 =
+     * MockSingleTaskArrival(2L, 3L, 2L)
+     *
+     * state = compose2( liftSingleStateT( addArrivalNext("test1", (),
+     * ConstantLong(arrival1.interval), Some(4))(using Monad[IO], random, arrival1) ),
+     * liftSingleStateT( addArrivalNext("test2", (), ConstantLong(arrival2.interval), Some(3))(using
+     * Monad[IO], random, arrival2) ) ) _ <- sim("Test", state) _ = arrival1.cases.length `should`
+     * be (5) _ = arrival1.cases.foreach(c => c `should` comply) _ = arrival2.cases.length `should`
+     * be (4) _ = arrival2.cases.foreach(c => c `should` comply) } yield (()) } */
 
     "correctly execute an infinite arrival" in {
       for {
@@ -273,11 +276,15 @@ class SimulationTests extends SimulationTester {
         arrival = MockSingleTaskArrival(0L, 3L, 1L)
 
         state = compose2(
-          addArrivalNow("test", (), ConstantLong(arrival.interval), Some(5))(using Monad[IO], random, arrival),
+          addArrivalNow("test", (), ConstantLong(arrival.interval), Some(5))(
+            using Monad[IO],
+            random,
+            arrival
+          ),
           lift(limit(16L))
         )
         _ <- sim("Test", state)
-        _ = arrival.cases.length `should` be (5)
+        _ = arrival.cases.length `should` be(5)
         _ = arrival.cases.foreach(c => c `should` comply)
       } yield (())
     }
@@ -289,14 +296,22 @@ class SimulationTests extends SimulationTester {
         arrival2 = MockSingleTaskArrival(3L, 4L, 1L)
 
         state = compose(
-          addArrivalNow("test1", (), ConstantLong(arrival1.interval), None)(using Monad[IO], random, arrival1),
-          addArrival(3L, "test2", (), ConstantLong(arrival2.interval), None)(using Monad[IO], random, arrival2),
+          addArrivalNow("test1", (), ConstantLong(arrival1.interval), None)(
+            using Monad[IO],
+            random,
+            arrival1
+          ),
+          addArrival(3L, "test2", (), ConstantLong(arrival2.interval), None)(
+            using Monad[IO],
+            random,
+            arrival2
+          ),
           lift(limit(14L))
         )
         _ <- sim("Test", state)
-        _ = arrival1.cases.length `should` be (5)
+        _ = arrival1.cases.length `should` be(5)
         _ = arrival1.cases.foreach(c => c `should` comply)
-        _ = arrival2.cases.length `should` be (3)
+        _ = arrival2.cases.length `should` be(3)
         _ = arrival2.cases.foreach(c => c `should` comply)
       } yield (())
     }
@@ -304,10 +319,15 @@ class SimulationTests extends SimulationTester {
   }
 }
 
+trait SimulationTester
+    extends AsyncWordSpec
+    with AsyncIOSpec
+    with Matchers
+    with MockCaseCallMatcher
+    with ScenarioState
+    with StateOps {
 
-trait SimulationTester extends AsyncWordSpec with AsyncIOSpec with Matchers with MockCaseCallMatcher with ScenarioState with StateOps {
-
- def sim(
+  def sim(
       name: String,
       state: StateT[IO, Simulation[IO], Seq[Event]]
   ): IO[Unit] = {

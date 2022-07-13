@@ -376,29 +376,45 @@ class SchedulerTests extends TaskTester with ScheduleTester {
   final case class TestResourceMap(m: ResourceMap) {
 
     // pre-attach Tasks to resources
-    def +(r: String, duration: Long): TestResourceMap = TestResourceMap (
+    def +(r: String, duration: Long): TestResourceMap = TestResourceMap(
       m.startTask(t(0L, Seq(r), Task.Medium, 0L, duration), 0L).getOrElse(m)
     )
 
     // test GreedyPriorityScheduler
     def g(tasks: TaskInstance*): Seq[Long] =
-      GreedyScheduler(false).getNextTasks(0L, tasks.sorted, m).map (_.id
-        .getMostSignificantBits())
+      GreedyScheduler(false)
+        .getNextTasks(0L, tasks.sorted, m)
+        .map(
+          _.id
+            .getMostSignificantBits()
+        )
 
     // test StrictPriorityScheduler
     def s(tasks: TaskInstance*): Seq[Long] =
-      GreedyScheduler(true).getNextTasks(0L, tasks.sorted, m).map (_.id
-        .getMostSignificantBits())
+      GreedyScheduler(true)
+        .getNextTasks(0L, tasks.sorted, m)
+        .map(
+          _.id
+            .getMostSignificantBits()
+        )
 
     // test GreedyFCFSScheduler
     def gf(tasks: TaskInstance*): Seq[Long] =
-      GreedyScheduler(false).getNextTasks(0L, tasks, m).map (_.id
-        .getMostSignificantBits())
+      GreedyScheduler(false)
+        .getNextTasks(0L, tasks, m)
+        .map(
+          _.id
+            .getMostSignificantBits()
+        )
 
     // test StrictFCFSScheduler
     def sf(tasks: TaskInstance*): Seq[Long] =
-      GreedyScheduler(true).getNextTasks(0L, tasks, m).map (_.id
-        .getMostSignificantBits())
+      GreedyScheduler(true)
+        .getNextTasks(0L, tasks, m)
+        .map(
+          _.id
+            .getMostSignificantBits()
+        )
 
     // test ProterScheduler
     def p(tasks: TaskInstance*): Seq[Long] =
@@ -414,8 +430,10 @@ class SchedulerTests extends TaskTester with ScheduleTester {
     }*/
   }
 
-  object TestResourceMap { 
-    def apply(names: String*): TestResourceMap = TestResourceMap(ResourceMap(names.map(Resource(_, 0))))
+  object TestResourceMap {
+
+    def apply(names: String*): TestResourceMap = TestResourceMap(
+      ResourceMap(names.map(Resource(_, 0)))
+    )
   }
 }
- 

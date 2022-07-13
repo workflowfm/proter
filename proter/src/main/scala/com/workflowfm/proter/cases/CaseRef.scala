@@ -216,9 +216,6 @@ abstract class AsyncCaseRef[F[_] : Monad : UUIDGen : Random](callbackMap: Callba
 
 object AsyncCaseRef {
   type Callback[F[_], S] = Monad[F] ?=> Try[(TaskInstance, Long)] => StateT[F, S, SimState[F]]
-
-/* def idM[F : Monad]: StateT[F, AsyncCaseRef[F], CaseResponse[F]] = StateT.empty
-   * ()Monad[F].pure((, CaseResponse.empty[F])) */
 }
 
 case class CallbackMap[F[_]](m: Map[UUID, AsyncCaseRef.Callback[F, CallbackMap[F]]]) {

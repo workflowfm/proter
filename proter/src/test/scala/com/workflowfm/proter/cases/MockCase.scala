@@ -17,7 +17,6 @@ import cats.effect.implicits.*
 import cats.effect.std.{ Random, UUIDGen }
 import cats.implicits.*
 
-
 abstract class MockCaseRef(override val caseName: String) extends CaseRef[IO] {
   import MockCaseRef._
   import collection.mutable.Queue
@@ -81,7 +80,7 @@ trait MockCaseCallMatcher {
     case _ => false
   }
 }
- 
+
 object MockCaseRef extends StateOps {
   sealed trait Call
   case object NoCall extends Call
@@ -101,15 +100,16 @@ object MockCaseRef extends StateOps {
       expectedEnd: Long
   ): IO[MockCaseRef] = for {
     random <- Random.scalaUtilRandom[IO]
-    given Random[IO] = random    
+    given Random[IO] = random
     id <- gen.randomUUID
     tg = Task("T", duration).withID(id)
     expected <- tg.create(name, expectedCreate)
-  } yield ( new MockCaseRef(name) {
+  } yield (new MockCaseRef(name) {
 
     override def react(call: Call): SimState[IO] = call match {
       case Run => addTask(caseName)(tg)
-      case Complete(time, Seq(task)) if time == expectedEnd && task.compare(expected) == 0 => succeed(())
+      case Complete(time, Seq(task)) if time == expectedEnd && task.compare(expected) == 0 =>
+        succeed(())
       case _ => idState
     }
 
@@ -125,14 +125,14 @@ object MockCaseRef extends StateOps {
       expectedEnd2: Long
   ): IO[MockCaseRef] = for {
     random <- Random.scalaUtilRandom[IO]
-    given Random[IO] = random    
+    given Random[IO] = random
     id1 <- gen.randomUUID
     tg1 = Task("T1", duration1).withID(id1)
     expected1 <- tg1.create(name, expectedCreate1)
     id2 <- gen.randomUUID
     tg2 = Task("T2", duration2).withID(id2)
     expected2 <- tg2.create(name, expectedEnd1)
-  } yield ( new MockCaseRef(name) {
+  } yield (new MockCaseRef(name) {
 
     override def react(call: Call): SimState[IO] = call match {
       case Run => addTask(caseName)(tg1)
@@ -157,16 +157,14 @@ object MockCaseRef extends StateOps {
     random <- Random.scalaUtilRandom[IO]
     given Random[IO] = random
     ids <- (for i <- 0 to repeat yield gen.randomUUID).toList.sequence
-    tasks = ids.zipWithIndex.map( (id, i) => Task(s"T$i", duration).withID(id) )
-    expected <- tasks.zipWithIndex.map( (t, i) => 
-      t.create(name, expectedCreate + i * duration) 
-        .map(ti => 
-          Complete(
-            expectedCreate + (i + 1) * duration,
-            Seq(ti))
+    tasks = ids.zipWithIndex.map((id, i) => Task(s"T$i", duration).withID(id))
+    expected <- tasks.zipWithIndex
+      .map((t, i) =>
+        t.create(name, expectedCreate + i * duration)
+          .map(ti => Complete(expectedCreate + (i + 1) * duration, Seq(ti)))
       )
-    ).sequence
-  } yield ( new MockCaseRef(name) {
+      .sequence
+  } yield (new MockCaseRef(name) {
 
     var i: Int = 0
 
@@ -174,19 +172,18 @@ object MockCaseRef extends StateOps {
       case Run => addTask(caseName)(tasks(0))
       case Complete(time, Seq(task))
           if time == expected(i).time && task.compare(expected(i).tasks.head) == 0 => {
-            if i < repeat then {
-              i = i + 1
-              addTask(caseName)(tasks(i))
-            } else {
-              succeed(())
-            }
-          }
+        if i < repeat then {
+          i = i + 1
+          addTask(caseName)(tasks(i))
+        } else {
+          succeed(())
+        }
+      }
       case _ => idState
     }
 
     override def expectedCalls: Seq[Call] = Seq(Run) ++ expected
   })
-  
 
   def mockTwoPlusOneTasks(
       name: String,
@@ -199,7 +196,7 @@ object MockCaseRef extends StateOps {
       expectedEnd3: Long
   ): IO[MockCaseRef] = for {
     random <- Random.scalaUtilRandom[IO]
-    given Random[IO] = random    
+    given Random[IO] = random
     id1 <- gen.randomUUID
     tg1 = Task("T1", duration1).withID(id1)
     expected1 <- tg1.create(name, expectedCreate1)
@@ -209,7 +206,7 @@ object MockCaseRef extends StateOps {
     id3 <- gen.randomUUID
     tg3 = Task("T3", duration3).withID(id3)
     expected3 <- tg3.create(name, Math.max(expectedEnd1, expectedEnd2))
-  } yield ( new MockCaseRef(name) {
+  } yield (new MockCaseRef(name) {
 
     override def react(call: Call): SimState[IO] = call match {
       case Run => addTasks(caseName, Seq(tg1, tg2))
@@ -231,7 +228,7 @@ object MockCaseRef extends StateOps {
         succeed(())
       case _ => idState
     }
-  
+
     override def expectedCalls: Seq[Call] =
       if expectedEnd1 < expectedEnd2 then
         Seq(
@@ -260,14 +257,14 @@ object MockCaseRef extends StateOps {
       resource: Option[Resource]
   ): IO[MockCaseRef] = for {
     random <- Random.scalaUtilRandom[IO]
-    given Random[IO] = random    
+    given Random[IO] = random
     // T1 0..3 - to be aborted at 2
     id1 <- gen.randomUUID
     tg1 = Task("T1", 3L)
       .withID(id1)
       .withResources(resource.map(_.name).toSeq)
       .withPriority(Task.Medium)
-    //expected1 <- tg1.create(name, expectedCreate1)
+    // expected1 <- tg1.create(name, expectedCreate1)
 
     // T2 0..2
     id2 <- gen.randomUUID
@@ -283,7 +280,7 @@ object MockCaseRef extends StateOps {
     expected3 <- tg3.create(name, 0)
 
     expectedTime = if resource.isEmpty then 5L else 7L
-  } yield ( new MockCaseRef(name) {
+  } yield (new MockCaseRef(name) {
 
     override def react(call: Call): SimState[IO] = call match {
       case Run => addTasks(caseName, Seq(tg1, tg2, tg3))
@@ -303,11 +300,12 @@ object MockCaseRef extends StateOps {
       duration: Long
   ): IO[MockCaseRef] = for {
     random <- Random.scalaUtilRandom[IO]
-    given Random[IO] = random    
+    given Random[IO] = random
     // T1 0..3 - to be aborted at 2
     id1 <- gen.randomUUID
     tg1 = Task("T", duration).withID(id1)
-  } yield ( new MockCaseRef(name) {
+  } yield (new MockCaseRef(name) {
+
     override def react(call: Call): SimState[IO] = call match {
       case Run => addTask(caseName)(tg1)
       case _ => idState
@@ -316,14 +314,14 @@ object MockCaseRef extends StateOps {
     override def expectedCalls: Seq[Call] = Seq(Run, Stop)
   })
 
-
-  case class MockSingleTaskArrival(start: Long, interval: Long, duration: Long) extends Case[IO, Unit] {
+  case class MockSingleTaskArrival(start: Long, interval: Long, duration: Long)
+      extends Case[IO, Unit] {
     import collection.mutable.Queue
     val cases: Queue[MockCaseRef] = Queue()
 
     override def init(name: String, count: Int, time: Long, t: Unit): IO[CaseRef[IO]] = for {
       c <- mockSingleTask(
-        name, 
+        name,
         start + interval * count,
         duration,
         start + interval * count + duration
@@ -333,4 +331,3 @@ object MockCaseRef extends StateOps {
   }
 
 }
- 
