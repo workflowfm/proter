@@ -1,8 +1,8 @@
-package com.workflowfm.proter.schedule
+package com.workflowfm.proter
+package schedule
 
 import scala.annotation.tailrec
 
-import com.workflowfm.proter.{ TaskInstance, TaskResource }
 
 /**
   * A list of time intervals indicating the amount of used capacity of a [[TaskResource]]. An 
@@ -54,10 +54,10 @@ object WeightedSchedule {
     */
   def apply(): WeightedSchedule = WeightedSchedule(List.empty[(Long, Long, Int)])
 
-  def apply(r: TaskResource): WeightedSchedule = {
-    val v = r.currentTasks.values.foldLeft(WeightedSchedule()){ (s, task) => s +> (task._1, task._2)}
-    v
-  }
+  def apply(r: ResourceState): WeightedSchedule =
+    r.currentTasks.values.foldLeft(WeightedSchedule()){ case (s, (start, task)) => 
+      s +> (start, task, task.resourceQuantity(r.resource.name))}
+
 
   @tailrec
   def add(
@@ -69,11 +69,11 @@ object WeightedSchedule {
   ): Option[List[(Long, Long, Int)]] = {
     if (usage == 0 || start == end) return Some(tasks);
     tasks match {
-      case Nil => Some(result :+ (start, end, usage) toList)
+      case Nil => Some((result :+ (start, end, usage)).toList)
       case (l: Long, r: Long, u: Int) :: t =>
-        if (l > end) Some(result ++ ((start, end, usage) :: (l, r, u) :: t) toList)
-        else if (l == end && u == usage) Some(result ++ ((start, r, u) :: t) toList)
-        else if (l == end) Some(result ++ ((start, end, usage) :: (l, r, u) :: t) toList)
+        if (l > end) Some(result.concat((start, end, usage) :: (l, r, u) :: t).toList)
+        else if (l == end && u == usage) Some(result.concat((start, r, u) :: t).toList)
+        else if (l == end) Some(result.concat((start, end, usage) :: (l, r, u) :: t).toList)
         else if (r < start) add(start, end, usage, t, result :+ ((l, r, u)))
         else if (r == start && u == usage ) add(l, end, u, t, result)
         else if (r == start) add(start, end, usage, t, result :+ ((l, r, u)))
@@ -85,11 +85,11 @@ object WeightedSchedule {
             usage + u,
             if (end < r) u else usage
           )
-          var timeline = result
+          var timeline = result // TODO wtf? fix
           if (times(0)!=times(1)) timeline = timeline :+ (times(0), times(1), usages(0))
           timeline = timeline :+ (times(1), times(2), usages(1))
           if (times(2)!=times(3)) add(times(2), times(3), usages(2), t, timeline)
-          else Some(timeline toList)
+          else Some(timeline.toList)
         }
     }
   }

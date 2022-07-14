@@ -3,7 +3,7 @@ package com.workflowfm.proter
 import java.util.UUID
 
 case class Resource(name: String, capacity: Int, costPerTick: Double) {
-  def start: ResourceState = ResourceState(this, None)
+  def start: ResourceState = ResourceState(this, Map())
 }
 
 case class ResourceState(resource: Resource, currentTasks: Map[UUID, (Long, TaskInstance)]) {
@@ -72,7 +72,7 @@ case class ResourceState(resource: Resource, currentTasks: Map[UUID, (Long, Task
     then currentTime
     else currentTasks.values.map{ x => x._1 + x._2.estimatedDuration }.reduceLeft(_ min _) // TODO check this
                                                                                            // also shouldn't it be relevant to the desired capacity?
-  def reduce(toReduce: Seq[String, Int]): ResourceState = 
+  def reduce(toReduce: Map[String, Int]): ResourceState = 
     copy(
       resource = resource.copy(
         capacity = resource.capacity - toReduce.get(resource.name).getOrElse(0)
@@ -115,7 +115,7 @@ case class ResourceMap(resources: Map[String, ResourceState]) {
 
   def startTask(task: TaskInstance, time: Long): Either[ResourceState.Full, ResourceMap] = {
     val update = for {
-      name <- task.resources
+      (name, _) <- task.resources
       state <- resources.get(name)
     } yield (
       state.startTask(task, time).map { newState => name -> newState }
@@ -135,19 +135,19 @@ case class ResourceMap(resources: Map[String, ResourceState]) {
 
   def stopTasks(ids: Seq[UUID]): (ResourceMap, Iterable[ResourceState]) = {
     val stopping = resources.filter { (_, r) => r.runningAnyOf(ids) }
-    val result = copy(resources ++ stopping.map { (n, r) => n -> r.copy(currentTask = None) })
+    val result = copy(resources ++ stopping.map { (n, r) => n -> r.detach(ids) })
     (result, stopping.values)
   }
 
-  def isIdle(r: String): Boolean = resources.get(r) match {
+  def hasCapacity(r: String): Boolean = resources.get(r) match {
     case None => false
-    case Some(resourceState) => resourceState.isIdle
+    case Some(resourceState) => resourceState.hasCapacity
   }
 
   def getAvailable(): ResourceMap = copy(resources = resources.filter(_._2.hasCapacity))
 
   // TODO improve to only go through selected resources
-  def reduce(toReduce: Seq[String, Int]): ResourceMap = copy(resources = resources.map(_.reduce(toReduce)))
+  def reduce(toReduce: Map[String, Int]): ResourceMap = copy(resources = resources.map((n, s) => n -> s.reduce(toReduce)))
 
   /**
     * The actual [[TaskResource]]s required. Retrieves the actual objects (instead of just their
@@ -159,7 +159,7 @@ case class ResourceMap(resources: Map[String, ResourceState]) {
     *   The [[TaskResource]]s required for this task.
     */
   def get(task: TaskInstance): Seq[ResourceState] =
-    task.resources flatMap (resources.get(_))
+    task.resources.flatMap((n, _) => resources.get(n)).toSeq
 
   def canHandle(task: TaskInstance): Boolean = 
     task.resources.forall { (r, q) =>

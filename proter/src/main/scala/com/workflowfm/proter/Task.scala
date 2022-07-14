@@ -147,7 +147,7 @@ final case class Task(
     duration: LongDistribution,
     cost: Distribution = Constant(0L),
     minStartTime: Long = 0L,
-    resources: Map[String, Int] = Seq(),
+    resources: Map[String, Int] = Map(),
     interrupt: Int = (-1),
     priority: Int = 0,
     createTime: Long = (-1)
@@ -205,9 +205,9 @@ final case class Task(
     * @return
     *   An updated [[Task]].
     */
-  def withResources(r: Seq[String]): Task = copy(resources = r)
+  def withResources(r: Seq[String]): Task = copy(resources = resources ++ r.map(_ -> 1))
 
-  def withResourceQuantities(q: Seq[Int]): Task = copy(resourceQuantities= q)
+  def withResourceQuantities(s: Map[String, Int]): Task = copy(resources = resources ++ s)
 
   /**
     * Update the priority to use.

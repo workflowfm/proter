@@ -57,7 +57,7 @@ case class GreedyScheduler(strict: Boolean) extends Scheduler {
     if (tasks.isEmpty) result
     else {
       val t = tasks.head
-      if available.canHandle(task) then
+      if available.canHandle(t) then
         findNextTasks(available.reduce(t.resources), tasks.tail, result :+ t)
       else if strict then findNextTasks(available.reduce(t.resources), tasks.tail, result)
       else findNextTasks(available, tasks.tail, result)
@@ -150,7 +150,7 @@ case object ProterScheduler extends Scheduler {
           schedules
             .get(r)
             .map(_.binary(q, resourceMap.capacityOf(r)))
-        }
+        }.toSeq
       )
       val start =  mergedSchedule ? (currentTime, t)
       val schedules2 = t.resources.foldLeft(schedules) { case (s, (r, q)) =>

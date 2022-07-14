@@ -433,7 +433,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
   object TestResourceMap {
 
     def apply(names: String*): TestResourceMap = TestResourceMap(
-      ResourceMap(names.map(Resource(_, 0)))
+      ResourceMap(names.map(Resource(_, 1, 0)))
     )
   }
 }

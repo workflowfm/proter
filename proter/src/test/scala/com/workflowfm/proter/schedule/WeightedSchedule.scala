@@ -1,11 +1,6 @@
-package com.workflowfm.proter.schedule
+package com.workflowfm.proter
+package schedule
 
-import org.junit.runner.RunWith
-import org.scalatest.junit.JUnitRunner
-
-import com.workflowfm.proter.TaskTester
-
-@RunWith(classOf[JUnitRunner])
 class WeightedScheduleTests extends TaskTester with WeightedScheduleTester {
 
   "The Schedule" must {

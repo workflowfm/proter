@@ -174,16 +174,20 @@ case class ETaskDetach(
 
 object ETaskDetach {
 
-  def resourceState(source: String, time: Long)(resourceState: ResourceState): Option[ETaskDetach] =
-    resourceState.currentTask.map { (start, task) =>
-      ETaskDetach(
-        source,
-        time,
-        task,
-        resourceState.resource.name,
-        resourceState.resource.costPerTick * (time - start)
-      )
-    }
+  def resourceState(source: String, time: Long, taskIds: Seq[UUID])(resourceState: ResourceState): Seq[ETaskDetach] =
+    resourceState
+      .currentTasks
+      .filterKeys(taskIds.contains(_))
+      .map { case (id, (start, task)) =>
+        ETaskDetach(
+          source,
+          time,
+          task,
+          resourceState.resource.name,
+          resourceState.resource.costPerTick * (time - start)
+        )
+      }
+      .toSeq
 }
 
 /**

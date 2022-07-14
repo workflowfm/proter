@@ -262,12 +262,12 @@ object Simulation extends StateOps {
     */
   def startTask[F[_]](task: TaskInstance): State[Simulation[F], Seq[Event]] = State(sim =>
     sim.resources.startTask(task, sim.time) match {
-      case Left(busy) =>
+      case Left(full) =>
         (
           sim,
           Seq(
             sim.error(
-              s"Tried to attach task [${task.name}](${task.simulation}) to [${busy.resource.name}], but it was already attached to [${busy.task.name}](${busy.task.simulation}) since time [${busy.start}]."
+              s"Tried to attach task [${task.name}](${task.simulation}) to [${full.state.resource.name}], but it was full: ${full.state.currentTasks}"
             )
           )
         )
@@ -277,7 +277,7 @@ object Simulation extends StateOps {
             events = sim.events + FinishingTask(sim.time + task.duration, task),
             tasks = sim.tasks - task
           ),
-          ETaskStart(sim.id, sim.time, task) :: task.resources.map { r =>
+          ETaskStart(sim.id, sim.time, task) :: task.resources.map { (r, _) =>
             ETaskAttach(sim.id, sim.time, task, r)
           }.toList
         )
@@ -299,7 +299,7 @@ object Simulation extends StateOps {
   def abortTasks[F[_]](ids: Seq[UUID]): State[Simulation[F], Seq[Event]] = State(sim => {
     val (abortMap, abortResources) = sim.resources.stopTasks(ids)
     val abortEvents = ids.map { taskid => ETaskAbort(sim.id, sim.time, taskid) }
-    val detachEvents = abortResources.flatMap(ETaskDetach.resourceState(sim.id, sim.time)).toSeq
+    val detachEvents = abortResources.flatMap(ETaskDetach.resourceState(sim.id, sim.time, ids)).toSeq
     (
       sim.copy(resources = abortMap, abortedTasks = sim.abortedTasks ++ ids),
       detachEvents ++ abortEvents
@@ -324,9 +324,10 @@ object Simulation extends StateOps {
     */
   def stopTasks[F[_]](tasks: Seq[TaskInstance]): State[Simulation[F], Seq[Event]] = State(sim => {
     val (someAbortedTasks, nonAbortedTasks) = tasks.partition(t => sim.abortedTasks.contains(t.id))
-    val (stopMap, detachedResources) = sim.resources.stopTasks(nonAbortedTasks.map(_.id))
+    val nonAbortedIds = nonAbortedTasks.map(_.id)
+    val (stopMap, detachedResources) = sim.resources.stopTasks(nonAbortedIds)
     val stopEvents = nonAbortedTasks.map { task => ETaskDone(sim.id, sim.time, task) }
-    val detachEvents = detachedResources.flatMap(ETaskDetach.resourceState(sim.id, sim.time)).toSeq
+    val detachEvents = detachedResources.flatMap(ETaskDetach.resourceState(sim.id, sim.time, nonAbortedIds)).toSeq
     val waits = nonAbortedTasks.groupBy(_.simulation)
     (
       sim.copy(

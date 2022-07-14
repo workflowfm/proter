@@ -171,7 +171,7 @@ class SimulationTests extends SimulationTester {
     }
 
     "correctly execute a case aborting a task with resources" in {
-      val res = Resource("R", 0)
+      val res = Resource("R", 1, 0)
       for {
         ref <- mockAbort("test", Some(res))
         state = compose2(
