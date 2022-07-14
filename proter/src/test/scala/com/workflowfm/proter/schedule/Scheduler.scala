@@ -1,18 +1,18 @@
 package com.workflowfm.proter
 package schedule
 
-class SchedulerTests extends TaskTester with ScheduleTester {
+class SchedulerTests extends TaskTester with ResourceTester with ScheduleTester with SchedulerTester {
 
   "GreedyFCFSScheduler" should {
 
     "select a single task" in {
       val m = TestResourceMap("A")
-      m.gf(t(1L, Seq("A"))) should be(Seq(1L))
+      gf(m.m, t(1L, Seq("A"))) should be(Seq(1L))
     }
 
     "select multiple tasks" in {
       val m = TestResourceMap("A", "B")
-      m.gf(
+      gf(m.m, 
         t(1L, Seq("A")),
         t(2L, Seq("B"))
       ) should be(Seq(1L, 2L))
@@ -20,34 +20,34 @@ class SchedulerTests extends TaskTester with ScheduleTester {
 
     "select an earlier task ignoring priority" in {
       val m = TestResourceMap("A")
-      m.gf(t(1L, Seq("A"), Task.Low), t(2L, Seq("A"), Task.High)) should be(Seq(1L))
+      gf(m.m, t(1L, Seq("A"), Task.Low), t(2L, Seq("A"), Task.High)) should be(Seq(1L))
     }
 
     "select an earlier task ignoring creation time" in {
       val m = TestResourceMap("A")
-      m.gf(t(1L, Seq("A"), Task.Medium, 2L), t(2L, Seq("A"), Task.Medium, 1L)) should be(Seq(1L))
+      gf(m.m, t(1L, Seq("A"), Task.Medium, 2L), t(2L, Seq("A"), Task.Medium, 1L)) should be(Seq(1L))
     }
 
     "not select a blocked task" in {
       val m = TestResourceMap("A", "B") + ("B", 1L)
-      m.gf(t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("B"), Task.VeryLow, 1L, 2L)) should be(Nil)
+      gf(m.m, t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("B"), Task.VeryLow, 1L, 2L)) should be(Nil)
     }
 
     "select a later task if the earlier one is blocked" in {
       val m = TestResourceMap("A", "B") + ("B", 1L)
-      m.gf(t(1L, Seq("A", "B"), Task.Medium), t(2L, Seq("A"), Task.Medium, 1L)) should be(List(2L))
+      gf(m.m, t(1L, Seq("A", "B"), Task.Medium), t(2L, Seq("A"), Task.Medium, 1L)) should be(List(2L))
     }
 
     "greedily block earlier tasks" in {
       val m = TestResourceMap("A", "B") + ("B", 1L)
-      m.gf(t(1L, Seq("A", "B"), Task.Low), t(2L, Seq("A"), Task.Medium, 1L, 100L)) should be(
+      gf(m.m, t(1L, Seq("A", "B"), Task.Low), t(2L, Seq("A"), Task.Medium, 1L, 100L)) should be(
         Seq(2L)
       )
     }
 
     "consider all earlier tasks for availability" in {
       val m = TestResourceMap("A", "B") + ("B", 1L)
-      m.gf(
+      gf(m.m, 
         t(1L, Seq("B"), Task.Medium),
         t(2L, Seq("A"), Task.Medium),
         t(3L, Seq("A"), Task.High)
@@ -59,12 +59,12 @@ class SchedulerTests extends TaskTester with ScheduleTester {
 
     "select a single task" in {
       val m = TestResourceMap("A")
-      m.sf(t(1L, Seq("A"))) should be(Seq(1L))
+      sf(m.m, t(1L, Seq("A"))) should be(Seq(1L))
     }
 
     "select multiple tasks" in {
       val m = TestResourceMap("A", "B")
-      m.sf(
+      sf(m.m, 
         t(1L, Seq("A")),
         t(2L, Seq("B"))
       ) should be(Seq(1L, 2L))
@@ -72,32 +72,32 @@ class SchedulerTests extends TaskTester with ScheduleTester {
 
     "select an earlier task ignoring priority" in {
       val m = TestResourceMap("A")
-      m.sf(t(1L, Seq("A"), Task.Low), t(2L, Seq("A"), Task.High)) should be(Seq(1L))
+      sf(m.m, t(1L, Seq("A"), Task.Low), t(2L, Seq("A"), Task.High)) should be(Seq(1L))
     }
 
     "select an earlier task ignoring creation time" in {
       val m = TestResourceMap("A")
-      m.sf(t(1L, Seq("A"), Task.Medium, 2L), t(2L, Seq("A"), Task.Medium, 1L)) should be(Seq(1L))
+      sf(m.m, t(1L, Seq("A"), Task.Medium, 2L), t(2L, Seq("A"), Task.Medium, 1L)) should be(Seq(1L))
     }
 
     "not select a blocked task" in {
       val m = TestResourceMap("A", "B") + ("B", 1L)
-      m.sf(t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("B"), Task.VeryLow, 1L, 2L)) should be(Nil)
+      sf(m.m, t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("B"), Task.VeryLow, 1L, 2L)) should be(Nil)
     }
 
     "not select a later task if the earlier one is blocked" in {
       val m = TestResourceMap("A", "B") + ("B", 1L)
-      m.sf(t(1L, Seq("A", "B"), Task.Medium), t(2L, Seq("A"), Task.Medium, 1L)) should be(Nil)
+      sf(m.m, t(1L, Seq("A", "B"), Task.Medium), t(2L, Seq("A"), Task.Medium, 1L)) should be(Nil)
     }
 
     "not block earlier tasks" in {
       val m = TestResourceMap("A", "B") + ("B", 1L)
-      m.sf(t(1L, Seq("A", "B"), Task.Low), t(2L, Seq("A"), Task.Medium, 1L, 100L)) should be(Nil)
+      sf(m.m, t(1L, Seq("A", "B"), Task.Low), t(2L, Seq("A"), Task.Medium, 1L, 100L)) should be(Nil)
     }
 
     "consider all earlier tasks for availability" in {
       val m = TestResourceMap("A", "B") + ("B", 1L)
-      m.sf(
+      sf(m.m, 
         t(1L, Seq("B"), Task.Medium),
         t(2L, Seq("A"), Task.Medium),
         t(3L, Seq("A"), Task.High)
@@ -109,12 +109,12 @@ class SchedulerTests extends TaskTester with ScheduleTester {
 
     "select a single task" in {
       val m = TestResourceMap("A")
-      m.g(t(1L, Seq("A"))) should be(Seq(1L))
+      gp(m.m, t(1L, Seq("A"))) should be(Seq(1L))
     }
 
     "select multiple tasks" in {
       val m = TestResourceMap("A", "B")
-      m.g(
+      gp(m.m, 
         t(1L, Seq("A")),
         t(2L, Seq("B"))
       ) should be(Seq(1L, 2L))
@@ -122,29 +122,29 @@ class SchedulerTests extends TaskTester with ScheduleTester {
 
     "select an earlier task" in {
       val m = TestResourceMap("A")
-      m.g(t(1L, Seq("A"), Task.Medium, 2L), t(2L, Seq("A"), Task.Medium, 1L)) should be(Seq(2L))
+      gp(m.m, t(1L, Seq("A"), Task.Medium, 2L), t(2L, Seq("A"), Task.Medium, 1L)) should be(Seq(2L))
     }
 
     "not select a blocked task" in {
       val m = TestResourceMap("A", "B") + ("B", 1L)
-      m.g(t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("B"), Task.VeryLow, 0L, 2L)) should be(Nil)
+      gp(m.m, t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("B"), Task.VeryLow, 0L, 2L)) should be(Nil)
     }
 
     "select a lower priority task if the higher priority one is blocked" in {
       val m = TestResourceMap("A", "B") + ("B", 1L)
-      m.g(t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("A"), Task.VeryLow)) should be(List(2L))
+      gp(m.m, t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("A"), Task.VeryLow)) should be(List(2L))
     }
 
     "greedily block higher priority tasks" in {
       val m = TestResourceMap("A", "B") + ("B", 1L)
-      m.g(t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("A"), Task.VeryLow, 0L, 100L)) should be(
+      gp(m.m, t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("A"), Task.VeryLow, 0L, 100L)) should be(
         Seq(2L)
       )
     }
 
     "consider all higher priority tasks for availability" in {
       val m = TestResourceMap("A", "B") + ("B", 1L)
-      m.g(
+      gp(m.m, 
         t(1L, Seq("B"), Task.Highest),
         t(2L, Seq("A"), Task.Medium),
         t(3L, Seq("A"), Task.VeryLow, 0L, 2L)
@@ -153,7 +153,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
 
     "select higher priority tasks" in {
       val m = TestResourceMap("A", "B")
-      m.g(
+      gp(m.m, 
         t(2L, Seq("A", "B"), Task.Medium),
         t(1L, Seq("A"), Task.Highest)
       ) should be(List(1L))
@@ -164,12 +164,12 @@ class SchedulerTests extends TaskTester with ScheduleTester {
 
     "select a single task" in {
       val m = TestResourceMap("A")
-      m.s(t(1L, Seq("A"))) should be(Seq(1L))
+      sp(m.m, t(1L, Seq("A"))) should be(Seq(1L))
     }
 
     "select multiple tasks" in {
       val m = TestResourceMap("A", "B")
-      m.s(
+      sp(m.m, 
         t(1L, Seq("A")),
         t(2L, Seq("B"))
       ) should be(Seq(1L, 2L))
@@ -177,29 +177,29 @@ class SchedulerTests extends TaskTester with ScheduleTester {
 
     "select an earlier task by creation time" in {
       val m = TestResourceMap("A")
-      m.s(t(1L, Seq("A"), Task.Medium, 2L), t(2L, Seq("A"), Task.Medium, 1L)) should be(Seq(2L))
+      sp(m.m, t(1L, Seq("A"), Task.Medium, 2L), t(2L, Seq("A"), Task.Medium, 1L)) should be(Seq(2L))
     }
 
     "not select a blocked task" in {
       val m = TestResourceMap("A", "B") + ("B", 1L)
-      m.s(t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("B"), Task.VeryLow, 0L, 2L)) should be(Nil)
+      sp(m.m, t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("B"), Task.VeryLow, 0L, 2L)) should be(Nil)
     }
 
     "not select a lower priority task if the higher priority one is blocked" in {
       val m = TestResourceMap("A", "B") + ("B", 1L)
-      m.s(t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("A"), Task.VeryLow)) should be(Nil)
+      sp(m.m, t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("A"), Task.VeryLow)) should be(Nil)
     }
 
     "not block higher priority tasks" in {
       val m = TestResourceMap("A", "B") + ("B", 1L)
-      m.s(t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("A"), Task.VeryLow, 0L, 100L)) should be(
+      sp(m.m, t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("A"), Task.VeryLow, 0L, 100L)) should be(
         Nil
       )
     }
 
     "consider all higher priority tasks for availability" in {
       val m = TestResourceMap("A", "B") + ("B", 1L)
-      m.s(
+      sp(m.m, 
         t(1L, Seq("B"), Task.Highest),
         t(2L, Seq("A"), Task.Medium),
         t(3L, Seq("A"), Task.VeryLow, 0L, 2L)
@@ -208,7 +208,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
 
     "select higher priority tasks" in {
       val m = TestResourceMap("A", "B")
-      m.s(
+      sp(m.m, 
         t(2L, Seq("A", "B"), Task.Medium),
         t(1L, Seq("A"), Task.Highest)
       ) should be(List(1L))
@@ -219,12 +219,12 @@ class SchedulerTests extends TaskTester with ScheduleTester {
 
     "select a single task" in {
       val m = TestResourceMap("A")
-      m.p(t(1L, Seq("A"))) should be(Seq(1L))
+      pr(m.m, t(1L, Seq("A"))) should be(Seq(1L))
     }
 
     "select multiple tasks" in {
       val m = TestResourceMap("A", "B")
-      m.p(
+      pr(m.m, 
         t(1L, Seq("A")),
         t(2L, Seq("B"))
       ) should be(Seq(1L, 2L))
@@ -232,45 +232,45 @@ class SchedulerTests extends TaskTester with ScheduleTester {
 
     "select an earlier task by creation time" in {
       val m = TestResourceMap("A")
-      m.p(t(1L, Seq("A"), Task.Medium, 2L), t(2L, Seq("A"), Task.Medium, 1L)) should be(Seq(2L))
+      pr(m.m, t(1L, Seq("A"), Task.Medium, 2L), t(2L, Seq("A"), Task.Medium, 1L)) should be(Seq(2L))
     }
 
     "not select a blocked task" in {
       val m = TestResourceMap("A", "B") + ("B", 1L)
-      m.p(t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("A"), Task.VeryLow, 0L, 2L)) should be(Nil)
+      pr(m.m, t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("A"), Task.VeryLow, 0L, 2L)) should be(Nil)
     }
 
     "select a lower priority task if it will finish on time" in {
       val m = TestResourceMap("A", "B") + ("B", 1L)
-      m.p(t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("A"), Task.VeryLow)) should be(List(2L))
+      pr(m.m, t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("A"), Task.VeryLow)) should be(List(2L))
     }
 
     "not block higher priority tasks" in {
       val m = TestResourceMap("A", "B") + ("B", 1L)
       /* ProterScheduler.nextEstimatedTaskStart(t(1L,Seq("A","B"),Task.Highest), 0L, m.m,Seq(
        * t(1L,Seq("A","B"),Task.Highest),t(2L,Seq("A"),Task.VeryLow,0L,100L))) should be (1L) */
-      m.p(t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("A"), Task.VeryLow, 0L, 100L)) should be(
+      pr(m.m, t(1L, Seq("A", "B"), Task.Highest), t(2L, Seq("A"), Task.VeryLow, 0L, 100L)) should be(
         Nil
       )
     }
 
     "not block higher priority tasks based on ordering" in {
       val m = TestResourceMap("A", "B") + ("B", 1L)
-      m.p(t(1L, Seq("A", "B"), Task.Medium, 0L), t(2L, Seq("A"), Task.Medium, 2L, 100L)) should be(
+      pr(m.m, t(1L, Seq("A", "B"), Task.Medium, 0L), t(2L, Seq("A"), Task.Medium, 2L, 100L)) should be(
         Nil
       )
     }
 
     "not block higher priority tasks of other resources" in {
       val m = TestResourceMap("A", "B") // + ("B",1L)
-      m.p(t(1L, Seq("B"), Task.Highest), t(2L, Seq("A", "B"), Task.VeryLow, 0L, 100L)) should be(
+      pr(m.m, t(1L, Seq("B"), Task.Highest), t(2L, Seq("A", "B"), Task.VeryLow, 0L, 100L)) should be(
         Seq(1L)
       )
     }
 
     "consider all higher priority tasks for availability" in {
       val m = TestResourceMap("A", "B") + ("B", 1L)
-      m.p(
+      pr(m.m, 
         t(1L, Seq("B"), Task.Highest),
         t(2L, Seq("A", "B"), Task.Medium),
         t(3L, Seq("A"), Task.VeryLow, 0L, 2L)
@@ -279,7 +279,7 @@ class SchedulerTests extends TaskTester with ScheduleTester {
 
     "select higher priority tasks" in {
       val m = TestResourceMap("A", "B")
-      m.p(
+      pr(m.m, 
         t(2L, Seq("A", "B"), Task.Medium),
         t(1L, Seq("A"), Task.Highest)
       ) should be(List(1L))
@@ -371,55 +371,55 @@ class SchedulerTests extends TaskTester with ScheduleTester {
 
   }
 */
+}
+
+trait SchedulerTester {
   def id(l: Long) = new java.util.UUID(l, l)
 
-  final case class TestResourceMap(m: ResourceMap) {
+  // test GreedyPriorityScheduler
+  def gp(m: ResourceMap, tasks: TaskInstance*): Seq[Long] =
+    GreedyScheduler(false)
+      .getNextTasks(0L, tasks.sorted, m)
+      .map(
+        _.id
+          .getMostSignificantBits()
+      )
 
-    // pre-attach Tasks to resources
-    def +(r: String, duration: Long): TestResourceMap = TestResourceMap(
-      m.startTask(t(0L, Seq(r), Task.Medium, 0L, duration), 0L).getOrElse(m)
-    )
+  // test StrictPriorityScheduler
+  def sp(m: ResourceMap, tasks: TaskInstance*): Seq[Long] =
+    GreedyScheduler(true)
+      .getNextTasks(0L, tasks.sorted, m)
+      .map(
+        _.id
+          .getMostSignificantBits()
+      )
 
-    // test GreedyPriorityScheduler
-    def g(tasks: TaskInstance*): Seq[Long] =
-      GreedyScheduler(false)
-        .getNextTasks(0L, tasks.sorted, m)
-        .map(
-          _.id
-            .getMostSignificantBits()
-        )
+  // test GreedyFCFSScheduler
+  def gf(m: ResourceMap, tasks: TaskInstance*): Seq[Long] =
+    GreedyScheduler(false)
+      .getNextTasks(0L, tasks, m)
+      .map(
+        _.id
+          .getMostSignificantBits()
+      )
 
-    // test StrictPriorityScheduler
-    def s(tasks: TaskInstance*): Seq[Long] =
-      GreedyScheduler(true)
-        .getNextTasks(0L, tasks.sorted, m)
-        .map(
-          _.id
-            .getMostSignificantBits()
-        )
+  // test StrictFCFSScheduler
+  def sf(m: ResourceMap, tasks: TaskInstance*): Seq[Long] =
+    GreedyScheduler(true)
+      .getNextTasks(0L, tasks, m)
+      .map(
+        _.id
+          .getMostSignificantBits()
+      )
 
-    // test GreedyFCFSScheduler
-    def gf(tasks: TaskInstance*): Seq[Long] =
-      GreedyScheduler(false)
-        .getNextTasks(0L, tasks, m)
-        .map(
-          _.id
-            .getMostSignificantBits()
-        )
-
-    // test StrictFCFSScheduler
-    def sf(tasks: TaskInstance*): Seq[Long] =
-      GreedyScheduler(true)
-        .getNextTasks(0L, tasks, m)
-        .map(
-          _.id
-            .getMostSignificantBits()
-        )
-
-    // test ProterScheduler
-    def p(tasks: TaskInstance*): Seq[Long] =
-      ProterScheduler.getNextTasks(0L, tasks.sorted, m) map (_.id
-        .getMostSignificantBits())
+  // test ProterScheduler
+  def pr(m: ResourceMap, tasks: TaskInstance*): Seq[Long] =
+    ProterScheduler
+      .getNextTasks(0L, tasks.sorted, m)
+      .map (
+        _.id
+          .getMostSignificantBits()
+      )
 /*
     // test LookaheadScheduler
     def l(tasks: TaskInstance*): Seq[Long] = {
@@ -428,12 +428,4 @@ class SchedulerTests extends TaskTester with ScheduleTester {
       ls.getNextTasks(0L, m) map (_.id
         .getMostSignificantBits())
     }*/
-  }
-
-  object TestResourceMap {
-
-    def apply(names: String*): TestResourceMap = TestResourceMap(
-      ResourceMap(names.map(Resource(_, 1, 0)))
-    )
-  }
 }
