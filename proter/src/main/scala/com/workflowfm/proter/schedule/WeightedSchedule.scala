@@ -6,7 +6,7 @@ import scala.annotation.tailrec
 
 /**
   * A list of time intervals indicating the amount of used capacity of a [[TaskResource]]. An 
-  8 empty time interval also indicates that no amount of capacity is being used in that interval.
+  *  empty time interval also indicates that no amount of capacity is being used in that interval.
   *
   * Each interval is represented as a pair of timestamps and a number indicating the amount of 
   * capacity used.
@@ -36,8 +36,9 @@ case class WeightedSchedule(tasks: List[(Long, Long, Int)]) {
     this +> (startTime, startTime + t.estimatedDuration, usage)
   }
 
-  def binary(targetCapacity: Int, resourceCapacity: Int): Schedule = WeightedSchedule.getBinarySchedule(tasks,targetCapacity,resourceCapacity)
-
+  def binary(targetCapacity: Int, resourceCapacity: Int): Schedule = 
+    if targetCapacity > resourceCapacity then Schedule.Full
+    else tasks.filter(_._3 + targetCapacity > resourceCapacity).foldLeft(Schedule()) { (s, t) => s +> (t._1, t._2) }
 
 }
 
@@ -94,11 +95,4 @@ object WeightedSchedule {
     }
   }
 
-  def getBinarySchedule(
-    tasks: List[(Long, Long, Int)],
-    targetCapacity: Int,
-    resourceCapacity: Int    
-  ): Schedule = {
-    tasks.filter(_._3+targetCapacity > resourceCapacity).foldLeft(Schedule()){(s, t) => s +> (t._1, t._2)}
-  }
 }

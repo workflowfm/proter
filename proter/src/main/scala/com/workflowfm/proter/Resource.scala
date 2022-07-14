@@ -40,7 +40,7 @@ case class ResourceState(resource: Resource, currentTasks: Map[UUID, (Long, Task
       task: TaskInstance,
       currentTime: Long
   ): Either[ResourceState.Full, ResourceState] = {
-    if remainingCapacity >= task.resourceQuantity(resource.name)
+    if remainingCapacity < task.resourceQuantity(resource.name)
     then Left(ResourceState.Full(this))
     else Right(this.copy(currentTasks = currentTasks + (task.id -> (currentTime, task))))
   }
@@ -166,7 +166,9 @@ case class ResourceMap(resources: Map[String, ResourceState]) {
       resources.get(r).map(_.remainingCapacity >= q).getOrElse(false)
     }
 
-  def capacityOf(name: String): Int = resources.get(name).map(_.remainingCapacity).getOrElse(0)
+  def remainingCapacityOf(name: String): Int = resources.get(name).map(_.remainingCapacity).getOrElse(0)
+
+  def capacityOf(name: String): Int = resources.get(name).map(_.resource.capacity).getOrElse(0)
 }
 
 object ResourceMap {

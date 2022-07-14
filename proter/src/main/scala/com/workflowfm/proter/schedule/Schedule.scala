@@ -160,6 +160,8 @@ case class Schedule(tasks: List[(Long, Long)]) {
 object Schedule {
   import scala.collection.immutable.Queue
 
+  val Full = Schedule(List((Long.MinValue, Long.MaxValue)))
+
   /**
     * Shorthand for an empty schedule.
     *

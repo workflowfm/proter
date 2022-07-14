@@ -3,7 +3,7 @@ package schedule
 
 class WeightedScheduleTests extends TaskTester with WeightedScheduleTester {
 
-  "The Schedule" must {
+  "The Weighted Schedule" must {
 
     "fit a task at the edge of another" in {
       s((1, 2, 2)) + (2, 3, 2) should be(Some(s((1, 3, 2))))
@@ -64,7 +64,7 @@ class WeightedScheduleTests extends TaskTester with WeightedScheduleTester {
       s((1, 3, 3), (4, 6, 2)).binary(1, 3) should be (s_bin((1, 3)))
       s((1, 2, 3), (2, 3, 4), (3, 4, 5)).binary(1, 10) should be (s_bin())
       s().binary(0, 0) should be (s_bin())
-      s().binary(1, 0) should be (None) //confirm if this should be desirable behaviour
+      s().binary(1, 0) should be (Schedule.Full) 
     }
 
   }
