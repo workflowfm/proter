@@ -6,11 +6,13 @@ import scala.collection.immutable.Queue
 
 import org.apache.commons.lang3.time.DurationFormatUtils
 
-/** Helper to write stuff to a file.
-  * @todo Move somewhere else as a utility?
+/**
+  * Helper to write stuff to a file.
+  * @todo
+  *   Move somewhere else as a utility?
   */
 trait FileOutput {
-  import java.io._
+  import java.io.*
 
   def writeToFile(filePath: String, output: String): Unit = try {
     val file = new File(filePath)
@@ -22,11 +24,12 @@ trait FileOutput {
   }
 }
 
-/** Manipulates a [[SimMetricsAggregator]] to produce some output via side-effects.
+/**
+  * Manipulates a [[SimMetricsAggregator]] to produce some output via side-effects.
   *
   * As a function, takes 2 arguments:
-  * - a [[scala.Long]] representing the total virtual time elapsed
-  * - the [[SimMetricsAggregator]] to act upon
+  *   - a [[scala.Long]] representing the total virtual time elapsed
+  *   - the [[SimMetricsAggregator]] to act upon
   */
 trait SimMetricsOutput extends ((Long, SimMetricsAggregator) => Unit) {
   /** Compose with another [[SimMetricsOutput]] in sequence. */
@@ -39,7 +42,7 @@ object SimMetricsOutput {
   def formatOption[T](
       v: Option[T],
       nullValue: String,
-      format: T => String = { x: T => x.toString }
+      format: T => String = { (x: T) => x.toString }
   ): String = v.map(format).getOrElse(nullValue)
   def formatTime(format: String)(time: Long): String = new SimpleDateFormat(format).format(time)
 
@@ -67,8 +70,9 @@ object SimMetricsOutput {
     } getOrElse (nullValue)
 }
 
-/** A [[SimMetricsOutput]] consisting of a [[scala.collection.immutable.Queue Queue]] of [[SimMetricsOutput]]s
-  * to be run sequentially.
+/**
+  * A [[SimMetricsOutput]] consisting of a [[scala.collection.immutable.Queue Queue]] of
+  * [[SimMetricsOutput]]s to be run sequentially.
   */
 case class SimMetricsOutputs(handlers: Queue[SimMetricsOutput]) extends SimMetricsOutput {
 
@@ -91,7 +95,7 @@ object SimMetricsOutputs {
   * A [[SimMetricsOutput]] that does nothing.
   */
 object SimNoOutput extends SimMetricsOutput {
-  def apply(totalTicks: Long, aggregator: SimMetricsAggregator): Unit = Unit
+  def apply(totalTicks: Long, aggregator: SimMetricsAggregator): Unit = ()
 }
 
 /** Generates a string representation of the metrics using a generalized CSV format. */
@@ -99,8 +103,10 @@ trait SimMetricsStringOutput extends SimMetricsOutput {
   /** A string representing null values. */
   val nullValue = "NULL"
 
-  /** The field names for [[TaskMetrics]].
-    * @param separator a string (such as a space or comma) to separate the names
+  /**
+    * The field names for [[TaskMetrics]].
+    * @param separator
+    *   a string (such as a space or comma) to separate the names
     */
   def taskHeader(separator: String): String =
     Seq(
@@ -118,11 +124,16 @@ trait SimMetricsStringOutput extends SimMetricsOutput {
     )
       .mkString(separator)
 
-  /** String representation of a [[TaskMetrics]] instance.
+  /**
+    * String representation of a [[TaskMetrics]] instance.
     *
-    * @param separator a string (such as a space or comma) to separate the values
-    * @param resSeparator a string (such as a space or comma) to separate the list of names of [[TaskResource]]s in [[TaskMetrics]]
-    * @param m the [[TaskMetrics]] instance to be handled
+    * @param separator
+    *   a string (such as a space or comma) to separate the values
+    * @param resSeparator
+    *   a string (such as a space or comma) to separate the list of names of [[TaskResource]]s in
+    *   [[TaskMetrics]]
+    * @param m
+    *   the [[TaskMetrics]] instance to be handled
     */
   def taskCSV(separator: String, resSeparator: String)(m: TaskMetrics): String = m match {
     case TaskMetrics(id, task, sim, priority, ct, st, dur, cost, res, aborted) =>
@@ -141,44 +152,60 @@ trait SimMetricsStringOutput extends SimMetricsOutput {
       ).mkString(separator)
   }
 
-  /** The field names for [[SimulationMetrics]].
-    * @param separator a string (such as a space or comma) to separate the names
+  /**
+    * The field names for [[SimulationMetrics]].
+    * @param separator
+    *   a string (such as a space or comma) to separate the names
     */
   def simHeader(separator: String): String =
     Seq("Name", "Start", "Duration", "Delay", "Tasks", "Cost", "Result").mkString(separator)
 
-  /** String representation of a [[SimulationMetrics]] instance.
+  /**
+    * String representation of a [[SimulationMetrics]] instance.
     *
-    * @param separator a string (such as a space or comma) to separate the values
-    * @param m the [[SimulationMetrics]] instance to be handled
+    * @param separator
+    *   a string (such as a space or comma) to separate the values
+    * @param m
+    *   the [[SimulationMetrics]] instance to be handled
     */
   def simCSV(separator: String)(m: SimulationMetrics): String = m match {
     case SimulationMetrics(name, st, dur, delay, ts, c, res) =>
       Seq(name, st, dur, delay, ts, c, res).mkString(separator)
   }
 
-  /** The field names for [[ResourceMetrics]].
-    * @param separator a string (such as a space or comma) to separate the names
+  /**
+    * The field names for [[ResourceMetrics]].
+    * @param separator
+    *   a string (such as a space or comma) to separate the names
     */
   def resHeader(separator: String): String =
     Seq("Name", "Busy", "Idle", "Tasks", "Cost").mkString(separator)
 
-  /** String representation of a [[ResourceMetrics]] instance.
+  /**
+    * String representation of a [[ResourceMetrics]] instance.
     *
-    * @param separator a string (such as a space or comma) to separate the values
-    * @param m the [[ResourceMetrics]] instance to be handled
+    * @param separator
+    *   a string (such as a space or comma) to separate the values
+    * @param m
+    *   the [[ResourceMetrics]] instance to be handled
     */
   def resCSV(separator: String)(m: ResourceMetrics): String = m match {
     case ResourceMetrics(name, _, _, b, i, ts, c) =>
       Seq(name, b, i, ts, c).mkString(separator)
   }
 
-  /** Formats all [[TaskMetrics]] in a [[SimMetricsAggregator]] in a single string.
+  /**
+    * Formats all [[TaskMetrics]] in a [[SimMetricsAggregator]] in a single string.
     *
-    * @param aggregator the [[SimMetricsAggregator]] to retrieve the metrics to be formatted
-    * @param separator a string (such as a space or comma) to separate values
-    * @param lineSep a string (such as a new line) to separate tasks
-    * @param resSeparator a string (such as a space or comma) to separate the list of names of [[TaskResource]]s in [[TaskMetrics]]
+    * @param aggregator
+    *   the [[SimMetricsAggregator]] to retrieve the metrics to be formatted
+    * @param separator
+    *   a string (such as a space or comma) to separate values
+    * @param lineSep
+    *   a string (such as a new line) to separate tasks
+    * @param resSeparator
+    *   a string (such as a space or comma) to separate the list of names of [[TaskResource]]s in
+    *   [[TaskMetrics]]
     */
   def tasks(
       aggregator: SimMetricsAggregator,
@@ -188,11 +215,15 @@ trait SimMetricsStringOutput extends SimMetricsOutput {
   ): String =
     aggregator.taskMetrics.map(taskCSV(separator, resSeparator)).mkString(lineSep)
 
-  /** Formats all [[SimulationMetrics]] in a [[SimMetricsAggregator]] in a single string.
+  /**
+    * Formats all [[SimulationMetrics]] in a [[SimMetricsAggregator]] in a single string.
     *
-    * @param aggregator the [[SimMetricsAggregator]] to retrieve the metrics to be formatted
-    * @param separator a string (such as a space or comma) to separate values
-    * @param lineSep a string (such as a new line) to separate simulations
+    * @param aggregator
+    *   the [[SimMetricsAggregator]] to retrieve the metrics to be formatted
+    * @param separator
+    *   a string (such as a space or comma) to separate values
+    * @param lineSep
+    *   a string (such as a new line) to separate simulations
     */
   def simulations(
       aggregator: SimMetricsAggregator,
@@ -201,11 +232,15 @@ trait SimMetricsStringOutput extends SimMetricsOutput {
   ): String =
     aggregator.simulationMetrics.map(simCSV(separator)).mkString(lineSep)
 
-  /** Formats all [[ResourceMetrics]] in a [[SimMetricsAggregator]] in a single string.
+  /**
+    * Formats all [[ResourceMetrics]] in a [[SimMetricsAggregator]] in a single string.
     *
-    * @param aggregator the [[SimMetricsAggregator]] to retrieve the metrics to be formatted
-    * @param separator a string (such as a space or comma) to separate values
-    * @param lineSep a string (such as a new line) to separate resources
+    * @param aggregator
+    *   the [[SimMetricsAggregator]] to retrieve the metrics to be formatted
+    * @param separator
+    *   a string (such as a space or comma) to separate values
+    * @param lineSep
+    *   a string (such as a new line) to separate resources
     */
   def resources(
       aggregator: SimMetricsAggregator,
@@ -225,7 +260,10 @@ class SimMetricsPrinter extends SimMetricsStringOutput {
     val lineSep = "\n"
     /** Default time format using `java.text.SimpleDateFormat`. */
     val timeFormat = "YYYY-MM-dd HH:mm:ss.SSS"
-    /** Default duration format using [[org.apache.commons.lang3.time.DurationFormatUtils.formatDuration]]. */
+    /**
+      * Default duration format using
+      * [[org.apache.commons.lang3.time.DurationFormatUtils.formatDuration]].
+      */
     val durFormat = "HH:mm:ss.SSS"
     /** A string representing null time values. */
     val nullTime = "NONE"
@@ -255,14 +293,16 @@ Duration: ${SimMetricsOutput.formatDuration(aggregator.start, aggregator.end, du
   }
 }
 
-/** Outputs simulation metrics to files using a standard CSV format.
-  * Generates 3 CSV files,
+/**
+  * Outputs simulation metrics to files using a standard CSV format. Generates 3 CSV files,
   *   1. One for tasks with a "-tasks.csv" suffix,
   *   1. One for simulations with a "-simulations.csv" suffix.
   *   1. One for resources with a "-resources.csv" suffix.
   *
-  * @param path path to directory where the files will be placed
-  * @param name file name prefix
+  * @param path
+  *   path to directory where the files will be placed
+  * @param name
+  *   file name prefix
   */
 class SimCSVFileOutput(path: String, name: String) extends SimMetricsStringOutput with FileOutput {
   val separator = ","
@@ -284,20 +324,23 @@ class SimCSVFileOutput(path: String, name: String) extends SimMetricsStringOutpu
   }
 }
 
-/** Outputs simulation metrics to a file using the d3-timeline format.
-  * Generates 1 file with a "-simdata.js" suffix.
-  * This can then be combined with the resources at
-  * [[https://github.com/PetrosPapapa/WorkflowFM-PEW/tree/master/resources/d3-timeline]]
-  * to render the timeline in a browser.
+/**
+  * Outputs simulation metrics to a file using the d3-timeline format. Generates 1 file with a
+  * "-simdata.js" suffix. This can then be combined with the resources at
+  * [[https://github.com/PetrosPapapa/WorkflowFM-PEW/tree/master/resources/d3-timeline]] to render
+  * the timeline in a browser.
   *
-  * The timeline can display either virtual units of time or millisecond durations.
-  * If we choose the latter, we can provide the size of the virtual unit of time in milliseconds
-  * and all the durations will be scaled to that. For example, if our virtual unit of time is minutes,
-  * we need to provide a `tick` value of 60000.
+  * The timeline can display either virtual units of time or millisecond durations. If we choose the
+  * latter, we can provide the size of the virtual unit of time in milliseconds and all the
+  * durations will be scaled to that. For example, if our virtual unit of time is minutes, we need
+  * to provide a `tick` value of 60000.
   *
-  * @param path path to directory where the files will be placed
-  * @param file file name prefix
-  * @param tick the size of 1 unit of virtual time
+  * @param path
+  *   path to directory where the files will be placed
+  * @param file
+  *   file name prefix
+  * @param tick
+  *   the size of 1 unit of virtual time
   */
 class SimD3Timeline(path: String, file: String, tick: Int = 1)
     extends SimMetricsOutput
@@ -305,23 +348,23 @@ class SimD3Timeline(path: String, file: String, tick: Int = 1)
 
   override def apply(totalTicks: Long, aggregator: SimMetricsAggregator): Unit = {
     val result = build(aggregator, System.currentTimeMillis())
-    //println(result)
+    // println(result)
     val dataFile = s"$path$file-simdata.js"
     writeToFile(dataFile, result)
   }
 
   /** Helps build the output with a static system time. */
   def build(aggregator: SimMetricsAggregator, now: Long): String = {
-    val buf: StringBuilder = StringBuilder.newBuilder
+    val buf: StringBuilder = new StringBuilder()
     buf.append("var tasks = [\n")
-    for (p <- (collection.immutable.SortedSet[String]() ++ aggregator.taskSet))
+    for p <- (collection.immutable.SortedSet[String]() ++ aggregator.taskSet) do
       buf.append(s"""\t"$p",\n""")
     buf.append("];\n\n")
     buf.append("var resourceData = [\n")
-    for (m <- aggregator.resourceMetrics) buf.append(s"""${resourceEntry(m, aggregator)}\n""")
+    for m <- aggregator.resourceMetrics do buf.append(s"""${resourceEntry(m, aggregator)}\n""")
     buf.append("];\n\n")
     buf.append("var simulationData = [\n")
-    for (m <- aggregator.simulationMetrics) buf.append(s"""${simulationEntry(m, aggregator)}\n""")
+    for m <- aggregator.simulationMetrics do buf.append(s"""${simulationEntry(m, aggregator)}\n""")
     buf.append("];\n")
     buf.toString
   }

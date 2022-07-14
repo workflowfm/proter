@@ -1,22 +1,21 @@
 package com.workflowfm.proter
-
+/*
 import java.util.UUID
 
 import scala.collection.mutable.Map
 import scala.concurrent._
 import scala.concurrent.duration._
 
-import org.junit.runner.RunWith
-import org.scalatest._
-import org.scalatest.junit.JUnitRunner
+import org.scalatest.OptionValues
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpecLike
 
 import com.workflowfm.proter.events.PromiseHandler
 import com.workflowfm.proter.flows._
 import com.workflowfm.proter.metrics._
 import com.workflowfm.proter.schedule.LookaheadScheduler
 
-@RunWith(classOf[JUnitRunner])
-class LookaheadTests extends LookaheadTester with WordSpecLike with Matchers with OptionValues {
+class LookaheadTests extends LookaheadTester with AnyWordSpecLike with Matchers with OptionValues {
 
   "Lookahead systems" should {
 
@@ -95,7 +94,7 @@ class LookaheadTests extends LookaheadTester with WordSpecLike with Matchers wit
 trait LookaheadTester {
 
   def getCoordinator(): Coordinator = {
-    val coordinator = new Coordinator(new LookaheadScheduler())
+    val coordinator = new Coordinator(new LookaheadScheduler())(using ExecutionContext.global)
 
     coordinator.addResources(
       Seq(
@@ -182,7 +181,7 @@ class DummySim(coordinator: Manager) extends DummyLookaheadSim("sim1", coordinat
 
     lookahead = lookahead +> (id1, generator2) +> (id1, generator4) +> (id2, generator3)
 
-    //Equal to flow: task1 > ( (task2 > task3) + task4 )
+    // Equal to flow: task1 > ( (task2 > task3) + task4 )
     // i.e. the sequence task2>task3 happens in parallel to task4
     val task1 = task(
       generator1,
@@ -192,13 +191,13 @@ class DummySim(coordinator: Manager) extends DummyLookaheadSim("sim1", coordinat
           callback((_, _) => {
             task(
               generator3,
-              callback((_, _) => { if (tick) succeed(Unit) else { tick = true; ack(Seq(id3)) } })
+              callback((_, _) => { if tick then succeed(()) else { tick = true; ack(Seq(id3)) } })
             ); ack(Seq(id2))
           })
         )
         task(
           generator4,
-          callback((_, _) => { if (tick) succeed(Unit) else { tick = true; ack(Seq(id4)) } })
+          callback((_, _) => { if tick then succeed(()) else { tick = true; ack(Seq(id4)) } })
         )
         ack(Seq(id1))
       })
@@ -279,7 +278,7 @@ class DummySim2(coordinator: Manager) extends DummyLookaheadSim("sim1", coordina
           callback((_, _) => {
             task(
               generator3,
-              callback((_, _) => { if (tick) succeed(Unit) else { tick = true; ack(Seq(id3)) } })
+              callback((_, _) => { if tick then succeed(()) else { tick = true; ack(Seq(id3)) } })
             )
             ack(Seq(id2))
           })
@@ -289,7 +288,7 @@ class DummySim2(coordinator: Manager) extends DummyLookaheadSim("sim1", coordina
           callback((_, _) => {
             task(
               generator5,
-              callback((_, _) => { if (tick) succeed(Unit) else { tick = true; ack(Seq(id5)) } })
+              callback((_, _) => { if tick then succeed(()) else { tick = true; ack(Seq(id5)) } })
             )
             ack(Seq(id4))
           })
@@ -378,7 +377,7 @@ class DummySim3(coordinator: Manager) extends DummyLookaheadSim("sim1", coordina
 
     def function(s: collection.immutable.Map[java.util.UUID, Long]): Option[Long] = {
       val prerequisites = Set(id2, id3, id4) map (s.get(_))
-      if (prerequisites.contains(None)) None
+      if prerequisites.contains(None) then None
       else Some((prerequisites map (_.get)).max)
     }
     lookahead = lookahead + (function _, generator5)
@@ -386,19 +385,28 @@ class DummySim3(coordinator: Manager) extends DummyLookaheadSim("sim1", coordina
     def task5(): Unit = {
       task(
         generator5,
-        callback((_, _) => { if (tick) succeed(Unit) else { tick = true; ack(Seq(id5)) } })
+        callback((_, _) => { if tick then succeed(()) else { tick = true; ack(Seq(id5)) } })
       )
     }
 
     val task1 = task(
       generator1,
       callback((_, _) => {
-        task(generator2, callback((_, _) => { if (count == 2) task5(); count += 1; ack(Seq(id2)) }))
-        task(generator3, callback((_, _) => { if (count == 2) task5(); count += 1; ack(Seq(id3)) }))
-        task(generator4, callback((_, _) => { if (count == 2) task5(); count += 1; ack(Seq(id4)) }))
+        task(
+          generator2,
+          callback((_, _) => { if count == 2 then task5(); count += 1; ack(Seq(id2)) })
+        )
+        task(
+          generator3,
+          callback((_, _) => { if count == 2 then task5(); count += 1; ack(Seq(id3)) })
+        )
+        task(
+          generator4,
+          callback((_, _) => { if count == 2 then task5(); count += 1; ack(Seq(id4)) })
+        )
         task(
           generator6,
-          callback((_, _) => { if (tick) succeed(Unit) else { tick = true; ack(Seq(id6)) } })
+          callback((_, _) => { if tick then succeed(()) else { tick = true; ack(Seq(id6)) } })
         )
         ack(Seq(id1))
       })
@@ -416,26 +424,26 @@ object FlowDummySim {
   // Define tasks
   val task1: FlowTask = new FlowTask(
     Task("task1", 2L) withResources (Seq(
-          "r3"
-        )) withPriority (Task.High) withID UUID.randomUUID
+      "r3"
+    )) withPriority (Task.High) withID UUID.randomUUID
   )
 
   val task2: FlowTask = new FlowTask(
     Task("task2", 2L) withResources (Seq(
-          "r1"
-        )) withPriority (Task.High) withID UUID.randomUUID
+      "r1"
+    )) withPriority (Task.High) withID UUID.randomUUID
   )
 
   val task3: FlowTask = new FlowTask(
     Task("task3", 4L) withResources (Seq(
-          "r2"
-        )) withPriority (Task.High) withID UUID.randomUUID
+      "r2"
+    )) withPriority (Task.High) withID UUID.randomUUID
   )
 
   val task4: FlowTask = new FlowTask(
     Task("task4", 4L) withResources (Seq(
-          "r2"
-        )) withPriority (Task.Low) withID UUID.randomUUID
+      "r2"
+    )) withPriority (Task.Low) withID UUID.randomUUID
   )
   val flow: Flow = task1 > ((task2 > task3) + task4)
 
@@ -449,32 +457,32 @@ object FlowDummySim2 {
   // Define tasks
   val task1: FlowTask = new FlowTask(
     Task("task1", 2L) withResources (Seq(
-          "r2"
-        )) withPriority (Task.High) withID UUID.randomUUID
+      "r2"
+    )) withPriority (Task.High) withID UUID.randomUUID
   )
 
   val task2: FlowTask = new FlowTask(
     Task("task2", 4L) withResources (Seq(
-          "r1"
-        )) withPriority (Task.High) withID UUID.randomUUID
+      "r1"
+    )) withPriority (Task.High) withID UUID.randomUUID
   )
 
   val task3: FlowTask = new FlowTask(
     Task("task3", 3L) withResources (Seq(
-          "r2"
-        )) withPriority (Task.High) withID UUID.randomUUID
+      "r2"
+    )) withPriority (Task.High) withID UUID.randomUUID
   )
 
   val task4: FlowTask = new FlowTask(
     Task("task4", 2L) withResources (Seq(
-          "r3"
-        )) withPriority (Task.Low) withID UUID.randomUUID
+      "r3"
+    )) withPriority (Task.Low) withID UUID.randomUUID
   )
 
   val task5: FlowTask = new FlowTask(
     Task("task5", 3L) withResources (Seq(
-          "r2"
-        )) withPriority (Task.Low) withID UUID.randomUUID
+      "r2"
+    )) withPriority (Task.Low) withID UUID.randomUUID
   )
   val flow: Flow = task1 > ((task2 > task3) + (task4 > task5))
 
@@ -488,39 +496,40 @@ object FlowDummySim3 {
   // Define tasks
   val task1: FlowTask = new FlowTask(
     Task("task1", 2L) withResources (Seq(
-          "r2"
-        )) withPriority (Task.High) withID UUID.randomUUID
+      "r2"
+    )) withPriority (Task.High) withID UUID.randomUUID
   )
 
   val task2: FlowTask = new FlowTask(
     Task("task2", 4L) withResources (Seq(
-          "r1"
-        )) withPriority (Task.High) withID UUID.randomUUID
+      "r1"
+    )) withPriority (Task.High) withID UUID.randomUUID
   )
 
   val task3: FlowTask = new FlowTask(
     Task("task3", 3L) withResources (Seq(
-          "r2"
-        )) withPriority (Task.High) withID UUID.randomUUID
+      "r2"
+    )) withPriority (Task.High) withID UUID.randomUUID
   )
 
   val task4: FlowTask = new FlowTask(
     Task("task4", 2L) withResources (Seq(
-          "r3"
-        )) withPriority (Task.High) withID UUID.randomUUID
+      "r3"
+    )) withPriority (Task.High) withID UUID.randomUUID
   )
 
   val task5: FlowTask = new FlowTask(
     Task("task5", 4L) withResources (Seq(
-          "r3"
-        )) withPriority (Task.High) withID UUID.randomUUID
+      "r3"
+    )) withPriority (Task.High) withID UUID.randomUUID
   )
 
   val task6: FlowTask = new FlowTask(
     Task("task6", 10L) withResources (Seq(
-          "r3"
-        )) withPriority (Task.Low) withID UUID.randomUUID
+      "r3"
+    )) withPriority (Task.Low) withID UUID.randomUUID
   )
   val flow: Flow = task1 > (((task2 + task3 + task4) > task5) + task6)
 
 }
+ */

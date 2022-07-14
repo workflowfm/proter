@@ -18,8 +18,10 @@ import com.workflowfm.proter.schedule.Scheduler
   *
   * Delegates all interaction to an actor via messaging.
   *
-  * @param manager The `ActorRef` of the actor.
-  * @param timeout A timeout for all `ask` operations.
+  * @param manager
+  *   The `ActorRef` of the actor.
+  * @param timeout
+  *   A timeout for all `ask` operations.
   */
 case class AkkaManager(manager: ActorRef, timeout: Timeout = Timeout(1, TimeUnit.MINUTES))
     extends Manager {
@@ -90,9 +92,9 @@ object AkkaManager {
       scheduler: Scheduler,
       startingTime: Long = 0L,
       timeout: Timeout = Timeout(1, TimeUnit.MINUTES)
-  )(implicit system: ActorSystem): AkkaManager = {
+  )(using system: ActorSystem): AkkaManager = {
     AkkaManager(
-      system.actorOf(CoordinatorActor.props(scheduler, startingTime)(system)),
+      system.actorOf(CoordinatorActor.props(scheduler, startingTime)(using system)),
       timeout
     )
   }
@@ -103,17 +105,19 @@ object AkkaManager {
   *
   * Provides access to all functionality via messaging.
   *
-  * @param scheduler The [[com.workflowfm.proter.schedule.Scheduler Scheduler]] responsible
-  *                  for task allocation at any given time.
-  * @param startingTime The starting timestamp of the entire simulation.
+  * @param scheduler
+  *   The [[com.workflowfm.proter.schedule.Scheduler Scheduler]] responsible for task allocation at
+  *   any given time.
+  * @param startingTime
+  *   The starting timestamp of the entire simulation.
   */
 class CoordinatorActor(
     scheduler: Scheduler,
     startingTime: Long
-)(implicit actorSystem: ActorSystem)
+)(using actorSystem: ActorSystem)
     extends Actor {
 
-  implicit val executionContext: ExecutionContext = actorSystem.dispatcher
+  given ExecutionContext = actorSystem.dispatcher
 
   val coordinator: Coordinator = new Coordinator(scheduler, true, startingTime)
 
@@ -160,11 +164,16 @@ class CoordinatorActor(
   *
   * Includes some of the actor messages that can be received and sent.
   *
-  * @groupname simulations Interaction with a Simulation
-  * @groupdesc simulations Messages exchanged with a [[Simulation]].
-  * @groupprio simulations 2
-  * @groupname toplevel General Interaction
-  * @groupprio toplevel 1
+  * @groupname simulations
+  *   Interaction with a Simulation
+  * @groupdesc simulations
+  *   Messages exchanged with a [[Simulation]].
+  * @groupprio simulations
+  *   2
+  * @groupname toplevel
+  *   General Interaction
+  * @groupprio toplevel
+  *   1
   */
 object CoordinatorActor {
   /**
@@ -274,7 +283,8 @@ object CoordinatorActor {
     * Message to introduce a time limit for all simulations.
     *
     * @group toplevel
-    * @param t The timestamp when all simulations must stop.
+    * @param t
+    *   The timestamp when all simulations must stop.
     */
   case class LimitTime(time: Long)
 
@@ -291,14 +301,16 @@ object CoordinatorActor {
   /**
     * Creates properties for a [[Coordinator]] actor.
     *
-    * @param scheduler The [[com.workflowfm.proter.schedule.Scheduler Scheduler]] to be used.
-    * @param startingTime The starting time of the entire simulation.
+    * @param scheduler
+    *   The [[com.workflowfm.proter.schedule.Scheduler Scheduler]] to be used.
+    * @param startingTime
+    *   The starting time of the entire simulation.
     * @return
     */
   def props(
       scheduler: Scheduler,
       startingTime: Long = 0L
-  )(implicit system: ActorSystem): Props = Props(
+  )(using ActorSystem): Props = Props(
     new CoordinatorActor(scheduler, startingTime)
   )
 }

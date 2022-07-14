@@ -1,35 +1,72 @@
 package com.workflowfm.proter
 
+import cats.effect.std.Random
+import cats.Applicative
+import cats.implicits.*
+
 /**
-  * A random function sampling some probability distribution.
+  * A random function sampling some probability distribution to produce a `Long` value.
   *
-  * It can be used to generate a value for some simulation parameters
-  * (typically duration and cost). It can be a [[Constant]] which always
-  * provides the same value or any probability distribution.
+  * It can be used to generate a value for simulation parameters (typically duration). It can be a
+  * [[ConstantLong]] which always provides the same value or any probability distribution.
   *
-  * Distributions must also provide an estimate of the generated values
-  * such that can be used in an environment of imperfect knowledge.
-  * For example, the
-  * [[schedule.Scheduler Scheduler]] does not know the actual durations of tasks, which can vary from
-  * the expected estimate for various reasons.
+  * Distributions must also provide an estimate of the generated values such that can be used in an
+  * environment of imperfect knowledge. For example, the [[schedule.Scheduler Scheduler]] does not
+  * know the actual durations of tasks, which can vary from the expected estimate for various
+  * reasons.
   */
-trait Distribution {
+trait LongDistribution {
+
+  /**
+    * Provides a sample `Long` value.
+    *
+    * @return
+    *   A sample `Long` value.
+    */
+  def getLong[F[_] : Applicative : Random]: F[Long]
+
+  /**
+    * Provides an estimate of the values that can be generated.
+    *
+    * This could be the mean of the distribution for instance. It can help create an environment of
+    * imperfect knowledge. For example, the [[schedule.Scheduler Scheduler]] does not know the
+    * actual durations of tasks, which can vary from the expected estimate for various reasons.
+    *
+    * @return
+    *   An estimate of the values that can be generated.
+    */
+  def longEstimate: Long
+}
+
+/**
+  * A random function sampling some probability distribution to produce a `Double` value.
+  *
+  * It can be used to generate a value for simulation parameters (typically duration and cost). It
+  * can be a [[Constant]] which always provides the same value or any probability distribution.
+  *
+  * Distributions must also provide an estimate of the generated values such that can be used in an
+  * environment of imperfect knowledge. For example, the [[schedule.Scheduler Scheduler]] does not
+  * know the actual durations of tasks, which can vary from the expected estimate for various
+  * reasons.
+  */
+trait Distribution extends LongDistribution {
 
   /**
     * Provides a sample value.
     *
-    * @return A sample value.
+    * @return
+    *   A sample value.
     */
-  def get: Double
+  def get[F[_] : Applicative : Random]: F[Double]
 
   /**
-    * Provides an estimate of the values that can be generated.
-    * This could be the mean of the distribution for instance.
-    * It can help create an environment of imperfect knowledge. For example, the
-    * [[schedule.Scheduler Scheduler]] does not know the actual durations of tasks, which can vary from
-    * the expected estimate for various reasons.
+    * Provides an estimate of the values that can be generated. This could be the mean of the
+    * distribution for instance. It can help create an environment of imperfect knowledge. For
+    * example, the [[schedule.Scheduler Scheduler]] does not know the actual durations of tasks,
+    * which can vary from the expected estimate for various reasons.
     *
-    * @return An estimate of the values that can be generated.
+    * @return
+    *   An estimate of the values that can be generated.
     */
   def estimate: Double
 
@@ -38,9 +75,51 @@ trait Distribution {
     *
     * Simply rounds a `Double` sample.
     *
-    * @return A sample `Long` value.
+    * @return
+    *   A sample `Long` value.
     */
-  def getLong: Long = get.floor.round
+  override def getLong[F[_] : Applicative : Random]: F[Long] =
+    Applicative[F].map(get[F])(_.floor.round)
+
+  /**
+    * Provides an estimate of the `Long` values that can be generated.
+    *
+    * This could be the mean of the distribution for instance. It can help create an environment of
+    * imperfect knowledge. For example, the [[schedule.Scheduler Scheduler]] does not know the
+    * actual durations of tasks, which can vary from the expected estimate for various reasons.
+    *
+    * @return
+    *   An estimate of the values that can be generated.
+    */
+  override def longEstimate: Long = estimate.floor.round
+}
+
+/**
+  * A constant Long value generator.
+  *
+  * Always generates the same value.
+  *
+  * @param value
+  *   The value to generate.
+  */
+case class ConstantLong(value: Long) extends LongDistribution {
+  import cats.implicits.catsSyntaxApplicativeId
+
+  /**
+    * Provides the constant value.
+    *
+    * @return
+    *   The constant value.
+    */
+  override def getLong[F[_] : Applicative : Random]: F[Long] = Applicative[F].pure(value)
+
+  /**
+    * Provides an estimate of the constant value, i.e. the value itself.
+    *
+    * @return
+    *   The constant value as an estimate of itself.
+    */
+  override def longEstimate = value
 }
 
 /**
@@ -48,22 +127,55 @@ trait Distribution {
   *
   * Always generates the same value.
   *
-  * @param value The value to generate.
+  * @param value
+  *   The value to generate.
   */
 case class Constant(value: Double) extends Distribution {
   /**
     * Provides the constant value.
     *
-    * @return The constant value.
+    * @return
+    *   The constant value.
     */
-  override def get = value
+  override def get[F[_] : Applicative : Random]: F[Double] = Applicative[F].pure(value)
 
   /**
     * Provides an estimate of the constant value, i.e. the value itself.
     *
-    * @return The constant value as an estimate of itself.
+    * @return
+    *   The constant value as an estimate of itself.
     */
-  override def estimate = value
+  override def estimate: Double = value
+}
+
+/**
+  * A uniform Long distribution.
+  *
+  * Samples a random variable uniformly between [[min]] and [[max]].
+  *
+  * @param min
+  *   The minimum possible value.
+  * @param max
+  *   The maximum possible value.
+  */
+case class UniformLong(min: Long, max: Long) extends LongDistribution {
+  /**
+    * Provides a random value uniformly sampled between [[min]] and [[max]].
+    *
+    * @return
+    *   The random value.
+    */
+  override def getLong[F[_] : Applicative : Random]: F[Long] = Random[F].betweenLong(min, max)
+
+  /**
+    * Provides an estimate of the values that can be generated.
+    *
+    * Uses the median of the uniform distribution.
+    *
+    * @return
+    *   The median as an estimate of the values that can be generated.
+    */
+  override def longEstimate: Long = (max + min) / 2
 }
 
 /**
@@ -71,23 +183,27 @@ case class Constant(value: Double) extends Distribution {
   *
   * Samples a random variable uniformly between [[min]] and [[max]].
   *
-  * @param min The minimum possible value.
-  * @param max The maximum possible value.
+  * @param min
+  *   The minimum possible value.
+  * @param max
+  *   The maximum possible value.
   */
 case class Uniform(min: Double, max: Double) extends Distribution {
   /**
     * Provides a random value uniformly sampled between [[min]] and [[max]].
     *
-    * @return The random value.
+    * @return
+    *   The random value.
     */
-  override def get: Double = new util.Random().nextDouble * (max - min) + min
+  override def get[F[_] : Applicative : Random]: F[Double] = Random[F].betweenDouble(min, max)
 
   /**
     * Provides an estimate of the values that can be generated.
     *
     * Uses the median of the uniform distribution.
     *
-    * @return The median as an estimate of the values that can be generated.
+    * @return
+    *   The median as an estimate of the values that can be generated.
     */
   override def estimate: Double = (max + min) / 2
 }
@@ -98,10 +214,10 @@ case class Exponential(mean: Double) extends Distribution {
   /**
     * Provides a random value exponentially sampled with a [[mean]] value (lambda).
     *
-    * @return The random value.
+    * @return
+    *   The random value.
     */
-  override def get: Double = {
-    val rand = new util.Random().nextDouble
+  override def get[F[_] : Applicative : Random]: F[Double] = Random[F].nextDouble.map { rand =>
     /* Density function:
      * fx(t) = le^(-lt) , where l is lambda, t is time
      *
@@ -115,10 +231,11 @@ case class Exponential(mean: Double) extends Distribution {
   }
 
   /**
-    * Provides an estimate of the values that can be generated.
-    * Uses the mean of the exponential distribution.
+    * Provides an estimate of the values that can be generated. Uses the mean of the exponential
+    * distribution.
     *
-    * @return The mean as an estimate of the values that can be generated.
+    * @return
+    *   The mean as an estimate of the values that can be generated.
     */
   override def estimate: Double = mean
 }

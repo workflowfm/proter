@@ -1,102 +1,70 @@
 package com.workflowfm.proter.events
 
+import cats.Monad
+import cats.effect.{ Resource, MonadCancel, Concurrent }
+import cats.implicits.*
+import fs2.Stream
+import fs2.concurrent.Topic
 import java.util.UUID
 
 /**
   * A publisher of a stream of simulation [[Event]]s.
   */
-trait Publisher {
-
-  /**
-    * Checks if an event signifies the end of the stream.
-    *
-    * @param e The event to check.
-    * @return `true` if it is a final event.
-    */
-  def isFinalEvent(e: Event): Boolean = false
+case class Publisher[F[_]](topic: Topic[F, Either[Throwable, Event]], maxQueued: Int)(
+    using MonadCancel[F, Throwable]
+) {
 
   /**
     * Publishes an event into the stream.
     *
-    * @param evt The event to publish.
+    * @param evt
+    *   The event to publish.
     */
-  def doPublish(evt: Event): Unit
+  def publish(evt: Event): F[Either[Topic.Closed, Unit]] = {
+    val pub = topic.publish1(Right(evt))
+    evt match {
+      // case EError(_, _, _) => pub >> stop()
+      case EDone(_, _) => pub >> stop()
+      case _ => pub
+    }
+  }
+
+  def fail(e: Throwable): F[Either[Topic.Closed, Unit]] = topic.publish1(Left(e)) >> stop()
 
   /**
     * Performs any cleaning up required when the stream is finished.
     */
-  def stopStream(): Unit
+  def stop(): F[Either[Topic.Closed, Unit]] = topic.close
 
   /**
     * Subscribes an [[EventHandler]] to the stream so they can receive events.
     *
-    * @param subscriber The [[EventHandler]] to subscribe.
+    * @param subscriber
+    *   The [[EventHandler]] to subscribe.
     */
-  def subscribe(subscriber: EventHandler): Unit
-
-  /**
-    * Unsubscribes an [[EventHandler]] to the stream so they can stop receiving events.
-    *
-    * @param subscriber The [[EventHandler]] to unsubscribe.
-    */
-  def unsubscribe(subscriber: EventHandler): Unit
-
-  /**
-    * Wrapper method for [[doPublish]] that also stops the stream upon final events.
-    *
-    * @param evt
-    */
-  def publish(evt: Event): Unit = {
-    doPublish(evt)
-    if (isFinalEvent(evt)) stopStream()
-  }
+  def subscribe(subscriber: EventHandler[F]): Resource[F, Stream[F, Unit]] =
+    topic.subscribeAwait(maxQueued).evalMap { sub =>
+      for {
+        _ <- subscriber.onInit(this)
+      } yield sub
+        .evalMap(evt =>
+          evt match {
+            case Left(e) => subscriber.onFail(e, this)
+            case Right(e) => {
+              e match {
+                case EDone(_, _) => subscriber.onEvent(e) >> subscriber.onDone(this)
+                case _ => subscriber.onEvent(e)
+              }
+            }
+          }
+        )
+        .handleErrorWith(ex => Stream.eval(subscriber.onFail(ex, this)))
+    }
 }
 
-/**
-  * [[Publisher]] implementation using a `HashMap` of subscribers.
-  */
-trait HashMapPublisher extends Publisher {
+object Publisher {
 
-  import scala.collection.mutable.HashMap
-
-  /**
-    * The `HashMap` of subscribers that receive events.
-    */
-  val subscribers: HashMap[UUID, EventHandler] = HashMap[UUID, EventHandler]()
-
-  /**
-    * @inheritdoc
-    *
-    * Sends the event to all subscribers in the `HashMap`.
-    */
-  override def doPublish(evt: Event): Unit = subscribers foreach (_._2.onEvent(evt))
-
-  /**
-    * @inheritdoc
-    *
-    * Adds the subscriber to the `HashMap` and calls its `onInit` method.
-    */
-  override def subscribe(subscriber: EventHandler): Unit = {
-    subscribers += subscriber.id -> subscriber
-    subscriber.onInit(this)
-  }
-
-  /**
-    * @inheritdoc
-    *
-    * Notifies all subscribers that the stream is done and clears the `HashMap` to prevent
-    * any further events being delivered.
-    */
-  override def stopStream(): Unit = {
-    subscribers foreach (_._2.onDone(this))
-    subscribers.clear()
-  }
-
-  /**
-    * @inheritdoc
-    *
-    * Removes the subscriber from the `HashMap`.
-    */
-  override def unsubscribe(subscriber: EventHandler): Unit = subscribers -= subscriber.id
-
+  def build[F[_] : Concurrent](maxQueued: Int = 10): F[Publisher[F]] = for {
+    topic <- Topic[F, Either[Throwable, Event]]
+  } yield (Publisher[F](topic, 10))
 }

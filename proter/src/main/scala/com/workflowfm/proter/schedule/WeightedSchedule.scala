@@ -19,12 +19,12 @@ import com.workflowfm.proter.{ TaskInstance, TaskResource }
   */
 case class WeightedSchedule(tasks: List[(Long, Long, Int)]) {
 
-  def +(start: Long, end: Long, usage: Int = 1): Option[WeightedSchedule] = WeightedSchedule.add(start, end, usage, tasks) match {
+  def +(start: Long, end: Long, usage: Int): Option[WeightedSchedule] = WeightedSchedule.add(start, end, usage, tasks) match {
     case None => None
     case Some(l) => Some(copy(tasks = l))
   }
 
-  def +>(start: Long, end: Long, usage: Int = 1): WeightedSchedule = WeightedSchedule.add(start, end, usage, tasks) match {
+  def +>(start: Long, end: Long, usage: Int): WeightedSchedule = WeightedSchedule.add(start, end, usage, tasks) match {
     case None => {
       System.err.println(s"*** Unable to add ($start,$end) to Schedule: $tasks")
       this
@@ -32,8 +32,8 @@ case class WeightedSchedule(tasks: List[(Long, Long, Int)]) {
     case Some(l) => copy(tasks = l)
   }
 
-  def +>(startTime: Long, t: TaskInstance): WeightedSchedule = {
-    this +> (startTime, startTime + t.estimatedDuration)
+  def +>(startTime: Long, t: TaskInstance, usage: Int): WeightedSchedule = {
+    this +> (startTime, startTime + t.estimatedDuration, usage)
   }
 
   def binary(targetCapacity: Int, resourceCapacity: Int): Schedule = WeightedSchedule.getBinarySchedule(tasks,targetCapacity,resourceCapacity)

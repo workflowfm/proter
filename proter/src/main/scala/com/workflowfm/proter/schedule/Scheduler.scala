@@ -1,16 +1,11 @@
-package com.workflowfm.proter.schedule
+package com.workflowfm.proter
+package schedule
 
 import java.util.UUID
 
 import scala.annotation.tailrec
-import scala.collection.Map
-import scala.collection.mutable.SortedSet
+import scala.collection.immutable.{ Map, SortedSet, Queue }
 
-import com.workflowfm.proter.{ TaskInstance, TaskResource, Lookahead, NoLookahead }
-
-/**
-  * A scheduler selects the next [[TaskInstance]]s to be started by the [[Coordinator]] at a given time.
-  */
 trait Scheduler {
 
   /**
@@ -18,163 +13,20 @@ trait Scheduler {
     *
     * [[TaskInstance]]s are assumed to be sorted by priority.
     *
-    * @param tasks The queue of [[TaskInstance]]s waiting to be started.
-    * @param currentTime The current timestamp.
-    * @param resourceMap The map of available [[TaskResource]]s.
-    * @return The sequence of [[TaskInstance]]s to start now.
+    * @param tasks
+    *   The queue of [[TaskInstance]]s waiting to be started.
+    * @param currentTime
+    *   The current timestamp.
+    * @param resourceMap
+    *   The map of available [[TaskResource]]s.
+    * @return
+    *   The sequence of [[TaskInstance]]s to start now.
     */
   def getNextTasks(
       currentTime: Long,
-      resourceMap: Map[String, TaskResource]
+      tasks: Iterable[TaskInstance],
+      resourceMap: ResourceMap
   ): Seq[TaskInstance]
-
-  /**
-    * Checks if a named [[TaskResource]] is idle.
-    *
-    * @param r The name of the [[TaskResource]].
-    * @param resourceMap The map of available [[TaskResource]]s.
-    * @return true if the resource is idle, false otherwise.
-    */
-  def isIdleResource(r: String, resourceMap: Map[String, TaskResource]): Boolean =
-    resourceMap.get(r) match {
-      case None => false
-      case Some(s) => s.hasSpace
-    }
-
-  /**
-    * Sets the lookahead structure for the specified actor.
-    *
-    * @param actor The actor that created this lookahead structure.
-    * @param obj The lookahead structure.
-    */
-  def setLookahead(simulation: String, obj: Lookahead): Unit = Unit
-
-  /**
-    * Removes the lookahead structure associated with the given actor.
-    *
-    * @param actor The actor corresponding to the lookahead structure.
-    */
-  def removeLookahead(simulation: String): Unit = Unit
-
-  /**
-    * Adds an Task described by an (ID,time) pair to the list of completed IDs
-    *
-    * @param id The ID to be added
-    * @param time The time at which the task completed
-    * @return A LookaheadStructure with this (ID,time) pair added to the list of completed tasks
-    */
-  def complete(task: TaskInstance, time: Long): Unit = Unit
-
-  /**
-    * Retrieves an iterable collection of queued [[TaskInstance]]s.
-    *
-    * @return The [[TaskInstance]]s in the scheduling queue.
-    */
-  def getTasks(): Iterable[TaskInstance]
-
-  /**
-    * Adds a [[TaskInstance]] to be scheduled.
-    *
-    * @param task The [[TaskInstance]] to add.
-    */
-  def addTask(task: TaskInstance): Unit
-
-  /**
-    * Removes a [[TaskInstance]] that no longer needs scheduling.
-    *
-    * @param task The [[TaskInstance]] to remove.
-    */
-  def removeTask(task: TaskInstance): Unit
-
-  /**
-    * Removes all [[TaskInstance]]s belonging to an (presumably aborted) simulation.
-    *
-    * @param simulation The name of the simulation that was aborted.
-    */
-  def removeSimulation(simulation: String): Unit
-
-  /**
-    * Checks if all [[Task]]s have been scheduled.
-    *
-    * @return true if there are no [[Task]]s remaining.
-    */
-  def noMoreTasks(): Boolean
-
-}
-
-trait QueueScheduler extends Scheduler {
-  import scala.collection.mutable.Queue
-
-  /**
-    * A queue of tasks that need to be run.
-    */
-  val tasks: Queue[TaskInstance] = Queue()
-
-  /**
-    * @inheritdoc
-    */
-  override def getTasks(): Iterable[TaskInstance] = tasks
-
-  /**
-    * @inheritdoc
-    */
-  override def addTask(task: TaskInstance): Unit = tasks += task
-
-  /**
-    * @inheritdoc
-    */
-  override def removeTask(task: TaskInstance): Unit = tasks.dequeueFirst(_.id.equals(task.id))
-
-  /**
-    * @inheritdoc
-    */
-  override def removeSimulation(simulation: String): Unit =
-    tasks.dequeueAll(_.simulation == simulation)
-
-  /**
-    * @inheritdoc
-    */
-  override def noMoreTasks(): Boolean = tasks.isEmpty
-
-}
-
-/**
-  * A [[Scheduler]] trait that uses a `SortedSet`.
-  *
-  * Forms the basis for priority-based schedulers.
-  */
-abstract class PriorityScheduler(implicit ordering: Ordering[TaskInstance]) extends Scheduler {
-
-  /**
-    * A sorted queue of tasks that need to be run.
-    */
-  val tasks: SortedSet[TaskInstance] = SortedSet()(ordering)
-
-  /**
-    * @inheritdoc
-    */
-  override def getTasks(): Iterable[TaskInstance] = tasks
-
-  /**
-    * @inheritdoc
-    */
-  override def addTask(task: TaskInstance): Unit = tasks += task
-
-  /**
-    * @inheritdoc
-    */
-  override def removeTask(task: TaskInstance): Unit = tasks -= task
-
-  /**
-    * @inheritdoc
-    */
-  override def removeSimulation(simulation: String): Unit =
-    tasks --= tasks.filter(_.simulation == simulation)
-
-  /**
-    * @inheritdoc
-    */
-  override def noMoreTasks(): Boolean = tasks.isEmpty
 
 }
 
@@ -183,153 +35,33 @@ abstract class PriorityScheduler(implicit ordering: Ordering[TaskInstance]) exte
   *
   * Starts all tasks whose resources are currently idle, in the given order/priority.
   *
-  * This means a lower priority task may start now and block a higher priority
-  * task which is currently blocked, but could have started soon.
+  * This means a lower priority task may start now and block a higher priority task which is
+  * currently blocked, but could have started soon.
   */
-trait GreedyScheduler extends Scheduler {
-  import scala.collection.immutable.Queue
+case class GreedyScheduler(strict: Boolean) extends Scheduler {
 
   override def getNextTasks(
       currentTime: Long,
-      resourceMap: Map[String, TaskResource]
+      tasks: Iterable[TaskInstance],
+      resourceMap: ResourceMap
   ): Seq[TaskInstance] = {
-    findNextTasks(resourceMap.map{ x => (x._1->x._2.remainingSpace)}, getTasks(), Queue())
+    findNextTasks(resourceMap.getAvailable(), tasks, Queue())
   }
 
-  /**
-    * Finds the [[Task]]s that can be started now.
-    *
-    * Goes through the priority list of tasks and returns those whose resources are
-    * idle (even after starting higher priority tasks).
-    *
-    * @param resourceSpace The ammount of capacity left for each [[TaskResource]].
-    * @param tasks The set of [[TaskInstance]]s that need to start.
-    * @param result The accumulated [[TaskInstance]]s so far (for tail recursion).
-    * @return The sequence of [[TaskInstance]]s to start now.
-    */
   @tailrec
   final protected def findNextTasks(
-      resourceSpace: Map[String, Double],
+      available: ResourceMap,
       tasks: Iterable[TaskInstance],
       result: Queue[TaskInstance]
   ): Seq[TaskInstance] =
     if (tasks.isEmpty) result
     else {
       val t = tasks.head
-      if (t.resources.forall{ x => (resourceSpace.getOrElse(x,0D)) > 0D }) {
-        val resourceSpace2: Map[String, Double] = t.resources.foldLeft(resourceSpace){ (x: Map[String, Double], y: String) => x + (y -> (x(y)-1)) } //subtract 1 of each resource
-        findNextTasks(resourceSpace2, tasks.tail, result :+ t)
-      } else findNextTasks(resourceSpace, tasks.tail, result)
+      if available.canHandle(task) then
+        findNextTasks(available.reduce(t.resources), tasks.tail, result :+ t)
+      else if strict then findNextTasks(available.reduce(t.resources), tasks.tail, result)
+      else findNextTasks(available, tasks.tail, result)
     }
-}
-
-/**
-  * A strict [[Scheduler]].
-  *
-  * Starts all tasks whose resources are currently idle, in the given order/priority.
-  *
-  * Does not consider resources of higher priority tasks. This means that idle
-  * resources may be blocked by queued high priority tasks that cannot start yet.
-  */
-trait StrictScheduler extends Scheduler {
-  import scala.collection.immutable.Queue
-
-  override def getNextTasks(
-      currentTime: Long,
-      resourceMap: Map[String, TaskResource]
-  ): Seq[TaskInstance] = {
-    findNextTasks(resourceMap.map{ x => (x._1->x._2.remainingSpace)}, getTasks(), Queue())
-  }
-
-  /**
-    * Finds the [[Task]]s that can be started now.
-    *
-    * Goes through the priority list of tasks and returns those whose resources are
-    * idle (even after any queued higher priority task).
-    *
-    * @param resourceSpace The ammount of capacity left for each [[TaskResource]].
-    * @param tasks The set of [[TaskInstance]]s that need to start.
-    * @param result The accumulated [[TaskInstance]]s so far (for tail recursion).
-    * @return The sequence of [[TaskInstance]]s to start now.
-    */
-  @tailrec
-  final protected def findNextTasks(
-      resourceSpace: Map[String, Double],
-      tasks: Iterable[TaskInstance],
-      result: Queue[TaskInstance]
-  ): Seq[TaskInstance] =
-    if (tasks.isEmpty) result
-    else {
-      val t = tasks.head
-      val resourceSpace2: Map[String, Double] = t.resources.foldLeft(resourceSpace){ (x: Map[String, Double], y: String) => x + (y -> (x(y)-1)) } //subtract 1 of each resource
-      if (t.resources.forall{ x => (resourceSpace.getOrElse(x,0D)) > 0D }) 
-        findNextTasks(resourceSpace2, tasks.tail, result :+ t)
-      else findNextTasks(resourceSpace2, tasks.tail, result)
-    }
-}
-
-/**
-  * A greedy First-Come-First-Served [[Scheduler]].
-  *
-  * Starts all tasks whose resources are currently idle, in order of arrival in the queue.
-  *
-  * This means a task that arrived later may start now and block an earlier
-  * task which is currently blocked, but could have started soon.
-  *
-  * Ignores creation time. Only cares about order in the queue.
-  *
-  * @param initialTasks Initial [[TaskInstance]]s in the queue, if any.
-  */
-class GreedyFCFSScheduler(initialTasks: TaskInstance*) extends QueueScheduler with GreedyScheduler {
-  tasks ++= initialTasks
-}
-
-/**
-  * A strict First-Come-First-Served [[Scheduler]].
-  *
-  * Starts all tasks whose resources are currently idle, in order of arrival in the queue.
-  *
-  * Considers resources of earlier tasks as busy even if they are not. This means that idle
-  * resources may be blocked by tasks earlier in the queue that cannot start yet.
-  *
-  * Ignores creation time. Only cares about order in the queue.
-  *
-  * @param initialTasks Initial [[TaskInstance]]s in the queue, if any.
-  */
-class StrictFCFSScheduler(initialTasks: TaskInstance*) extends QueueScheduler with StrictScheduler {
-  tasks ++= initialTasks
-}
-
-/**
-  * A greedy priority [[Scheduler]].
-  *
-  * Starts all tasks whose resources are currently idle, in order of priority.
-  *
-  * This means a lower priority task may start now and block a higher priority
-  * task which is currently blocked, but could have started soon.
-  *
-  * @param initialTasks Initial [[TaskInstance]]s in the queue, if any.
-  */
-class GreedyPriorityScheduler(initialTasks: TaskInstance*)
-    extends PriorityScheduler
-    with GreedyScheduler {
-  tasks ++= initialTasks
-}
-
-/**
-  * A strict priority [[Scheduler]].
-  *
-  * Starts all tasks whose resources are currently idle, in order of priority.
-  *
-  * Considers resources of higher priority tasks as busy even if they are not. This means that idle
-  * resources may be blocked by queued high priority tasks that cannot start yet.
-  *
-  * @param initialTasks Initial [[TaskInstance]]s in the queue, if any.
-  */
-class StrictPriorityScheduler(initialTasks: TaskInstance*)
-    extends PriorityScheduler
-    with StrictScheduler {
-  tasks ++= initialTasks
 }
 
 /**
@@ -337,32 +69,42 @@ class StrictPriorityScheduler(initialTasks: TaskInstance*)
   *
   * Relies on the use of [[Schedule]]s for each [[TaskResource]].
   *
-  * Avoids scheduling lower priority tasks that might cause delays/waiting times to
-  * higher priority ones.
+  * Avoids scheduling lower priority tasks that might cause delays/waiting times to higher priority
+  * ones.
   *
-  * @param initialTasks Initial [[TaskInstance]]s in the queue, if any.
+  * @param initialTasks
+  *   Initial [[TaskInstance]]s in the queue, if any.
   */
-class ProterScheduler(initialTasks: TaskInstance*) extends PriorityScheduler {
-  import scala.collection.immutable.Queue
-
-  tasks ++= initialTasks
+case object ProterScheduler extends Scheduler {
 
   /**
     * @inheritdoc
     *
     * Uses [[findNextTasks]].
-    * @see [[findNextTasks]]
+    * @see
+    *   [[findNextTasks]]
     *
-    * @param tasks The queue of [[TaskInstance]]s waiting to be started.
-    * @param currentTime The current timestamp.
-    * @param resourceMap The map of available [[TaskResource]]s.
-    * @return The sequence of [[TaskInstance]]s to start now.
+    * @param tasks
+    *   The queue of [[TaskInstance]]s waiting to be started.
+    * @param currentTime
+    *   The current timestamp.
+    * @param resourceMap
+    *   The map of available [[TaskResource]]s.
+    * @return
+    *   The sequence of [[TaskInstance]]s to start now.
     */
   override def getNextTasks(
       currentTime: Long,
-      resourceMap: Map[String, TaskResource]
-  ): Seq[TaskInstance] = 
-    findNextTasks(currentTime, resourceMap, resourceMap.mapValues(WeightedSchedule(_)), tasks, Queue())
+      tasks: Iterable[TaskInstance],
+      resourceMap: ResourceMap
+  ): Seq[TaskInstance] =
+    findNextTasks(
+      currentTime,
+      resourceMap,
+      resourceMap.resources.view.mapValues(WeightedSchedule(_)).toMap,
+      tasks,
+      Queue()
+    )
 
   /**
     * Finds the [[Task]]s that can be started now.
@@ -370,49 +112,65 @@ class ProterScheduler(initialTasks: TaskInstance*) extends PriorityScheduler {
     * [[Task]]s are assumed to be sorted by priority.
     *
     * Taking each [[TaskInstance]] from high to low priority, the algorithm does the following:
-    *   1. It merges the current [[Schedule]]s of all the [[TaskResource]]s involved in the [[TaskInstance]].
-    *   1. It finds the earliest possible starting time of the [[TaskInstance]] in the merged [[Schedule]].
-    *   1. Takes the interval defined by the starting time and the estimated duration of the [[TaskInstance]]
-    * and adds it to the [[Schedule]]s of all the involved [[TaskResource]]s.
+    *   1. It merges the current [[Schedule]]s of all the [[TaskResource]]s involved in the
+    *      [[TaskInstance]].
+    *   1. It finds the earliest possible starting time of the [[TaskInstance]] in the merged
+    *      [[Schedule]].
+    *   1. Takes the interval defined by the starting time and the estimated duration of the
+    *      [[TaskInstance]] and adds it to the [[Schedule]]s of all the involved [[TaskResource]]s.
     *   1. If the starting time is equal to the current time, and all involved [[TaskResource]]s are
-    * idle, it adds the [[TaskInstance]] to the result.
+    *      idle, it adds the [[TaskInstance]] to the result.
     *
-    * @param currentTime The current timestamp.
-    * @param resourceMap The map of available [[TaskResource]]s.
-    * @param schedules The map of [[Schedule]]s for each [[TaskResource]].
-    * @param tasks The set of [[TaskInstance]]s that need to start.
-    * @param result The accumulated [[TaskInstance]]s so far (for tail recursion).
-    * @return The sequence of [[TaskInstance]]s to start now.
+    * @param currentTime
+    *   The current timestamp.
+    * @param resourceMap
+    *   The map of available [[TaskResource]]s.
+    * @param schedules
+    *   The map of [[Schedule]]s for each [[TaskResource]].
+    * @param tasks
+    *   The set of [[TaskInstance]]s that need to start.
+    * @param result
+    *   The accumulated [[TaskInstance]]s so far (for tail recursion).
+    * @return
+    *   The sequence of [[TaskInstance]]s to start now.
     */
   @tailrec
   final protected def findNextTasks(
       currentTime: Long,
-      resourceMap: Map[String, TaskResource],
+      resourceMap: ResourceMap,
       schedules: Map[String, WeightedSchedule],
-      tasks: SortedSet[TaskInstance],
+      tasks: Iterable[TaskInstance],
       result: Queue[TaskInstance]
   ): Seq[TaskInstance] =
-    if (tasks.isEmpty) result
+    if tasks.isEmpty then result
     else {
       val t = tasks.head
-      val start = Schedule.mergeSchedules(t.resources.flatMap{ s=> schedules.get(s).map(_.binary(t.resourceQuantity(s),resourceMap.get(s).map(_.capacity.toInt).getOrElse(0)))}) ? (currentTime, t)
-      val schedules2 = (schedules /: t.resources) {
-        case (s, r) => s + (r -> (s.getOrElse(r, WeightedSchedule()) +> (start, start+t.estimatedDuration, t.resourceQuantity(r))))
+      val mergedSchedule = Schedule.mergeSchedules(
+        t.resources.flatMap { (r, q) => 
+          schedules
+            .get(r)
+            .map(_.binary(q, resourceMap.capacityOf(r)))
+        }
+      )
+      val start =  mergedSchedule ? (currentTime, t)
+      val schedules2 = t.resources.foldLeft(schedules) { case (s, (r, q)) =>
+        s + (r -> (s.getOrElse(r, WeightedSchedule()) +> (start, t, q)))
       }
       val result2 =
-        if (start == currentTime && t.taskResources(resourceMap).forall(_.hasSpace)) result :+ t
+        if start == currentTime && resourceMap.canHandle(t) then result :+ t
         else result
       findNextTasks(currentTime, resourceMap, schedules2, tasks.tail, result2)
     }
 }
 
+/*
 /**
-  * A [[Scheduler]] to be used for look-ahead.
-  *
-  * Should be used in conjunction with simulations which use the lookahead trait.
-  *
-  * Relies on the use of [[Schedule]]s for each [[TaskResource]].
-  */
+ * A [[Scheduler]] to be used for look-ahead.
+ *
+ * Should be used in conjunction with simulations which use the lookahead trait.
+ *
+ * Relies on the use of [[Schedule]]s for each [[TaskResource]].
+ */
 class LookaheadScheduler(initialTasks: TaskInstance*) extends PriorityScheduler {
   import scala.collection.immutable.Queue
 
@@ -424,53 +182,60 @@ class LookaheadScheduler(initialTasks: TaskInstance*) extends PriorityScheduler 
   protected val completed: collection.mutable.Set[(UUID, Long)] = collection.mutable.Set()
 
   /**
-    * Adds / updates the lookahead structure corresponding to a particular actor.
-    *
-    * @param simulation The name of the simulation that owns the lookahead structure.
-    * @param obj The lookahead structure to be added.
-    */
+ * Adds / updates the lookahead structure corresponding to a particular actor.
+ *
+ * @param simulation
+ *   The name of the simulation that owns the lookahead structure.
+ * @param obj
+ *   The lookahead structure to be added.
+ */
   override def setLookahead(simulation: String, obj: Lookahead): Unit =
     lookaheadObjects += simulation -> obj
   /**
-    * Removes the lookahead structure bcorresponding to an actor.
-    *
-    * @param simulation The name of the simulation whose lookahead structure should be removed.
-    */
+ * Removes the lookahead structure bcorresponding to an actor.
+ *
+ * @param simulation
+ *   The name of the simulation whose lookahead structure should be removed.
+ */
   override def removeLookahead(simulation: String): Unit = lookaheadObjects -= simulation
 
   /**
-    * @inheritdoc
-    */
+ * @inheritdoc
+ */
   override def removeSimulation(simulation: String): Unit = {
     super.removeSimulation(simulation)
     removeLookahead(simulation)
   }
 
   /**
-    * @inheritdoc
-    */
+ * @inheritdoc
+ */
   override def complete(task: TaskInstance, time: Long): Unit = completed += ((task.id, time))
 
   /**
-    * @inheritdoc
-    *
-    * Uses [[findNextTasks]].
-    * @see [[findNextTasks]]
-    *
-    * Finds currently running tasks by using the resourceMap and also considers these
-    * for scheduling.
-    *
-    * @param currentTime The current timestamp.
-    * @param resourceMap The map of available [[TaskResource]]s.
-    * @return The sequence of [[TaskInstance]]s to start now.
-    */
+ * @inheritdoc
+ *
+ * Uses [[findNextTasks]].
+ * @see
+ *   [[findNextTasks]]
+ *
+ * Finds currently running tasks by using the resourceMap and also considers these for
+ * scheduling.
+ *
+ * @param currentTime
+ *   The current timestamp.
+ * @param resourceMap
+ *   The map of available [[TaskResource]]s.
+ * @return
+ *   The sequence of [[TaskInstance]]s to start now.
+ */
   override def getNextTasks(
       currentTime: Long,
       resourceMap: Map[String, TaskResource]
   ): Seq[TaskInstance] = {
-    //combine lookahead structures
+    // combine lookahead structures
     val lookaheadSetThisIter = lookaheadObjects.values.fold(NoLookahead) { (a, b) => a and b }
-    //get future tasks from currently running tasks
+    // get future tasks from currently running tasks
     var futureTasksFoundSoFar = Seq[(UUID, Long)]()
     val inProgressFutureTasks: Iterable[TaskInstance] = resourceMap.flatMap {
       case (_, x) =>
@@ -489,12 +254,18 @@ class LookaheadScheduler(initialTasks: TaskInstance*) extends PriorityScheduler 
             futureTasksFoundSoFar,
             lookaheadSetThisIter
           )
-        }
+        )
+        tasksAfterThis(
+          x.currentTask.get._2.simulation,
+          futureTasksFoundSoFar,
+          lookaheadSetThisIter
+        )
+      }
     }
     val t = findNextTasks(
       currentTime,
       resourceMap,
-      resourceMap.mapValues(Schedule(_)),
+      resourceMap.view.mapValues(Schedule(_)).toMap,
       tasks ++ inProgressFutureTasks,
       Seq(),
       lookaheadSetThisIter,
@@ -504,35 +275,46 @@ class LookaheadScheduler(initialTasks: TaskInstance*) extends PriorityScheduler 
   }
 
   /**
-    * Finds the [[TaskInstance]]s that can be started now.
-    *
-    * The algorithm is recursive, and works by starting with the original lookahead structure and slowly reducing it
-    * as the algorithm progresses. Every time a task is scheduled, the subsequent tasks are discovered via the
-    * lookahead structure and are added to the task list, while the structure itself removes these tasks such that
-    * a single task cannot be returned more than once.
-    *
-    * [[TaskInstance]]s are assumed to be sorted by priority.
-    *
-    * Taking each [[TaskInstance]] from high to low priority, the algorithm does the following:
-    *   1. It merges the current [[Schedule]]s of all the [[TaskResource]]s involved in the [[Task]].
-    *   1. It finds the earliest possible starting time of the [[TaskInstance]] in the merged [[Schedule]],
-    *      using the task's minimum starting time.
-    *   1. It finds the tasks that will start after the [[TaskInstance]] using the lookahead structure,
-    *      and updates the structure.
-    *   1. Takes the interval defined by the starting time and the estimated duration of the [[TaskInstance]]
-    *      and adds it to the [[Schedule]]s of all the involved [[TaskResource]]s.
-    *   1. If the starting time is equal to the current time, and all involved [[TaskResource]]s are
-    *      idle, it adds the [[TaskInstance]] to the result.
-    *
-    * @param currentTime The current timestamp.
-    * @param resourceMap The map of available [[TaskResource]]s.
-    * @param schedules The map of [[Schedule]]s for each [[TaskResource]].
-    * @param tasks The set of [[TaskInstance]]s that need to be considered.
-    * @param scheduledThisIter The set of [[TaskInstance]]s that have been scheduled so far and the times at which they are scheduled.
-    * @param lookaheadSetThisIter The lookahead structure to be used. Is reduced over time as tasks are scheduled.
-    * @param result The accumulated [[TaskInstance]]s so far (for tail recursion).
-    * @return The sequence of [[TaskInstance]]s to start now.
-    */
+ * Finds the [[TaskInstance]]s that can be started now.
+ *
+ * The algorithm is recursive, and works by starting with the original lookahead structure and
+ * slowly reducing it as the algorithm progresses. Every time a task is scheduled, the subsequent
+ * tasks are discovered via the lookahead structure and are added to the task list, while the
+ * structure itself removes these tasks such that a single task cannot be returned more than
+ * once.
+ *
+ * [[TaskInstance]]s are assumed to be sorted by priority.
+ *
+ * Taking each [[TaskInstance]] from high to low priority, the algorithm does the following:
+ *   1. It merges the current [[Schedule]]s of all the [[TaskResource]]s involved in the
+ *      [[Task]].
+ *   1. It finds the earliest possible starting time of the [[TaskInstance]] in the merged
+ *      [[Schedule]], using the task's minimum starting time.
+ *   1. It finds the tasks that will start after the [[TaskInstance]] using the lookahead
+ *      structure, and updates the structure.
+ *   1. Takes the interval defined by the starting time and the estimated duration of the
+ *      [[TaskInstance]] and adds it to the [[Schedule]]s of all the involved [[TaskResource]]s.
+ *   1. If the starting time is equal to the current time, and all involved [[TaskResource]]s are
+ *      idle, it adds the [[TaskInstance]] to the result.
+ *
+ * @param currentTime
+ *   The current timestamp.
+ * @param resourceMap
+ *   The map of available [[TaskResource]]s.
+ * @param schedules
+ *   The map of [[Schedule]]s for each [[TaskResource]].
+ * @param tasks
+ *   The set of [[TaskInstance]]s that need to be considered.
+ * @param scheduledThisIter
+ *   The set of [[TaskInstance]]s that have been scheduled so far and the times at which they are
+ *   scheduled.
+ * @param lookaheadSetThisIter
+ *   The lookahead structure to be used. Is reduced over time as tasks are scheduled.
+ * @param result
+ *   The accumulated [[TaskInstance]]s so far (for tail recursion).
+ * @return
+ *   The sequence of [[TaskInstance]]s to start now.
+ */
   @tailrec
   final protected def findNextTasks(
       currentTime: Long,
@@ -543,18 +325,18 @@ class LookaheadScheduler(initialTasks: TaskInstance*) extends PriorityScheduler 
       lookaheadSetThisIter: Lookahead,
       result: Queue[TaskInstance]
   ): Seq[TaskInstance] =
-    if (tasks.isEmpty) result
+    if tasks.isEmpty then result
     else {
       val t = tasks.head
       val start = Schedule.mergeSchedules(t.resources.flatMap(schedules.get(_))) ? (Math.max(
-              currentTime,
-              t.minStartTime
-            ), t)
+        currentTime,
+        t.minStartTime
+      ), t)
       val scheduledThisIter2 = scheduledThisIter :+ ((t.id, start + t.estimatedDuration))
       val lookaheadSetThisIter2 = lookaheadSetThisIter - t.id
       val futureTasks = tasksAfterThis(t.simulation, scheduledThisIter2, lookaheadSetThisIter2)
-      val schedules2 = (schedules /: t.resources) {
-        case (s, r) => s + (r -> (s.getOrElse(r, Schedule()) +> (start, t)))
+      val schedules2 = t.resources.foldLeft(schedules) { case (s, r) =>
+        s + (r -> (s.getOrElse(r, Schedule()) +> (start, t)))
       }
       val result2 =
         if (start == currentTime && t.taskResources(resourceMap).forall(_.hasSpace)) result :+ t
@@ -571,14 +353,19 @@ class LookaheadScheduler(initialTasks: TaskInstance*) extends PriorityScheduler 
     }
 
   /**
-    * Finds the tasks that can start once the specified tasks have been scheduled.
-    *
-    * @param simulation The name of the simulation associated with the task.
-    * @param id The id of the completed task.
-    * @param scheduled The set of already scheduled tasks and corresponding starting times.
-    * @param lookaheadStructureThisIter The lookahead structure to be queried about future tasks.
-    * @return The set of future tasks that can start.
-    */
+ * Finds the tasks that can start once the specified tasks have been scheduled.
+ *
+ * @param simulation
+ *   The name of the simulation associated with the task.
+ * @param id
+ *   The id of the completed task.
+ * @param scheduled
+ *   The set of already scheduled tasks and corresponding starting times.
+ * @param lookaheadStructureThisIter
+ *   The lookahead structure to be queried about future tasks.
+ * @return
+ *   The set of future tasks that can start.
+ */
   private def tasksAfterThis(
       simulation: String,
       scheduled: Seq[(UUID, Long)],
@@ -586,6 +373,7 @@ class LookaheadScheduler(initialTasks: TaskInstance*) extends PriorityScheduler 
   ): Seq[TaskInstance] = {
     val taskData = lookaheadStructureThisIter.getTaskData((scheduled ++ completed))
     (taskData map (x => x._1.withMinStartTime(x._2).create(simulation, x._1.createTime))).toSeq
-    //todo warning if time <= currentTime. coordinator could pass log. Logging adaptor?
+    // todo warning if time <= currentTime. coordinator could pass log. Logging adaptor?
   }
 }
+ */
