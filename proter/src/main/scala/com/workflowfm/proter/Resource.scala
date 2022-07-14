@@ -15,7 +15,7 @@ case class ResourceState(resource: Resource, currentTasks: Map[UUID, (Long, Task
     * @return
     *   true if the resource is idle, false otherwise.
     */
-  def hasCapacity: Boolean = currentTasks.size < resource.capacity
+  def hasCapacity: Boolean = remainingCapacity > 0
 
   def remainingCapacity: Int = 
     resource.capacity - currentTasks.map{
@@ -54,24 +54,6 @@ case class ResourceState(resource: Resource, currentTasks: Map[UUID, (Long, Task
   def runningAnyOf(taskIDs: Seq[UUID]): Boolean = 
     taskIDs.exists(id => currentTasks.contains(id)) 
 
-  /**
-    * Estimates the earliest time the resource will become available.
-    *
-    * Lets the [[schedule.Scheduler Scheduler]] (via [[TaskInstance.nextPossibleStart]]) know an
-    * '''estimate''' of when we expect to have this resource available again.
-    *
-    * This is based off of [[TaskInstance.estimatedDuration]] so may not be the accurate, but is
-    * more realistic in terms of what we know at a specific given point in time.
-    *
-    * @param currentTime
-    * @return
-    *   the estimated earliest time the resource will become available
-    */
-  def nextAvailableTimestamp(currentTime: Long): Long = 
-    if hasCapacity 
-    then currentTime
-    else currentTasks.values.map{ x => x._1 + x._2.estimatedDuration }.reduceLeft(_ min _) // TODO check this
-                                                                                           // also shouldn't it be relevant to the desired capacity?
   def reduce(toReduce: Map[String, Int]): ResourceState = 
     copy(
       resource = resource.copy(

@@ -67,8 +67,7 @@ class TaskTests extends TaskTester {
 }
 
 class TaskTester extends AnyWordSpecLike with Matchers {
-  given ExecutionContextExecutor = ExecutionContext.global
-  given timeout: FiniteDuration = 10.seconds
+  def id(l: Long) = new java.util.UUID(l, l)
 
   def t(
       id: Long,
@@ -77,7 +76,7 @@ class TaskTester extends AnyWordSpecLike with Matchers {
       created: Long = 0L,
       duration: Long = 1L,
       interrupt: Int = 0,
-      name: String = "X"
+      name: String = s"X$id"
   ): TaskInstance =
     new TaskInstance(
       new UUID(id, id),
@@ -86,6 +85,29 @@ class TaskTester extends AnyWordSpecLike with Matchers {
       created,
       0L, // todo add tests for minStartTime
       Map() ++ (resources.map(_ -> 1)),
+      duration,
+      duration,
+      0L,
+      interrupt,
+      priority
+    )
+
+  def tc(
+      id: Long,
+      resources: Seq[(String, Int)],
+      priority: Int = Task.Medium,
+      created: Long = 0L,
+      duration: Long = 1L,
+      interrupt: Int = 0,
+      name: String = s"X$id"
+  ): TaskInstance =
+    new TaskInstance(
+      new UUID(id, id),
+      name,
+      "Test",
+      created,
+      0L, // todo add tests for minStartTime
+      Map() ++ (resources),
       duration,
       duration,
       0L,

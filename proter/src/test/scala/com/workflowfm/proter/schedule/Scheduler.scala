@@ -374,7 +374,6 @@ class SchedulerTests extends TaskTester with ResourceTester with ScheduleTester 
 }
 
 trait SchedulerTester {
-  def id(l: Long) = new java.util.UUID(l, l)
 
   // test GreedyPriorityScheduler
   def gp(m: ResourceMap, tasks: TaskInstance*): Seq[Long] =
