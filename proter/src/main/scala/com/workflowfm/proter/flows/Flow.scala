@@ -144,7 +144,7 @@ case class FlowCaseRef[F[_] : Monad : UUIDGen : Random](
     m.get(id) match {
       case None => Monad[F].pure((m, StateT.pure(Seq())))
       case Some(f) => {
-        val dummyTask = new TaskInstance(id, "", caseName, 0L, 0L, Seq(), 0L, 0L, 0, 0, 0)
+        val dummyTask = new TaskInstance(id, "", caseName, 0L, 0L, Map(), 0L, 0L, 0, 0, 0)
         f(Success(dummyTask, 0L)).run(m - id)
       }
     }

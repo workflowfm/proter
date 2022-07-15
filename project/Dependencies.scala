@@ -6,7 +6,7 @@ object Dependencies {
 
   val scalaVer = "3.1.0"
 
-  val scalaTest = "org.scalatest" %% "scalatest" % "3.2.10" % "test"
+  val scalaTest = "org.scalatest" %% "scalatest" % "3.2.12" % "test"
 
   val cats = "org.typelevel" %% "cats-effect" % "3.3.7"
   val catsTest = "org.typelevel" %% "cats-effect-testing-scalatest" % "1.4.0" % Test

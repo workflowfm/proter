@@ -36,7 +36,7 @@ case class TaskMetrics(
     started: Option[Long],
     duration: Long,
     cost: Double,
-    resources: Seq[String],
+    resources: Map[String, Int],
     aborted: Boolean
 ) {
   /** Sets the starting time for the [[TaskInstance]]. */

@@ -85,23 +85,33 @@ object TestSim extends IOApp {
       val simulator = Simulator[IO](ProterScheduler) withHandler (PrintEventHandler())
       val scenario = Scenario[IO]("MYSCENARIO")
         .withStartingTime(14)
+        .withResources(Seq(
+          Resource("A", 4, 1)
+        ))
         //.withCases(
-          //         ("foo1", Task("t", 1)),
-          //("foo2", Task("t", 2))
-          //         ("foo3", Task("t", 3)),
-          //         ("foo4", Task("t", 4)),
-          //         ("foo4.2", Task("t", 4)),
+        //  ("foo1", Task("t", 1)),
+        //  ("foo2", Task("t", 2))
+        //  ("foo3", Task("t", 3)),
+        //  ("foo4", Task("t", 4)),
+        //  ("foo4.2", Task("t", 4)),
         //)
-               .withCases(
+        .withCases(
+          ("foo1", Task("t", 1).withResources(Seq("A"))),
+          ("foo2", Task("t", 2).withResources(Seq("A"))),
+          ("foo3", Task("t", 3).withResources(Seq("A"))),
+          ("foo4", Task("t", 4).withResourceQuantities(Seq(("A", 2)).toMap)),
+          ("foo4.2", Task("t", 4).withResourceQuantities(Seq(("A", 2)).toMap)),
+        )
+         //      .withCases(
          //        ("flowsingle", FlowTask(Task("f1", 1)): Flow),
         //         ("flow1", Flow(Task("f1", 1), Task("f2", 1))),
-        /* ("flow2", Flow.par(Seq(Task("f2a", 1), Task("f2b", 2), Task("f2c", 3)).map(FlowTask(_)))) */
-                   ("flowAnd", And(FlowTask(Task("f1", 1)), FlowTask(Task("f2", 2))): Flow),
-               )
+        // ("flow2", Flow.par(Seq(Task("f2a", 1), Task("f2b", 2), Task("f2c", 3)).map(FlowTask(_)))) 
+        //           ("flowAnd", And(FlowTask(Task("f1", 1)), FlowTask(Task("f2", 2))): Flow),
+        //       )
         //       .withArrival("A1", Task("t", 1), ConstantLong(2), 10)
         //       .withTimedArrival("A2", 5, Task("t", 1), ConstantLong(2), 1)
         //       .withInfiniteArrival("A3", Task("t", 2), ConstantLong(5))
-        .withLimit(15)
+        //.withLimit(15)
 
       simulator.simulate(scenario).as(ExitCode(1))
     }

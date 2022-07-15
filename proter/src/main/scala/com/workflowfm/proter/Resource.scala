@@ -2,11 +2,14 @@ package com.workflowfm.proter
 
 import java.util.UUID
 
-case class Resource(name: String, costPerTick: Double) {
-  def start: ResourceState = ResourceState(this, None)
+import cats.implicits.*
+
+case class Resource(name: String, capacity: Int, costPerTick: Double) {
+  def start: ResourceState = ResourceState(this, Map())
 }
 
-case class ResourceState(resource: Resource, currentTask: Option[(Long, TaskInstance)]) {
+case class ResourceState(resource: Resource, currentTasks: Map[UUID, (Long, TaskInstance)]) {
+ // TODO add explicit remaining capacity to avoid too many calcs
 
   /**
     * True if the resource is idle, false otherwise.
@@ -14,7 +17,12 @@ case class ResourceState(resource: Resource, currentTask: Option[(Long, TaskInst
     * @return
     *   true if the resource is idle, false otherwise.
     */
-  def isIdle: Boolean = currentTask == None
+  def hasCapacity: Boolean = remainingCapacity > 0
+
+  def remainingCapacity: Int = 
+    resource.capacity - currentTasks.map{
+      case (_, (_, ti)) => ti.resourceQuantity(resource.name)
+    }.sum
 
   /**
     * Attach a [[TaskInstance]] to this resource.
@@ -30,78 +38,34 @@ case class ResourceState(resource: Resource, currentTask: Option[(Long, TaskInst
     *   Some [[TaskInstance]] that was already attached before or An updated [[ResourceState]] if
     *   the task was attached successfully.
     */
-  def startTask(
+  def startTask( // TODO double check we are not running it twice
       task: TaskInstance,
       currentTime: Long
-  ): Either[ResourceState.Busy, ResourceState] = {
-    currentTask match {
-      case None => {
-        Right(this.copy(currentTask = Some(currentTime, task)))
-      }
-      case Some((start, runningTask)) => {
-        Left(ResourceState.Busy(resource, runningTask, start))
-      }
-    }
+  ): Either[ResourceState.Full, ResourceState] = {
+    if remainingCapacity < task.resourceQuantity(resource.name)
+    then Left(ResourceState.Full(this))
+    else Right(this.copy(currentTasks = currentTasks + (task.id -> (currentTime, task))))
   }
 
-  /**
-    * Detaches the current [[TaskInstance]] (if any) if it has completed.
-    *
-    * Checks to ensure the task is completed with respect to the current time and the task duration.
-    *
-    * Does not do anything to the task itself. It merely detaches it and becomes idle.
-    *
-    * @param currentTime
-    *   The current (virtual) time.
-    * @return
-    *   The [[TaskInstance]] that was detached, if any.
-    */
-  def finishTask(currentTime: Long): Option[ResourceState] = currentTask match {
-    case None => None
-    case Some((startTime, task)) =>
-      if currentTime >= startTime + task.duration then {
-        Some(copy(currentTask = None))
-      } else None
-  }
+  def detach(taskID: UUID): ResourceState = 
+    copy(currentTasks = currentTasks - taskID)
 
-  def detach(taskID: UUID): ResourceState = currentTask match {
-    case Some((_, someTask)) if taskID == someTask.id => copy(currentTask = None)
-    case _ => this
-  }
+  def detach(taskIDs: Seq[UUID]): ResourceState = 
+    copy(currentTasks = currentTasks -- taskIDs)
 
-  def detach(taskIDs: Seq[UUID]): ResourceState = currentTask match {
-    case Some((_, someTask)) if taskIDs.contains(someTask.id) => copy(currentTask = None)
-    case _ => this
-  }
+  def runningAnyOf(taskIDs: Seq[UUID]): Boolean = 
+    taskIDs.exists(id => currentTasks.contains(id)) 
 
-  def runningAnyOf(taskIDs: Seq[UUID]): Boolean = currentTask match {
-    case Some((_, someTask)) if taskIDs.contains(someTask.id) => true
-    case _ => false
-  }
-
-  /**
-    * Estimates the earliest time the resource will become available.
-    *
-    * Lets the [[schedule.Scheduler Scheduler]] (via [[TaskInstance.nextPossibleStart]]) know an
-    * '''estimate''' of when we expect to have this resource available again.
-    *
-    * This is based off of [[TaskInstance.estimatedDuration]] so may not be the accurate, but is
-    * more realistic in terms of what we know at a specific given point in time.
-    *
-    * @param currentTime
-    * @return
-    *   the estimated earliest time the resource will become available
-    */
-  def nextAvailableTimestamp(currentTime: Long): Long = currentTask match {
-    case None => currentTime
-    case Some((startTime, t)) => {
-      startTime + t.estimatedDuration
-    }
-  }
+  def reduce(toReduce: Map[String, Int]): ResourceState = 
+    copy(
+      resource = resource.copy(
+        capacity = resource.capacity - toReduce.get(resource.name).getOrElse(0)
+      )
+    )
 }
 
 object ResourceState {
-  case class Busy(resource: Resource, task: TaskInstance, start: Long)
+  case class Full(state: ResourceState)
 }
 
 case class ResourceMap(resources: Map[String, ResourceState]) {
@@ -133,40 +97,32 @@ case class ResourceMap(resources: Map[String, ResourceState]) {
     copy(resources = resources.map { (n, r) => n -> r.detach(task.id) })
   }
 
-  def startTask(task: TaskInstance, time: Long): Either[ResourceState.Busy, ResourceMap] = {
-    val update = for {
-      name <- task.resources
+  def startTask(task: TaskInstance, time: Long): Either[ResourceState.Full, ResourceMap] = 
+    (for {
+      (name, _) <- task.resources
       state <- resources.get(name)
     } yield (
       state.startTask(task, time).map { newState => name -> newState }
-    )
-
-    val folded =
-      update.foldRight(Right(Nil): Either[ResourceState.Busy, List[(String, ResourceState)]]) {
-        (t, states) =>
-          for {
-            x <- t
-            xs <- states
-          } yield (x :: xs)
-      }
-
-    folded.map { stateUpdates => copy(resources = resources ++ stateUpdates) }
-  }
+    ))
+      .toSeq
+      .sequence
+      .map { stateUpdates => copy(resources = resources ++ stateUpdates) }
 
   def stopTasks(ids: Seq[UUID]): (ResourceMap, Iterable[ResourceState]) = {
     val stopping = resources.filter { (_, r) => r.runningAnyOf(ids) }
-    val result = copy(resources ++ stopping.map { (n, r) => n -> r.copy(currentTask = None) })
+    val result = copy(resources ++ stopping.map { (n, r) => n -> r.detach(ids) })
     (result, stopping.values)
   }
 
-  def isIdle(r: String): Boolean = resources.get(r) match {
+  def hasCapacity(r: String): Boolean = resources.get(r) match {
     case None => false
-    case Some(resourceState) => resourceState.isIdle
+    case Some(resourceState) => resourceState.hasCapacity
   }
 
-  def getIdle(): ResourceMap = copy(resources = resources.filter(_._2.isIdle))
+  def getAvailable(): ResourceMap = copy(resources = resources.filter(_._2.hasCapacity))
 
-  def --(toRemove: Seq[String]): ResourceMap = copy(resources = resources -- toRemove)
+  // TODO improve to only go through selected resources
+  def reduce(toReduce: Map[String, Int]): ResourceMap = copy(resources = resources.map((n, s) => n -> s.reduce(toReduce)))
 
   /**
     * The actual [[TaskResource]]s required. Retrieves the actual objects (instead of just their
@@ -178,8 +134,16 @@ case class ResourceMap(resources: Map[String, ResourceState]) {
     *   The [[TaskResource]]s required for this task.
     */
   def get(task: TaskInstance): Seq[ResourceState] =
-    task.resources flatMap (resources.get(_))
+    task.resources.flatMap((n, _) => resources.get(n)).toSeq
 
+  def canHandle(task: TaskInstance): Boolean = 
+    task.resources.forall { (r, q) =>
+      resources.get(r).map(_.remainingCapacity >= q).getOrElse(false)
+    }
+
+  def remainingCapacityOf(name: String): Int = resources.get(name).map(_.remainingCapacity).getOrElse(0)
+
+  def capacityOf(name: String): Int = resources.get(name).map(_.resource.capacity).getOrElse(0)
 }
 
 object ResourceMap {
