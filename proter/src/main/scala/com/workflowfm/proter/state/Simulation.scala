@@ -141,6 +141,13 @@ object Simulation extends StateOps {
     case Right(u) => Monad[F].pure((r, Seq()))
   }
 
+  def inspectState[F[_] : Monad](f: Simulation[F] => Unit) = StateT.inspect[F, Simulation[F], Seq[Event]](
+    sim => {
+      f(sim)
+      Seq()
+    }
+  )
+
   /**
     * Start a [[CaseRef]].
     *
@@ -275,7 +282,8 @@ object Simulation extends StateOps {
         (
           sim.copy(
             events = sim.events + FinishingTask(sim.time + task.duration, task),
-            tasks = sim.tasks - task
+            tasks = sim.tasks - task,
+            resources = startedMap
           ),
           ETaskStart(sim.id, sim.time, task) :: task.resources.map { (r, _) =>
             ETaskAttach(sim.id, sim.time, task, r)
