@@ -285,7 +285,7 @@ object Simulation extends StateOps {
             tasks = sim.tasks - task,
             resources = startedMap
           ),
-          ETaskStart(sim.id, sim.time, task) :: task.resources.map { (r, _) =>
+          ETaskStart(sim.id, sim.time, task) :: startedMap.get(task).map { r => 
             ETaskAttach(sim.id, sim.time, task, r)
           }.toList
         )

@@ -20,12 +20,12 @@ trait ScenarioState {
   def addResource[F[_]](r: Resource): State[Simulation[F], Seq[Event]] = State(sim =>
     (
       sim.copy(resources = sim.resources.addResource(r)),
-      Seq(EResourceAdd(sim.id, sim.time, r.name, r.costPerTick))
+      Seq(EResourceAdd(sim.id, sim.time, r))
     )
   )
 
   def addResources[F[_]](rs: Seq[Resource]): State[Simulation[F], Seq[Event]] = State(sim => {
-    val events = rs.map { r => EResourceAdd(sim.id, sim.time, r.name, r.costPerTick) }
+    val events = rs.map { r => EResourceAdd(sim.id, sim.time, r) }
     (sim.copy(resources = sim.resources.addResources(rs)), events)
   })
 

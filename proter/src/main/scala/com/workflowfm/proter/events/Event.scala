@@ -51,8 +51,7 @@ case class ETimeLimit(
 case class EResourceAdd(
     override val source: String,
     override val time: Long,
-    name: String,
-    costPerTick: Double
+    resource: Resource
 ) extends Event
 
 /**
@@ -151,7 +150,7 @@ case class ETaskAttach(
     override val source: String,
     override val time: Long,
     task: TaskInstance,
-    resource: String
+    resource: ResourceState
 ) extends Event
 
 /**
@@ -168,7 +167,7 @@ case class ETaskDetach(
     override val source: String,
     override val time: Long,
     task: TaskInstance,
-    resource: String,
+    resource: ResourceState,
     cost: Double
 ) extends Event
 
@@ -184,7 +183,7 @@ object ETaskDetach {
           source,
           time,
           task,
-          resourceState.resource.name,
+          resourceState,
           resourceState.resource.costPerTick * (time - start)
         )
       }
@@ -242,7 +241,7 @@ object Event {
     case EStart(src, t) => s"[$t $src] === Simulation started! ==="
     case EDone(src, t) => s"[$t $src] === Simulation complete! ==="
     case ETimeLimit(src, t, l) => s"[$t $src] Set time limit at: $l"
-    case EResourceAdd(src, t, n, c) => s"[$t $src] Added resource: $n (CPT:$c)"
+    case EResourceAdd(src, t, r) => s"[$t $src] Added resource: [${r.name}]. Capacity: ${r.capacity} - Cost/tick: ${r.costPerTick})"
     case ECaseAdd(src, t, a, s) => s"[$t $src] Added case [$a] to start at: $s"
     case EArrivalAdd(src, t, a, s, r, l) =>
       s"[$t $src] Added arrival for cases [$a] with rate [$r] limit [$l] to start at: $s"
@@ -251,11 +250,11 @@ object Event {
     case ETaskAdd(src, t, task) =>
       s"[$t $src] Added task [${task.name}](${task.simulation}) created at [${task.created}]. (id:${task.id})"
     case ETaskStart(src, t, task) =>
-      s"[$t $src] Starting task [${task.name}](${task.simulation}). Ticks remaining: ${task.duration}. (id:${task.id})"
+      s"[$t $src] Starting task [${task.name}](${task.simulation}). Ticks: ${task.duration}. (id:${task.id})"
     case ETaskAttach(src, t, task, r) =>
-      s"[$t $src] Attaching task [${task.name}](${task.simulation}) to [$r]. Ticks remaining: ${task.duration}. (id:${task.id})"
+      s"[$t $src] Attaching task [${task.name}](${task.simulation}) to [${r.resource.name}]. Ticks: ${task.duration} - Capacity left: ${r.remainingCapacity}. (id:${task.id})"
     case ETaskDetach(src, t, task, r, c) =>
-      s"[$t $src] Detaching task [${task.name}](${task.simulation}) from [$r] with cost [$c]. (id:${task.id})"
+      s"[$t $src] Detaching task [${task.name}](${task.simulation}) from [${r.resource.name}]. Cost: $c - Capacity left: ${r.detach(task.id).remainingCapacity}. (id:${task.id})"
     case ETaskDone(src, t, task) =>
       s"[$t $src] Task [${task.name}](${task.simulation}) completed. (id:${task.id})"
     case ETaskAbort(src, t, id) =>
