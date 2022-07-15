@@ -2,6 +2,8 @@ package com.workflowfm.proter
 
 import java.util.UUID
 
+import cats.implicits.*
+
 case class Resource(name: String, capacity: Int, costPerTick: Double) {
   def start: ResourceState = ResourceState(this, Map())
 }
@@ -95,25 +97,16 @@ case class ResourceMap(resources: Map[String, ResourceState]) {
     copy(resources = resources.map { (n, r) => n -> r.detach(task.id) })
   }
 
-  def startTask(task: TaskInstance, time: Long): Either[ResourceState.Full, ResourceMap] = {
-    val update = for {
+  def startTask(task: TaskInstance, time: Long): Either[ResourceState.Full, ResourceMap] = 
+    (for {
       (name, _) <- task.resources
       state <- resources.get(name)
     } yield (
       state.startTask(task, time).map { newState => name -> newState }
-    )
-
-    val folded =
-      update.foldRight(Right(Nil): Either[ResourceState.Full, List[(String, ResourceState)]]) {
-        (t, states) =>
-          for {
-            x <- t
-            xs <- states
-          } yield (x :: xs)
-      }
-
-    folded.map { stateUpdates => copy(resources = resources ++ stateUpdates) }
-  }
+    ))
+      .toSeq
+      .sequence
+      .map { stateUpdates => copy(resources = resources ++ stateUpdates) }
 
   def stopTasks(ids: Seq[UUID]): (ResourceMap, Iterable[ResourceState]) = {
     val stopping = resources.filter { (_, r) => r.runningAnyOf(ids) }
