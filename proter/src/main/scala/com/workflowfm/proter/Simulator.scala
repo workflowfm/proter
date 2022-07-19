@@ -13,21 +13,21 @@ import cats.effect.implicits.*
 
 final case class Simulator[F[_] : Concurrent](
     scheduler: Scheduler,
-    eventHandlers: Seq[EventHandler[F]]
+    subscribers: Seq[Subscriber[F]]
 ) extends ScenarioState {
 
   def withScheduler(s: Scheduler): Simulator[F] = copy(scheduler = s)
 
-  def withHandler(h: EventHandler[F]): Simulator[F] = copy(eventHandlers = Seq(h))
-  def withHandlers(hs: EventHandler[F]*): Simulator[F] = copy(eventHandlers = eventHandlers ++ hs)
-  def and(h: EventHandler[F]): Simulator[F] = copy(eventHandlers = eventHandlers :+ h)
+  def withSub(sub: Subscriber[F]): Simulator[F] = copy(subscribers = Seq(sub))
+  def withSubs(subs: Subscriber[F]*): Simulator[F] = copy(subscribers = subscribers ++ subs)
+  def and(sub: Subscriber[F]): Simulator[F] = copy(subscribers = subscribers :+ sub)
 
   def simulate(scenario: Scenario[F]): F[Unit] =
     simulateState(scenario.name, scenario.state)
 
   def simulateState(name: String, state: StateT[F, Simulation[F], Seq[Event]]): F[Unit] = for {
     publisher <- Publisher.build[F]()
-    subresource = eventHandlers.map(publisher.subscribe(_)).sequence
+    subresource = subscribers.map(publisher.subscribe(_)).sequence
     _ <- subresource.use { streams =>
       {
         val subio = streams.map(_.compile.drain).sequence
@@ -82,7 +82,7 @@ object TestSim extends IOApp {
   def runScenario(): IO[ExitCode] =
     Random.scalaUtilRandom[IO].flatMap { r =>
       given Random[IO] = r
-      val simulator = Simulator[IO](ProterScheduler) withHandler (PrintEventHandler())
+      val simulator = Simulator[IO](ProterScheduler) withSub (PrintEventHandler())
       val scenario = Scenario[IO]("MYSCENARIO")
         .withStartingTime(14)
         .withResources(Seq(
@@ -119,7 +119,7 @@ object TestSim extends IOApp {
   def runState(): IO[ExitCode] =
     Random.scalaUtilRandom[IO].flatMap { r =>
       given Random[IO] = r
-      val simulator = Simulator[IO](ProterScheduler) withHandler (PrintEventHandler())
+      val simulator = Simulator[IO](ProterScheduler) withSub (PrintEventHandler())
       val cases = simulator.addCasesNow[IO, Task](
         Seq(
           ("foo1", Task("t", 1)),

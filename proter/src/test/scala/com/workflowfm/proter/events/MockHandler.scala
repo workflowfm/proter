@@ -9,11 +9,11 @@ case class MockHandler(calls: Ref[IO, Queue[MockHandler.Call]], expected: Seq[Mo
     extends EventHandler[IO] {
   import MockHandler.*
 
-  override def onInit(publisher: Publisher[?]): IO[Unit] = calls.update(_ :+ Init)
+  override def init(): IO[Unit] = calls.update(_ :+ Init)
   override def onEvent(event: Event): IO[Unit] = calls.update(_ :+ OnEvent(event))
-  override def onDone(publisher: Publisher[?]): IO[Unit] = calls.update(_ :+ Done)
+  override def onDone(): IO[Unit] = calls.update(_ :+ Done)
 
-  override def onFail(e: Throwable, publisher: Publisher[?]): IO[Unit] =
+  override def onFail(e: Throwable): IO[Unit] =
     calls.update(_ :+ OnFail(e))
 }
 

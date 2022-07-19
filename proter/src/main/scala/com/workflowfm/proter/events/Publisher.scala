@@ -3,6 +3,7 @@ package com.workflowfm.proter.events
 import cats.Monad
 import cats.effect.{ Resource, MonadCancel, Concurrent }
 import cats.implicits.*
+import fs2.Pipe
 import fs2.Stream
 import fs2.concurrent.Topic
 import java.util.UUID
@@ -42,23 +43,11 @@ case class Publisher[F[_]](topic: Topic[F, Either[Throwable, Event]], maxQueued:
     * @param subscriber
     *   The [[EventHandler]] to subscribe.
     */
-  def subscribe(subscriber: EventHandler[F]): Resource[F, Stream[F, Unit]] =
+  def subscribe(subscriber: Subscriber[F]): Resource[F, Stream[F, Unit]] =
     topic.subscribeAwait(maxQueued).evalMap { sub =>
       for {
-        _ <- subscriber.onInit(this)
-      } yield sub
-        .evalMap(evt =>
-          evt match {
-            case Left(e) => subscriber.onFail(e, this)
-            case Right(e) => {
-              e match {
-                case EDone(_, _) => subscriber.onEvent(e) >> subscriber.onDone(this)
-                case _ => subscriber.onEvent(e)
-              }
-            }
-          }
-        )
-        .handleErrorWith(ex => Stream.eval(subscriber.onFail(ex, this)))
+        _ <- subscriber.init()
+      } yield sub.through(subscriber)
     }
 }
 
@@ -67,4 +56,20 @@ object Publisher {
   def build[F[_] : Concurrent](maxQueued: Int = 10): F[Publisher[F]] = for {
     topic <- Topic[F, Either[Throwable, Event]]
   } yield (Publisher[F](topic, 10))
+}
+
+
+trait Subscriber[F[_]] extends Pipe[F, Either[Throwable, Event], Unit] {
+  def init(): F[Unit]
+}
+
+object Subscriber {
+  given pipeConv[F[_] : Monad]: Conversion[Pipe[F, Either[Throwable, Event], Unit], Subscriber[F]] with {
+  def apply(pipe: Pipe[F, Either[Throwable, Event], Unit]): Subscriber[F] = 
+    new Subscriber[F] {
+      override def apply(s: Stream[F, Either[Throwable, Event]]): Stream[F, Unit] = pipe(s)
+
+      override def init(): F[Unit] = Monad[F].pure(())
+    }
+  }
 }

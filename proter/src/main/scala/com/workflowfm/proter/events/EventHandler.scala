@@ -7,6 +7,8 @@ import cats.implicits.*
 import cats.effect.{ Ref, Deferred }
 import cats.effect.std.Console
 
+import fs2.Stream
+
 import scala.collection.immutable.HashSet
 import scala.concurrent.Promise
 
@@ -15,7 +17,22 @@ import scala.concurrent.Promise
   *
   * Handles a stream of events from a [[Publisher]].
   */
-trait EventHandler[F[_] : Monad] {
+trait EventHandler[F[_] : Monad] extends Subscriber[F] {
+
+  override def apply(s: Stream[F, Either[Throwable, Event]]): Stream[F, Unit] =
+    s.evalMap(evt =>
+      evt match {
+        case Left(e) => onFail(e)
+        case Right(e) => {
+          e match {
+            case EDone(_, _) => onEvent(e) >> onDone()
+            case _ => onEvent(e)
+          }
+        }
+      }
+    )
+      .handleErrorWith(ex => Stream.eval(onFail(ex)))
+ 
 
   /**
     * Handles the initialisation of a new event stream.
@@ -23,7 +40,7 @@ trait EventHandler[F[_] : Monad] {
     * @param publisher
     *   The [[Publisher]] that started the stream.
     */
-  def onInit(publisher: Publisher[?]): F[Unit] = Monad[F].pure(())
+  override def init(): F[Unit] = Monad[F].pure(())
 
   /**
     * Handles an [[Event]] in the stream.
@@ -39,7 +56,7 @@ trait EventHandler[F[_] : Monad] {
     * @param publisher
     *   The [[Publisher]] that ended the stream.
     */
-  def onDone(publisher: Publisher[?]): F[Unit] = Monad[F].pure(())
+  def onDone(): F[Unit] = Monad[F].pure(())
 
   /**
     * Handles an error in the stream.
@@ -49,9 +66,10 @@ trait EventHandler[F[_] : Monad] {
     * @param publisher
     *   The [[Publisher]] that threw the error.
     */
-  def onFail(e: Throwable, publisher: Publisher[?]): F[Unit] = Monad[F].pure(())
+  def onFail(e: Throwable): F[Unit] = Monad[F].pure(())
 }
 
+/*
 /**
   * An [[EventHandler]] for a pool of [[Coordinator]]s.
   */
@@ -82,6 +100,7 @@ class PoolEventHandler[F[_] : Monad](publishers: Ref[F, HashSet[Publisher[?]]])
   override def onFail(e: Throwable, publisher: Publisher[?]): F[Unit] =
     publishers.update(_ - publisher)
 }
+ */
 
 /**
   * An [[EventHandler]] that prints events to standard error.
@@ -92,9 +111,9 @@ class PrintEventHandler[F[_] : Monad : Console] extends EventHandler[F] {
     */
   val formatter = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS")
 
-  override def onInit(publisher: Publisher[?]): F[Unit] = {
+  override def init(): F[Unit] = {
     val time = formatter.format(System.currentTimeMillis())
-    Console[F].println(s"[$time] === Simulation starting... ===")
+    Console[F].println(s"[$time] === Even stream start ===")
   }
 
   override def onEvent(e: Event): F[Unit] = {
@@ -102,12 +121,12 @@ class PrintEventHandler[F[_] : Monad : Console] extends EventHandler[F] {
     Console[F].println(s"[$time] ${Event.asString(e)}")
   }
 
-  override def onDone(publisher: Publisher[?]): F[Unit] = {
+  override def onDone(): F[Unit] = {
     val time = formatter.format(System.currentTimeMillis())
-    Console[F].println(s"[$time] === Simulation complete! ===")
+    Console[F].println(s"[$time] === Even stream end ===")
   }
 
-  override def onFail(e: Throwable, publisher: Publisher[?]): F[Unit] = {
+  override def onFail(e: Throwable): F[Unit] = {
     val time = formatter.format(System.currentTimeMillis())
     Console[F].println(s"[$time] ??? Failure: ${e.getLocalizedMessage}")
   }
@@ -132,7 +151,7 @@ class CounterHandler[F[_] : Monad](r: Deferred[F, Int], counter: Ref[F, Int])
     *
     * Resets the counter to 0.
     */
-  override def onInit(publisher: Publisher[?]): F[Unit] =
+  override def init(): F[Unit] =
     counter.set(0)
 
   /**
@@ -143,10 +162,10 @@ class CounterHandler[F[_] : Monad](r: Deferred[F, Int], counter: Ref[F, Int])
   override def onEvent(e: Event): F[Unit] =
     counter.update(_ + 1)
 
-  override def onDone(publisher: Publisher[?]): F[Unit] =
+  override def onDone(): F[Unit] =
     counter.get.flatMap(result.complete).void
 
-  override def onFail(e: Throwable, publisher: Publisher[?]): F[Unit] =
+  override def onFail(e: Throwable): F[Unit] =
     counter.get.flatMap(result.complete).void
 
 }
