@@ -73,7 +73,7 @@ case class TaskMetrics(
   }
 
   /** Returns the full task and simulation name. */
-  def fullName: String = s"$task ($simulation)"
+  def fullName: String = s"$task ($caseName)"
 
   /** Returns the time of completion (if any). */
   def finished: Option[Long] = started.map { s => s + duration }
@@ -85,7 +85,7 @@ object TaskMetrics {
   def apply(task: TaskInstance): TaskMetrics = TaskMetrics(
     task.id,
     task.name,
-    task.simulation,
+    task.caseName,
     task.priority,
     task.created,
     None,

@@ -229,7 +229,7 @@ object Simulation extends StateOps {
       val result = abortedTasks.copy(
         cases = abortedTasks.cases - name,
         waiting = abortedTasks.waiting - name,
-        tasks = abortedTasks.tasks.filter(_.simulation != name)
+        tasks = abortedTasks.tasks.filter(_.caseName != name)
       )
 
       val events = ECaseEnd(sim.id, sim.time, name, "[Simulation Aborted]") :: abortEvents.toList
@@ -274,7 +274,7 @@ object Simulation extends StateOps {
           sim,
           Seq(
             sim.error(
-              s"Tried to attach task [${task.name}](${task.simulation}) to [${full.state.resource.name}], but it was full: ${full.state.currentTasks}"
+              s"Tried to attach task [${task.name}](${task.caseName}) to [${full.state.resource.name}], but it was full: ${full.state.currentTasks}"
             )
           )
         )
@@ -336,7 +336,7 @@ object Simulation extends StateOps {
     val (stopMap, detachedResources) = sim.resources.stopTasks(nonAbortedIds)
     val stopEvents = nonAbortedTasks.map { task => ETaskDone(sim.id, sim.time, task) }
     val detachEvents = detachedResources.flatMap(ETaskDetach.resourceState(sim.id, sim.time, nonAbortedIds)).toSeq
-    val waits = nonAbortedTasks.groupBy(_.simulation)
+    val waits = nonAbortedTasks.groupBy(_.caseName)
     (
       sim.copy(
         resources = stopMap,

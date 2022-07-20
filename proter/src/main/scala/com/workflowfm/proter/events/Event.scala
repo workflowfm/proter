@@ -248,15 +248,15 @@ object Event {
     case ECaseStart(src, t, n) => s"[$t $src] Starting case: $n"
     case ECaseEnd(src, t, n, r) => s"[$t $src] Case [$n] completed. Result: $r"
     case ETaskAdd(src, t, task) =>
-      s"[$t $src] Added task [${task.name}](${task.simulation}) created at [${task.created}]. (id:${task.id})"
+      s"[$t $src] Added task [${task.name}](${task.caseName}) created at [${task.created}]. (id:${task.id})"
     case ETaskStart(src, t, task) =>
-      s"[$t $src] Starting task [${task.name}](${task.simulation}). Ticks: ${task.duration}. (id:${task.id})"
+      s"[$t $src] Starting task [${task.name}](${task.caseName}). Ticks: ${task.duration}. (id:${task.id})"
     case ETaskAttach(src, t, task, r) =>
-      s"[$t $src] Attaching task [${task.name}](${task.simulation}) to [${r.resource.name}]. Ticks: ${task.duration} - Capacity left: ${r.remainingCapacity}. (id:${task.id})"
+      s"[$t $src] Attaching task [${task.name}](${task.caseName}) to [${r.resource.name}]. Ticks: ${task.duration} - Capacity left: ${r.remainingCapacity}. (id:${task.id})"
     case ETaskDetach(src, t, task, r, c) =>
-      s"[$t $src] Detaching task [${task.name}](${task.simulation}) from [${r.resource.name}]. Cost: $c - Capacity left: ${r.detach(task.id).remainingCapacity}. (id:${task.id})"
+      s"[$t $src] Detaching task [${task.name}](${task.caseName}) from [${r.resource.name}]. Cost: $c - Capacity left: ${r.detach(task.id).remainingCapacity}. (id:${task.id})"
     case ETaskDone(src, t, task) =>
-      s"[$t $src] Task [${task.name}](${task.simulation}) completed. (id:${task.id})"
+      s"[$t $src] Task [${task.name}](${task.caseName}) completed. (id:${task.id})"
     case ETaskAbort(src, t, id) =>
       s"[$t $src] Task id [$id] was aborted."
 
