@@ -26,7 +26,7 @@ sealed trait Event {
 /**
   * The entire simulation started.
   */
-case class EStart(override val source: String, override val time: Long) extends Event {}
+final case class EStart(override val source: String, override val time: Long) extends Event {}
 
 /**
   * A time limit was set.
@@ -34,7 +34,7 @@ case class EStart(override val source: String, override val time: Long) extends 
   * @param limit
   *   The limit in time units/
   */
-case class ETimeLimit(
+final case class ETimeLimit(
     override val source: String,
     override val time: Long,
     limit: Long
@@ -48,7 +48,7 @@ case class ETimeLimit(
   * @param costPerTick
   *   The [[TaskResource.costPerTick]] of the resource.
   */
-case class EResourceAdd(
+final case class EResourceAdd(
     override val source: String,
     override val time: Long,
     resource: Resource
@@ -62,7 +62,7 @@ case class EResourceAdd(
   * @param start
   *   The timestamp when this case is scheduled to start.
   */
-case class ECaseAdd(
+final case class ECaseAdd(
     override val source: String,
     override val time: Long,
     name: String,
@@ -81,7 +81,7 @@ case class ECaseAdd(
   * @param limit
   *   The optional limit of the number of cases to generate.
   */
-case class EArrivalAdd(
+final case class EArrivalAdd(
     override val source: String,
     override val time: Long,
     name: String,
@@ -96,7 +96,7 @@ case class EArrivalAdd(
   * @param name
   *   The name of the case.
   */
-case class ECaseStart(override val source: String, override val time: Long, name: String)
+final case class ECaseStart(override val source: String, override val time: Long, name: String)
     extends Event
 
 /**
@@ -107,7 +107,7 @@ case class ECaseStart(override val source: String, override val time: Long, name
   * @param result
   *   The output of the case (if any).
   */
-case class ECaseEnd(
+final case class ECaseEnd(
     override val source: String,
     override val time: Long,
     name: String,
@@ -120,7 +120,7 @@ case class ECaseEnd(
   * @param task
   *   The [[TaskInstance]] that was added.
   */
-case class ETaskAdd(
+final case class ETaskAdd(
     override val source: String,
     override val time: Long,
     task: TaskInstance
@@ -132,7 +132,7 @@ case class ETaskAdd(
   * @param task
   *   The [[TaskInstance]] that was started.
   */
-case class ETaskStart(
+final case class ETaskStart(
     override val source: String,
     override val time: Long,
     task: TaskInstance
@@ -146,7 +146,7 @@ case class ETaskStart(
   * @param resource
   *   The involved [[TaskResource]].
   */
-case class ETaskAttach(
+final case class ETaskAttach(
     override val source: String,
     override val time: Long,
     task: TaskInstance,
@@ -163,7 +163,7 @@ case class ETaskAttach(
   * @param cost
   *   The resource cost associated with this task and resource.
   */
-case class ETaskDetach(
+final case class ETaskDetach(
     override val source: String,
     override val time: Long,
     task: TaskInstance,
@@ -196,7 +196,7 @@ object ETaskDetach {
   * @param task
   *   The [[TaskInstance]] that finished.
   */
-case class ETaskDone(
+final case class ETaskDone(
     override val source: String,
     override val time: Long,
     task: TaskInstance
@@ -208,7 +208,7 @@ case class ETaskDone(
   * @param id
   *   The `UUID` of the [[TaskInstance]] that was aborted.
   */
-case class ETaskAbort(
+final case class ETaskAbort(
     override val source: String,
     override val time: Long,
     id: UUID
@@ -217,7 +217,7 @@ case class ETaskAbort(
 /**
   * The entire simulation is complete.
   */
-case class EDone(override val source: String, override val time: Long) extends Event
+final case class EDone(override val source: String, override val time: Long) extends Event
 
 /**
   * An error or exception occurred during the simulation.
@@ -225,7 +225,7 @@ case class EDone(override val source: String, override val time: Long) extends E
   * @param error
   *   A string representation of the error.
   */
-case class EError(override val source: String, override val time: Long, error: String) extends Event
+final case class EError(override val source: String, override val time: Long, error: String) extends Event
 
 object Event {
 

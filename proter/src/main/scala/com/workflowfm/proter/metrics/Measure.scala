@@ -194,6 +194,6 @@ final case class ResourceMetrics(
 object ResourceMetrics {
 
   /** Initialize metrics given the name of a [[TaskResource]]. */
-  def apply(name: String, costPerTick: Double): ResourceMetrics =
-    ResourceMetrics(name, costPerTick, 0L, 0L, 0L, 0, 0)
+  def apply(r: Resource): ResourceMetrics =
+    ResourceMetrics(r.name, r.costPerTick, 0L, 0L, 0L, 0, 0)
 }

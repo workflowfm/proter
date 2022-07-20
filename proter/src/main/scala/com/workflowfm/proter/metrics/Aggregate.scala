@@ -2,7 +2,7 @@ package com.workflowfm.proter.metrics
 
 import java.util.UUID
 
-import scala.collection.immutable.Map
+import scala.collection.immutable.{ Map, Queue }
 
 import com.workflowfm.proter.*
 import com.workflowfm.proter.events.*
@@ -26,7 +26,8 @@ final case class Metrics(
   sEnd: Option[Long],
   tasks: Map[UUID, TaskMetrics],
   cases: Map[String, CaseMetrics],
-  resources: Map[String, ResourceMetrics]
+  resources: Map[String, ResourceMetrics],
+  errors: Queue[Metrics.MetricsException]
 ) {
 
   import Metrics.{ 
@@ -115,14 +116,17 @@ final case class Metrics(
     * starting now and the current virtual time.
     * @group Set
     */
-  def addSim(s: String, t: Long): Metrics = this += CaseMetrics(s, t)
+  def addCase(s: String, t: Long): Metrics = this += CaseMetrics(s, t)
 
   /**
     * Initializes and adds a new [[ResourceMetrics]] instance given a new [[TaskResource]].
     * @group Set
     */
-  def addResource(r: String, costPerTick: Double): Metrics =
-    this += ResourceMetrics(r, costPerTick)
+  def addResource(r: Resource): Metrics =
+    this += ResourceMetrics(r)
+
+  def exception(e: MetricsException): Metrics =
+    copy(errors = errors :+ e)
 
   // Update
   /**
@@ -140,11 +144,11 @@ final case class Metrics(
     *   [[com.workflowfm.pew.metrics.MetricsAggregator]] for examples in a similar context
     * @group Update
     */
-  def updateTask(taskID: UUID)(u: TaskMetrics => TaskMetrics): Either[MetricsException, Metrics] =
+  def updateTask(taskID: UUID)(u: TaskMetrics => TaskMetrics): Metrics =
     tasks
       .get(taskID)
       .map { m => this += u(m) }
-      .toRight(TaskNotFound(taskID))
+      .getOrElse(exception(TaskNotFound(taskID)))
 
   /**
     * Updates a [[TaskMetrics]] instance.
@@ -162,11 +166,11 @@ final case class Metrics(
     *
     * @group Update
     */
-  def updateTask(task: TaskInstance)(u: TaskMetrics => TaskMetrics): Either[MetricsException, Metrics] =
+  def updateTask(task: TaskInstance)(u: TaskMetrics => TaskMetrics): Metrics =
     tasks
       .get(task.id)
       .map { m => this += u(m) }
-      .toRight(TaskNotFound(task.id))
+      .getOrElse(exception(TaskNotFound(task.id)))
 
   /**
     * Updates a [[SimulationMetrics]] instance.
@@ -187,11 +191,11 @@ final case class Metrics(
     */
   def updateCase(
       caseName: String
-  )(u: CaseMetrics => CaseMetrics): Either[MetricsException, Metrics] =
+  )(u: CaseMetrics => CaseMetrics): Metrics =
     cases
       .get(caseName)
       .map { m => this += u(m) }
-      .toRight(CaseNotFound(caseName))
+      .getOrElse(exception(CaseNotFound(caseName)))
 
   /**
     * Updates a [[ResourceMetrics]] instance.
@@ -209,11 +213,11 @@ final case class Metrics(
     *
     * @group Update
     */
-  def updateResource(resource: String)(u: ResourceMetrics => ResourceMetrics): Either[MetricsException, Metrics] =
+  def updateResource(resource: String)(u: ResourceMetrics => ResourceMetrics): Metrics =
     resources
       .get(resource)
       .map { m => this += u(m) }
-      .toRight(ResourceNotFound(resource))
+      .getOrElse(exception(ResourceNotFound(resource)))
 
 
   /**
@@ -280,6 +284,31 @@ final case class Metrics(
     */
   def taskMetricsOf(s: CaseMetrics): Seq[TaskMetrics] =
     tasks.values.toSeq.filter(_.caseName.equals(s.name)).sortBy(_.started)
+
+
+  def handle(evt: Event): Metrics = evt match {
+    case EStart(_, _) => this.started
+    case EDone(_, t) => updateAllResources(_.idle(t)).ended
+    case EResourceAdd(_, _, r) => addResource(r)
+    case ECaseAdd(_, _, _, _) => this
+    case ECaseStart(_, t, n) => addCase(n, t)
+    case ECaseEnd(_, t, n, r) => updateCase(n)(_.done(r, t))
+    case ETaskAdd(_, _, task) => addTask(task)
+    case ETaskStart(_, t, task) => 
+      updateTask(task)(_.start(t))
+        .updateCase(task.caseName)(_.task(task).addDelay(t - task.created))
+    case ETaskAttach(_, t, task, r) => updateResource(r.resource.name)(_.task(t, task))
+    case ETaskDetach(_, _, task, _, c) => 
+      updateTask(task)(_.addCost(c))
+        .updateCase(task.caseName)(_.addCost(c))
+    case ETaskDone(_, _, _) => this
+    case ETaskAbort(_, t, id) => updateTask(id)(_.abort(t))
+
+    case EArrivalAdd(_, _, _, _, _, _) => this
+    case ETimeLimit(_, _, _) => this
+    case EError(_, _, _) => this
+  }
+
 }
 
 object Metrics {
@@ -293,8 +322,6 @@ object Metrics {
 
   final case class ResourceNotFound(name: String)
       extends MetricsException(s"Tried to update metrics for task that does not exist: $name")
-
-}
 
 /*
 /**
@@ -342,3 +369,4 @@ class SimMetricsHandler(output: SimMetricsOutput = SimNoOutput)
   override def result = metrics
 }
  */
+}
