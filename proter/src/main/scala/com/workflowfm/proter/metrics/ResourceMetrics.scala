@@ -29,6 +29,8 @@ final case class ResourceMetrics(
     cost: Double
 ) {
 
+  def start(t: Long): ResourceMetrics = copy(idleUpdate = t)
+
   /** Adds some idle time to the total. */
   def idle(t: Long): ResourceMetrics =
     if idleUpdate < t then copy(idleTime = idleTime + t - idleUpdate, idleUpdate = t) else this
@@ -45,6 +47,6 @@ final case class ResourceMetrics(
 object ResourceMetrics {
 
   /** Initialize metrics given the name of a [[TaskResource]]. */
-  def apply(r: Resource): ResourceMetrics =
-    ResourceMetrics(r.name, r.costPerTick, 0L, 0L, 0L, 0, 0)
+  def apply(t: Long, r: Resource): ResourceMetrics =
+    ResourceMetrics(r.name, r.costPerTick, t, 0L, 0L, 0, 0)
 }

@@ -88,8 +88,8 @@ object TestSim extends IOApp {
 //        PrintEventHandler(),
         MetricsSubscriber[IO](
           MetricsPrinter(),
-          CSVFile("output/", "HAHA"),
-          D3Timeline("output/", "HAHA")
+          //CSVFile("output/", "HAHA"),
+          //D3Timeline("output/", "HAHA")
           )
       )
       val scenario = Scenario[IO]("MYSCENARIO")

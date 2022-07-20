@@ -129,8 +129,8 @@ final case class Metrics(
     * Initializes and adds a new [[ResourceMetrics]] instance given a new [[TaskResource]].
     * @group Set
     */
-  def addResource(r: Resource): Metrics =
-    this += ResourceMetrics(r)
+  def addResource(t: Long, r: Resource): Metrics =
+    this += ResourceMetrics(t, r)
 
   def exception(e: MetricsException): Metrics =
     copy(errors = errors :+ e)
@@ -294,9 +294,9 @@ final case class Metrics(
 
 
   def handle(evt: Event): Metrics = evt match {
-    case EStart(_, t) => this.started(t)
+    case EStart(_, t) => this.started(t).updateAllResources(_.start(t))
     case EDone(_, t) => updateAllResources(_.idle(t)).ended(t)
-    case EResourceAdd(_, _, r) => addResource(r)
+    case EResourceAdd(_, t, r) => addResource(t, r)
     case ECaseAdd(_, _, _, _) => this
     case ECaseStart(_, t, n) => addCase(n, t)
     case ECaseEnd(_, t, n, r) => updateCase(n)(_.done(r, t))
