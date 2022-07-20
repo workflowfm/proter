@@ -1,11 +1,10 @@
-package com.workflowfm.proter.metrics
+package com.workflowfm.proter
+package metrics
 
 import java.util.UUID
-
 import scala.collection.immutable.{ Map, Queue }
 
-import com.workflowfm.proter.*
-import com.workflowfm.proter.events.*
+import events.*
 
 /**
   * Collects/aggregates metrics across multiple tasks, resources, and simulations.
@@ -320,6 +319,8 @@ final case class Metrics(
 }
 
 object Metrics {
+  def apply(): Metrics = Metrics(None, None, 0L, 0L, Map(), Map(), Map(), Queue())
+
   sealed abstract class MetricsException(message: String) extends Exception(message)
 
   final case class TaskNotFound(id: UUID) 
@@ -330,51 +331,5 @@ object Metrics {
 
   final case class ResourceNotFound(name: String)
       extends MetricsException(s"Tried to update metrics for task that does not exist: $name")
-
-/*
-/**
- * A [[com.workflowfm.proter.events.ResultHandler ResultHandler]] that collects simulation metrics
- * to a [[SimMetricsAggregator]].
- *
- * Returns the [[SimMetricsAggregator]] with all the data as a result when done.
- *
- * Outputs the result using an (optional) [[SimMetricsOutput]].
- *
- * @param output
- *   The [[SimMetricsOutput]] to use, if any.
- */
-class SimMetricsHandler(output: SimMetricsOutput = SimNoOutput)
-    extends ResultHandler[SimMetricsAggregator] {
-  val metrics = new SimMetricsAggregator()
-
-  override def onEvent(evt: Event): Unit = evt match {
-    case EStart(_, _) => metrics.started
-    case EDone(_, t) => {
-      metrics.allResources(_.idle(t))
-      metrics.ended
-      output(t, metrics)
-    }
-    case EResourceAdd(_, _, n, c) => metrics.addResource(n, c)
-    case ESimAdd(_, _, _, _) => ()
-    case ESimStart(_, t, n) => metrics.addSim(n, t)
-    case ESimEnd(_, t, n, r) => metrics.simulation(n)(_.done(r, t))
-    case ETaskAdd(_, _, task) => metrics.addTask(task)
-    case ETaskStart(_, t, task) => {
-      metrics.task(task)(_.start(t))
-      metrics.simulation(task.simulation)(_.task(task).addDelay(t - task.created))
-    }
-    case ETaskAttach(_, t, task, r) => metrics.resource(r)(_.task(t, task))
-    case ETaskDetach(_, _, task, _, c) => {
-      metrics.task(task)(_.addCost(c))
-      metrics.simulation(task.simulation)(_.addCost(c))
-    }
-    case ETaskDone(_, _, _) => ()
-    case ETaskAbort(_, t, id) => metrics.task(id)(_.abort(t))
-
-    case EError(_, _, _) => ()
-  }
-
-  override def result = metrics
-}
- */
+ 
 }
