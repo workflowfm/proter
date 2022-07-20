@@ -71,6 +71,7 @@ import cases.*
 import cases.given
 import flows.*
 import flows.given
+import metrics.*
 
 import cats.effect.{ IO, IOApp, ExitCode }
 
@@ -82,7 +83,10 @@ object TestSim extends IOApp {
   def runScenario(): IO[ExitCode] =
     Random.scalaUtilRandom[IO].flatMap { r =>
       given Random[IO] = r
-      val simulator = Simulator[IO](ProterScheduler) withSub (PrintEventHandler())
+      val simulator = Simulator[IO](ProterScheduler) withSubs (
+        //PrintEventHandler(),
+        MetricsParSubscriber[IO](MetricsPrinter())
+      )
       val scenario = Scenario[IO]("MYSCENARIO")
         .withStartingTime(14)
         .withResources(Seq(

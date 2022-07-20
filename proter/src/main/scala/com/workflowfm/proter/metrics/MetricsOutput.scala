@@ -1,5 +1,7 @@
 package com.workflowfm.proter.metrics
 
+import cats.Applicative
+import cats.effect.std.Console
 import fs2.Pipe
 import java.text.SimpleDateFormat
 
@@ -70,18 +72,15 @@ object MetricsOutput {
         DurationFormatUtils.formatDuration(t - f, format).toString
       } getOrElse (nullValue)
     } getOrElse (nullValue)
+
+  def empty[F[_] : Applicative]: MetricsOutput[F] = new MetricsOutput[F] {
+    override def apply(metrics: Metrics): F[Unit] = Applicative[F].pure(()) 
+  }
 }
 
-/*
-/**
-  * A [[SimMetricsOutput]] that does nothing.
-  */
-object NoMetrics extends MetricsOutput {
-  def apply(metrics: Metrics): Unit = ()
-}
 
 /** Generates a string representation of the metrics using a generalized CSV format. */
-trait MetricsStringOutput extends MetricsOutput {
+trait MetricsStringOutput[F[_]] extends MetricsOutput[F] {
   /** A string representing null values. */
   val nullValue = "NULL"
 
@@ -233,9 +232,9 @@ trait MetricsStringOutput extends MetricsOutput {
 }
 
 /** Prints all simulation metrics to standard output. */
-class MetricsPrinter extends MetricsStringOutput {
+class MetricsPrinter[F[_] : Console] extends MetricsStringOutput[F] {
 
-  def apply(metrics: Metrics): Unit = {
+  def apply(metrics: Metrics): F[Unit] = {
     /** Separates the values. */
     val sep = "\t| "
     /** Separates metrics instances. */
@@ -249,7 +248,7 @@ class MetricsPrinter extends MetricsStringOutput {
     val durFormat = "HH:mm:ss.SSS"
     /** A string representing null time values. */
     val nullTime = "NONE"
-    println(
+    Console[F].println(
       s"""
 Tasks
 -----
@@ -274,7 +273,7 @@ Duration: ${MetricsOutput.formatDuration(metrics.sStart, metrics.sEnd, durFormat
     )
   }
 }
- */
+
 /*
 /**
   * Outputs simulation metrics to files using a standard CSV format. Generates 3 CSV files,
