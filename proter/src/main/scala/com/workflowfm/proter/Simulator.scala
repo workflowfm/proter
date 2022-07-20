@@ -27,10 +27,10 @@ final case class Simulator[F[_] : Concurrent](
 
   def simulateState(name: String, state: StateT[F, Simulation[F], Seq[Event]]): F[Unit] = for {
     publisher <- Publisher.build[F]()
-    subresource = subscribers.map(publisher.subscribe(_)).sequence
+    subresource = subscribers.map(publisher.subscribe(_)).parSequence
     _ <- subresource.use { streams =>
       {
-        val subio = streams.map(_.compile.drain).sequence
+        val subio = streams.map(_.compile.drain).parSequence
         val pubio = simulateStateWithPublisher(name, state, publisher)
         (pubio, subio).parTupled
       }
@@ -84,7 +84,8 @@ object TestSim extends IOApp {
     Random.scalaUtilRandom[IO].flatMap { r =>
       given Random[IO] = r
       val simulator = Simulator[IO](ProterScheduler) withSubs (
-        //PrintEventHandler(),
+        PrintEventHandler(),
+//        PrintEventHandler(),
         MetricsParSubscriber[IO](MetricsPrinter())
       )
       val scenario = Scenario[IO]("MYSCENARIO")
@@ -102,9 +103,9 @@ object TestSim extends IOApp {
         .withCases(
           ("foo1", Task("t", 1).withResources(Seq("A"))),
           ("foo2", Task("t", 2).withResources(Seq("A"))),
-          ("foo3", Task("t", 3).withResources(Seq("A"))),
-          ("foo4", Task("t", 4).withResourceQuantities(Seq(("A", 2)).toMap)),
-          ("foo4.2", Task("t", 4).withResourceQuantities(Seq(("A", 2)).toMap)),
+          //("foo3", Task("t", 3).withResources(Seq("A"))),
+          //("foo4", Task("t", 4).withResourceQuantities(Seq(("A", 2)).toMap)),
+          //("foo4.2", Task("t", 4).withResourceQuantities(Seq(("A", 2)).toMap)),
         )
          //      .withCases(
          //        ("flowsingle", FlowTask(Task("f1", 1)): Flow),
