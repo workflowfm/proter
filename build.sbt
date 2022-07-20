@@ -89,7 +89,6 @@ lazy val commonSettings = Seq(
 
 lazy val aggregatedProjects: Seq[ProjectReference] = List[ProjectReference](
   proter,
-  proterAkka
 )
 
 def proterModule(name: String): Project = 
@@ -113,9 +112,6 @@ lazy val proter = Project(id = "proter", base = file("proter"))
   .settings(commonSettings)
   .settings(libraryDependencies ++= Dependencies.common)
   .settings(libraryDependencies ++= Dependencies.testAll)
-
-lazy val proterAkka = proterModule("proter-akka")
-  .settings(libraryDependencies ++= Dependencies.akka)
 
 
 

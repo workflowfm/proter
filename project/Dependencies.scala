@@ -13,9 +13,6 @@ object Dependencies {
 
   val fs2 = "co.fs2" %% "fs2-core" % "3.2.5"
 
-  val akkaActor = "com.typesafe.akka" %% "akka-actor" % "2.6.18"
-  val akkaTestkit = "com.typesafe.akka" %% "akka-testkit" % "2.6.18" % Test
-
   val apache = "org.apache.commons" % "commons-lang3" % "3.3.2"
 
   val sortImports = "com.nequissimus" %% "sort-imports" % "0.6.1"
@@ -31,10 +28,5 @@ object Dependencies {
     catsTest,
   )
 
-  val akka: Seq[ModuleID] = Seq (
-    akkaActor,
-    akkaTestkit,
-  )
 }
-
 
