@@ -24,6 +24,8 @@ import com.workflowfm.proter.events.*
 final case class Metrics(
   sStart: Option[Long], 
   sEnd: Option[Long],
+  startTicks: Long,
+  endTicks: Long,
   tasks: Map[UUID, TaskMetrics],
   cases: Map[String, CaseMetrics],
   resources: Map[String, ResourceMetrics],
@@ -54,8 +56,11 @@ final case class Metrics(
     * Marks the start of metrics measurement with the current system time.
     * @group Start/End
     */
-  def started: Metrics = sStart match {
-    case None => copy(sStart = Some(System.currentTimeMillis()))
+  def started(t: Long): Metrics = sStart match {
+    case None => copy(
+      sStart = Some(System.currentTimeMillis()),
+      startTicks = t
+    )
     case _ => this
   }
 
@@ -63,7 +68,10 @@ final case class Metrics(
     * Marks the end of metrics measurement with the current system time.
     * @group Start/End
     */
-  def ended: Metrics = copy(sEnd = Some(System.currentTimeMillis()))
+  def ended(t: Long): Metrics = copy(
+    sEnd = Some(System.currentTimeMillis()),
+    endTicks = t
+  )
 
   /**
     * Task metrics indexed by task ID.
@@ -287,8 +295,8 @@ final case class Metrics(
 
 
   def handle(evt: Event): Metrics = evt match {
-    case EStart(_, _) => this.started
-    case EDone(_, t) => updateAllResources(_.idle(t)).ended
+    case EStart(_, t) => this.started(t)
+    case EDone(_, t) => updateAllResources(_.idle(t)).ended(t)
     case EResourceAdd(_, _, r) => addResource(r)
     case ECaseAdd(_, _, _, _) => this
     case ECaseStart(_, t, n) => addCase(n, t)
