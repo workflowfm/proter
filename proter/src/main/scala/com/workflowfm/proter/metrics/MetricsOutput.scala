@@ -1,6 +1,8 @@
 package com.workflowfm.proter.metrics
 
 import cats.Applicative
+import cats.implicits.*
+import cats.effect.{ Sync, Resource }
 import cats.effect.std.Console
 import fs2.Pipe
 import java.text.SimpleDateFormat
@@ -14,20 +16,20 @@ import org.apache.commons.lang3.time.DurationFormatUtils
   * @todo
   *   Move somewhere else as a utility?
   */
-/*
-trait FileOutput {
+
+trait FileOutput[F[_] : Sync] {
   import java.io.*
 
-  def writeToFile(filePath: String, output: String): Unit = try {
+  def outputStream(f: File): Resource[F, BufferedWriter] =
+    Resource.fromAutoCloseable(Sync[F].blocking(new BufferedWriter(new FileWriter(f))))
+
+  def writeToFile(filePath: String, output: String): F[Unit] = {
     val file = new File(filePath)
-    val bw = new BufferedWriter(new FileWriter(file))
-    bw.write(output)
-    bw.close()
-  } catch {
-    case e: Exception => e.printStackTrace()
+    outputStream(file).use { out => 
+      Sync[F].blocking(out.write(output)) 
+    }
   }
 }
- */
 
 /**
   * Manipulates a [[SimMetricsAggregator]] to produce some output via side-effects.
@@ -274,7 +276,6 @@ Duration: ${MetricsOutput.formatDuration(metrics.sStart, metrics.sEnd, durFormat
   }
 }
 
-/*
 /**
   * Outputs simulation metrics to files using a standard CSV format. Generates 3 CSV files,
   *   1. One for tasks with a "-tasks.csv" suffix,
@@ -286,23 +287,28 @@ Duration: ${MetricsOutput.formatDuration(metrics.sStart, metrics.sEnd, durFormat
   * @param name
   *   file name prefix
   */
-class SimCSVFileOutput(path: String, name: String) extends SimMetricsStringOutput with FileOutput {
+class CSVFile[F[_] : Sync](path: String, name: String) 
+  extends MetricsStringOutput[F] 
+  with FileOutput[F] {
+  
   val separator = ","
   val lineSep = "\n"
 
-  def apply(totalTicks: Long, aggregator: SimMetricsAggregator): Unit = {
+  def apply(metrics: Metrics): F[Unit] = {
     val taskFile = s"$path$name-tasks.csv"
-    val simulationFile = s"$path$name-simulations.csv"
+    val caseFile = s"$path$name-simulations.csv"
     val resourceFile = s"$path$name-resources.csv"
-    writeToFile(taskFile, taskHeader(separator) + "\n" + tasks(aggregator, separator, lineSep))
-    writeToFile(
-      simulationFile,
-      simHeader(separator) + "\n" + simulations(aggregator, separator, lineSep)
+    
+    val t = writeToFile(taskFile, taskHeader(separator) + "\n" + tasks(metrics, separator, lineSep))
+    val c = writeToFile(
+      caseFile,
+      caseHeader(separator) + "\n" + cases(metrics, separator, lineSep)
     )
-    writeToFile(
+    val r = writeToFile(
       resourceFile,
-      resHeader(separator) + "\n" + resources(aggregator, separator, lineSep)
+      resHeader(separator) + "\n" + resources(metrics, separator, lineSep)
     )
+    Seq(t, c, r).sequence.void
   }
 }
 
@@ -324,41 +330,41 @@ class SimCSVFileOutput(path: String, name: String) extends SimMetricsStringOutpu
   * @param tick
   *   the size of 1 unit of virtual time
   */
-class SimD3Timeline(path: String, file: String, tick: Int = 1)
-    extends SimMetricsOutput
-    with FileOutput {
+class D3Timeline[F[_] : Sync](path: String, file: String, tick: Int = 1)
+  extends MetricsOutput[F]
+  with FileOutput[F] {
 
-  override def apply(totalTicks: Long, aggregator: SimMetricsAggregator): Unit = {
-    val result = build(aggregator, System.currentTimeMillis())
+  override def apply(metrics: Metrics): F[Unit] = {
+    val result = build(metrics, System.currentTimeMillis())
     // println(result)
     val dataFile = s"$path$file-simdata.js"
     writeToFile(dataFile, result)
   }
 
   /** Helps build the output with a static system time. */
-  def build(aggregator: SimMetricsAggregator, now: Long): String = {
+  def build(metrics: Metrics, now: Long): String = {
     val buf: StringBuilder = new StringBuilder()
     buf.append("var tasks = [\n")
-    for p <- (collection.immutable.SortedSet[String]() ++ aggregator.taskSet) do
+    for p <- (collection.immutable.SortedSet[String]() ++ metrics.taskSet) do
       buf.append(s"""\t"$p",\n""")
     buf.append("];\n\n")
     buf.append("var resourceData = [\n")
-    for m <- aggregator.resourceMetrics do buf.append(s"""${resourceEntry(m, aggregator)}\n""")
+    for m <- metrics.resourceMetrics do buf.append(s"""${resourceEntry(m, metrics)}\n""")
     buf.append("];\n\n")
     buf.append("var simulationData = [\n")
-    for m <- aggregator.simulationMetrics do buf.append(s"""${simulationEntry(m, aggregator)}\n""")
+    for m <- metrics.caseMetrics do buf.append(s"""${simulationEntry(m, metrics)}\n""")
     buf.append("];\n")
     buf.toString
   }
 
-  def simulationEntry(s: CaseMetrics, agg: SimMetricsAggregator): String = {
+  def simulationEntry(s: CaseMetrics, agg: Metrics): String = {
     val times = agg.taskMetricsOf(s).flatMap(taskEntry).mkString(",\n")
     s"""{label: "${s.name}", times: [
 $times
 ]},"""
   }
 
-  def resourceEntry(res: ResourceMetrics, agg: SimMetricsAggregator): String = {
+  def resourceEntry(res: ResourceMetrics, agg: Metrics): String = {
     val times = agg.taskMetricsOf(res).flatMap(taskEntry).mkString(",\n")
     s"""{label: "${res.name}", times: [
 $times
@@ -377,4 +383,3 @@ $times
     }
   }
 }
- */

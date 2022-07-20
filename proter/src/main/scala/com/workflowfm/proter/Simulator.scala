@@ -86,7 +86,11 @@ object TestSim extends IOApp {
       val simulator = Simulator[IO](ProterScheduler) withSubs (
         PrintEventHandler(),
 //        PrintEventHandler(),
-        MetricsParSubscriber[IO](MetricsPrinter())
+        MetricsSubscriber[IO](
+          MetricsPrinter(),
+          CSVFile("output/", "HAHA"),
+          D3Timeline("output/", "HAHA")
+          )
       )
       val scenario = Scenario[IO]("MYSCENARIO")
         .withStartingTime(14)
