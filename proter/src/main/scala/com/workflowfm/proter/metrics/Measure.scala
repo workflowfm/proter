@@ -27,10 +27,10 @@ import com.workflowfm.proter.*
   * @param resources
   *   the list of names of the [[TaskResource]]s this [[TaskInstance]] used
   */
-case class TaskMetrics(
+final case class TaskMetrics(
     id: UUID,
     task: String,
-    simulation: String,
+    caseName: String,
     priority: Int,
     created: Long,
     started: Option[Long],
@@ -116,7 +116,7 @@ object TaskMetrics {
   *   still running. In case of failure, the field is populated with the localized message of the
   *   exception thrown
   */
-case class SimulationMetrics(
+final case class CaseMetrics(
     name: String,
     started: Long,
     duration: Long,
@@ -126,13 +126,13 @@ case class SimulationMetrics(
     result: Option[String]
 ) {
   /** Adds some time to the total duration. */
-  def addDuration(d: Long): SimulationMetrics = copy(duration = duration + d)
+  def addDuration(d: Long): CaseMetrics = copy(duration = duration + d)
   /** Adds some cost to the total cost. */
-  def addCost(c: Double): SimulationMetrics = copy(cost = cost + c)
+  def addCost(c: Double): CaseMetrics = copy(cost = cost + c)
   /** Adds some delay to the total delay. */
-  def addDelay(d: Long): SimulationMetrics = copy(delay = delay + d)
+  def addDelay(d: Long): CaseMetrics = copy(delay = delay + d)
   /** Updates the metrics given a new [[TaskInstance]] that is created as part of the simulation. */
-  def task(task: TaskInstance): SimulationMetrics = copy(tasks = tasks + 1, cost = cost + task.cost)
+  def task(task: TaskInstance): CaseMetrics = copy(tasks = tasks + 1, cost = cost + task.cost)
 
   /**
     * Updates the metrics given that the simulation has completed with a certain result.
@@ -141,15 +141,15 @@ case class SimulationMetrics(
     * @param time
     *   the virtual timestamp when the simulation finished
     */
-  def done(res: String, time: Long): SimulationMetrics =
+  def done(res: String, time: Long): CaseMetrics =
     copy(result = Some(res), duration = duration + time - started)
 }
 
-object SimulationMetrics {
+object CaseMetrics {
 
   /** Initialize metrics for a named simulation starting at the given virtual time. */
-  def apply(name: String, t: Long): SimulationMetrics =
-    SimulationMetrics(name, t, 0L, 0L, 0, 0L, None)
+  def apply(name: String, t: Long): CaseMetrics =
+    CaseMetrics(name, t, 0L, 0L, 0, 0L, None)
 }
 
 /**
@@ -168,7 +168,7 @@ object SimulationMetrics {
   * @param cost
   *   the total cost associated with this [[TaskResource]]
   */
-case class ResourceMetrics(
+final case class ResourceMetrics(
     name: String,
     costPerTick: Double,
     idleUpdate: Long,

@@ -6,6 +6,7 @@ import scala.collection.immutable.Queue
 
 import org.apache.commons.lang3.time.DurationFormatUtils
 
+/*
 /**
   * Helper to write stuff to a file.
   * @todo
@@ -168,8 +169,8 @@ trait SimMetricsStringOutput extends SimMetricsOutput {
     * @param m
     *   the [[SimulationMetrics]] instance to be handled
     */
-  def simCSV(separator: String)(m: SimulationMetrics): String = m match {
-    case SimulationMetrics(name, st, dur, delay, ts, c, res) =>
+  def simCSV(separator: String)(m: CaseMetrics): String = m match {
+    case CaseMetrics(name, st, dur, delay, ts, c, res) =>
       Seq(name, st, dur, delay, ts, c, res).mkString(separator)
   }
 
@@ -369,7 +370,7 @@ class SimD3Timeline(path: String, file: String, tick: Int = 1)
     buf.toString
   }
 
-  def simulationEntry(s: SimulationMetrics, agg: SimMetricsAggregator): String = {
+  def simulationEntry(s: CaseMetrics, agg: SimMetricsAggregator): String = {
     val times = agg.taskMetricsOf(s).flatMap(taskEntry).mkString(",\n")
     s"""{label: "${s.name}", times: [
 $times
@@ -395,3 +396,4 @@ $times
     }
   }
 }
+ */
