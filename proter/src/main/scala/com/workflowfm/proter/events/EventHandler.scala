@@ -4,10 +4,10 @@ import java.text.SimpleDateFormat
 
 import cats.Monad
 import cats.implicits.*
-import cats.effect.{ Ref, Deferred }
-import cats.effect.std.Console
+import cats.effect.{ Ref, Deferred, Clock, Sync }
+import cats.effect.implicits.*
 
-import fs2.Stream
+import fs2.{ Stream, Pipe }
 
 import scala.collection.immutable.HashSet
 import scala.concurrent.Promise
@@ -102,34 +102,48 @@ class PoolEventHandler[F[_] : Monad](publishers: Ref[F, HashSet[Publisher[?]]])
 }
  */
 
-/**
-  * An [[EventHandler]] that prints events to standard error.
-  */
-class PrintEventHandler[F[_] : Monad : Console] extends EventHandler[F] {
+trait StringHandler[F[_] : Monad : Clock] {
+  val strPipe: Pipe[F, Either[Throwable, Event], String] = s =>
+  s.evalMap(evt =>
+    evt match {
+      case Left(e) => fail(e)
+      case Right(e) => event(e)
+    }
+  )
+    .handleErrorWith(ex => Stream.eval(fail(ex)))
+
   /**
     * A simple date formatter for printing the current (system) time.
     */
   val formatter = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS")
 
-  override def init(): F[Unit] = {
-    val time = formatter.format(System.currentTimeMillis())
-    Console[F].println(s"[$time] === Event stream started. ===")
-  }
+  def event(e: Event): F[String] = for {
+    t <- Clock[F].realTime
+    time = formatter.format(t.toMillis)
+  } yield s"[$time] ${Event.asString(e)}\n"
 
-  override def onEvent(e: Event): F[Unit] = {
-    val time = formatter.format(System.currentTimeMillis())
-    Console[F].println(s"[$time] ${Event.asString(e)}")
-  }
+  def fail(e: Throwable): F[String] = for {
+    t <- Clock[F].realTime
+    time = formatter.format(t.toMillis)
+  } yield s"[$time] ??? Failure: ${e.getLocalizedMessage}\n"
 
-  override def onDone(): F[Unit] = {
-    val time = formatter.format(System.currentTimeMillis())
-    Console[F].println(s"[$time] === Event stream ended. ===")
-  }
+}
 
-  override def onFail(e: Throwable): F[Unit] = {
-    val time = formatter.format(System.currentTimeMillis())
-    Console[F].println(s"[$time] ??? Failure: ${e.getLocalizedMessage}")
-  }
+
+/**
+  * An [[EventHandler]] that prints events to standard error.
+  */
+class PrintEventHandler[F[_] : Clock : Sync] 
+    extends Subscriber[F]
+    with StringHandler[F]
+{
+
+  override def apply(s: Stream[F, Either[Throwable, Event]]): Stream[F, Unit] = 
+    s.through(strPipe)
+      .through(fs2.io.stdoutLines[F, String]())
+      .map(_ => ())
+
+  override def init(): F[Unit] = Monad[F].pure(())
 
 }
 
