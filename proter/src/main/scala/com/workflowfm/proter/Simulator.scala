@@ -95,7 +95,7 @@ object TestSim extends IOApp {
       val scenario = Scenario[IO]("MYSCENARIO")
         .withStartingTime(14)
         .withResources(Seq(
-          Resource("A", 4, 1)
+          Resource("A", 1, 1)
         ))
         //.withCases(
         //  ("foo1", Task("t", 1)),
@@ -105,8 +105,8 @@ object TestSim extends IOApp {
         //  ("foo4.2", Task("t", 4)),
         //)
         .withCases(
-          ("foo1", Task("t", 1).withResources(Seq("A"))),
-          ("foo2", Task("t", 2).withResources(Seq("A"))),
+          ("foo1", Task("t", 1).withCost(10).withResources(Seq("A"))),
+          ("foo2", Task("t", 2).withCost(10).withResources(Seq("A"))),
           //("foo3", Task("t", 3).withResources(Seq("A"))),
           //("foo4", Task("t", 4).withResourceQuantities(Seq(("A", 2)).toMap)),
           //("foo4.2", Task("t", 4).withResourceQuantities(Seq(("A", 2)).toMap)),
@@ -120,7 +120,7 @@ object TestSim extends IOApp {
         //       .withArrival("A1", Task("t", 1), ConstantLong(2), 10)
         //       .withTimedArrival("A2", 5, Task("t", 1), ConstantLong(2), 1)
         //       .withInfiniteArrival("A3", Task("t", 2), ConstantLong(5))
-        //.withLimit(15)
+        .withLimit(16)
 
       simulator.simulate(scenario).as(ExitCode(1))
     }

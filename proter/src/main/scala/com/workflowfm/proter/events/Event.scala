@@ -160,34 +160,18 @@ final case class ETaskAttach(
   *   The [[TaskInstance]] that was detached.
   * @param resource
   *   The involved [[TaskResource]].
-  * @param cost
-  *   The resource cost associated with this task and resource.
   */
 final case class ETaskDetach(
     override val source: String,
     override val time: Long,
+    start: Long,
     task: TaskInstance,
-    resource: ResourceState,
-    cost: Double
+    resource: ResourceState
 ) extends Event
 
 object ETaskDetach {
-
-  def resourceState(source: String, time: Long, taskIds: Seq[UUID])(resourceState: ResourceState): Seq[ETaskDetach] =
-    resourceState
-      .currentTasks
-      .view
-      .filterKeys(taskIds.contains(_))
-      .map { case (id, (start, task)) =>
-        ETaskDetach(
-          source,
-          time,
-          task,
-          resourceState,
-          resourceState.resource.costPerTick * (time - start)
-        )
-      }
-      .toSeq
+  def apply(source: String, t: Long, d: DetachedTask): ETaskDetach = 
+    ETaskDetach(source, t, d.start, d.task, d.resource)
 }
 
 /**
@@ -253,8 +237,8 @@ object Event {
       s"[$t $src] Starting task [${task.name}](${task.caseName}). Ticks: ${task.duration}. (id:${task.id})"
     case ETaskAttach(src, t, task, r) =>
       s"[$t $src] Attaching task [${task.name}](${task.caseName}) to [${r.resource.name}]. Ticks: ${task.duration} - Capacity left: ${r.remainingCapacity}. (id:${task.id})"
-    case ETaskDetach(src, t, task, r, c) =>
-      s"[$t $src] Detaching task [${task.name}](${task.caseName}) from [${r.resource.name}]. Cost: $c - Capacity left: ${r.detach(task.id).remainingCapacity}. (id:${task.id})"
+    case ETaskDetach(src, t, start, task, r) =>
+      s"[$t $src] Detaching task [${task.name}](${task.caseName}) from [${r.resource.name}]. Running since: $start - Capacity left: ${r.remainingCapacity}. (id:${task.id})"
     case ETaskDone(src, t, task) =>
       s"[$t $src] Task [${task.name}](${task.caseName}) completed. (id:${task.id})"
     case ETaskAbort(src, t, id) =>

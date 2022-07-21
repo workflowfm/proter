@@ -35,9 +35,11 @@ final case class CaseMetrics(
   /** Adds some cost to the total cost. */
   def addCost(c: Double): CaseMetrics = copy(cost = cost + c)
   /** Adds some delay to the total delay. */
-  def addDelay(d: Long): CaseMetrics = copy(delay = delay + d)
-  /** Updates the metrics given a new [[TaskInstance]] that is created as part of the simulation. */
-  def task(task: TaskInstance): CaseMetrics = copy(tasks = tasks + 1, cost = cost + task.cost)
+  def task(tdelay: Long, tcost: Double): CaseMetrics = copy(
+    tasks = tasks + 1, 
+    delay = delay + tdelay,
+    cost = cost + tcost  
+  )
 
   /**
     * Updates the metrics given that the simulation has completed with a certain result.

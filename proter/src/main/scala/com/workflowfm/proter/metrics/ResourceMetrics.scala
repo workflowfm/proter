@@ -36,11 +36,16 @@ final case class ResourceMetrics(
     if idleUpdate < t then copy(idleTime = idleTime + t - idleUpdate, idleUpdate = t) else this
 
   /** Updates the metrics given a new [[TaskInstance]] has been attached to the [[TaskResource]]. */
-  def task(t: Long, task: TaskInstance): ResourceMetrics = idle(t).copy(
+  def task(t: Long): ResourceMetrics = copy(
     tasks = tasks + 1,
-    cost = cost + task.duration * costPerTick,
-    busyTime = busyTime + task.duration,
-    idleUpdate = t + task.duration
+    idleUpdate = t
+  )
+
+  /** Updates the metrics given a new [[TaskInstance]] has been attached to the [[TaskResource]]. */
+  def endTask(t: Long, start: Long, tcost: Double): ResourceMetrics = copy(
+    cost = cost + tcost,
+    busyTime = busyTime + t - start,
+    idleUpdate = t
   )
 }
 

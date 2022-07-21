@@ -1,11 +1,17 @@
 package com.workflowfm.proter
 
+import events.ETaskDetach
+
 import java.util.UUID
+import collection.immutable.Queue
 
 import cats.implicits.*
 
 case class Resource(name: String, capacity: Int, costPerTick: Double) {
   def start: ResourceState = ResourceState(this, Map())
+
+  def costOf(actualDuration: Long, quantity: Int): Double =
+    costPerTick * actualDuration * quantity
 }
 
 case class ResourceState(resource: Resource, currentTasks: Map[UUID, (Long, TaskInstance)]) {
@@ -47,11 +53,14 @@ case class ResourceState(resource: Resource, currentTasks: Map[UUID, (Long, Task
     else Right(this.copy(currentTasks = currentTasks + (task.id -> (currentTime, task))))
   }
 
-  def detach(taskID: UUID): ResourceState = 
-    copy(currentTasks = currentTasks - taskID)
-
-  def detach(taskIDs: Seq[UUID]): ResourceState = 
-    copy(currentTasks = currentTasks -- taskIDs)
+  def detach(taskID: UUID): Option[DetachedTask] = 
+    currentTasks.get(taskID).map { (start, task) => 
+      DetachedTask(
+        start, 
+        task, 
+        copy(currentTasks = currentTasks - taskID)
+        ) 
+      }
 
   def runningAnyOf(taskIDs: Seq[UUID]): Boolean = 
     taskIDs.exists(id => currentTasks.contains(id)) 
@@ -62,6 +71,7 @@ case class ResourceState(resource: Resource, currentTasks: Map[UUID, (Long, Task
         capacity = resource.capacity - toReduce.get(resource.name).getOrElse(0)
       )
     )
+
 }
 
 object ResourceState {
@@ -93,9 +103,9 @@ case class ResourceMap(resources: Map[String, ResourceState]) {
   def addResources(resourcesToAdd: Seq[Resource]): ResourceMap =
     copy(resources ++ (resourcesToAdd.map { r => r.name -> r.start }))
 
-  def finishTask(task: TaskInstance): ResourceMap = {
-    copy(resources = resources.map { (n, r) => n -> r.detach(task.id) })
-  }
+  //def finishTask(task: TaskInstance): ResourceMap = {
+  //  copy(resources = resources.map { (n, r) => n -> r.detach(task.id) })
+  //}
 
   def startTask(task: TaskInstance, time: Long): Either[ResourceState.Full, ResourceMap] = 
     (for {
@@ -108,10 +118,23 @@ case class ResourceMap(resources: Map[String, ResourceState]) {
       .sequence
       .map { stateUpdates => copy(resources = resources ++ stateUpdates) }
 
-  def stopTasks(ids: Seq[UUID]): (ResourceMap, Iterable[ResourceState]) = {
-    val stopping = resources.filter { (_, r) => r.runningAnyOf(ids) }
-    val result = copy(resources ++ stopping.map { (n, r) => n -> r.detach(ids) })
-    (result, stopping.values)
+  def stopTask(id: UUID): (ResourceMap, Seq[DetachedTask]) = {
+    val stopping = resources
+      .values
+      .flatMap( _.detach(id))
+    val update = stopping
+      .map { d => d.resource.resource.name -> d.resource }
+    (
+      copy(resources ++ update),
+      stopping.toSeq
+    )
+  }
+
+  def stopTasks(ids: Seq[UUID]): (ResourceMap, Seq[DetachedTask]) = {
+    ids.foldLeft((this, Queue[DetachedTask]())) { case ((m, q), id) => {
+      val (result, ds) = m.stopTask(id)
+      (result, q ++ ds)
+    }}
   }
 
   def hasCapacity(r: String): Boolean = resources.get(r) match {
@@ -152,3 +175,6 @@ object ResourceMap {
     Map() ++ resources.map { r => r.name -> r.start }
   )
 }
+
+
+final case class DetachedTask(start: Long, task: TaskInstance, resource: ResourceState)

@@ -303,12 +303,15 @@ final case class Metrics(
     case ETaskAdd(_, _, task) => addTask(task)
     case ETaskStart(_, t, task) => 
       updateTask(task)(_.start(t))
-        .updateCase(task.caseName)(_.task(task).addDelay(t - task.created))
-    case ETaskAttach(_, t, task, r) => updateResource(r.resource.name)(_.task(t, task))
-    case ETaskDetach(_, _, task, _, c) => 
-      updateTask(task)(_.addCost(c))
-        .updateCase(task.caseName)(_.addCost(c))
-    case ETaskDone(_, _, _) => this
+        .updateCase(task.caseName)(_.task(t - task.created, task.cost))
+    case ETaskAttach(_, t, task, r) => updateResource(r.resource.name)(_.task(t))
+    case ETaskDetach(_, t, start, task, r) => {
+      val cost = r.resource.costOf(t - start, task.resourceQuantity(r.resource.name))
+      updateResource(r.resource.name)(_.endTask(t, start, cost))
+        .updateTask(task)(_.addCost(cost))
+        .updateCase(task.caseName)(_.addCost(cost))
+    }
+    case ETaskDone(_, _, task) => this
     case ETaskAbort(_, t, id) => updateTask(id)(_.abort(t))
 
     case EArrivalAdd(_, _, _, _, _, _) => this
