@@ -106,18 +106,16 @@ class ResourceTests
     "calling `detach`" should {
       "remove a task and free its capacity" in {
         val state = rs("Test", 1821)((1L, 0L, 20), (2L, 0L, 1800))
-        val res = state.detach(id(2L))
-        res.currentTasks.keys `should` not contain(id(2L))
-        res.remainingCapacity `should` be(1801)
+        val res = state.detach(id(2L)).value
+        res.resource.currentTasks.keys `should` not contain(id(2L))
+        res.resource.remainingCapacity `should` be(1801)
+        res.task.id `should` be(id(2L))
       }
 
-      "remove 2 tasks and free their capacity" in {
-        val state = rs("Test", 1821)((1L, 0L, 20), (2L, 0L, 1800), (3L, 0L, 1))
-        val res = state.detach(Seq(id(2L), id(1L)))
-        res.currentTasks.keys `should` not contain(id(1L))
-        res.currentTasks.keys `should` not contain(id(2L))
-        res.currentTasks.keys `should` contain(id(3L))
-        res.remainingCapacity `should` be(1820)
+      "not remove a task that is not there" in {
+        val state = rs("Test", 1821)((1L, 0L, 20), (2L, 0L, 1800))
+        val res = state.detach(id(3L))
+        res `should` be(None)
       }
     }
   }
@@ -202,28 +200,30 @@ class ResourceTests
 
     "calling `stopTasks`" should {
       "stop 1 task correctly" in {
-        val (res, states) = rmap.stopTasks(Seq(id(1L)))
+        val (res, detached) = rmap.stopTasks(Seq(id(1L)))
         res.resources.get("Empty").value.currentTasks `shouldBe` empty
         res.resources.get("Full").value.currentTasks `shouldBe` empty
         res.resources.get("Half1").value.currentTasks.keys.loneElement `should` be(id(2L))
         res.resources.get("Half2").value.currentTasks.keys.loneElement `should` be(id(2L))
         
-        states.size `should` be(2)
-        states `should` contain(rmap.resources.get("Full").value)
-        states `should` contain(rmap.resources.get("Half1").value)
+        detached.size `should` be(2)
+        val states = detached.map(_.resource.resource.name)
+        states `should` contain("Full")
+        states `should` contain("Half1")
       }
 
       "stop 2 tasks correctly" in {
-        val (res, states) = rmap.stopTasks(Seq(id(1L), id(2L)))
+        val (res, detached) = rmap.stopTasks(Seq(id(1L), id(2L)))
         res.resources.get("Empty").value.currentTasks `shouldBe` empty
         res.resources.get("Full").value.currentTasks `shouldBe` empty
         res.resources.get("Half1").value.currentTasks `shouldBe` empty
         res.resources.get("Half2").value.currentTasks `shouldBe` empty
 
-        states.size `should` be(3)
-        states `should` contain(rmap.resources.get("Full").value)
-        states `should` contain(rmap.resources.get("Half1").value)
-        states `should` contain(rmap.resources.get("Half2").value)
+        detached.size `should` be(4)
+        val states = detached.map(_.resource.resource.name)
+        states `should` contain("Full")
+        states `should` contain("Half1")
+        states `should` contain("Half2")
       }
     }
 
