@@ -20,32 +20,38 @@ import com.workflowfm.proter.*
   *   the total cost associated with this [[TaskResource]]
   */
 final case class ResourceMetrics(
-    name: String,
-    costPerTick: Double,
-    idleUpdate: Long,
-    busyTime: Long,
-    idleTime: Long,
-    tasks: Int,
-    cost: Double
+  name: String,
+  capacity: Int,
+  costPerTick: Double,
+  idleUpdate: Long,
+  load: Int,
+  busyTime: Long,
+  idleTime: Long,
+  tasks: Int,
+  cost: Double
 ) {
 
   def start(t: Long): ResourceMetrics = copy(idleUpdate = t)
 
   /** Adds some idle time to the total. */
   def idle(t: Long): ResourceMetrics =
-    if idleUpdate < t then copy(idleTime = idleTime + t - idleUpdate, idleUpdate = t) else this
+    if idleUpdate < t then copy(
+      idleTime = idleTime + (t - idleUpdate) * (capacity - load), 
+      idleUpdate = t
+    ) 
+    else this
 
   /** Updates the metrics given a new [[TaskInstance]] has been attached to the [[TaskResource]]. */
-  def task(t: Long): ResourceMetrics = copy(
+  def task(t: Long, q: Int): ResourceMetrics = idle(t).copy(
     tasks = tasks + 1,
-    idleUpdate = t
+    load = load + q
   )
 
   /** Updates the metrics given a new [[TaskInstance]] has been attached to the [[TaskResource]]. */
-  def endTask(t: Long, start: Long, tcost: Double): ResourceMetrics = copy(
+  def endTask(t: Long, start: Long, tcost: Double, q: Int): ResourceMetrics = idle(t).copy(
     cost = cost + tcost,
-    busyTime = busyTime + t - start,
-    idleUpdate = t
+    load = load - q,
+    busyTime = busyTime + (t - start) * q
   )
 }
 
@@ -53,5 +59,5 @@ object ResourceMetrics {
 
   /** Initialize metrics given the name of a [[TaskResource]]. */
   def apply(t: Long, r: Resource): ResourceMetrics =
-    ResourceMetrics(r.name, r.costPerTick, t, 0L, 0L, 0, 0)
+    ResourceMetrics(r.name, r.capacity, r.costPerTick, t, 0, 0L, 0L, 0, 0D)
 }

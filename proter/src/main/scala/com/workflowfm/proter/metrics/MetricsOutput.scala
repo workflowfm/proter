@@ -173,7 +173,7 @@ trait MetricsStringOutput[F[_]] extends MetricsOutput[F] {
     *   the [[ResourceMetrics]] instance to be handled
     */
   def resCSV(separator: String)(m: ResourceMetrics): String = m match {
-    case ResourceMetrics(name, _, _, b, i, ts, c) =>
+    case ResourceMetrics(name, _, _, _, _, b, i, ts, c) =>
       Seq(name, b, i, ts, c).mkString(separator)
   }
 

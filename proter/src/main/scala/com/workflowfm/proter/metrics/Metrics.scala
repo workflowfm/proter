@@ -304,10 +304,11 @@ final case class Metrics(
     case ETaskStart(_, t, task) => 
       updateTask(task)(_.start(t))
         .updateCase(task.caseName)(_.task(t - task.created, task.cost))
-    case ETaskAttach(_, t, task, r) => updateResource(r.resource.name)(_.task(t))
+    case ETaskAttach(_, t, task, r) => updateResource(r.resource.name)(_.task(t, task.resourceQuantity(r.resource.name)))
     case ETaskDetach(_, t, start, task, r) => {
-      val cost = r.resource.costOf(t - start, task.resourceQuantity(r.resource.name))
-      updateResource(r.resource.name)(_.endTask(t, start, cost))
+      val q = task.resourceQuantity(r.resource.name)
+      val cost = r.resource.costOf(t - start, q)
+      updateResource(r.resource.name)(_.endTask(t, start, cost, q))
         .updateTask(task)(_.addCost(cost))
         .updateCase(task.caseName)(_.addCost(cost))
     }

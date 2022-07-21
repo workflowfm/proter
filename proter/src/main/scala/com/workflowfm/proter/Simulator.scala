@@ -95,7 +95,7 @@ object TestSim extends IOApp {
       val scenario = Scenario[IO]("MYSCENARIO")
         .withStartingTime(14)
         .withResources(Seq(
-          Resource("A", 1, 1)
+          Resource("A", 2, 1)
         ))
         //.withCases(
         //  ("foo1", Task("t", 1)),
@@ -104,13 +104,18 @@ object TestSim extends IOApp {
         //  ("foo4", Task("t", 4)),
         //  ("foo4.2", Task("t", 4)),
         //)
-        .withCases(
-          ("foo1", Task("t", 1).withCost(10).withResources(Seq("A"))),
-          ("foo2", Task("t", 2).withCost(10).withResources(Seq("A"))),
+        //.withCases(
+        //  ("foo1", Task("t", 1).withCost(10).withResources(Seq("A"))),
+        //  ("foo2", Task("t", 2).withCost(10).withResources(Seq("A"))),
           //("foo3", Task("t", 3).withResources(Seq("A"))),
           //("foo4", Task("t", 4).withResourceQuantities(Seq(("A", 2)).toMap)),
           //("foo4.2", Task("t", 4).withResourceQuantities(Seq(("A", 2)).toMap)),
+        //)
+        .withTimedCases(
+          (14, "foo1", Task("t", 10).withCost(10).withResourceQuantities(Seq(("A", 1)).toMap)),
+          (16, "foo2", Task("t", 2).withCost(10).withResourceQuantities(Seq(("A", 1)).toMap)),
         )
+
          //      .withCases(
          //        ("flowsingle", FlowTask(Task("f1", 1)): Flow),
         //         ("flow1", Flow(Task("f1", 1), Task("f2", 1))),
@@ -120,7 +125,7 @@ object TestSim extends IOApp {
         //       .withArrival("A1", Task("t", 1), ConstantLong(2), 10)
         //       .withTimedArrival("A2", 5, Task("t", 1), ConstantLong(2), 1)
         //       .withInfiniteArrival("A3", Task("t", 2), ConstantLong(5))
-        .withLimit(16)
+        .withLimit(25)
 
       simulator.simulate(scenario).as(ExitCode(1))
     }
