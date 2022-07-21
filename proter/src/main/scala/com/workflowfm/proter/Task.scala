@@ -43,7 +43,7 @@ import cats.implicits.*
 final case class TaskInstance(
     val id: UUID,
     val name: String,
-    val simulation: String,
+    val caseName: String,
     val created: Long,
     val minStartTime: Long,
     val resources: Map[String, Int],
@@ -106,7 +106,7 @@ final case class TaskInstance(
 
   override def toString: String = {
     val res = resources.mkString(",")
-    s"Task($id,$name,$simulation,$created,[$res],d$duration($estimatedDuration),c$cost,i$interrupt,$priority)"
+    s"Task($id,$name,$caseName,$created,[$res],d$duration($estimatedDuration),c$cost,i$interrupt,$priority)"
   }
 }
 
@@ -165,7 +165,7 @@ final case class Task(
     * @return
     *   The generated [[TaskInstance]].
     */
-  def create[F[_] : Random : Monad](simulation: String, currentTime: Long): F[TaskInstance] = {
+  def create[F[_] : Random : Monad](caseName: String, currentTime: Long): F[TaskInstance] = {
     val creation = if createTime >= 0 then createTime else currentTime
     for {
       dur <- duration.getLong
@@ -174,7 +174,7 @@ final case class Task(
       TaskInstance(
         id.getOrElse(UUID.randomUUID()),
         name,
-        simulation,
+        caseName,
         creation,
         minStartTime,
         resources,

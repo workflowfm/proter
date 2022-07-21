@@ -113,7 +113,7 @@ class PrintEventHandler[F[_] : Monad : Console] extends EventHandler[F] {
 
   override def init(): F[Unit] = {
     val time = formatter.format(System.currentTimeMillis())
-    Console[F].println(s"[$time] === Even stream start ===")
+    Console[F].println(s"[$time] === Event stream started. ===")
   }
 
   override def onEvent(e: Event): F[Unit] = {
@@ -123,7 +123,7 @@ class PrintEventHandler[F[_] : Monad : Console] extends EventHandler[F] {
 
   override def onDone(): F[Unit] = {
     val time = formatter.format(System.currentTimeMillis())
-    Console[F].println(s"[$time] === Even stream end ===")
+    Console[F].println(s"[$time] === Event stream ended. ===")
   }
 
   override def onFail(e: Throwable): F[Unit] = {

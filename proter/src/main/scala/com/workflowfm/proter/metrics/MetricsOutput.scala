@@ -1,5 +1,10 @@
 package com.workflowfm.proter.metrics
 
+import cats.Applicative
+import cats.implicits.*
+import cats.effect.{ Sync, Resource }
+import cats.effect.std.Console
+import fs2.Pipe
 import java.text.SimpleDateFormat
 
 import scala.collection.immutable.Queue
@@ -11,16 +16,18 @@ import org.apache.commons.lang3.time.DurationFormatUtils
   * @todo
   *   Move somewhere else as a utility?
   */
-trait FileOutput {
+
+trait FileOutput[F[_] : Sync] {
   import java.io.*
 
-  def writeToFile(filePath: String, output: String): Unit = try {
+  def outputStream(f: File): Resource[F, BufferedWriter] =
+    Resource.fromAutoCloseable(Sync[F].blocking(new BufferedWriter(new FileWriter(f))))
+
+  def writeToFile(filePath: String, output: String): F[Unit] = {
     val file = new File(filePath)
-    val bw = new BufferedWriter(new FileWriter(file))
-    bw.write(output)
-    bw.close()
-  } catch {
-    case e: Exception => e.printStackTrace()
+    outputStream(file).use { out => 
+      Sync[F].blocking(out.write(output)) 
+    }
   }
 }
 
@@ -31,13 +38,12 @@ trait FileOutput {
   *   - a [[scala.Long]] representing the total virtual time elapsed
   *   - the [[SimMetricsAggregator]] to act upon
   */
-trait SimMetricsOutput extends ((Long, SimMetricsAggregator) => Unit) {
-  /** Compose with another [[SimMetricsOutput]] in sequence. */
-  def and(h: SimMetricsOutput): SimMetricsOutputs = SimMetricsOutputs(this, h)
+trait MetricsOutput[F[_]] extends (Metrics => F[Unit]) {
+  def pipe: Pipe[F, Metrics, Unit] = _.evalMap(this)
 }
 
 /** Contains helpful formatting shortcut functions. */
-object SimMetricsOutput {
+object MetricsOutput {
 
   def formatOption[T](
       v: Option[T],
@@ -68,38 +74,15 @@ object SimMetricsOutput {
         DurationFormatUtils.formatDuration(t - f, format).toString
       } getOrElse (nullValue)
     } getOrElse (nullValue)
+
+  def empty[F[_] : Applicative]: MetricsOutput[F] = new MetricsOutput[F] {
+    override def apply(metrics: Metrics): F[Unit] = Applicative[F].pure(()) 
+  }
 }
 
-/**
-  * A [[SimMetricsOutput]] consisting of a [[scala.collection.immutable.Queue Queue]] of
-  * [[SimMetricsOutput]]s to be run sequentially.
-  */
-case class SimMetricsOutputs(handlers: Queue[SimMetricsOutput]) extends SimMetricsOutput {
-
-  /** Call all included [[SimMetricsOutput]]s. */
-  override def apply(time: Long, aggregator: SimMetricsAggregator): Unit =
-    handlers map (_.apply(time, aggregator))
-  /** Add another [[SimMetricsOutput]] in sequence. */
-  override def and(h: SimMetricsOutput): SimMetricsOutputs = SimMetricsOutputs(handlers :+ h)
-}
-
-object SimMetricsOutputs {
-
-  /** Shorthand constructor for a [[SimMetricsOutputs]] from a list of [[SimMetricsOutput]]s. */
-  def apply(handlers: SimMetricsOutput*): SimMetricsOutputs = SimMetricsOutputs(
-    Queue[SimMetricsOutput]() ++ handlers
-  )
-}
-
-/**
-  * A [[SimMetricsOutput]] that does nothing.
-  */
-object SimNoOutput extends SimMetricsOutput {
-  def apply(totalTicks: Long, aggregator: SimMetricsAggregator): Unit = ()
-}
 
 /** Generates a string representation of the metrics using a generalized CSV format. */
-trait SimMetricsStringOutput extends SimMetricsOutput {
+trait MetricsStringOutput[F[_]] extends MetricsOutput[F] {
   /** A string representing null values. */
   val nullValue = "NULL"
 
@@ -143,7 +126,7 @@ trait SimMetricsStringOutput extends SimMetricsOutput {
         sim,
         priority,
         ct,
-        SimMetricsOutput.formatOption(st, nullValue),
+        MetricsOutput.formatOption(st, nullValue),
         m.delay,
         dur,
         cost,
@@ -157,7 +140,7 @@ trait SimMetricsStringOutput extends SimMetricsOutput {
     * @param separator
     *   a string (such as a space or comma) to separate the names
     */
-  def simHeader(separator: String): String =
+  def caseHeader(separator: String): String =
     Seq("Name", "Start", "Duration", "Delay", "Tasks", "Cost", "Result").mkString(separator)
 
   /**
@@ -168,8 +151,8 @@ trait SimMetricsStringOutput extends SimMetricsOutput {
     * @param m
     *   the [[SimulationMetrics]] instance to be handled
     */
-  def simCSV(separator: String)(m: SimulationMetrics): String = m match {
-    case SimulationMetrics(name, st, dur, delay, ts, c, res) =>
+  def caseCSV(separator: String)(m: CaseMetrics): String = m match {
+    case CaseMetrics(name, st, dur, delay, ts, c, res) =>
       Seq(name, st, dur, delay, ts, c, res).mkString(separator)
   }
 
@@ -190,7 +173,7 @@ trait SimMetricsStringOutput extends SimMetricsOutput {
     *   the [[ResourceMetrics]] instance to be handled
     */
   def resCSV(separator: String)(m: ResourceMetrics): String = m match {
-    case ResourceMetrics(name, _, _, b, i, ts, c) =>
+    case ResourceMetrics(name, _, _, _, _, b, i, ts, c) =>
       Seq(name, b, i, ts, c).mkString(separator)
   }
 
@@ -208,12 +191,12 @@ trait SimMetricsStringOutput extends SimMetricsOutput {
     *   [[TaskMetrics]]
     */
   def tasks(
-      aggregator: SimMetricsAggregator,
+      metrics: Metrics,
       separator: String,
       lineSep: String = "\n",
       resSeparator: String = ";"
   ): String =
-    aggregator.taskMetrics.map(taskCSV(separator, resSeparator)).mkString(lineSep)
+    metrics.taskMetrics.map(taskCSV(separator, resSeparator)).mkString(lineSep)
 
   /**
     * Formats all [[SimulationMetrics]] in a [[SimMetricsAggregator]] in a single string.
@@ -225,12 +208,12 @@ trait SimMetricsStringOutput extends SimMetricsOutput {
     * @param lineSep
     *   a string (such as a new line) to separate simulations
     */
-  def simulations(
-      aggregator: SimMetricsAggregator,
+  def cases(
+      metrics: Metrics,
       separator: String,
       lineSep: String = "\n"
   ): String =
-    aggregator.simulationMetrics.map(simCSV(separator)).mkString(lineSep)
+    metrics.caseMetrics.map(caseCSV(separator)).mkString(lineSep)
 
   /**
     * Formats all [[ResourceMetrics]] in a [[SimMetricsAggregator]] in a single string.
@@ -243,17 +226,17 @@ trait SimMetricsStringOutput extends SimMetricsOutput {
     *   a string (such as a new line) to separate resources
     */
   def resources(
-      aggregator: SimMetricsAggregator,
+      metrics: Metrics,
       separator: String,
       lineSep: String = "\n"
   ): String =
-    aggregator.resourceMetrics.map(resCSV(separator)).mkString(lineSep)
+    metrics.resourceMetrics.map(resCSV(separator)).mkString(lineSep)
 }
 
 /** Prints all simulation metrics to standard output. */
-class SimMetricsPrinter extends SimMetricsStringOutput {
+class MetricsPrinter[F[_] : Console] extends MetricsStringOutput[F] {
 
-  def apply(totalTicks: Long, aggregator: SimMetricsAggregator): Unit = {
+  def apply(metrics: Metrics): F[Unit] = {
     /** Separates the values. */
     val sep = "\t| "
     /** Separates metrics instances. */
@@ -267,27 +250,27 @@ class SimMetricsPrinter extends SimMetricsStringOutput {
     val durFormat = "HH:mm:ss.SSS"
     /** A string representing null time values. */
     val nullTime = "NONE"
-    println(
+    Console[F].println(
       s"""
 Tasks
 -----
 ${taskHeader(sep)}
-${tasks(aggregator, sep, lineSep)}
+${tasks(metrics, sep, lineSep)}
 
 Simulations
 -----------
-${simHeader(sep)}
-${simulations(aggregator, sep, lineSep)}
+${caseHeader(sep)}
+${cases(metrics, sep, lineSep)}
 
 Resources
 ---------
 ${resHeader(sep)}
-${resources(aggregator, sep, lineSep)}
+${resources(metrics, sep, lineSep)}
 ---------
 
-Started: ${SimMetricsOutput.formatTimeOption(aggregator.start, timeFormat, nullTime)}
-Ended: ${SimMetricsOutput.formatTimeOption(aggregator.end, timeFormat, nullTime)}
-Duration: ${SimMetricsOutput.formatDuration(aggregator.start, aggregator.end, durFormat, nullTime)}
+Started: ${MetricsOutput.formatTimeOption(metrics.sStart, timeFormat, nullTime)}
+Ended: ${MetricsOutput.formatTimeOption(metrics.sEnd, timeFormat, nullTime)}
+Duration: ${MetricsOutput.formatDuration(metrics.sStart, metrics.sEnd, durFormat, nullTime)}
 """
     )
   }
@@ -304,23 +287,28 @@ Duration: ${SimMetricsOutput.formatDuration(aggregator.start, aggregator.end, du
   * @param name
   *   file name prefix
   */
-class SimCSVFileOutput(path: String, name: String) extends SimMetricsStringOutput with FileOutput {
+class CSVFile[F[_] : Sync](path: String, name: String) 
+  extends MetricsStringOutput[F] 
+  with FileOutput[F] {
+  
   val separator = ","
   val lineSep = "\n"
 
-  def apply(totalTicks: Long, aggregator: SimMetricsAggregator): Unit = {
+  def apply(metrics: Metrics): F[Unit] = {
     val taskFile = s"$path$name-tasks.csv"
-    val simulationFile = s"$path$name-simulations.csv"
+    val caseFile = s"$path$name-simulations.csv"
     val resourceFile = s"$path$name-resources.csv"
-    writeToFile(taskFile, taskHeader(separator) + "\n" + tasks(aggregator, separator, lineSep))
-    writeToFile(
-      simulationFile,
-      simHeader(separator) + "\n" + simulations(aggregator, separator, lineSep)
+    
+    val t = writeToFile(taskFile, taskHeader(separator) + "\n" + tasks(metrics, separator, lineSep))
+    val c = writeToFile(
+      caseFile,
+      caseHeader(separator) + "\n" + cases(metrics, separator, lineSep)
     )
-    writeToFile(
+    val r = writeToFile(
       resourceFile,
-      resHeader(separator) + "\n" + resources(aggregator, separator, lineSep)
+      resHeader(separator) + "\n" + resources(metrics, separator, lineSep)
     )
+    Seq(t, c, r).sequence.void
   }
 }
 
@@ -342,41 +330,41 @@ class SimCSVFileOutput(path: String, name: String) extends SimMetricsStringOutpu
   * @param tick
   *   the size of 1 unit of virtual time
   */
-class SimD3Timeline(path: String, file: String, tick: Int = 1)
-    extends SimMetricsOutput
-    with FileOutput {
+class D3Timeline[F[_] : Sync](path: String, file: String, tick: Int = 1)
+  extends MetricsOutput[F]
+  with FileOutput[F] {
 
-  override def apply(totalTicks: Long, aggregator: SimMetricsAggregator): Unit = {
-    val result = build(aggregator, System.currentTimeMillis())
+  override def apply(metrics: Metrics): F[Unit] = {
+    val result = build(metrics, System.currentTimeMillis())
     // println(result)
     val dataFile = s"$path$file-simdata.js"
     writeToFile(dataFile, result)
   }
 
   /** Helps build the output with a static system time. */
-  def build(aggregator: SimMetricsAggregator, now: Long): String = {
+  def build(metrics: Metrics, now: Long): String = {
     val buf: StringBuilder = new StringBuilder()
     buf.append("var tasks = [\n")
-    for p <- (collection.immutable.SortedSet[String]() ++ aggregator.taskSet) do
+    for p <- (collection.immutable.SortedSet[String]() ++ metrics.taskSet) do
       buf.append(s"""\t"$p",\n""")
     buf.append("];\n\n")
     buf.append("var resourceData = [\n")
-    for m <- aggregator.resourceMetrics do buf.append(s"""${resourceEntry(m, aggregator)}\n""")
+    for m <- metrics.resourceMetrics do buf.append(s"""${resourceEntry(m, metrics)}\n""")
     buf.append("];\n\n")
     buf.append("var simulationData = [\n")
-    for m <- aggregator.simulationMetrics do buf.append(s"""${simulationEntry(m, aggregator)}\n""")
+    for m <- metrics.caseMetrics do buf.append(s"""${simulationEntry(m, metrics)}\n""")
     buf.append("];\n")
     buf.toString
   }
 
-  def simulationEntry(s: SimulationMetrics, agg: SimMetricsAggregator): String = {
+  def simulationEntry(s: CaseMetrics, agg: Metrics): String = {
     val times = agg.taskMetricsOf(s).flatMap(taskEntry).mkString(",\n")
     s"""{label: "${s.name}", times: [
 $times
 ]},"""
   }
 
-  def resourceEntry(res: ResourceMetrics, agg: SimMetricsAggregator): String = {
+  def resourceEntry(res: ResourceMetrics, agg: Metrics): String = {
     val times = agg.taskMetricsOf(res).flatMap(taskEntry).mkString(",\n")
     s"""{label: "${res.name}", times: [
 $times

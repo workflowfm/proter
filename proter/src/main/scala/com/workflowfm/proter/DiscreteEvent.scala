@@ -183,7 +183,7 @@ case class EventQueue(events: SortedMap[Long, SortedSet[DiscreteEvent]]) {
 
   def tasksOf(caseName: String): Iterable[UUID] = {
     def matchingTask(evt: DiscreteEvent): Option[UUID] = evt match {
-      case FinishingTask(_, task) if task.simulation == caseName => Some(task.id)
+      case FinishingTask(_, task) if task.caseName == caseName => Some(task.id)
       case _ => None
     }
 

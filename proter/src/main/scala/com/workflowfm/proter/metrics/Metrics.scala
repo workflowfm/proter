@@ -1,11 +1,10 @@
-package com.workflowfm.proter.metrics
+package com.workflowfm.proter
+package metrics
 
 import java.util.UUID
+import scala.collection.immutable.{ Map, Queue }
 
-import scala.collection.mutable
-
-import com.workflowfm.proter.*
-import com.workflowfm.proter.events.*
+import events.*
 
 /**
   * Collects/aggregates metrics across multiple tasks, resources, and simulations.
@@ -21,55 +20,77 @@ import com.workflowfm.proter.events.*
   * @groupprio Get
   *   5
   */
-class SimMetricsAggregator {
+final case class Metrics(
+  sStart: Option[Long], 
+  sEnd: Option[Long],
+  startTicks: Long,
+  endTicks: Long,
+  tasks: Map[UUID, TaskMetrics],
+  cases: Map[String, CaseMetrics],
+  resources: Map[String, ResourceMetrics],
+  errors: Queue[Metrics.MetricsException]
+) {
+
+  import Metrics.{ 
+    MetricsException, 
+    TaskNotFound, 
+    CaseNotFound, 
+    ResourceNotFound,
+  }
 
   /**
     * The '''real''' (system) time that measurement started, or [[scala.None]] if it has not started
     * yet.
     * @group Start/End
     */
-  var start: Option[Long] = None
+//  var start: Option[Long] = None
   /**
     * The '''real''' (system) time that measurement finished, or [[scala.None]] if it has not
     * finished yet.
     * @group Start/End
     */
-  var end: Option[Long] = None
+//  var end: Option[Long] = None
 
   /**
     * Marks the start of metrics measurement with the current system time.
     * @group Start/End
     */
-  def started: Unit = start match {
-    case None => start = Some(System.currentTimeMillis())
-    case _ => ()
+  def started(t: Long): Metrics = sStart match {
+    case None => copy(
+      sStart = Some(System.currentTimeMillis()),
+      startTicks = t
+    )
+    case _ => this
   }
 
   /**
     * Marks the end of metrics measurement with the current system time.
     * @group Start/End
     */
-  def ended: Unit = end = Some(System.currentTimeMillis())
+  def ended(t: Long): Metrics = copy(
+    sEnd = Some(System.currentTimeMillis()),
+    endTicks = t
+  )
 
   /**
     * Task metrics indexed by task ID.
     * @group Values
     */
-  val taskMap: mutable.Map[UUID, TaskMetrics] = scala.collection.mutable.Map[UUID, TaskMetrics]()
+//  val taskMap: mutable.Map[UUID, TaskMetrics] = scala.collection.mutable.Map[UUID, TaskMetrics]()
 
   /**
     * Simulation metrics indexed by name.
     * @group Values
     */
-  val simMap: mutable.Map[String, SimulationMetrics] =
-    scala.collection.mutable.Map[String, SimulationMetrics]()
+//  val simMap: mutable.Map[String, CaseMetrics] =
+//    scala.collection.mutable.Map[String, CaseMetrics]()
 
   /**
     * Resource metrics indexed by name.
     * @group Values
     */
-  val resourceMap: mutable.Map[String, ResourceMetrics] =
-    scala.collection.mutable.Map[String, ResourceMetrics]()
+//  val resourceMap: mutable.Map[String, ResourceMetrics] =
+//    scala.collection.mutable.Map[String, ResourceMetrics]()
 
   // Set
 
@@ -78,38 +99,41 @@ class SimMetricsAggregator {
     * previous instance with the same IDs
     * @group Set
     */
-  def +=(m: TaskMetrics): TaskMetrics = { taskMap += (m.id -> m); m }
+  def +=(m: TaskMetrics): Metrics = copy( tasks = tasks + (m.id -> m) )
   /**
-    * Adds a new [[SimulationMetrics]] instance, taking care of indexing automatically Overwrites a
+    * Adds a new [[CaseMetrics]] instance, taking care of indexing automatically Overwrites a
     * previous instance with the same IDs
     * @group Set
     */
-  def +=(m: SimulationMetrics): SimulationMetrics = { simMap += (m.name -> m); m }
+  def +=(m: CaseMetrics): Metrics = copy( cases = cases + (m.name -> m) )
   /**
     * Adds a new [[ResourceMetrics]] instance, taking care of indexing automatically Overwrites a
     * previous instance with the same IDs
     * @group Set
     */
-  def +=(m: ResourceMetrics): ResourceMetrics = { resourceMap += (m.name -> m); m }
+  def +=(m: ResourceMetrics): Metrics = copy( resources = resources + (m.name -> m) )
 
   /**
     * Initializes and adds a new [[TaskMetrics]] instance given a new [[TaskInstance]].
     * @group Set
     */
-  def addTask(task: TaskInstance): TaskMetrics = this += TaskMetrics(task)
+  def addTask(task: TaskInstance): Metrics = this += TaskMetrics(task)
   /**
     * Initializes and adds a new [[SimulationMetrics]] instance given the name of the simulation
     * starting now and the current virtual time.
     * @group Set
     */
-  def addSim(s: String, t: Long): SimulationMetrics = this += SimulationMetrics(s, t)
+  def addCase(s: String, t: Long): Metrics = this += CaseMetrics(s, t)
 
   /**
     * Initializes and adds a new [[ResourceMetrics]] instance given a new [[TaskResource]].
     * @group Set
     */
-  def addResource(r: String, costPerTick: Double): ResourceMetrics =
-    this += ResourceMetrics(r, costPerTick)
+  def addResource(t: Long, r: Resource): Metrics =
+    this += ResourceMetrics(t, r)
+
+  def exception(e: MetricsException): Metrics =
+    copy(errors = errors :+ e)
 
   // Update
   /**
@@ -127,8 +151,11 @@ class SimMetricsAggregator {
     *   [[com.workflowfm.pew.metrics.MetricsAggregator]] for examples in a similar context
     * @group Update
     */
-  def task(taskID: UUID)(u: TaskMetrics => TaskMetrics): Option[TaskMetrics] =
-    taskMap.get(taskID).map { m => this += u(m) }
+  def updateTask(taskID: UUID)(u: TaskMetrics => TaskMetrics): Metrics =
+    tasks
+      .get(taskID)
+      .map { m => this += u(m) }
+      .getOrElse(exception(TaskNotFound(taskID)))
 
   /**
     * Updates a [[TaskMetrics]] instance.
@@ -146,8 +173,11 @@ class SimMetricsAggregator {
     *
     * @group Update
     */
-  def task(task: TaskInstance)(u: TaskMetrics => TaskMetrics): Option[TaskMetrics] =
-    taskMap.get(task.id).map { m => this += u(m) }
+  def updateTask(task: TaskInstance)(u: TaskMetrics => TaskMetrics): Metrics =
+    tasks
+      .get(task.id)
+      .map { m => this += u(m) }
+      .getOrElse(exception(TaskNotFound(task.id)))
 
   /**
     * Updates a [[SimulationMetrics]] instance.
@@ -166,10 +196,13 @@ class SimMetricsAggregator {
     *
     * @group Update
     */
-  def simulation(
-      simulation: String
-  )(u: SimulationMetrics => SimulationMetrics): Option[SimulationMetrics] =
-    simMap.get(simulation).map { m => this += u(m) }
+  def updateCase(
+      caseName: String
+  )(u: CaseMetrics => CaseMetrics): Metrics =
+    cases
+      .get(caseName)
+      .map { m => this += u(m) }
+      .getOrElse(exception(CaseNotFound(caseName)))
 
   /**
     * Updates a [[ResourceMetrics]] instance.
@@ -187,8 +220,12 @@ class SimMetricsAggregator {
     *
     * @group Update
     */
-  def resource(resource: String)(u: ResourceMetrics => ResourceMetrics): Option[ResourceMetrics] =
-    resourceMap.get(resource).map { m => this += u(m) }
+  def updateResource(resource: String)(u: ResourceMetrics => ResourceMetrics): Metrics =
+    resources
+      .get(resource)
+      .map { m => this += u(m) }
+      .getOrElse(exception(ResourceNotFound(resource)))
+
 
   /**
     * Updates all [[ResourceMetrics]] instances.
@@ -201,11 +238,13 @@ class SimMetricsAggregator {
     *
     * @group Update
     */
-  def allResources(
+  def updateAllResources(
       u: ResourceMetrics => ResourceMetrics
-  ): scala.collection.mutable.Map[String, ResourceMetrics] = {
-    resourceMap.iterator.foreach { case (r, m) => resourceMap.update(r, u(m)) }
-    resourceMap
+  ): Metrics = {
+    copy( resources = 
+      resources
+        .map { (r, m) => (r, u(m)) }
+    )
   }
 
   // Getters
@@ -214,23 +253,23 @@ class SimMetricsAggregator {
     * Returns all the tracked instances of [[TaskMetrics]] sorted by starting time.
     * @group Get
     */
-  def taskMetrics: Seq[TaskMetrics] = taskMap.values.toSeq.sortBy(_.started)
+  def taskMetrics: Seq[TaskMetrics] = tasks.values.toSeq.sortBy(_.started)
   /**
     * Returns all the tracked instances of [[SimulationMetrics]] sorted by simulation name.
     * @group Get
     */
-  def simulationMetrics: Seq[SimulationMetrics] = simMap.values.toSeq.sortBy(_.name)
+  def caseMetrics: Seq[CaseMetrics] = cases.values.toSeq.sortBy(_.name)
   /**
     * Returns all the tracked instances of [[ResourceMetrics]] sorted by resource time.
     * @group Get
     */
-  def resourceMetrics: Seq[ResourceMetrics] = resourceMap.values.toSeq.sortBy(_.name)
+  def resourceMetrics: Seq[ResourceMetrics] = resources.values.toSeq.sortBy(_.name)
   /**
     * Returns a [[scala.collection.immutable.Set]] of all task names being tracked. This is useful
     * when using task names as a category, for example to colour code tasks in the timeline.
     * @group Get
     */
-  def taskSet: Set[String] = taskMap.values.map(_.task).toSet[String]
+  def taskSet: Set[String] = tasks.values.map(_.task).toSet[String]
 
   /**
     * Returns all the tracked instances of [[TaskMetrics]] associated with a particular
@@ -241,7 +280,7 @@ class SimMetricsAggregator {
     */
   // TODO: we used to have 2 levels of sorting!
   def taskMetricsOf(r: ResourceMetrics): Seq[TaskMetrics] =
-    taskMap.values.toSeq.filter(_.resources.contains(r.name)).sortBy(_.started)
+    tasks.values.toSeq.filter(_.resources.contains(r.name)).sortBy(_.started)
 
   /**
     * Returns all the tracked instances of [[TaskMetrics]] associated with a particular simulation,
@@ -250,53 +289,51 @@ class SimMetricsAggregator {
     *   the tracked [[SimulationMetrics]] of the resource
     * @group Get
     */
-  def taskMetricsOf(s: SimulationMetrics): Seq[TaskMetrics] =
-    taskMap.values.toSeq.filter(_.simulation.equals(s.name)).sortBy(_.started)
-}
+  def taskMetricsOf(s: CaseMetrics): Seq[TaskMetrics] =
+    tasks.values.toSeq.filter(_.caseName.equals(s.name)).sortBy(_.started)
 
-/*
-/**
- * A [[com.workflowfm.proter.events.ResultHandler ResultHandler]] that collects simulation metrics
- * to a [[SimMetricsAggregator]].
- *
- * Returns the [[SimMetricsAggregator]] with all the data as a result when done.
- *
- * Outputs the result using an (optional) [[SimMetricsOutput]].
- *
- * @param output
- *   The [[SimMetricsOutput]] to use, if any.
- */
-class SimMetricsHandler(output: SimMetricsOutput = SimNoOutput)
-    extends ResultHandler[SimMetricsAggregator] {
-  val metrics = new SimMetricsAggregator()
 
-  override def onEvent(evt: Event): Unit = evt match {
-    case EStart(_, _) => metrics.started
-    case EDone(_, t) => {
-      metrics.allResources(_.idle(t))
-      metrics.ended
-      output(t, metrics)
+  def handle(evt: Event): Metrics = evt match {
+    case EStart(_, t) => this.started(t).updateAllResources(_.start(t))
+    case EDone(_, t) => updateAllResources(_.idle(t)).ended(t)
+    case EResourceAdd(_, t, r) => addResource(t, r)
+    case ECaseAdd(_, _, _, _) => this
+    case ECaseStart(_, t, n) => addCase(n, t)
+    case ECaseEnd(_, t, n, r) => updateCase(n)(_.done(r, t))
+    case ETaskAdd(_, _, task) => addTask(task)
+    case ETaskStart(_, t, task) => 
+      updateTask(task)(_.start(t))
+        .updateCase(task.caseName)(_.task(t - task.created, task.cost))
+    case ETaskAttach(_, t, task, r) => updateResource(r.resource.name)(_.task(t, task.resourceQuantity(r.resource.name)))
+    case ETaskDetach(_, t, start, task, r) => {
+      val q = task.resourceQuantity(r.resource.name)
+      val cost = r.resource.costOf(t - start, q)
+      updateResource(r.resource.name)(_.endTask(t, start, cost, q))
+        .updateTask(task)(_.addCost(cost))
+        .updateCase(task.caseName)(_.addCost(cost))
     }
-    case EResourceAdd(_, _, n, c) => metrics.addResource(n, c)
-    case ESimAdd(_, _, _, _) => ()
-    case ESimStart(_, t, n) => metrics.addSim(n, t)
-    case ESimEnd(_, t, n, r) => metrics.simulation(n)(_.done(r, t))
-    case ETaskAdd(_, _, task) => metrics.addTask(task)
-    case ETaskStart(_, t, task) => {
-      metrics.task(task)(_.start(t))
-      metrics.simulation(task.simulation)(_.task(task).addDelay(t - task.created))
-    }
-    case ETaskAttach(_, t, task, r) => metrics.resource(r)(_.task(t, task))
-    case ETaskDetach(_, _, task, _, c) => {
-      metrics.task(task)(_.addCost(c))
-      metrics.simulation(task.simulation)(_.addCost(c))
-    }
-    case ETaskDone(_, _, _) => ()
-    case ETaskAbort(_, t, id) => metrics.task(id)(_.abort(t))
+    case ETaskDone(_, _, task) => this
+    case ETaskAbort(_, t, id) => updateTask(id)(_.abort(t))
 
-    case EError(_, _, _) => ()
+    case EArrivalAdd(_, _, _, _, _, _) => this
+    case ETimeLimit(_, _, _) => this
+    case EError(_, _, _) => this
   }
 
-  override def result = metrics
 }
- */
+
+object Metrics {
+  def apply(): Metrics = Metrics(None, None, 0L, 0L, Map(), Map(), Map(), Queue())
+
+  sealed abstract class MetricsException(message: String) extends Exception(message)
+
+  final case class TaskNotFound(id: UUID) 
+      extends MetricsException(s"Tried to update metrics for task that does not exist: $id")
+
+  final case class CaseNotFound(caseName: String) 
+      extends MetricsException(s"Tried to update metrics for task that does not exist: $caseName")  
+
+  final case class ResourceNotFound(name: String)
+      extends MetricsException(s"Tried to update metrics for task that does not exist: $name")
+ 
+}

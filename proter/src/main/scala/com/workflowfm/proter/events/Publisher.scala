@@ -1,6 +1,6 @@
 package com.workflowfm.proter.events
 
-import cats.Monad
+import cats.Applicative
 import cats.effect.{ Resource, MonadCancel, Concurrent }
 import cats.implicits.*
 import fs2.Pipe
@@ -64,12 +64,12 @@ trait Subscriber[F[_]] extends Pipe[F, Either[Throwable, Event], Unit] {
 }
 
 object Subscriber {
-  given pipeConv[F[_] : Monad]: Conversion[Pipe[F, Either[Throwable, Event], Unit], Subscriber[F]] with {
+  given pipeConv[F[_] : Applicative]: Conversion[Pipe[F, Either[Throwable, Event], Unit], Subscriber[F]] with {
   def apply(pipe: Pipe[F, Either[Throwable, Event], Unit]): Subscriber[F] = 
     new Subscriber[F] {
       override def apply(s: Stream[F, Either[Throwable, Event]]): Stream[F, Unit] = pipe(s)
 
-      override def init(): F[Unit] = Monad[F].pure(())
+      override def init(): F[Unit] = Applicative[F].pure(())
     }
   }
 }

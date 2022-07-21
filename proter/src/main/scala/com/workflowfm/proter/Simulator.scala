@@ -27,10 +27,10 @@ final case class Simulator[F[_] : Concurrent](
 
   def simulateState(name: String, state: StateT[F, Simulation[F], Seq[Event]]): F[Unit] = for {
     publisher <- Publisher.build[F]()
-    subresource = subscribers.map(publisher.subscribe(_)).sequence
+    subresource = subscribers.map(publisher.subscribe(_)).parSequence
     _ <- subresource.use { streams =>
       {
-        val subio = streams.map(_.compile.drain).sequence
+        val subio = streams.map(_.compile.drain).parSequence
         val pubio = simulateStateWithPublisher(name, state, publisher)
         (pubio, subio).parTupled
       }
@@ -71,6 +71,7 @@ import cases.*
 import cases.given
 import flows.*
 import flows.given
+import metrics.*
 
 import cats.effect.{ IO, IOApp, ExitCode }
 
@@ -82,11 +83,19 @@ object TestSim extends IOApp {
   def runScenario(): IO[ExitCode] =
     Random.scalaUtilRandom[IO].flatMap { r =>
       given Random[IO] = r
-      val simulator = Simulator[IO](ProterScheduler) withSub (PrintEventHandler())
+      val simulator = Simulator[IO](ProterScheduler) withSubs (
+        PrintEventHandler(),
+//        PrintEventHandler(),
+        MetricsSubscriber[IO](
+          MetricsPrinter(),
+          //CSVFile("output/", "HAHA"),
+          //D3Timeline("output/", "HAHA")
+          )
+      )
       val scenario = Scenario[IO]("MYSCENARIO")
         .withStartingTime(14)
         .withResources(Seq(
-          Resource("A", 4, 1)
+          Resource("A", 2, 1)
         ))
         //.withCases(
         //  ("foo1", Task("t", 1)),
@@ -95,13 +104,18 @@ object TestSim extends IOApp {
         //  ("foo4", Task("t", 4)),
         //  ("foo4.2", Task("t", 4)),
         //)
-        .withCases(
-          ("foo1", Task("t", 1).withResources(Seq("A"))),
-          ("foo2", Task("t", 2).withResources(Seq("A"))),
-          ("foo3", Task("t", 3).withResources(Seq("A"))),
-          ("foo4", Task("t", 4).withResourceQuantities(Seq(("A", 2)).toMap)),
-          ("foo4.2", Task("t", 4).withResourceQuantities(Seq(("A", 2)).toMap)),
+        //.withCases(
+        //  ("foo1", Task("t", 1).withCost(10).withResources(Seq("A"))),
+        //  ("foo2", Task("t", 2).withCost(10).withResources(Seq("A"))),
+          //("foo3", Task("t", 3).withResources(Seq("A"))),
+          //("foo4", Task("t", 4).withResourceQuantities(Seq(("A", 2)).toMap)),
+          //("foo4.2", Task("t", 4).withResourceQuantities(Seq(("A", 2)).toMap)),
+        //)
+        .withTimedCases(
+          (14, "foo1", Task("t", 10).withCost(10).withResourceQuantities(Seq(("A", 1)).toMap)),
+          (16, "foo2", Task("t", 2).withCost(10).withResourceQuantities(Seq(("A", 1)).toMap)),
         )
+
          //      .withCases(
          //        ("flowsingle", FlowTask(Task("f1", 1)): Flow),
         //         ("flow1", Flow(Task("f1", 1), Task("f2", 1))),
@@ -111,7 +125,7 @@ object TestSim extends IOApp {
         //       .withArrival("A1", Task("t", 1), ConstantLong(2), 10)
         //       .withTimedArrival("A2", 5, Task("t", 1), ConstantLong(2), 1)
         //       .withInfiniteArrival("A3", Task("t", 2), ConstantLong(5))
-        //.withLimit(15)
+        .withLimit(25)
 
       simulator.simulate(scenario).as(ExitCode(1))
     }

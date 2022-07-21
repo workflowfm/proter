@@ -21,3 +21,4 @@ project/metals.sbt
 .bsp/
 .vscode/
 project/project/
+output/

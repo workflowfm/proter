@@ -26,7 +26,7 @@ sealed trait Event {
 /**
   * The entire simulation started.
   */
-case class EStart(override val source: String, override val time: Long) extends Event {}
+final case class EStart(override val source: String, override val time: Long) extends Event {}
 
 /**
   * A time limit was set.
@@ -34,7 +34,7 @@ case class EStart(override val source: String, override val time: Long) extends 
   * @param limit
   *   The limit in time units/
   */
-case class ETimeLimit(
+final case class ETimeLimit(
     override val source: String,
     override val time: Long,
     limit: Long
@@ -48,7 +48,7 @@ case class ETimeLimit(
   * @param costPerTick
   *   The [[TaskResource.costPerTick]] of the resource.
   */
-case class EResourceAdd(
+final case class EResourceAdd(
     override val source: String,
     override val time: Long,
     resource: Resource
@@ -62,7 +62,7 @@ case class EResourceAdd(
   * @param start
   *   The timestamp when this case is scheduled to start.
   */
-case class ECaseAdd(
+final case class ECaseAdd(
     override val source: String,
     override val time: Long,
     name: String,
@@ -81,7 +81,7 @@ case class ECaseAdd(
   * @param limit
   *   The optional limit of the number of cases to generate.
   */
-case class EArrivalAdd(
+final case class EArrivalAdd(
     override val source: String,
     override val time: Long,
     name: String,
@@ -96,7 +96,7 @@ case class EArrivalAdd(
   * @param name
   *   The name of the case.
   */
-case class ECaseStart(override val source: String, override val time: Long, name: String)
+final case class ECaseStart(override val source: String, override val time: Long, name: String)
     extends Event
 
 /**
@@ -107,7 +107,7 @@ case class ECaseStart(override val source: String, override val time: Long, name
   * @param result
   *   The output of the case (if any).
   */
-case class ECaseEnd(
+final case class ECaseEnd(
     override val source: String,
     override val time: Long,
     name: String,
@@ -120,7 +120,7 @@ case class ECaseEnd(
   * @param task
   *   The [[TaskInstance]] that was added.
   */
-case class ETaskAdd(
+final case class ETaskAdd(
     override val source: String,
     override val time: Long,
     task: TaskInstance
@@ -132,7 +132,7 @@ case class ETaskAdd(
   * @param task
   *   The [[TaskInstance]] that was started.
   */
-case class ETaskStart(
+final case class ETaskStart(
     override val source: String,
     override val time: Long,
     task: TaskInstance
@@ -146,7 +146,7 @@ case class ETaskStart(
   * @param resource
   *   The involved [[TaskResource]].
   */
-case class ETaskAttach(
+final case class ETaskAttach(
     override val source: String,
     override val time: Long,
     task: TaskInstance,
@@ -160,34 +160,18 @@ case class ETaskAttach(
   *   The [[TaskInstance]] that was detached.
   * @param resource
   *   The involved [[TaskResource]].
-  * @param cost
-  *   The resource cost associated with this task and resource.
   */
-case class ETaskDetach(
+final case class ETaskDetach(
     override val source: String,
     override val time: Long,
+    start: Long,
     task: TaskInstance,
-    resource: ResourceState,
-    cost: Double
+    resource: ResourceState
 ) extends Event
 
 object ETaskDetach {
-
-  def resourceState(source: String, time: Long, taskIds: Seq[UUID])(resourceState: ResourceState): Seq[ETaskDetach] =
-    resourceState
-      .currentTasks
-      .view
-      .filterKeys(taskIds.contains(_))
-      .map { case (id, (start, task)) =>
-        ETaskDetach(
-          source,
-          time,
-          task,
-          resourceState,
-          resourceState.resource.costPerTick * (time - start)
-        )
-      }
-      .toSeq
+  def apply(source: String, t: Long, d: DetachedTask): ETaskDetach = 
+    ETaskDetach(source, t, d.start, d.task, d.resource)
 }
 
 /**
@@ -196,7 +180,7 @@ object ETaskDetach {
   * @param task
   *   The [[TaskInstance]] that finished.
   */
-case class ETaskDone(
+final case class ETaskDone(
     override val source: String,
     override val time: Long,
     task: TaskInstance
@@ -208,7 +192,7 @@ case class ETaskDone(
   * @param id
   *   The `UUID` of the [[TaskInstance]] that was aborted.
   */
-case class ETaskAbort(
+final case class ETaskAbort(
     override val source: String,
     override val time: Long,
     id: UUID
@@ -217,7 +201,7 @@ case class ETaskAbort(
 /**
   * The entire simulation is complete.
   */
-case class EDone(override val source: String, override val time: Long) extends Event
+final case class EDone(override val source: String, override val time: Long) extends Event
 
 /**
   * An error or exception occurred during the simulation.
@@ -225,7 +209,7 @@ case class EDone(override val source: String, override val time: Long) extends E
   * @param error
   *   A string representation of the error.
   */
-case class EError(override val source: String, override val time: Long, error: String) extends Event
+final case class EError(override val source: String, override val time: Long, error: String) extends Event
 
 object Event {
 
@@ -248,15 +232,15 @@ object Event {
     case ECaseStart(src, t, n) => s"[$t $src] Starting case: $n"
     case ECaseEnd(src, t, n, r) => s"[$t $src] Case [$n] completed. Result: $r"
     case ETaskAdd(src, t, task) =>
-      s"[$t $src] Added task [${task.name}](${task.simulation}) created at [${task.created}]. (id:${task.id})"
+      s"[$t $src] Added task [${task.name}](${task.caseName}) created at [${task.created}]. (id:${task.id})"
     case ETaskStart(src, t, task) =>
-      s"[$t $src] Starting task [${task.name}](${task.simulation}). Ticks: ${task.duration}. (id:${task.id})"
+      s"[$t $src] Starting task [${task.name}](${task.caseName}). Ticks: ${task.duration}. (id:${task.id})"
     case ETaskAttach(src, t, task, r) =>
-      s"[$t $src] Attaching task [${task.name}](${task.simulation}) to [${r.resource.name}]. Ticks: ${task.duration} - Capacity left: ${r.remainingCapacity}. (id:${task.id})"
-    case ETaskDetach(src, t, task, r, c) =>
-      s"[$t $src] Detaching task [${task.name}](${task.simulation}) from [${r.resource.name}]. Cost: $c - Capacity left: ${r.detach(task.id).remainingCapacity}. (id:${task.id})"
+      s"[$t $src] Attaching task [${task.name}](${task.caseName}) to [${r.resource.name}]. Ticks: ${task.duration} - Capacity left: ${r.remainingCapacity}. (id:${task.id})"
+    case ETaskDetach(src, t, start, task, r) =>
+      s"[$t $src] Detaching task [${task.name}](${task.caseName}) from [${r.resource.name}]. Running since: $start - Capacity left: ${r.remainingCapacity}. (id:${task.id})"
     case ETaskDone(src, t, task) =>
-      s"[$t $src] Task [${task.name}](${task.simulation}) completed. (id:${task.id})"
+      s"[$t $src] Task [${task.name}](${task.caseName}) completed. (id:${task.id})"
     case ETaskAbort(src, t, id) =>
       s"[$t $src] Task id [$id] was aborted."
 
