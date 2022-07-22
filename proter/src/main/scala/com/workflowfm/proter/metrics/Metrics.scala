@@ -39,19 +39,6 @@ final case class Metrics(
   }
 
   /**
-    * The '''real''' (system) time that measurement started, or [[scala.None]] if it has not started
-    * yet.
-    * @group Start/End
-    */
-//  var start: Option[Long] = None
-  /**
-    * The '''real''' (system) time that measurement finished, or [[scala.None]] if it has not
-    * finished yet.
-    * @group Start/End
-    */
-//  var end: Option[Long] = None
-
-  /**
     * Marks the start of metrics measurement with the current system time.
     * @group Start/End
     */
@@ -72,27 +59,6 @@ final case class Metrics(
     endTicks = t
   )
 
-  /**
-    * Task metrics indexed by task ID.
-    * @group Values
-    */
-//  val taskMap: mutable.Map[UUID, TaskMetrics] = scala.collection.mutable.Map[UUID, TaskMetrics]()
-
-  /**
-    * Simulation metrics indexed by name.
-    * @group Values
-    */
-//  val simMap: mutable.Map[String, CaseMetrics] =
-//    scala.collection.mutable.Map[String, CaseMetrics]()
-
-  /**
-    * Resource metrics indexed by name.
-    * @group Values
-    */
-//  val resourceMap: mutable.Map[String, ResourceMetrics] =
-//    scala.collection.mutable.Map[String, ResourceMetrics]()
-
-  // Set
 
   /**
     * Adds a new [[TaskMetrics]] instance, taking care of indexing automatically Overwrites a
@@ -315,7 +281,7 @@ final case class Metrics(
     case ETaskDone(_, _, task) => this
     case ETaskAbort(_, t, id) => updateTask(id)(_.abort(t))
 
-    case EArrivalAdd(_, _, _, _, _, _) => this
+    case EArrivalAdd(_, _, _, _, _) => this
     case ETimeLimit(_, _, _) => this
     case EError(_, _, _) => this
   }
@@ -335,5 +301,14 @@ object Metrics {
 
   final case class ResourceNotFound(name: String)
       extends MetricsException(s"Tried to update metrics for task that does not exist: $name")
- 
+
+  import io.circe.generic.semiauto._
+
+  given io.circe.Encoder[TaskMetrics] = deriveEncoder[TaskMetrics]  
+  given io.circe.Encoder[CaseMetrics] = deriveEncoder[CaseMetrics]  
+  given io.circe.Encoder[ResourceMetrics] = deriveEncoder[ResourceMetrics]
+  given io.circe.Encoder[MetricsException] = deriveEncoder[MetricsException]
+
+  given io.circe.Encoder[Metrics] = deriveEncoder[Metrics]
+
 }

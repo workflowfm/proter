@@ -86,7 +86,6 @@ final case class EArrivalAdd(
     override val time: Long,
     name: String,
     start: Long,
-    rate: LongDistribution,
     limit: Option[Int]
 ) extends Event
 
@@ -227,8 +226,8 @@ object Event {
     case ETimeLimit(src, t, l) => s"[$t $src] Set time limit at: $l"
     case EResourceAdd(src, t, r) => s"[$t $src] Added resource: [${r.name}]. Capacity: ${r.capacity} - Cost/tick: ${r.costPerTick})"
     case ECaseAdd(src, t, a, s) => s"[$t $src] Added case [$a] to start at: $s"
-    case EArrivalAdd(src, t, a, s, r, l) =>
-      s"[$t $src] Added arrival for cases [$a] with rate [$r] limit [$l] to start at: $s"
+    case EArrivalAdd(src, t, a, s, l) =>
+      s"[$t $src] Added arrival of [$a] with limit [$l] to start at: $s"
     case ECaseStart(src, t, n) => s"[$t $src] Starting case: $n"
     case ECaseEnd(src, t, n, r) => s"[$t $src] Case [$n] completed. Result: $r"
     case ETaskAdd(src, t, task) =>

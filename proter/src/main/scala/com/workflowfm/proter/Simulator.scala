@@ -78,14 +78,31 @@ import cats.effect.{ IO, IOApp, ExitCode }
 object TestSim extends IOApp {
 
   def run(args: List[String]): IO[ExitCode] =
-    runScenario()
+    run2Scenarios()
+
+  def runState(): IO[ExitCode] =
+    Random.scalaUtilRandom[IO].flatMap { r =>
+      given Random[IO] = r
+      val simulator = Simulator[IO](ProterScheduler) withSub (PrintEvents())
+      val cases = simulator.addCasesNow[IO, Task](
+        Seq(
+          ("foo1", Task("t", 1)),
+          ("foo2", Task("t", 2)),
+          ("foo3", Task("t", 3)),
+          ("foo4", Task("t", 4)),
+          ("foo4.2", Task("t", 4))
+        )
+      )
+      simulator.simulateState("X", cases).as(ExitCode(1))
+    }
 
   def runScenario(): IO[ExitCode] =
     Random.scalaUtilRandom[IO].flatMap { r =>
       given Random[IO] = r
       val simulator = Simulator[IO](ProterScheduler) withSubs (
-        PrintEventHandler(),
-//        PrintEventHandler(),
+        //PrintEvents(),
+        PrintJsonEvents(),
+//        PrintEvents(),
         MetricsSubscriber[IO](
           MetricsPrinter(),
           //CSVFile("output/", "HAHA"),
@@ -130,20 +147,28 @@ object TestSim extends IOApp {
       simulator.simulate(scenario).as(ExitCode(1))
     }
 
-  def runState(): IO[ExitCode] =
+  def run2Scenarios(): IO[ExitCode] =  
     Random.scalaUtilRandom[IO].flatMap { r =>
       given Random[IO] = r
-      val simulator = Simulator[IO](ProterScheduler) withSub (PrintEventHandler())
-      val cases = simulator.addCasesNow[IO, Task](
-        Seq(
-          ("foo1", Task("t", 1)),
-          ("foo2", Task("t", 2)),
-          ("foo3", Task("t", 3)),
-          ("foo4", Task("t", 4)),
-          ("foo4.2", Task("t", 4))
+      for {
+        counter <- CountEvents[IO]()
+        simulator = Simulator[IO](ProterScheduler) withSubs (
+          PrintEvents(),
+          counter
         )
-      )
-      simulator.simulateState("X", cases).as(ExitCode(1))
+        
+        scenario1 = Scenario[IO]("Scenario 1")
+          .withStartingTime(1)
+          .withCase("foo1", Task("t1", 1))
+        scenario2 = Scenario[IO]("Scenario 2")
+          .withStartingTime(20)
+          .withCase("foo2", Task("2", 1))
+
+        _ <- simulator.simulate(scenario1)
+        _ <- simulator.simulate(scenario2)
+        count <- counter.get()
+        _ <- IO.println(s"*** Final count: $count")
+      } yield (ExitCode.Success)
     }
 
 }
