@@ -77,6 +77,7 @@ lazy val commonSettings = Seq(
 //      "-rewrite",
 //      "-new-syntax"
 //      "-source:future",
+      //"-Xmax-inlines:40" // to allow `deriveEncoder[Event]`
       )
   },
 

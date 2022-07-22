@@ -131,7 +131,7 @@ trait ScenarioState {
       Monad[F].pure(
         (
           sim.copy(events = sim.events + arrival),
-          Seq(EArrivalAdd(sim.id, sim.time, name, t, rate, limit))
+          Seq(EArrivalAdd(sim.id, sim.time, name, t, limit))
         )
       )
     } else

@@ -1,4 +1,5 @@
-package com.workflowfm.proter.events
+package com.workflowfm.proter
+package events
 
 import java.text.SimpleDateFormat
 
@@ -9,8 +10,8 @@ import cats.effect.implicits.*
 
 import fs2.{ Stream, Pipe }
 
+
 import scala.collection.immutable.HashSet
-import scala.concurrent.Promise
 
 /**
   * A handler of [[Event]]s.
@@ -101,51 +102,6 @@ class PoolEventHandler[F[_] : Monad](publishers: Ref[F, HashSet[Publisher[?]]])
     publishers.update(_ - publisher)
 }
  */
-
-trait StringHandler[F[_] : Monad : Clock] {
-  val strPipe: Pipe[F, Either[Throwable, Event], String] = s =>
-  s.evalMap(evt =>
-    evt match {
-      case Left(e) => fail(e)
-      case Right(e) => event(e)
-    }
-  )
-    .handleErrorWith(ex => Stream.eval(fail(ex)))
-
-  /**
-    * A simple date formatter for printing the current (system) time.
-    */
-  val formatter = new SimpleDateFormat("YYYY-MM-dd HH:mm:ss.SSS")
-
-  def event(e: Event): F[String] = for {
-    t <- Clock[F].realTime
-    time = formatter.format(t.toMillis)
-  } yield s"[$time] ${Event.asString(e)}\n"
-
-  def fail(e: Throwable): F[String] = for {
-    t <- Clock[F].realTime
-    time = formatter.format(t.toMillis)
-  } yield s"[$time] ??? Failure: ${e.getLocalizedMessage}\n"
-
-}
-
-
-/**
-  * An [[EventHandler]] that prints events to standard error.
-  */
-class PrintEventHandler[F[_] : Clock : Sync] 
-    extends Subscriber[F]
-    with StringHandler[F]
-{
-
-  override def apply(s: Stream[F, Either[Throwable, Event]]): Stream[F, Unit] = 
-    s.through(strPipe)
-      .through(fs2.io.stdoutLines[F, String]())
-      .map(_ => ())
-
-  override def init(): F[Unit] = Monad[F].pure(())
-
-}
 
 /**
   * An [[EventHandler]] with a measured result.

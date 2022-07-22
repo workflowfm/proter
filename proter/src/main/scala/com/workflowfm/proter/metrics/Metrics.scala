@@ -315,7 +315,7 @@ final case class Metrics(
     case ETaskDone(_, _, task) => this
     case ETaskAbort(_, t, id) => updateTask(id)(_.abort(t))
 
-    case EArrivalAdd(_, _, _, _, _, _) => this
+    case EArrivalAdd(_, _, _, _, _) => this
     case ETimeLimit(_, _, _) => this
     case EError(_, _, _) => this
   }

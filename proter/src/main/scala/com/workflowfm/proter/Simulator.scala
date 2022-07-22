@@ -84,8 +84,9 @@ object TestSim extends IOApp {
     Random.scalaUtilRandom[IO].flatMap { r =>
       given Random[IO] = r
       val simulator = Simulator[IO](ProterScheduler) withSubs (
-        PrintEventHandler(),
-//        PrintEventHandler(),
+        //PrintEvents(),
+        PrintJsonEvents(),
+//        PrintEvents(),
         MetricsSubscriber[IO](
           MetricsPrinter(),
           //CSVFile("output/", "HAHA"),
@@ -133,7 +134,7 @@ object TestSim extends IOApp {
   def runState(): IO[ExitCode] =
     Random.scalaUtilRandom[IO].flatMap { r =>
       given Random[IO] = r
-      val simulator = Simulator[IO](ProterScheduler) withSub (PrintEventHandler())
+      val simulator = Simulator[IO](ProterScheduler) withSub (PrintEvents())
       val cases = simulator.addCasesNow[IO, Task](
         Seq(
           ("foo1", Task("t", 1)),
