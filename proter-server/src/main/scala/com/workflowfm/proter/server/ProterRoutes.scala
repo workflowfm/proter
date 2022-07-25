@@ -3,7 +3,7 @@ package server
 
 import metrics.Metrics
 
-import cats.effect.{ Concurrent }
+import cats.effect.Async
 import cats.implicits.*
 import cats.effect.std.{ Random, UUIDGen }
 
@@ -15,7 +15,7 @@ import org.http4s.dsl.Http4sDsl
 
 object ProterRoutes {
 
-  def apiRoutes[F[_]: Concurrent : Random : UUIDGen](): HttpRoutes[F] = {
+  def apiRoutes[F[_]: Async : Random : UUIDGen](): HttpRoutes[F] = {
     val dsl = new Http4sDsl[F]{}
     import dsl._
     import Metrics.given

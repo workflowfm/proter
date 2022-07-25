@@ -5,7 +5,7 @@ import java.util.UUID
 
 import cats.{ MonadError }
 import cats.implicits.*
-import cats.effect.{ Concurrent, Deferred }
+import cats.effect.{ Concurrent, Deferred, Clock, Async }
 import cats.effect.std.{ Random, UUIDGen }
 import cats.effect.implicits.*
 
@@ -14,22 +14,17 @@ import fs2.Stream
 import io.circe.*
 import io.circe.generic.semiauto.*
 
+import cases.Case
 import events.*
 import flows.*
 import flows.given
 import metrics.*
 import schedule.ProterScheduler
 
-class SimulationRunner[F[_] : Random : Concurrent : UUIDGen](using monad: MonadError[F, Throwable]) {
+class SimulationRunner[F[_] : Random : Async : UUIDGen](using monad: MonadError[F, Throwable]) {
 
-  //Forming the implicit decoders
-  given Decoder[IRequest] = deriveDecoder[IRequest]
-  given Decoder[IArrival] = deriveDecoder[IArrival]
-  given Decoder[ISimulation] = deriveDecoder[ISimulation]
-  given Decoder[IFlow] = deriveDecoder[IFlow]
-  given Decoder[ITask] = deriveDecoder[ITask]
-  given Decoder[IResource] = deriveDecoder[IResource]
-  given Decoder[IDistribution] = deriveDecoder[IDistribution]
+  import IntermediateObjects.given
+
 
   /**
     * This top level function should take an IRequest and then return a Results object
@@ -38,6 +33,8 @@ class SimulationRunner[F[_] : Random : Concurrent : UUIDGen](using monad: MonadE
     * @return A Results object
     */
   def handle(request: IRequest): F[Metrics] = {
+
+    println(s"Handling IRequest: $request")
 
     if (!this.matchingResources(request)) {
       monad.raiseError(new IllegalArgumentException("Resources do not match"))
@@ -48,10 +45,11 @@ class SimulationRunner[F[_] : Random : Concurrent : UUIDGen](using monad: MonadE
 
     for {
       result <- Deferred[F, Metrics]
-      simulator = Simulator[F](ProterScheduler) withSubs (
+      simulator = Simulator[F](ProterScheduler).withSubs (
         MetricsSubscriber[F](
           MetricsResult(result)
-        )
+        ),
+//        PrintEvents()
       )
 
       scenario = getScenario(request)
@@ -184,7 +182,7 @@ class SimulationRunner[F[_] : Random : Concurrent : UUIDGen](using monad: MonadE
     */
   def matchingResources(request: IRequest): Boolean = {
     val definedResources: Set[String] = request.resources.map(_.name).toSet
-    val referencedResources: Set[String] = request.arrivals.flatMap(arrival => arrival.simulation.flow.tasks.flatMap(_.resources.split(","))).toSet
+    val referencedResources: Set[String] = request.arrivals.flatMap(arrival => arrival.simulation.flow.tasks.flatMap(_.resources)).toSet
     if (referencedResources.subsetOf(definedResources)) {
       true
     } else {

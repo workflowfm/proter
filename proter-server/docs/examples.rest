@@ -1,0 +1,43 @@
+POST http://localhost:8080/API
+Content-Type: application/json
+
+{
+  "arrivals" : [
+    {
+      "simulation" : {
+        "name" : "Example",
+        "flow" : {
+          "tasks" : [
+            {
+              "name" : "T1",
+              "duration" : {
+                "distType" : "C",
+                "value1" : 1.0,
+                "value2" : null
+              },
+              "cost" : {
+                "distType" : "C",
+                "value1" : 1.0,
+                "value2" : null
+              },
+              "resources" : [],
+              "priority" : 0
+            }
+          ],
+          "ordering" : "T1"
+        }
+      },
+      "infinite" : false,
+      "rate" : {
+        "distType" : "C",
+        "value1" : 1.0,
+        "value2" : null
+      },
+      "simulationLimit" : 1,
+      "timeLimit" : null
+    }
+  ],
+  "resources" : [
+  ]
+}
+  

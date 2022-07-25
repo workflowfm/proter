@@ -65,7 +65,7 @@ case class IFlow(tasks: List[ITask], ordering: String)
   * @param resources A string containing the names of the resources the task requires (if multiple they should be separated with a comma)
   * @param priority The priority of the task (from -2 being the lowest to 2 being the highest)
   */
-case class ITask(name: String, duration: IDistribution, cost: IDistribution, resources: String, priority: Int) {
+case class ITask(name: String, duration: IDistribution, cost: IDistribution, resources: List[String], priority: Int) {
   if (priority > 2 || priority < -2) {
     throw new IllegalArgumentException
   }
@@ -77,7 +77,7 @@ case class ITask(name: String, duration: IDistribution, cost: IDistribution, res
   def toProterTask(): Task = {
     Task(this.name, this.duration.toProterDistribution())
             .withCost(this.cost.toProterDistribution())
-            .withResources(this.resources.split(",").toSeq)
+            .withResources(this.resources)
             .withPriority(this.priority)
   }
 }
@@ -136,9 +136,10 @@ import io.circe.*
 import io.circe.generic.semiauto.*
 
 object IntermediateObjects {
-    given io.circe.Decoder[ITask] = deriveDecoder[ITask]
-    given io.circe.Decoder[IFlow] = deriveDecoder[IFlow]
-    given io.circe.Decoder[IArrival] = deriveDecoder[IArrival]
-    given io.circe.Decoder[IResource] = deriveDecoder[IResource]
-    given io.circe.Decoder[IRequest] = deriveDecoder[IRequest]
+  given Decoder[IDistribution] = deriveDecoder[IDistribution]
+  given Decoder[ITask] = deriveDecoder[ITask]
+  given Decoder[IFlow] = deriveDecoder[IFlow]
+  given Decoder[IArrival] = deriveDecoder[IArrival]
+  given Decoder[IResource] = deriveDecoder[IResource]
+  given Decoder[IRequest] = deriveDecoder[IRequest]
 }

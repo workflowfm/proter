@@ -66,7 +66,7 @@ class IntermediateTests extends AnyFunSuite {
     val proterDurationDist = new Constant(4)
     val interDurationDist = new IDistribution("C", 4, None)
     val prot = Task("Task 1", proterDurationDist).withCost(proterCostDist).withResources(Seq("R1")).withPriority(1)
-    val inter: ITask = new ITask("Task 1", interDurationDist, interCostDist, "R1", 1)
+    val inter: ITask = new ITask("Task 1", interDurationDist, interCostDist, List("R1"), 1)
     val converted = inter.toProterTask()
     assert(utils.tasksEqual(prot, converted))
   }
@@ -78,7 +78,7 @@ class IntermediateTests extends AnyFunSuite {
     val proterDurationDist = new Constant(4)
     val interDurationDist = new IDistribution("C", 4, None)
     val prot = Task("Task 1", proterDurationDist).withCost(proterCostDist).withResources(Seq("R1", "R2")).withPriority(1)
-    val inter: ITask = new ITask("Task 1", interDurationDist, interCostDist, "R1,R2", 1)
+    val inter: ITask = new ITask("Task 1", interDurationDist, interCostDist, List("R1","R2"), 1)
     val converted = inter.toProterTask()
     assert(utils.tasksEqual(prot, converted))
   }
@@ -90,7 +90,7 @@ class IntermediateTests extends AnyFunSuite {
     val proterDurationDist = new Constant(4)
     val interDurationDist = new IDistribution("C", 4, None)
     val prot = Task("Task 1", proterDurationDist).withCost(proterCostDist).withResources(Seq("R1", "R2", "R3")).withPriority(1)
-    val inter: ITask = new ITask("Task 1", interDurationDist, interCostDist, "R1,R2,R3,R4", 1)
+    val inter: ITask = new ITask("Task 1", interDurationDist, interCostDist, List("R1","R2","R3","R4"), 1)
     val converted = inter.toProterTask()
     assert(!utils.tasksEqual(prot, converted))
   }
@@ -128,7 +128,7 @@ class IntermediateTests extends AnyFunSuite {
     val interDurationDist = new IDistribution("C", 4, None)
 
     assertThrows[IllegalArgumentException] {
-      new ITask("Dave", interDurationDist, interCostDist, "R1", 7)
+      new ITask("Dave", interDurationDist, interCostDist, List("R1"), 7)
     }
   }
 
@@ -137,16 +137,16 @@ class IntermediateTests extends AnyFunSuite {
     val interDurationDist = new IDistribution("C", 4, None)
 
     assertThrows[IllegalArgumentException] {
-      new ITask("Dave", interDurationDist, interCostDist, "R1", -3)
+      new ITask("Dave", interDurationDist, interCostDist, List("R1"), -3)
     }
   }
 
   test("Infinite Arrival Correct limit") {
     val taskList: List[ITask] = List(
-      new ITask("A", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R1", 0),
-      new ITask("B", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R2", 0),
-      new ITask("C", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R1,R2", 0),
-      new ITask("D", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R2", 0)
+      new ITask("A", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), List("R1"), 0),
+      new ITask("B", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), List("R2"), 0),
+      new ITask("C", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), List("R1","R2"), 0),
+      new ITask("D", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), List("R2"), 0)
     )
     val flow: IFlow = new IFlow(taskList, "A->B->C")
     val sim: ISimulation = new ISimulation("Sim Name", flow)
@@ -155,10 +155,10 @@ class IntermediateTests extends AnyFunSuite {
 
   test("Finite Arrival Correct limit") {
     val taskList: List[ITask] = List(
-      new ITask("A", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R1", 0),
-      new ITask("B", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R2", 0),
-      new ITask("C", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R1,R2", 0),
-      new ITask("D", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R2", 0)
+      new ITask("A", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), List("R1"), 0),
+      new ITask("B", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), List("R2"), 0),
+      new ITask("C", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), List("R1","R2"), 0),
+      new ITask("D", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), List("R2"), 0)
     )
     val flow: IFlow = new IFlow(taskList, "A->B->C")
     val sim: ISimulation = new ISimulation("Sim Name", flow)
@@ -167,10 +167,10 @@ class IntermediateTests extends AnyFunSuite {
 
   test("Infinite Arrival Incorrect limit") {
     val taskList: List[ITask] = List(
-      new ITask("A", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R1", 0),
-      new ITask("B", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R2", 0),
-      new ITask("C", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R1,R2", 0),
-      new ITask("D", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R2", 0)
+      new ITask("A", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), List("R1"), 0),
+      new ITask("B", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), List("R2"), 0),
+      new ITask("C", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), List("R1","R2"), 0),
+      new ITask("D", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), List("R2"), 0)
     )
     val flow: IFlow = new IFlow(taskList, "A->B->C")
     val sim: ISimulation = new ISimulation("Sim Name", flow)
@@ -181,10 +181,10 @@ class IntermediateTests extends AnyFunSuite {
 
   test("Finite Arrival Incorrect limit") {
     val taskList: List[ITask] = List(
-      new ITask("A", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R1", 0),
-      new ITask("B", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R2", 0),
-      new ITask("C", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R1,R2", 0),
-      new ITask("D", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), "R2", 0)
+      new ITask("A", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), List("R1"), 0),
+      new ITask("B", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), List("R2"), 0),
+      new ITask("C", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), List("R1","R2"), 0),
+      new ITask("D", new IDistribution("C", 3.4, None), new IDistribution("C", 3.4, None), List("R2"), 0)
     )
     val flow: IFlow = new IFlow(taskList, "A->B->C")
     val sim: ISimulation = new ISimulation("Sim Name", flow)
