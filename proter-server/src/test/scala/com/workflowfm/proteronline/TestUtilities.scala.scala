@@ -1,7 +1,5 @@
-package com.workflowfm.proteronline
-
-import com.workflowfm.proter.Task
-import com.workflowfm.proter.TaskResource
+package com.workflowfm.proter
+package server 
 
 //import com.workflowfm.proter._
 
@@ -24,10 +22,11 @@ class TestUtilities {
         val startTime = t1.minStartTime == t2.minStartTime
         val priority = t1.priority == t2.priority
         val resources = t1.resources == t2.resources
-        var id = true
-        if (t1.id.isDefined && t2.id.isDefined) {
-            id = t1.id.get == t2.id.get
-        }
+        val id = 
+          if (t1.id.isDefined && t2.id.isDefined) then
+            t1.id.get == t2.id.get
+          else true
+
         /*
         if (!(cost && duration && name && startTime && priority && resources && id)) {
             println("ISSUE")
@@ -37,7 +36,7 @@ class TestUtilities {
         return cost && duration && name && startTime && priority && resources && id
     }
 
-    def resourceEqual(r1: TaskResource, r2: TaskResource): Boolean = {
+    def resourceEqual(r1: Resource, r2: Resource): Boolean = {
         r1.costPerTick == r2.costPerTick && r1.name == r2.name
     }
     
