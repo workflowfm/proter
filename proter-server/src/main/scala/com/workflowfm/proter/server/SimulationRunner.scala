@@ -1,38 +1,35 @@
-package com.workflowfm.proteronline
+package com.workflowfm.proter
+package server
 
 import java.util.UUID
 
-import scala.concurrent.Await
-import scala.concurrent.ExecutionContext.Implicits.global
-import scala.concurrent.Future
-import scala.concurrent.duration._
+import cats.{ MonadError }
+import cats.implicits.*
+import cats.effect.{ Concurrent, Deferred }
+import cats.effect.std.{ Random, UUIDGen }
+import cats.effect.implicits.*
 
-import cats.effect.IO
-import cats.effect.std.Dispatcher
-import cats.effect.std.Queue
 import fs2.Stream
-import io.circe._
-import io.circe.generic.semiauto._
 
-import com.workflowfm.proter._
-import com.workflowfm.proter.events.Event
-import com.workflowfm.proter.events.EventHandler
-import com.workflowfm.proter.events.PromiseHandler
-import com.workflowfm.proter.events.Publisher
-import com.workflowfm.proter.flows._
-import com.workflowfm.proter.metrics._
-import com.workflowfm.proter.schedule.ProterScheduler
+import io.circe.*
+import io.circe.generic.semiauto.*
 
-class SimulationRunner {
+import events.*
+import flows.*
+import flows.given
+import metrics.*
+import schedule.ProterScheduler
+
+class SimulationRunner[F[_] : Random : Concurrent : UUIDGen](using monad: MonadError[F, Throwable]) {
 
   //Forming the implicit decoders
-  implicit val requestDecoder1: Decoder[IRequest] = deriveDecoder[IRequest]
-  implicit val requestDecoder2: Decoder[IArrival] = deriveDecoder[IArrival]
-  implicit val requestDecoder3: Decoder[ISimulation] = deriveDecoder[ISimulation]
-  implicit val requestDecoder4: Decoder[IFlow] = deriveDecoder[IFlow]
-  implicit val requestDecoder5: Decoder[ITask] = deriveDecoder[ITask]
-  implicit val requestDecoder6: Decoder[IResource] = deriveDecoder[IResource]
-  implicit val requestDecoder7: Decoder[IDistribution] = deriveDecoder[IDistribution]
+  given Decoder[IRequest] = deriveDecoder[IRequest]
+  given Decoder[IArrival] = deriveDecoder[IArrival]
+  given Decoder[ISimulation] = deriveDecoder[ISimulation]
+  given Decoder[IFlow] = deriveDecoder[IFlow]
+  given Decoder[ITask] = deriveDecoder[ITask]
+  given Decoder[IResource] = deriveDecoder[IResource]
+  given Decoder[IDistribution] = deriveDecoder[IDistribution]
 
   /**
     * This top level function should take an IRequest and then return a Results object
@@ -40,33 +37,31 @@ class SimulationRunner {
     * @param request The input IRequest
     * @return A Results object
     */
-  def process(request: IRequest) : Results = {
+  def handle(request: IRequest): F[Metrics] = {
 
     if (!this.matchingResources(request)) {
-      throw new IllegalArgumentException("Resources do not match")
+      monad.raiseError(new IllegalArgumentException("Resources do not match"))
     }
     if (!this.matchingTasks(request)) {
-      throw new IllegalArgumentException("Tasks do not match")
+      monad.raiseError(new IllegalArgumentException("Tasks do not match"))
     }
 
-    val coordinator : Coordinator = new Coordinator(new ProterScheduler)
+    for {
+      result <- Deferred[F, Metrics]
+      simulator = Simulator[F](ProterScheduler) withSubs (
+        MetricsSubscriber[F](
+          MetricsResult(result)
+        )
+      )
 
-    val promiseHandler = new PromiseHandler(new SimMetricsHandler)//(new SimMetricsPrinter))
-    val agg = promiseHandler.future
+      scenario = getScenario(request)
+      _ <- simulator.simulate(scenario)
+      metrics <- result.get
+    } yield (metrics)
 
-    coordinator.subscribe(promiseHandler)
-
-    programmaticTransform(coordinator, request)
-
-    coordinator.start()
-
-    val result: Future[Results] = agg.map(x => processAggregator(x))
-
-
-    Await.result(result, 10.second) //Current approach involves getting the data out of the future here, in later versions the future will be passed out of the function
-    result.value.get.get //Grabs the result out of the future
   }
 
+/*
   /**
     * This method is the streaming equivalent of the process() method. Takes in an IRequest,
     * builds the proter objects, runs the simulation and passes back a stream of the simulation events
@@ -130,21 +125,23 @@ class SimulationRunner {
       })
     } yield (impureInterface, Stream.fromQueueNoneTerminated(queue))
   }
-
+*/
   /**
     * Method takes a decoded request and adds to the given coordinator the details of the request
     *
     * @param coord
     * @param requestObj
     */
-  def programmaticTransform(coord: Coordinator, requestObj: IRequest): Unit = {
+  def getScenario(requestObj: IRequest): Scenario[F] = {
 
     //Resources
-    val resources: List[TaskResource] = requestObj.resources.map(_.toProterResource()) //Build the task resources
-    coord.addResources(resources) //Task Resources added
+    val resources: List[Resource] = requestObj.resources.map(_.toProterResource()) //Build the task resources
+
+    val scenario = Scenario[F]("Server Scenario")
+      .withResources(resources)
 
     //For each arrival in the request
-    requestObj.arrivals.foreach{ arrival =>
+    requestObj.arrivals.foldLeft(scenario) { (scenario, arrival) =>
 
       val order: Array[String] = arrival.simulation.flow.ordering.split("->")
 
@@ -154,43 +151,29 @@ class SimulationRunner {
 
       val tasks: List[FlowTask] = orderedTasks.map(_.toProterTask()).map(new FlowTask(_))
       
-      val taskFlow: Flow = Flow.seq(tasks)
-
-      val simGen = new FlowSimulationGenerator(arrival.simulation.name, taskFlow)
+      val flow: Flow = Flow.seq(tasks)
 
       if (arrival.infinite) {
-        coord.addInfiniteArrivalNow(
-          arrival.rate.toProterDistribution(),
-          simGen
+        scenario.withInfiniteArrival(
+          arrival.simulation.name,
+          flow,
+          arrival.rate.toProterDistribution()
         )
-        coord.limit(arrival.timeLimit.get.toLong) //If its infinite then we add a timer to stop it running forever
+          .withLimit(arrival.timeLimit.get.toLong) //If its infinite then we add a timer to stop it running forever
       } else {
-        coord.addArrivalNow(
-          arrival.simulationLimit.get, //If its finite then its this limit on the number of simulations that stops it
+        scenario.withArrival(
+          arrival.simulation.name,
+          flow,
           arrival.rate.toProterDistribution(),
-          simGen
+          arrival.simulationLimit.get //If its finite then its this limit on the number of simulations that stops it
         )
       }
 
     }
+
+
   }
 
-  /**
-    * Method takes the Proter SimMetricsHandler and turns it into a format that is more suitable for
-    * turning into JSON and being sent back to the user
-    *
-    * @param aggregator The SimMetricsHandler from a completed set of simulations
-    * @return A Results object
-    */
-  def processAggregator(aggregator: SimMetricsAggregator): Results = {
-    new Results(
-      aggregator.start.get,
-      aggregator.end.get,
-      aggregator.resourceMetrics.toList,
-      aggregator.simulationMetrics.toList,
-      aggregator.taskMetrics.toList
-    )
-  }
 
   /**
     * This checks to ensure that the request has matching resources, as in ensuring the resources referenced in the Tasks are

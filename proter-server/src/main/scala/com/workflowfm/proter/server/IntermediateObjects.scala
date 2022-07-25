@@ -1,7 +1,5 @@
-package com.workflowfm.proteronline
-
-import com.workflowfm.proter
-import com.workflowfm.proter.metrics._
+package com.workflowfm.proter
+package server
 
 /**
   * This file contains a number of case classes that are used as intermediate objects used in the process
@@ -76,10 +74,10 @@ case class ITask(name: String, duration: IDistribution, cost: IDistribution, res
     *
     * @return A proter task
     */
-  def toProterTask(): proter.Task = {
-    proter.Task(this.name, this.duration.toProterDistribution())
-            .withCostGenerator(this.cost.toProterDistribution())
-            .withResources(this.resources.split(","))
+  def toProterTask(): Task = {
+    Task(this.name, this.duration.toProterDistribution())
+            .withCost(this.cost.toProterDistribution())
+            .withResources(this.resources.split(",").toSeq)
             .withPriority(this.priority)
   }
 }
@@ -100,8 +98,8 @@ case class IResource(name: String, costPerTick: Double) {
       *
       * @return
       */
-  def toProterResource(): proter.TaskResource = {
-    new proter.TaskResource(this.name, this.costPerTick)
+  def toProterResource(): Resource = {
+    new Resource(this.name, 1, this.costPerTick)
   }
 
 }
@@ -122,24 +120,25 @@ case class IDistribution(distType: String, value1: Double, value2: Option[Double
     throw new IllegalArgumentException("Uniform Distributions must have two values")
   }
 
-  def toProterDistribution(): proter.Distribution = {
+  def toProterDistribution(): Distribution = {
     if (this.distType == "C") {
-      new proter.Constant(this.value1);
+      Constant(this.value1);
     } else if (this.distType == "E") {
-      new proter.Exponential(this.value1);
+      Exponential(this.value1);
     } else {
-      new proter.Uniform(this.value1, this.value2.get)
+      Uniform(this.value1, this.value2.get)
     }
   }
 }
 
-/**
-  * This case class is used to hold the results that should be returned to the user
-  *
-  * @param start The timestamp at which the coordinator started
-  * @param end The timestamp as which the coordinator stopped
-  * @param resources The statistics about the resources
-  * @param simulations The statistics about the simulations
-  * @param tasks The statistics about tasks
-  */
-case class Results(start: Long, end: Long, resources: List[ResourceMetrics], simulations: List[SimulationMetrics], tasks: List[TaskMetrics])
+
+import io.circe.*
+import io.circe.generic.semiauto.*
+
+object IntermediateObjects {
+    given io.circe.Decoder[ITask] = deriveDecoder[ITask]
+    given io.circe.Decoder[IFlow] = deriveDecoder[IFlow]
+    given io.circe.Decoder[IArrival] = deriveDecoder[IArrival]
+    given io.circe.Decoder[IResource] = deriveDecoder[IResource]
+    given io.circe.Decoder[IRequest] = deriveDecoder[IRequest]
+}

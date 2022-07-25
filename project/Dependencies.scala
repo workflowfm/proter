@@ -31,12 +31,10 @@ object Dependencies {
 
   val apache = "org.apache.commons" % "commons-lang3" % "3.3.2"
 
-  val http4sVersion = "0.23.6"
+  val http4sVersion = "0.23.13"
   val http4s = Seq(
       "org.http4s"      %% "http4s-ember-server" % http4sVersion,
       "org.http4s"      %% "http4s-ember-client" % http4sVersion,
-      "org.http4s"      %% "http4s-blaze-server" % http4sVersion,
-      "org.http4s"      %% "http4s-blaze-client" % http4sVersion,
       "org.http4s"      %% "http4s-circe"        % http4sVersion,
       "org.http4s"      %% "http4s-dsl"          % http4sVersion,
   )
