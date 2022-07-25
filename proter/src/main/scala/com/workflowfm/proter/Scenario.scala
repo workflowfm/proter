@@ -62,7 +62,7 @@ final case class Scenario[F[_] : Monad](name: String, state: Simulation.SimState
   )(using ct: Case[F, T], r: Random[F]): Scenario[F] =
     and(addArrivalNow(n, t, rate, None))
 
-  def withTimedInifiniteArrival[T](
+  def withTimedInfiniteArrival[T](
       n: String,
       time: Long,
       t: T,
