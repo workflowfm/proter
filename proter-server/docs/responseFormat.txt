@@ -1,0 +1,47 @@
+
+Please note the _Metrics classes are direct json translation of objects of the same names from Proter.
+---------------------------------------------
+{
+	start: Long 
+	end: Long
+	resources: [ResourceMetrics]
+	simulations: [SimulationMetrics]
+	tasks: [TaskMetrics]
+
+}
+
+---------------------------------------------
+
+ResourceMetrics: {
+	name: String
+	busyTime: Int //Time spent used by a task
+	idleTime: Int
+	tasks: Int //Number of tasks this resource has been used by
+	cost: Int
+}
+
+--------------------------------------------
+
+SimulationMetrics: {
+	name: String //The unique name of the simulation
+	started: Int //The time when the simulation started executing
+	duration: Int
+	delay: Int
+	tasks: Int //The number of TaskInstances associated with the simulation so far
+	cost: Int
+	result: String //A string representing the result of a Simulation, is normally "Some(object scala.Unit)" indicating a correctly finished simulation, otherwise it will contain an error message
+}
+
+-------------------------------------------
+
+TaskMetrics: {
+	id: String
+	task: String //The tasks name
+	simulation: String //The simulation its attached to
+	priority: Int
+	created: Int //When the Task was created and entered the Coordinator
+	started: Int //When the task started executing
+	duration: Int
+	cost: Int
+	resources: String //The name of each used resources comma seperated
+}
