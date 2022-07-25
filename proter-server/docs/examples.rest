@@ -1,3 +1,7 @@
+# Request Examples
+# 
+# Single arrival, single task, no resources
+#
 POST http://localhost:8080/API
 Content-Type: application/json
 
@@ -37,7 +41,66 @@ Content-Type: application/json
       "timeLimit" : null
     }
   ],
-  "resources" : [
-  ]
+  "resources" : []
 }
   
+# 
+# Single arrival, 2 tasks, no resources
+#
+POST http://localhost:8080/API
+Content-Type: application/json
+
+{
+  "arrivals" : [
+    {
+      "simulation" : {
+        "name" : "Example",
+        "flow" : {
+          "tasks" : [
+            {
+              "name" : "T1",
+              "duration" : {
+                "distType" : "C",
+                "value1" : 1.0,
+                "value2" : null
+              },
+              "cost" : {
+                "distType" : "C",
+                "value1" : 1.0,
+                "value2" : null
+              },
+              "resources" : [],
+              "priority" : 0
+            },
+            {
+              "name" : "T2",
+              "duration" : {
+                "distType" : "C",
+                "value1" : 2.0,
+                "value2" : null
+              },
+              "cost" : {
+                "distType" : "C",
+                "value1" : 2.0,
+                "value2" : null
+              },
+              "resources" : [],
+              "priority" : 0
+            }
+
+          ],
+          "ordering" : "T1->T2"
+        }
+      },
+      "infinite" : false,
+      "rate" : {
+        "distType" : "C",
+        "value1" : 1.0,
+        "value2" : null
+      },
+      "simulationLimit" : 1,
+      "timeLimit" : null
+    }
+  ],
+  "resources" : []
+}
