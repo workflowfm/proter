@@ -114,5 +114,7 @@ lazy val proter = Project(id = "proter", base = file("proter"))
   .settings(libraryDependencies ++= Dependencies.common)
   .settings(libraryDependencies ++= Dependencies.testAll)
 
-
+lazy val proterServer = proterModule("proter-server")
+  .settings(libraryDependencies ++= Dependencies.server)
+  .settings(libraryDependencies ++= Dependencies.testServer)
 
