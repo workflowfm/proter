@@ -39,9 +39,6 @@ class SimulationRunner[F[_] : Random : Async : UUIDGen](using monad: MonadError[
     if (!this.matchingResources(request)) {
       monad.raiseError(new IllegalArgumentException("Resources do not match"))
     }
-    if (!this.matchingTasks(request)) {
-      monad.raiseError(new IllegalArgumentException("Tasks do not match"))
-    }
 
     for {
       result <- Deferred[F, Metrics]
@@ -139,37 +136,23 @@ class SimulationRunner[F[_] : Random : Async : UUIDGen](using monad: MonadError[
       .withResources(resources)
 
     //For each arrival in the request
-    requestObj.arrivals.foldLeft(scenario) { (scenario, arrival) =>
-
-      val order: Array[String] = arrival.simulation.flow.ordering.split("->")
-
-      val iTasks: List[ITask] = arrival.simulation.flow.tasks
-
-      val orderedTasks: List[ITask] = order.map(x => iTasks.filter(y => y.name == x).head).toList
-
-      val tasks: List[FlowTask] = orderedTasks.map(_.toProterTask()).map(new FlowTask(_))
-      
-      val flow: Flow = Flow.seq(tasks)
-
-      if (arrival.infinite) {
-        scenario.withInfiniteArrival(
-          arrival.simulation.name,
-          flow,
+    val updated = requestObj.arrivals.foldLeft(scenario) { (scenario, arrival) =>
+      arrival.limit match {
+        case None => scenario.withInfiniteArrival(
+          arrival.name,
+          arrival.flow.flow,
           arrival.rate.toProterDistribution()
         )
-          .withLimit(arrival.timeLimit.get.toLong) //If its infinite then we add a timer to stop it running forever
-      } else {
-        scenario.withArrival(
-          arrival.simulation.name,
-          flow,
+        case Some(l) => scenario.withArrival(
+          arrival.name,
+          arrival.flow.flow,
           arrival.rate.toProterDistribution(),
-          arrival.simulationLimit.get //If its finite then its this limit on the number of simulations that stops it
+          l
         )
       }
-
     }
 
-
+    requestObj.timeLimit.map(l => updated.withLimit(l)).getOrElse(updated)
   }
 
 
@@ -182,7 +165,7 @@ class SimulationRunner[F[_] : Random : Async : UUIDGen](using monad: MonadError[
     */
   def matchingResources(request: IRequest): Boolean = {
     val definedResources: Set[String] = request.resources.map(_.name).toSet
-    val referencedResources: Set[String] = request.arrivals.flatMap(arrival => arrival.simulation.flow.tasks.flatMap(_.resources)).toSet
+    val referencedResources: Set[String] = request.arrivals.flatMap(arrival => arrival.flow.resourceNames).toSet
     if (referencedResources.subsetOf(definedResources)) {
       true
     } else {
@@ -190,20 +173,4 @@ class SimulationRunner[F[_] : Random : Async : UUIDGen](using monad: MonadError[
     }
   }
 
-  /**
-    * This checks to ensure that the request has matching tasks, as in ensuring the tasks referenced in the flow ordering are
-    * defined in the flows task list
-    *
-    * @param request An IRequest object
-    * @return Boolean
-    */
-  def matchingTasks(request: IRequest): Boolean = {
-    val definedTasks: Set[String] = request.arrivals.flatMap(arrival => arrival.simulation.flow.tasks.map(_.name)).toSet
-    val referencedTasks: Set[String] = request.arrivals.flatMap(arrival => arrival.simulation.flow.ordering.split("->")).toSet
-    if (referencedTasks.subsetOf(definedTasks)) {
-      true
-    } else {
-      false
-    }
-  }
 }

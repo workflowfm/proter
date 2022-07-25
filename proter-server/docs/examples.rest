@@ -8,42 +8,38 @@ Content-Type: application/json
 {
   "arrivals" : [
     {
-      "simulation" : {
-        "name" : "Example",
-        "flow" : {
-          "tasks" : [
-            {
-              "name" : "T1",
-              "duration" : {
-                "distType" : "C",
-                "value1" : 1.0,
-                "value2" : null
-              },
-              "cost" : {
-                "distType" : "C",
-                "value1" : 1.0,
-                "value2" : null
-              },
-              "resources" : [],
-              "priority" : 0
+      "name" : "Example1",
+      "flow" : {
+        "ITask" : {
+          "name" : "T1",
+          "duration" : {
+            "IConstant" : {
+              "value" : 1.0
             }
+          },
+          "cost" : {
+            "IConstant" : {
+              "value" : 2.0
+            }
+          },
+          "resources" : [
           ],
-          "ordering" : "T1"
+          "priority" : 0
         }
       },
-      "infinite" : false,
       "rate" : {
-        "distType" : "C",
-        "value1" : 1.0,
-        "value2" : null
+        "IConstant" : {
+          "value" : 0.0
+        }
       },
-      "simulationLimit" : 1,
-      "timeLimit" : null
+      "limit" : 1
     }
   ],
-  "resources" : []
-}
-  
+  "resources" : [
+  ],
+  "timeLimit" : null
+} 
+ 
 # 
 # Single arrival, 2 tasks, no resources
 #
@@ -53,54 +49,58 @@ Content-Type: application/json
 {
   "arrivals" : [
     {
-      "simulation" : {
-        "name" : "Example",
-        "flow" : {
-          "tasks" : [
-            {
+      "name" : "Example1",
+      "flow" : {
+        "IThen" : {  
+          "args": [
+          {
+            "ITask" : {
               "name" : "T1",
               "duration" : {
-                "distType" : "C",
-                "value1" : 1.0,
-                "value2" : null
+                "IConstant" : {
+                  "value" : 1.0
+                }
               },
               "cost" : {
-                "distType" : "C",
-                "value1" : 1.0,
-                "value2" : null
+                "IConstant" : {
+                  "value" : 2.0
+                }
               },
-              "resources" : [],
-              "priority" : 0
-            },
-            {
-              "name" : "T2",
-              "duration" : {
-                "distType" : "C",
-                "value1" : 2.0,
-                "value2" : null
-              },
-              "cost" : {
-                "distType" : "C",
-                "value1" : 2.0,
-                "value2" : null
-              },
-              "resources" : [],
+              "resources" : [
+              ],
               "priority" : 0
             }
-
-          ],
-          "ordering" : "T1->T2"
+          },
+          {
+            "ITask" : {
+              "name" : "T2",
+              "duration" : {
+                "IConstant" : {
+                  "value" : 2.0
+                }
+              },
+              "cost" : {
+                "IConstant" : {
+                  "value" : 3.0
+                }
+              },
+              "resources" : [
+              ],
+              "priority" : 0
+            }
+          }
+          ]       
         }
       },
-      "infinite" : false,
       "rate" : {
-        "distType" : "C",
-        "value1" : 1.0,
-        "value2" : null
+        "IConstant" : {
+          "value" : 0.0
+        }
       },
-      "simulationLimit" : 1,
-      "timeLimit" : null
+      "limit" : 1
     }
   ],
-  "resources" : []
-}
+  "resources" : [
+  ],
+  "timeLimit" : null
+} 
