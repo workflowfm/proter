@@ -2,7 +2,7 @@
 # 
 # Single arrival, single task, no resources
 #
-POST http://localhost:8080/API
+POST http://localhost:8080/simulate
 Content-Type: application/json
 
 {
@@ -37,7 +37,7 @@ Content-Type: application/json
 # 
 # Single arrival, 2 tasks, no resources
 #
-POST http://localhost:8080/API
+POST http://localhost:8080/simulate
 Content-Type: application/json
 
 {
@@ -96,7 +96,7 @@ Content-Type: application/json
 # 
 # 1 arrival, 2 cases, 2 tasks, no resources
 #
-POST http://localhost:8080/API
+POST http://localhost:8080/simulate
 Content-Type: application/json
 
 {
@@ -161,7 +161,7 @@ Content-Type: application/json
 # 
 # 1 arrival, 3 cases, 2 tasks, 1 resource
 #
-POST http://localhost:8080/API
+POST http://localhost:8080/simulate
 Content-Type: application/json
 
 {
@@ -235,7 +235,7 @@ Content-Type: application/json
 # 
 # Infinite arrival, 1 task, no resources, starting at 1000, ending at 2000
 #
-POST http://localhost:8080/API
+POST http://localhost:8080/simulate
 Content-Type: application/json
 
 {

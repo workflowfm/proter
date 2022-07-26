@@ -56,6 +56,25 @@ class SimulationRunner[F[_] : Random : Async : UUIDGen](using monad: MonadError[
 
   }
 
+  def stream(request: IRequest): Stream[F, Event] = {
+
+    println(s"Handling IRequest: $request")
+
+    if (!this.matchingResources(request)) {
+      monad.raiseError(new IllegalArgumentException("Resources do not match"))
+    }
+
+    val simulator = Simulator[F](ProterScheduler)
+    val scenario = getScenario(request)
+    
+    simulator.stream(scenario).map(evt =>
+      evt match {
+        case Left(e) => EError("*FATAL ERROR*", Long.MaxValue, e.getLocalizedMessage)
+        case Right(e) => e
+      }
+    )
+  }
+
 /*
   /**
     * This method is the streaming equivalent of the process() method. Takes in an IRequest,

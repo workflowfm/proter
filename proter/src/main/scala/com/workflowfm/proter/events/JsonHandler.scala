@@ -28,6 +28,7 @@ object JsonHandler {
   // without arbitrarily changing the -Xmax-inlines flag.
   given Encoder[ETaskAttach] = deriveEncoder[ETaskAttach]
   given Encoder[ETaskDetach] = deriveEncoder[ETaskDetach]
+  given Encoder[Event] = deriveEncoder[Event]
   given Encoder[TimedEvent] = deriveEncoder[TimedEvent]
 }
 
