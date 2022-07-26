@@ -15,7 +15,7 @@ import flows.{ Flow, FlowTask }
   * @param arrival Defines how simulations arrive
   * @param resources Contains the definitions of resources that are referenced in the arrival
   */
-final case class IRequest(arrivals: List[IArrival], resources: List[IResource], timeLimit: Option[Int]) {
+final case class IRequest(start: Option[Long], arrivals: List[IArrival], resources: List[IResource], timeLimit: Option[Int]) {
   if (timeLimit.isEmpty && arrivals.exists(_.infinite))
     throw new IllegalArgumentException("Infinite arrivals require a time limit.")
 
@@ -31,8 +31,15 @@ final case class IRequest(arrivals: List[IArrival], resources: List[IResource], 
   * @param simulationLimit If infinite is false then this determines how many simulations should be run in total before stopping
   * @param timeLimit If infinite is true then this determines for how long the simulation should be run before stopping
   */
-final case class IArrival(name: String, flow: IFlow, rate: IDistribution, limit: Option[Int]) {
-  def infinite: Boolean = limit.map(_ <= 0).getOrElse(true)
+final case class IArrival(
+  name: String, 
+  flow: IFlow, 
+  start: Option[Long], 
+  rate: Option[IDistribution], 
+  limit: Option[Int]) {
+
+  def infinite: Boolean = 
+    rate.isDefined && limit.map(_ <= 0).getOrElse(true)
 }
 
 

@@ -135,23 +135,51 @@ class SimulationRunner[F[_] : Random : Async : UUIDGen](using monad: MonadError[
     val scenario = Scenario[F]("Server Scenario")
       .withResources(resources)
 
+    val starting = requestObj.start.map(s => scenario.withStartingTime(s)).getOrElse(scenario)
+
     //For each arrival in the request
-    val updated = requestObj.arrivals.foldLeft(scenario) { (scenario, arrival) =>
-      arrival.limit match {
-        case None => scenario.withInfiniteArrival(
-          arrival.name,
-          arrival.flow.flow,
-          arrival.rate.toProterDistribution()
-        )
-        case Some(l) => scenario.withArrival(
-          arrival.name,
-          arrival.flow.flow,
-          arrival.rate.toProterDistribution(),
-          l
-        )
+    val updated = requestObj.arrivals.foldLeft(starting) { (scenario, arrival) =>
+      arrival.rate match {
+        case None => arrival.start match {
+          case None => scenario.withCase(
+            arrival.name,
+            arrival.flow.flow      
+          )
+          case Some(s) => scenario.withTimedCase(
+            arrival.name,
+            s,
+            arrival.flow.flow      
+          )
+        }
+        case Some(rate) => (arrival.start, arrival.limit) match {
+          case (None, None) => scenario.withInfiniteArrival(
+            arrival.name,
+            arrival.flow.flow,
+            rate.toProterDistribution()
+          )
+          case (Some(s), None) => scenario.withTimedInfiniteArrival(
+            arrival.name,
+            s,
+            arrival.flow.flow,
+            rate.toProterDistribution()
+          )
+          case (None, Some(l)) => scenario.withArrival(
+            arrival.name,
+            arrival.flow.flow,
+            rate.toProterDistribution(),
+            l
+          )
+          case (Some(s), Some(l)) => scenario.withTimedArrival(
+            arrival.name,
+            s,
+            arrival.flow.flow,
+            rate.toProterDistribution(),
+            l
+          )
+        }
       }
     }
-
+          
     requestObj.timeLimit.map(l => updated.withLimit(l)).getOrElse(updated)
   }
 
