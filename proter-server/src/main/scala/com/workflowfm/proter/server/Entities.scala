@@ -15,7 +15,7 @@ import flows.{ Flow, FlowTask }
   * @param arrival Defines how simulations arrive
   * @param resources Contains the definitions of resources that are referenced in the arrival
   */
-final case class IRequest(start: Option[Long], arrivals: List[IArrival], resources: List[IResource], timeLimit: Option[Int]) {
+final case class IRequest(start: Option[Long], arrivals: List[IArrival], resources: List[IResource], timeLimit: Option[Long]) {
   if (timeLimit.isEmpty && arrivals.exists(_.infinite))
     throw new IllegalArgumentException("Infinite arrivals require a time limit.")
 
@@ -98,7 +98,10 @@ final case class ITask(name: String, duration: IDistribution, cost: IDistributio
 
 }
 
-final case class IRequiredResource(resource: String, quantity: Int)
+final case class IRequiredResource(resource: String, quantity: Int) {
+  if (quantity <= 0) 
+    throw new IllegalArgumentException(s"Required resource quantity of [$resource] must be non-negative: $quantity")
+}
 
 /**
   * This defines a resource
