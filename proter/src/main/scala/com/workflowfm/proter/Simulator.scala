@@ -4,6 +4,8 @@ import events.*
 import schedule.*
 import state.*
 
+import fs2.Stream
+
 import cats.{ Monad, Applicative }
 import cats.data.{ State, StateT }
 import cats.effect.Concurrent
@@ -25,17 +27,34 @@ final case class Simulator[F[_] : Concurrent](
   def simulate(scenario: Scenario[F]): F[Unit] =
     simulateState(scenario.name, scenario.state)
 
+  def stream(scenario: Scenario[F]): Stream[F, Either[Throwable, Event]] =
+    streamState(scenario.name, scenario.state)
+
+
   def simulateState(name: String, state: StateT[F, Simulation[F], Seq[Event]]): F[Unit] = for {
     publisher <- Publisher.build[F]()
     subresource = subscribers.map(publisher.subscribe(_)).parSequence
-    _ <- subresource.use { streams =>
+    _ <- subresource.use { subs =>
       {
-        val subio = streams.map(_.compile.drain).parSequence
+        val subio = subs.map(_.compile.drain).parSequence
         val pubio = simulateStateWithPublisher(name, state, publisher)
         (pubio, subio).parTupled
       }
     }
   } yield (())
+
+  def streamState(name: String, state: StateT[F, Simulation[F], Seq[Event]]): Stream[F, Either[Throwable, Event]] = Stream.eval(for {
+    publisher <- Publisher.build[F]()
+    subresource = subscribers.map(publisher.subscribe(_)).parSequence
+    result = Stream.eval(subresource.use { subs =>
+      {
+        val subio = subs.map(_.compile.drain).parSequence
+        val pubio = simulateStateWithPublisher(name, state, publisher)
+        (pubio, subio).parTupled
+      }
+    })
+    stream = publisher.stream.concurrently(result)
+  } yield (stream)).flatten
 
   def simulateStateWithPublisher(
       name: String,
@@ -46,6 +65,7 @@ final case class Simulator[F[_] : Concurrent](
     for {
       sResult <- sim.start(state)
       (updated, events) = sResult
+      _ = println("hi")
       _ <- events.map(publisher.publish(_)).sequence
       x <- updated.tailRecM(simRec(publisher))
     } yield (x)
@@ -78,7 +98,7 @@ import cats.effect.{ IO, IOApp, ExitCode }
 object TestSim extends IOApp {
 
   def run(args: List[String]): IO[ExitCode] =
-    run2Scenarios()
+    runScenarioStream()
 
   def runState(): IO[ExitCode] =
     Random.scalaUtilRandom[IO].flatMap { r =>
@@ -169,6 +189,20 @@ object TestSim extends IOApp {
         count <- counter.get()
         _ <- IO.println(s"*** Final count: $count")
       } yield (ExitCode.Success)
+    }
+
+  def runScenarioStream(): IO[ExitCode] =  
+    Random.scalaUtilRandom[IO].flatMap { r =>
+      given Random[IO] = r
+      val simulator = Simulator[IO](ProterScheduler) withSubs (
+        PrintEvents(),
+      )
+
+      val scenario = Scenario[IO]("Scenario 1")
+        .withStartingTime(1)
+        .withCase("foo1", Task("t1", 1))
+
+      simulator.stream(scenario).evalTap(x => IO.println(s">>>>> $x")).compile.drain.as(ExitCode.Success)
     }
 
 }

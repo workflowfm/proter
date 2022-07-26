@@ -49,6 +49,9 @@ case class Publisher[F[_]](topic: Topic[F, Either[Throwable, Event]], maxQueued:
         _ <- subscriber.init()
       } yield sub.through(subscriber)
     }
+
+  def stream: Stream[F, Either[Throwable, Event]] =
+    topic.subscribe(maxQueued)
 }
 
 object Publisher {
