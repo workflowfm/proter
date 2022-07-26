@@ -54,7 +54,7 @@ object StandardServer {
         CORS.policy
           .withAllowOriginAll
           .withAllowCredentials(false)
-          .apply(ProterRoutes.apiRoutes[F]())
+          .apply(Routes.apiRoutes[F]())
       ).orNotFound
 
       // With Middlewares in place

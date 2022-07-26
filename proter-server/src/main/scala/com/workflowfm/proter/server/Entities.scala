@@ -155,7 +155,7 @@ final case class IUniform(from: Double, to: Double) extends IDistribution {
 import io.circe.*
 import io.circe.generic.semiauto.*
 
-object IntermediateObjects {
+object Entities {
   given Decoder[IConstant] = deriveDecoder[IConstant]
   given Decoder[IExp] = deriveDecoder[IExp]
   given Decoder[IUniform] = deriveDecoder[IUniform]

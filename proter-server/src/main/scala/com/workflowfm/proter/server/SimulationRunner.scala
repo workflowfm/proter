@@ -23,7 +23,7 @@ import schedule.ProterScheduler
 
 class SimulationRunner[F[_] : Random : Async : UUIDGen](using monad: MonadError[F, Throwable]) {
 
-  import IntermediateObjects.given
+  import Entities.given
 
 
   /**

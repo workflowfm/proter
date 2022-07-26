@@ -13,13 +13,13 @@ import org.http4s.{ EntityDecoder, HttpRoutes }
 import org.http4s.circe.*
 import org.http4s.dsl.Http4sDsl
 
-object ProterRoutes {
+object Routes {
 
   def apiRoutes[F[_]: Async : Random : UUIDGen](): HttpRoutes[F] = {
     val dsl = new Http4sDsl[F]{}
     import dsl._
     import Metrics.given
-    import IntermediateObjects.given
+    import Entities.given
 
     given EntityDecoder[F, IRequest] = jsonOf[F, IRequest]
 
