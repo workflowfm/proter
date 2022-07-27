@@ -17,13 +17,13 @@ import io.circe.syntax.*
 trait JsonHandler[F[_] : Applicative : Clock] extends TimedHandler[F] {
   import JsonHandler.given
 
-  val jsonPipe: Pipe[F, Either[Throwable, Event], Json] = 
+  val jsonPipe: Pipe[F, Either[Throwable, Event], Json] =
     _.through(timedEventPipe).map(_.asJson)
 }
 
 object JsonHandler {
   given Encoder[TaskInstance] = deriveEncoder[TaskInstance]
-  // These are redundant, but help the deriveEncoder macro avoid 
+  // These are redundant, but help the deriveEncoder macro avoid
   // a "Maximal number of successive inlines exceeded" error
   // without arbitrarily changing the -Xmax-inlines flag.
   given Encoder[ETaskAttach] = deriveEncoder[ETaskAttach]
@@ -32,12 +32,9 @@ object JsonHandler {
   given Encoder[TimedEvent] = deriveEncoder[TimedEvent]
 }
 
-class PrintJsonEvents[F[_] : Clock : Sync] 
-    extends Subscriber[F]
-    with JsonHandler[F]
-{
+class PrintJsonEvents[F[_] : Clock : Sync] extends Subscriber[F] with JsonHandler[F] {
 
-  override def apply(s: Stream[F, Either[Throwable, Event]]): Stream[F, Unit] = 
+  override def apply(s: Stream[F, Either[Throwable, Event]]): Stream[F, Unit] =
     s.through(jsonPipe)
       .map(_.noSpaces.toString() + "\n")
       .through(fs2.io.stdoutLines[F, String]())

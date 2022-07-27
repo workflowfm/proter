@@ -48,23 +48,29 @@ class WeightedScheduleTests extends TaskTester with WeightedScheduleTester {
 
     "not fit tasks that clash with two other tasks" in {
       s((1, 2, 1), (4, 6, 1)) + (2, 5, 1) should be(Some(s((1, 4, 1), (4, 5, 2), (5, 6, 1))))
-      s((1, 2, 1), (4, 6, 1)) + (3, 5, 1) should be(Some(s((1, 2, 1), (3, 4, 1), (4, 5, 2), (5, 6, 1))))
+      s((1, 2, 1), (4, 6, 1)) + (3, 5, 1) should be(
+        Some(s((1, 2, 1), (3, 4, 1), (4, 5, 2), (5, 6, 1)))
+      )
       s((1, 2, 1), (4, 6, 1)) + (2, 6, 1) should be(Some(s((1, 4, 1), (4, 6, 2))))
       s((1, 2, 1), (4, 6, 1)) + (3, 6, 1) should be(Some(s((1, 2, 1), (3, 4, 1), (4, 6, 2))))
       s((1, 2, 1), (4, 6, 1)) + (1, 6, 1) should be(Some(s((1, 2, 2), (2, 4, 1), (4, 6, 2))))
-      s((2, 3, 1), (4, 6, 1)) + (1, 7, 1) should be(Some(s((1, 2, 1), (2, 3, 2), (3, 4, 1), (4, 6, 2), (6, 7, 1))))
-      s((1, 3, 1), (4, 6, 2)) + (2, 5, 3) should be(Some(s((1, 2, 1), (2, 3, 4), (3, 4, 3), (4, 5, 5), (5, 6, 2))))
+      s((2, 3, 1), (4, 6, 1)) + (1, 7, 1) should be(
+        Some(s((1, 2, 1), (2, 3, 2), (3, 4, 1), (4, 6, 2), (6, 7, 1)))
+      )
+      s((1, 3, 1), (4, 6, 2)) + (2, 5, 3) should be(
+        Some(s((1, 2, 1), (2, 3, 4), (3, 4, 3), (4, 5, 5), (5, 6, 2)))
+      )
     }
 
     "convert to equivalent binary schedule" in {
-      s((1, 2, 1)).binary(1, 1) should be (s_bin((1, 2)))
-      s((1, 2, 1), (3, 4, 1)).binary(1, 1) should be (s_bin((1, 2), (3, 4)))
-      s((1, 2, 1), (2, 3, 2)).binary(2, 2) should be (s_bin((1, 3)))
-      s((1, 2, 2), (2, 3, 4)).binary(2, 4) should be (s_bin((2, 3)))
-      s((1, 3, 3), (4, 6, 2)).binary(1, 3) should be (s_bin((1, 3)))
-      s((1, 2, 3), (2, 3, 4), (3, 4, 5)).binary(1, 10) should be (s_bin())
-      s().binary(0, 0) should be (s_bin())
-      s().binary(1, 0) should be (Schedule.Full) 
+      s((1, 2, 1)).binary(1, 1) should be(s_bin((1, 2)))
+      s((1, 2, 1), (3, 4, 1)).binary(1, 1) should be(s_bin((1, 2), (3, 4)))
+      s((1, 2, 1), (2, 3, 2)).binary(2, 2) should be(s_bin((1, 3)))
+      s((1, 2, 2), (2, 3, 4)).binary(2, 4) should be(s_bin((2, 3)))
+      s((1, 3, 3), (4, 6, 2)).binary(1, 3) should be(s_bin((1, 3)))
+      s((1, 2, 3), (2, 3, 4), (3, 4, 5)).binary(1, 10) should be(s_bin())
+      s().binary(0, 0) should be(s_bin())
+      s().binary(1, 0) should be(Schedule.Full)
     }
 
   }

@@ -179,17 +179,12 @@ object Schedule {
     * @return
     *   The initialised schedule.
     */
-/* TODO this shouldn't be needed any more
-<<<<<<< HEAD
-  def apply(r: TaskResource): Schedule =
-    r.currentTasks.values.foldLeft(Schedule()){ (s, task) => s +> (task._1, task._2.estimatedDuration)}
-=======
-  def apply(r: ResourceState): Schedule = r.currentTask match {
-    case None => Schedule()
-    case Some((s, t)) => Schedule((s, s + t.estimatedDuration) :: Nil)
-  }
->>>>>>> fp-capacity
- */
+  /* TODO this shouldn't be needed any more <<<<<<< HEAD def apply(r: TaskResource): Schedule =
+   * r.currentTasks.values.foldLeft(Schedule()){ (s, task) => s +> (task._1,
+   * task._2.estimatedDuration)}
+   * =======
+   * def apply(r: ResourceState): Schedule = r.currentTask match { case None => Schedule() case
+   * Some((s, t)) => Schedule((s, s + t.estimatedDuration) :: Nil) } >>>>>>> fp-capacity */
   /**
     * Adds an interval to a list of intervals.
     *

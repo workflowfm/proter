@@ -51,9 +51,8 @@ final case class TaskInstance(
     val estimatedDuration: Long,
     val cost: Double,
     val interrupt: Int = Int.MaxValue,
-    val priority: Int = 0,
+    val priority: Int = 0
 ) extends Ordered[TaskInstance] {
-
 
   def resourceQuantity(r: String): Int =
     resources.get(r).getOrElse(0)

@@ -4,50 +4,66 @@ package server
 import flows.{ Flow, FlowTask }
 
 /**
-  * This file contains a number of case classes that are used as intermediate objects used in the process
-  * of converting the JSON sent to this system to the objects and structure required by Proter to run simulations
+  * This file contains a number of case classes that are used as intermediate objects used in the
+  * process of converting the JSON sent to this system to the objects and structure required by
+  * Proter to run simulations
   */
-
 
 /**
   * IRequest is the highest level object for encoding a request for proter execution
   *
-  * @param arrival Defines how simulations arrive
-  * @param resources Contains the definitions of resources that are referenced in the arrival
+  * @param arrival
+  *   Defines how simulations arrive
+  * @param resources
+  *   Contains the definitions of resources that are referenced in the arrival
   */
-final case class IRequest(start: Option[Long], arrivals: List[IArrival], resources: List[IResource], timeLimit: Option[Long]) {
+final case class IRequest(
+    start: Option[Long],
+    arrivals: List[IArrival],
+    resources: List[IResource],
+    timeLimit: Option[Long]
+) {
   if (timeLimit.isEmpty && arrivals.exists(_.infinite))
     throw new IllegalArgumentException("Infinite arrivals require a time limit.")
 
 }
 
-
 /**
   * Defines how often simulations are to start
   *
-  * @param simulation The simulation that is to be started
-  * @param infinite If the arrival is infinite then this should be true
-  * @param rate The rate at which new simulation should be started
-  * @param simulationLimit If infinite is false then this determines how many simulations should be run in total before stopping
-  * @param timeLimit If infinite is true then this determines for how long the simulation should be run before stopping
+  * @param simulation
+  *   The simulation that is to be started
+  * @param infinite
+  *   If the arrival is infinite then this should be true
+  * @param rate
+  *   The rate at which new simulation should be started
+  * @param simulationLimit
+  *   If infinite is false then this determines how many simulations should be run in total before
+  *   stopping
+  * @param timeLimit
+  *   If infinite is true then this determines for how long the simulation should be run before
+  *   stopping
   */
 final case class IArrival(
-  name: String, 
-  flow: IFlow, 
-  start: Option[Long], 
-  rate: Option[IDistribution], 
-  limit: Option[Int]) {
+    name: String,
+    flow: IFlow,
+    start: Option[Long],
+    rate: Option[IDistribution],
+    limit: Option[Int]
+) {
 
-  def infinite: Boolean = 
+  def infinite: Boolean =
     rate.isDefined && limit.map(_ <= 0).getOrElse(true)
 }
-
 
 /**
   * A flow describes a number of tasks as well as the order in which they are executed
   *
-  * @param tasks A list of tasks
-  * @param ordering The order in which they occur, this is encoded as a string containing the names of the tasks separated with "->" to determine order
+  * @param tasks
+  *   A list of tasks
+  * @param ordering
+  *   The order in which they occur, this is encoded as a string containing the names of the tasks
+  *   separated with "->" to determine order
   */
 sealed trait IFlow {
   def flow: Flow
@@ -70,27 +86,40 @@ final case class IPar(args: List[IFlow]) extends IFlow {
   override def resourceNames: Set[String] = args.flatMap(_.resourceNames).toSet
 }
 
-
 /**
   * This defines a task with all its details
   *
-  * @param name The name of the task
-  * @param duration A distribution describing the duration of the task
-  * @param cost A distribution describing the cost of the task
-  * @param resources A string containing the names of the resources the task requires (if multiple they should be separated with a comma)
-  * @param priority The priority of the task (from -2 being the lowest to 2 being the highest)
+  * @param name
+  *   The name of the task
+  * @param duration
+  *   A distribution describing the duration of the task
+  * @param cost
+  *   A distribution describing the cost of the task
+  * @param resources
+  *   A string containing the names of the resources the task requires (if multiple they should be
+  *   separated with a comma)
+  * @param priority
+  *   The priority of the task (from -2 being the lowest to 2 being the highest)
   */
-final case class ITask(name: String, duration: IDistribution, cost: IDistribution, resources: List[IRequiredResource], priority: Int) extends IFlow {
+final case class ITask(
+    name: String,
+    duration: IDistribution,
+    cost: IDistribution,
+    resources: List[IRequiredResource],
+    priority: Int
+) extends IFlow {
+
   /**
     * This method converts this intermediate task object into a Proter Task
     *
-    * @return A proter task
+    * @return
+    *   A proter task
     */
   lazy val task: Task = {
     Task(this.name, this.duration.toProterDistribution())
-            .withCost(this.cost.toProterDistribution())
-            .withResourceQuantities(Map() ++ this.resources.map(r => r.resource -> r.quantity))
-            .withPriority(this.priority)
+      .withCost(this.cost.toProterDistribution())
+      .withResourceQuantities(Map() ++ this.resources.map(r => r.resource -> r.quantity))
+      .withPriority(this.priority)
   }
 
   override lazy val flow: Flow = FlowTask(task)
@@ -99,34 +128,40 @@ final case class ITask(name: String, duration: IDistribution, cost: IDistributio
 }
 
 final case class IRequiredResource(resource: String, quantity: Int) {
-  if (quantity <= 0) 
-    throw new IllegalArgumentException(s"Required resource quantity of [$resource] must be non-negative: $quantity")
+  if (quantity <= 0)
+    throw new IllegalArgumentException(
+      s"Required resource quantity of [$resource] must be non-negative: $quantity"
+    )
 }
 
 /**
   * This defines a resource
   *
-  * @param name The name of the resource
-  * @param costPerTick The Cost per time unit for the resource
+  * @param name
+  *   The name of the resource
+  * @param costPerTick
+  *   The Cost per time unit for the resource
   */
 case class IResource(name: String, capacity: Int, costPerTick: Double) {
-  if (costPerTick < 0) 
-    throw new IllegalArgumentException(s"Resource Cost of [$name] cannot be less than 0: $costPerTick")
-  if (capacity < 1) 
-    throw new IllegalArgumentException(s"Resource Capacity of [$name] cannot be less than 1: $capacity")
+  if (costPerTick < 0)
+    throw new IllegalArgumentException(
+      s"Resource Cost of [$name] cannot be less than 0: $costPerTick"
+    )
+  if (capacity < 1)
+    throw new IllegalArgumentException(
+      s"Resource Capacity of [$name] cannot be less than 1: $capacity"
+    )
 
-    /**
-      * Converts this intermediate object to a Proter Resource
-      *
-      * @return
-      */
+  /**
+    * Converts this intermediate object to a Proter Resource
+    *
+    * @return
+    */
   def toProterResource(): Resource = {
     new Resource(this.name, this.capacity, this.costPerTick)
   }
 
 }
-
-
 
 sealed trait IDistribution {
   def toProterDistribution(): Distribution

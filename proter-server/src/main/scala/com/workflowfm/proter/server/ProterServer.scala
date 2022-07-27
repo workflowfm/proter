@@ -18,19 +18,20 @@ import org.http4s.{ Request, Response }
 
 object ProterServer {
 
-  def stream[F[_]: Async : Random : UUIDGen]: Stream[F, Nothing] = {
+  def stream[F[_] : Async : Random : UUIDGen]: Stream[F, Nothing] = {
     val httpApp = (
-      CORS.policy
-        .withAllowOriginAll
+      CORS.policy.withAllowOriginAll
         .withAllowCredentials(false)
         .apply(Routes.apiRoutes[F]())
-    ).orNotFound
+      )
+      .orNotFound
 
     // With Middlewares in place
     val finalHttpApp = Logger.httpApp(true, true)(httpApp)
 
     Stream.resource(
-      EmberServerBuilder.default[F]
+      EmberServerBuilder
+        .default[F]
         .withHost(ipv4"0.0.0.0")
         .withPort(port"8080")
         .withHttpApp(finalHttpApp)
@@ -41,10 +42,10 @@ object ProterServer {
 }
 
 object Main extends IOApp {
+
   def run(args: List[String]): IO[ExitCode] =
     Random.scalaUtilRandom[IO].flatMap { r =>
       given Random[IO] = r
       ProterServer.stream[IO].compile.drain.as(ExitCode.Success)
     }
 }
-

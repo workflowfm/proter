@@ -146,13 +146,13 @@ case object ProterScheduler extends Scheduler {
     else {
       val t = tasks.head
       val mergedSchedule = Schedule.mergeSchedules(
-        t.resources.flatMap { (r, q) => 
+        t.resources.flatMap { (r, q) =>
           schedules
             .get(r)
             .map(_.binary(q, resourceMap.capacityOf(r)))
         }.toSeq
       )
-      val start =  mergedSchedule ? (currentTime, t)
+      val start = mergedSchedule ? (currentTime, t)
       val schedules2 = t.resources.foldLeft(schedules) { case (s, (r, q)) =>
         s + (r -> (s.getOrElse(r, WeightedSchedule()) +> (start, t, q)))
       }

@@ -16,8 +16,8 @@ import org.http4s.dsl.Http4sDsl
 
 object Routes {
 
-  def apiRoutes[F[_]: Async : Random : UUIDGen](): HttpRoutes[F] = {
-    val dsl = new Http4sDsl[F]{}
+  def apiRoutes[F[_] : Async : Random : UUIDGen](): HttpRoutes[F] = {
+    val dsl = new Http4sDsl[F] {}
     import dsl._
     import Metrics.given
     import Entities.given
@@ -28,17 +28,23 @@ object Routes {
     val runner: SimulationRunner[F] = new SimulationRunner[F]()
     HttpRoutes.of[F] {
       case req @ POST -> Root / "simulate" =>
-        req.as[IRequest].flatMap { decReq =>
-          runner.handle(decReq).flatMap { (m: Metrics) => Ok(m.asJson) }
-        }.handleErrorWith {
-          case e: Throwable => UnprocessableEntity(e.getMessage().asJson)
-        }
+        req
+          .as[IRequest]
+          .flatMap { decReq =>
+            runner.handle(decReq).flatMap { (m: Metrics) => Ok(m.asJson) }
+          }
+          .handleErrorWith { case e: Throwable =>
+            UnprocessableEntity(e.getMessage().asJson)
+          }
       case req @ POST -> Root / "stream" =>
-        req.as[IRequest].flatMap { decReq =>
-          Ok.apply(runner.stream(decReq).map(_.asJson))
-        }.handleErrorWith {
-          case e: Throwable => UnprocessableEntity(e.getMessage().asJson)
-        }
+        req
+          .as[IRequest]
+          .flatMap { decReq =>
+            Ok.apply(runner.stream(decReq).map(_.asJson))
+          }
+          .handleErrorWith { case e: Throwable =>
+            UnprocessableEntity(e.getMessage().asJson)
+          }
     }
   }
 

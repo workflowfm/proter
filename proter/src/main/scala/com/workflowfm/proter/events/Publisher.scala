@@ -61,18 +61,20 @@ object Publisher {
   } yield (Publisher[F](topic, 10))
 }
 
-
 trait Subscriber[F[_]] extends Pipe[F, Either[Throwable, Event], Unit] {
   def init(): F[Unit]
 }
 
 object Subscriber {
-  given pipeConv[F[_] : Applicative]: Conversion[Pipe[F, Either[Throwable, Event], Unit], Subscriber[F]] with {
-  def apply(pipe: Pipe[F, Either[Throwable, Event], Unit]): Subscriber[F] = 
-    new Subscriber[F] {
-      override def apply(s: Stream[F, Either[Throwable, Event]]): Stream[F, Unit] = pipe(s)
 
-      override def init(): F[Unit] = Applicative[F].pure(())
-    }
+  given pipeConv[F[_] : Applicative]
+      : Conversion[Pipe[F, Either[Throwable, Event], Unit], Subscriber[F]] with {
+
+    def apply(pipe: Pipe[F, Either[Throwable, Event], Unit]): Subscriber[F] =
+      new Subscriber[F] {
+        override def apply(s: Stream[F, Either[Throwable, Event]]): Stream[F, Unit] = pipe(s)
+
+        override def init(): F[Unit] = Applicative[F].pure(())
+      }
   }
 }

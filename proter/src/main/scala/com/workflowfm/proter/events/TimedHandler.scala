@@ -11,14 +11,14 @@ import fs2.{ Pipe, Stream }
 final case class TimedEvent(time: Long, event: Event)
 
 trait TimedHandler[F[_] : Applicative : Clock] {
+
   val timedEventPipe: Pipe[F, Either[Throwable, Event], TimedEvent] = s =>
-  s.evalMap(evt =>
-    evt match {
-      case Left(e) => fail(e)
-      case Right(e) => event(e)
-    }
-  )
-    .handleErrorWith(ex => Stream.eval(fail(ex)))
+    s.evalMap(evt =>
+      evt match {
+        case Left(e) => fail(e)
+        case Right(e) => event(e)
+      }
+    ).handleErrorWith(ex => Stream.eval(fail(ex)))
 
   def event(e: Event): F[TimedEvent] = for {
     t <- Clock[F].realTime

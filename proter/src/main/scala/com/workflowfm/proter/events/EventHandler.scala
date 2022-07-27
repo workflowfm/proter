@@ -10,7 +10,6 @@ import cats.effect.implicits.*
 
 import fs2.{ Stream, Pipe }
 
-
 import scala.collection.immutable.HashSet
 
 /**
@@ -31,9 +30,7 @@ trait EventHandler[F[_] : Monad] extends Subscriber[F] {
           }
         }
       }
-    )
-      .handleErrorWith(ex => Stream.eval(onFail(ex)))
- 
+    ).handleErrorWith(ex => Stream.eval(onFail(ex)))
 
   /**
     * Handles the initialisation of a new event stream.
@@ -68,10 +65,11 @@ trait EventHandler[F[_] : Monad] extends Subscriber[F] {
     *   The [[Publisher]] that threw the error.
     */
   def onFail(e: Throwable): F[Unit] = Monad[F].pure(())
-  
+
 }
 
 class CountEvents[F[_] : Monad](counter: Ref[F, Int]) extends EventHandler[F] {
+
   /**
     * @inheritdoc
     *
@@ -83,11 +81,12 @@ class CountEvents[F[_] : Monad](counter: Ref[F, Int]) extends EventHandler[F] {
   def get(): F[Int] = counter.get
 
   def reset(): F[Unit] = counter.set(0)
- 
+
 }
 
 object CountEvents {
-  def apply[F[_] : Monad : Concurrent]() : F[CountEvents[F]] = for {
+
+  def apply[F[_] : Monad : Concurrent](): F[CountEvents[F]] = for {
     r <- Ref[F].of(0)
   } yield (new CountEvents(r))
 }
@@ -100,7 +99,8 @@ object CountEvents {
   * @param callback
   *   A function to handle the results of the simulation when it completes.
   */
-class GetCaseResult[F[_] : Monad](caseName: String, result: Deferred[F, String]) extends EventHandler[F]  {
+class GetCaseResult[F[_] : Monad](caseName: String, result: Deferred[F, String])
+    extends EventHandler[F] {
 
   /**
     * @inheritdoc
