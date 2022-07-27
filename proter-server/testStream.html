@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+  <head>
+<title>Test Proter Stream</title>
+</head>
+<body>
+<h1>Test Proter Stream</h1>
+
+<table>
+  <tr>
+    <td>
+      <h3>Request</h3>
+      <form id="idForm" action="http://localhost:8080/stream" method="post">
+        <textarea name="request" id="request" style="width:40vw; height:500px;"></textarea>
+
+        <input type="submit" value="Start">
+      </form> 
+    </td>
+    <td>
+      <h3>Response</h3>
+      <textarea name="response" id="response" style="width:50vw; height:500px;"></textarea>
+    </td>
+  </tr>
+</table>
+
+<script type="text/javascript">
+var defaultData = `{
+  "arrivals" : [
+    {
+      "name" : "Example1",
+      "flow" : {
+        "ITask" : {
+          "name" : "T1",
+          "duration" : {
+            "IConstant" : {
+              "value" : 1.0
+            }
+          },
+          "cost" : {
+            "IConstant" : {
+              "value" : 2.0
+            }
+          },
+          "resources" : [],
+          "priority" : 0
+        }
+      },
+      "rate" : {
+        "IConstant" : {
+          "value" : 1.0
+        }
+      }
+    }
+  ],
+  "resources" : [
+  ],
+  "timeLimit" : 200
+}`;
+
+var form = document.getElementById('idForm')
+var request = document.getElementById("request")
+
+request.value = defaultData
+
+form.addEventListener("submit", function (e) {
+    e.preventDefault();
+
+    var actionUrl = form.getAttribute('action');
+
+    var xhr = new XMLHttpRequest()
+    xhr.open("POST", actionUrl, true)
+    xhr.onprogress = function (event) {
+        var textarea = document.getElementById('response');
+        var data = xhr.responseText
+        if (xhr.status === 200) {
+            if (data.slice(-1) !== "]") {
+                data = data + "]"
+            }
+            var json = JSON.parse(data)
+            var eventTypes = json.map(x => {
+                var key = Object.keys(x)[0]
+                var time = x[key]["time"]
+                delete x[key]["source"]
+                delete x[key]["time"]
+
+                return "*** " + time + " " + key + " ***\n" + JSON.stringify(x[key])
+            })
+            textarea.value = eventTypes.join("\n"); 
+        } else {
+            textarea.value = slashUnescape(data)
+        }
+        textarea.scrollTop = textarea.scrollHeight;
+        console.log("EVENT:", event)
+    }
+    xhr.send(request.value)
+});
+
+// https://stackoverflow.com/questions/46252753/how-do-i-properly-escape-and-unescape-a-multiline-string-that-contains-newline-l
+var replacements = {'\\\\': '\\', '\\n': '\n', '\\"': '"'};
+
+function slashUnescape(contents) {
+    return contents.replace(/\\(\\|n|")/g, function(replace) {
+        return replacements[replace];
+    });
+}
+</script>
+
+</body>
+</html>
