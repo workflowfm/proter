@@ -24,7 +24,6 @@ object Routes {
     import JsonHandler.given
 
     given EntityDecoder[F, IRequest] = jsonOf[F, IRequest]
-    //given EntityEncoder[F, Event] = jsonOf[F, Event]
 
     val runner: SimulationRunner[F] = new SimulationRunner[F]()
     HttpRoutes.of[F] {
@@ -42,20 +41,5 @@ object Routes {
         }
     }
   }
-/*
-  def streamApiRoutes[F[_]: Concurrent](): HttpRoutes[IO] = {
-    val dsl = new Http4sDsl[IO]{}
-    import dsl._
-    implicit val reqDec: EntityDecoder[IO, IRequest] = jsonOf[IO, IRequest]
-    //implicit val streamEnc = EntityEncoder.streamEncoder[IO, Stream[String]]
-    val parse: SimulationRunner = new SimulationRunner()
-    HttpRoutes.of[IO] {
-      case req @ POST -> Root / "stream" =>
-        req.as[IRequest].flatMap { decReq =>
-          Ok(parse.streamHandler(decReq).map(_.toString()))
-        }.handleErrorWith {
-          case _: Throwable => BadRequest("Issue with your request".asJson)
-        }
-      }
-  }*/
+
 }
