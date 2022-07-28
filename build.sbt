@@ -121,7 +121,7 @@ lazy val proterServer = proterModule("proter-server")
     libraryDependencies ++= Dependencies.server,
     libraryDependencies ++= Dependencies.testServer,
     assembly / mainClass := Some("com.workflowfm.proter.server.Main"),
-    assembly / assemblyJarName := "proter-server.jar",
+    assembly / assemblyJarName := s"${name.value}_${version.value}.jar",
   )
 
 
