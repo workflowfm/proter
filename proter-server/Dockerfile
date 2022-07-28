@@ -1,4 +1,4 @@
-FROM anapsix/alpine-java:latest
+FROM eclipse-temurin:11
 
 ADD target/scala-3.1.0/proter-server.jar /
 
