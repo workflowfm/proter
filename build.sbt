@@ -111,10 +111,17 @@ lazy val root = Project(id = "proter-root", base = file("."))
 
 lazy val proter = Project(id = "proter", base = file("proter"))
   .settings(commonSettings)
-  .settings(libraryDependencies ++= Dependencies.common)
-  .settings(libraryDependencies ++= Dependencies.testAll)
+  .settings(
+    libraryDependencies ++= Dependencies.common,
+    libraryDependencies ++= Dependencies.testAll,
+  )
 
 lazy val proterServer = proterModule("proter-server")
-  .settings(libraryDependencies ++= Dependencies.server)
-  .settings(libraryDependencies ++= Dependencies.testServer)
+  .settings(
+    libraryDependencies ++= Dependencies.server,
+    libraryDependencies ++= Dependencies.testServer,
+    assembly / mainClass := Some("com.workflowfm.proter.server.Main"),
+    assembly / assemblyJarName := "proter-server.jar",
+  )
+
 
