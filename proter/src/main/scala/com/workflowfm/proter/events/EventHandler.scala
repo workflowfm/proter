@@ -16,6 +16,9 @@ import scala.collection.immutable.HashSet
   * A handler of [[Event]]s.
   *
   * Handles a stream of events from a [[Publisher]].
+  *
+  * Provides a convenient breakdown of methods to facilitate implementation of custom handlers.
+  * Simply override the relevant methods to achieve the desired functionality.
   */
 trait EventHandler[F[_] : Monad] extends Subscriber[F] {
 
@@ -34,9 +37,6 @@ trait EventHandler[F[_] : Monad] extends Subscriber[F] {
 
   /**
     * Handles the initialisation of a new event stream.
-    *
-    * @param publisher
-    *   The [[Publisher]] that started the stream.
     */
   override def init(): F[Unit] = Monad[F].pure(())
 
@@ -50,9 +50,6 @@ trait EventHandler[F[_] : Monad] extends Subscriber[F] {
 
   /**
     * Handles the end of a stream.
-    *
-    * @param publisher
-    *   The [[Publisher]] that ended the stream.
     */
   def onDone(): F[Unit] = Monad[F].pure(())
 
@@ -61,13 +58,17 @@ trait EventHandler[F[_] : Monad] extends Subscriber[F] {
     *
     * @param e
     *   The throwable error that occurred.
-    * @param publisher
-    *   The [[Publisher]] that threw the error.
     */
   def onFail(e: Throwable): F[Unit] = Monad[F].pure(())
 
 }
 
+/**
+  * An [[EventHandler]] that counts the number of events encountered.
+  *
+  * @param counter
+  *   An immutable reference to the current count.
+  */
 class CountEvents[F[_] : Monad](counter: Ref[F, Int]) extends EventHandler[F] {
 
   /**
@@ -78,8 +79,14 @@ class CountEvents[F[_] : Monad](counter: Ref[F, Int]) extends EventHandler[F] {
   override def onEvent(e: Event): F[Unit] =
     counter.update(_ + 1)
 
+  /**
+    * Retrieves the current count.
+    */
   def get(): F[Int] = counter.get
 
+  /**
+    * Resets the counter to 0.
+    */
   def reset(): F[Unit] = counter.set(0)
 
 }
@@ -92,12 +99,12 @@ object CountEvents {
 }
 
 /**
-  * Listens for the end of a named simulation and handles its result.
+  * Listens for the end of a specific case and handles its result.
   *
   * @param name
-  *   The name of the [[SimulationRef]] to listen for.
-  * @param callback
-  *   A function to handle the results of the simulation when it completes.
+  *   The name of the [[CaseRef]] to listen for.
+  * @param result
+  *   The deferred result output from the case.
   */
 class GetCaseResult[F[_] : Monad](caseName: String, result: Deferred[F, String])
     extends EventHandler[F] {
@@ -105,8 +112,7 @@ class GetCaseResult[F[_] : Monad](caseName: String, result: Deferred[F, String])
   /**
     * @inheritdoc
     *
-    * If the event is [[ESimEnd]] and the simulation name matches then we record the simulation
-    * result in [[simResult]], unsubscribe, and call the callback function.
+    * If the event is [[ESimEnd]] and the simulation name matches then we record the case result.
     */
   override def onEvent(evt: Event): F[Unit] = evt match {
     case ECaseEnd(_, _, n, r) if n == caseName => {

@@ -13,10 +13,7 @@ import org.apache.commons.lang3.time.DurationFormatUtils
 
 /**
   * Helper to write stuff to a file.
-  * @todo
-  *   Move somewhere else as a utility?
   */
-
 trait FileOutput[F[_] : Sync] {
   import java.io.*
 
@@ -32,13 +29,13 @@ trait FileOutput[F[_] : Sync] {
 }
 
 /**
-  * Manipulates a [[SimMetricsAggregator]] to produce some output via side-effects.
-  *
-  * As a function, takes 2 arguments:
-  *   - a [[scala.Long]] representing the total virtual time elapsed
-  *   - the [[SimMetricsAggregator]] to act upon
+  * Manipulates [[Metrics]] to produce some output via side-effects.
   */
 trait MetricsOutput[F[_]] extends (Metrics => F[Unit]) {
+
+  /**
+    * Evaluates the output side-effect within a [[Metrics]] stream.
+    */
   def pipe: Pipe[F, Metrics, Unit] = _.evalMap(this)
 }
 
@@ -80,6 +77,9 @@ object MetricsOutput {
   }
 }
 
+/**
+  * Outputs the [[Metrics]] programmatically as a deferred result.
+  */
 case class MetricsResult[F[_] : Concurrent](result: Deferred[F, Metrics]) extends MetricsOutput[F] {
 
   override def apply(metrics: Metrics): F[Unit] = {
@@ -95,7 +95,7 @@ trait MetricsStringOutput[F[_]] extends MetricsOutput[F] {
   /**
     * The field names for [[TaskMetrics]].
     * @param separator
-    *   a string (such as a space or comma) to separate the names
+    *   A string (such as a space or comma) to separate the names
     */
   def taskHeader(separator: String): String =
     Seq(
@@ -117,9 +117,9 @@ trait MetricsStringOutput[F[_]] extends MetricsOutput[F] {
     * String representation of a [[TaskMetrics]] instance.
     *
     * @param separator
-    *   a string (such as a space or comma) to separate the values
+    *   A string (such as a space or comma) to separate the values
     * @param resSeparator
-    *   a string (such as a space or comma) to separate the list of names of [[TaskResource]]s in
+    *   A string (such as a space or comma) to separate the list of names of [[TaskResource]]s in
     *   [[TaskMetrics]]
     * @param m
     *   the [[TaskMetrics]] instance to be handled
@@ -142,9 +142,10 @@ trait MetricsStringOutput[F[_]] extends MetricsOutput[F] {
   }
 
   /**
-    * The field names for [[SimulationMetrics]].
+    * The field names for [[CaseMetrics]].
+    *
     * @param separator
-    *   a string (such as a space or comma) to separate the names
+    *   A string (such as a space or comma) to separate the names
     */
   def caseHeader(separator: String): String =
     Seq("Name", "Start", "Duration", "Delay", "Tasks", "Cost", "Result").mkString(separator)
@@ -153,7 +154,7 @@ trait MetricsStringOutput[F[_]] extends MetricsOutput[F] {
     * String representation of a [[SimulationMetrics]] instance.
     *
     * @param separator
-    *   a string (such as a space or comma) to separate the values
+    *   A string (such as a space or comma) to separate the values
     * @param m
     *   the [[SimulationMetrics]] instance to be handled
     */
@@ -164,8 +165,9 @@ trait MetricsStringOutput[F[_]] extends MetricsOutput[F] {
 
   /**
     * The field names for [[ResourceMetrics]].
+    *
     * @param separator
-    *   a string (such as a space or comma) to separate the names
+    *   A string (such as a space or comma) to separate the names.
     */
   def resHeader(separator: String): String =
     Seq("Name", "Busy", "Idle", "Tasks", "Cost").mkString(separator)
@@ -174,9 +176,9 @@ trait MetricsStringOutput[F[_]] extends MetricsOutput[F] {
     * String representation of a [[ResourceMetrics]] instance.
     *
     * @param separator
-    *   a string (such as a space or comma) to separate the values
+    *   A string (such as a space or comma) to separate the values.
     * @param m
-    *   the [[ResourceMetrics]] instance to be handled
+    *   The [[ResourceMetrics]] instance to be handled.
     */
   def resCSV(separator: String)(m: ResourceMetrics): String = m match {
     case ResourceMetrics(name, _, _, _, _, b, i, ts, c) =>
@@ -184,17 +186,17 @@ trait MetricsStringOutput[F[_]] extends MetricsOutput[F] {
   }
 
   /**
-    * Formats all [[TaskMetrics]] in a [[SimMetricsAggregator]] in a single string.
+    * Formats all [[TaskMetrics]] in a single string.
     *
-    * @param aggregator
-    *   the [[SimMetricsAggregator]] to retrieve the metrics to be formatted
+    * @param metrics
+    *   The [[Metrics]] object from which to retrieve the case metrics.
     * @param separator
-    *   a string (such as a space or comma) to separate values
+    *   A string (such as a space or comma) to separate values.
     * @param lineSep
-    *   a string (such as a new line) to separate tasks
+    *   A string (such as a new line) to separate tasks.
     * @param resSeparator
-    *   a string (such as a space or comma) to separate the list of names of [[TaskResource]]s in
-    *   [[TaskMetrics]]
+    *   A string (such as a space or comma) to separate the list of names of [[Resource]]s in
+    *   [[TaskMetrics]].
     */
   def tasks(
       metrics: Metrics,
@@ -205,14 +207,14 @@ trait MetricsStringOutput[F[_]] extends MetricsOutput[F] {
     metrics.taskMetrics.map(taskCSV(separator, resSeparator)).mkString(lineSep)
 
   /**
-    * Formats all [[SimulationMetrics]] in a [[SimMetricsAggregator]] in a single string.
+    * Formats all [[CaseMetrics]] in a single string.
     *
-    * @param aggregator
-    *   the [[SimMetricsAggregator]] to retrieve the metrics to be formatted
+    * @param metrics
+    *   The [[Metrics]] object from which to retrieve the case metrics.
     * @param separator
-    *   a string (such as a space or comma) to separate values
+    *   A string (such as a space or comma) to separate values.
     * @param lineSep
-    *   a string (such as a new line) to separate simulations
+    *   A string (such as a new line) to separate simulations.
     */
   def cases(
       metrics: Metrics,
@@ -222,14 +224,14 @@ trait MetricsStringOutput[F[_]] extends MetricsOutput[F] {
     metrics.caseMetrics.map(caseCSV(separator)).mkString(lineSep)
 
   /**
-    * Formats all [[ResourceMetrics]] in a [[SimMetricsAggregator]] in a single string.
+    * Formats all [[ResourceMetrics]] in a single string.
     *
-    * @param aggregator
-    *   the [[SimMetricsAggregator]] to retrieve the metrics to be formatted
+    * @param metrics
+    *   The [[Metrics]] object from which to retrieve the case metrics.
     * @param separator
-    *   a string (such as a space or comma) to separate values
+    *   A string (such as a space or comma) to separate values.
     * @param lineSep
-    *   a string (such as a new line) to separate resources
+    *   A string (such as a new line) to separate resources.
     */
   def resources(
       metrics: Metrics,
@@ -274,18 +276,20 @@ ${resHeader(sep)}
 ${resources(metrics, sep, lineSep)}
 ---------
 
-Started: ${MetricsOutput.formatTimeOption(metrics.sStart, timeFormat, nullTime)}
-Ended: ${MetricsOutput.formatTimeOption(metrics.sEnd, timeFormat, nullTime)}
-Duration: ${MetricsOutput.formatDuration(metrics.sStart, metrics.sEnd, durFormat, nullTime)}
+Started: ${MetricsOutput.formatTimeOption(metrics.start, timeFormat, nullTime)}
+Ended: ${MetricsOutput.formatTimeOption(metrics.end, timeFormat, nullTime)}
+Duration: ${MetricsOutput.formatDuration(metrics.start, metrics.end, durFormat, nullTime)}
 """
     )
   }
 }
 
 /**
-  * Outputs simulation metrics to files using a standard CSV format. Generates 3 CSV files,
+  * Outputs simulation metrics to files using a standard CSV format.
+  *
+  * Generates 3 CSV files:
   *   1. One for tasks with a "-tasks.csv" suffix,
-  *   1. One for simulations with a "-simulations.csv" suffix.
+  *   1. One for casess with a "-cases.csv" suffix.
   *   1. One for resources with a "-resources.csv" suffix.
   *
   * @param path
@@ -302,7 +306,7 @@ class CSVFile[F[_] : Sync](path: String, name: String)
 
   override def apply(metrics: Metrics): F[Unit] = {
     val taskFile = s"$path$name-tasks.csv"
-    val caseFile = s"$path$name-simulations.csv"
+    val caseFile = s"$path$name-cases.csv"
     val resourceFile = s"$path$name-resources.csv"
 
     val t = writeToFile(taskFile, taskHeader(separator) + "\n" + tasks(metrics, separator, lineSep))
@@ -319,8 +323,9 @@ class CSVFile[F[_] : Sync](path: String, name: String)
 }
 
 /**
-  * Outputs simulation metrics to a file using the d3-timeline format. Generates 1 file with a
-  * "-simdata.js" suffix. This can then be combined with the resources at
+  * Outputs simulation metrics to a file using the d3-timeline format.
+  *
+  * Generates 1 file with a "-simdata.js" suffix. This can then be combined with the resources at
   * [[https://github.com/PetrosPapapa/WorkflowFM-PEW/tree/master/resources/d3-timeline]] to render
   * the timeline in a browser.
   *
@@ -330,11 +335,11 @@ class CSVFile[F[_] : Sync](path: String, name: String)
   * to provide a `tick` value of 60000.
   *
   * @param path
-  *   path to directory where the files will be placed
+  *   Path to directory where the files will be placed.
   * @param file
-  *   file name prefix
+  *   File name (with no suffix - `.js` will be added).
   * @param tick
-  *   the size of 1 unit of virtual time
+  *   The size of 1 unit of virtual time.
   */
 class D3Timeline[F[_] : Sync](path: String, file: String, tick: Int = 1)
     extends MetricsOutput[F]
@@ -343,11 +348,10 @@ class D3Timeline[F[_] : Sync](path: String, file: String, tick: Int = 1)
   override def apply(metrics: Metrics): F[Unit] = {
     val result = build(metrics, System.currentTimeMillis())
     // println(result)
-    val dataFile = s"$path$file-simdata.js"
+    val dataFile = s"$path$file.js"
     writeToFile(dataFile, result)
   }
 
-  /** Helps build the output with a static system time. */
   def build(metrics: Metrics, now: Long): String = {
     val buf: StringBuilder = new StringBuilder()
     buf.append("var tasks = [\n")
@@ -358,12 +362,12 @@ class D3Timeline[F[_] : Sync](path: String, file: String, tick: Int = 1)
     for m <- metrics.resourceMetrics do buf.append(s"""${resourceEntry(m, metrics)}\n""")
     buf.append("];\n\n")
     buf.append("var simulationData = [\n")
-    for m <- metrics.caseMetrics do buf.append(s"""${simulationEntry(m, metrics)}\n""")
+    for m <- metrics.caseMetrics do buf.append(s"""${caseEntry(m, metrics)}\n""")
     buf.append("];\n")
     buf.toString
   }
 
-  def simulationEntry(s: CaseMetrics, agg: Metrics): String = {
+  def caseEntry(s: CaseMetrics, agg: Metrics): String = {
     val times = agg.taskMetricsOf(s).flatMap(taskEntry).mkString(",\n")
     s"""{label: "${s.name}", times: [
 $times

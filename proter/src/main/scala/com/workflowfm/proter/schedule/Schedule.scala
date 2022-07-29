@@ -171,21 +171,6 @@ object Schedule {
   def apply(): Schedule = Schedule(List.empty[(Long, Long)])
 
   /**
-    * Creates a [[Schedule]] from a [[ResourceState]] based on its currently running
-    * [[TaskInstance]] (if any).
-    *
-    * @param r
-    *   The [[ResourceState]] to schedule for.
-    * @return
-    *   The initialised schedule.
-    */
-  /* TODO this shouldn't be needed any more <<<<<<< HEAD def apply(r: TaskResource): Schedule =
-   * r.currentTasks.values.foldLeft(Schedule()){ (s, task) => s +> (task._1,
-   * task._2.estimatedDuration)}
-   * =======
-   * def apply(r: ResourceState): Schedule = r.currentTask match { case None => Schedule() case
-   * Some((s, t)) => Schedule((s, s + t.estimatedDuration) :: Nil) } >>>>>>> fp-capacity */
-  /**
     * Adds an interval to a list of intervals.
     *
     * Fails and returns [[scala.None]] if the new interval clashes with any of the existing

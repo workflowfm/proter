@@ -15,24 +15,25 @@ import scala.collection.immutable.{ HashSet, Queue }
 import scala.util.{ Try, Success, Failure }
 
 /**
-  * An abstract reference to simulation case logic.
+  * A single instance of a simulation case.
   *
-  * Includes the basic interface that we expect from a simulation case:
-  *   1. Starting the case.
-  *   1. Notifying when tasks complete.
-  *   1. Stopping/aborting the case.
+  * @tparam F
+  *   The effect type.
   */
 trait CaseRef[F[_] : Monad] extends CaseState {
   /**
-    * A unique name for the case.
+    * A unique name for the instance.
     *
     * @return
-    *   The name of the case.
+    *   The name of the instance.
     */
   def caseName: String
 
   /**
     * Starts the case.
+    *
+    * @return
+    *   The effect starting should have to the simulation state.
     */
   def run(): F[SimState[F]]
 
@@ -48,73 +49,166 @@ trait CaseRef[F[_] : Monad] extends CaseState {
     *   The current virtual timestamp.
     * @param tasks
     *   The [[TaskInstance]]s that completed.
+    * @return
+    *   The effect this should have to the simulation state.
     */
   def completed(time: Long, tasks: Seq[TaskInstance]): F[SimState[F]]
 
   /**
-    * Declares that the simulation completed.
+    * A simulation state where the case instance has completed.
     *
-    * @group act
     * @param result
-    *   The result of the simulation.
+    *   The final result of the case instance.
+    * @return
+    *   The effect to the simulation state.
     */
   def done(result: Try[Any]): SimState[F] = caseDone(caseName, result)
 
   /**
-    * Declares that the simulation completed successfully.
+    * A simulation state where the case instance has completed successfully.
     *
-    * @group act
     * @param result
-    *   The successful result of the simulation.
+    *   The successful result of the case instance.
     */
   def succeed(result: Any): SimState[F] = done(Success(result))
 
   /**
-    * Declares that the simulation has failed or has been aborted.
+    * A simulation state where the case instance has fail or was aborted.
     *
-    * @group act
     * @param exception
     *   The `Throwable` that caused the failure.
     */
   def fail(exception: Throwable): SimState[F] = done(Failure(exception))
 
+  /**
+    * A simulation state that updates the instance itself in the simulation.
+    *
+    * @param c
+    *   The updated case instance.
+    */
   def update(c: CaseRef[F]): SimState[F] = updateCase(caseName, c)
 
 }
 
+/**
+  * A [[CaseRef]] with an explicit state parameter.
+  *
+  * @tparam F
+  *   The effect type.
+  * @param state
+  *   The current state.
+  */
 abstract class StatefulCaseRef[F[_] : Monad, S](val state: S) extends CaseRef[F] {
 
+  /**
+    * A copy constructor for this case instance.
+    *
+    * This is used to construct copies of subclasses of `StatefulCaseRef`.
+    *
+    * @param newState
+    *   The new state to use in the copy.
+    * @return
+    *   A copy of the instance with the new state.
+    */
   def updateState(newState: S): StatefulCaseRef[F, S]
 
+  /**
+    * Computes the simulation and internal state update from a single completed task.
+    *
+    * @param task
+    *   The [[TaskInstance]] that completed.
+    * @param time
+    *   The current virtual timestamp.
+    * @return
+    *   A `StateT` monad of the effect to the internal state and the resulting simulation state
+    *   effect.
+    */
   def complete(task: TaskInstance, time: Long): StateT[F, S, SimState[F]]
 
+  /**
+    * @inheritdoc
+    *
+    * Updates the internal state based on the effect from each individual completed task.
+    */
   override def completed(time: Long, tasks: Seq[TaskInstance]): F[SimState[F]] = {
     val fold = tasks.foldLeft(StateT.pure[F, S, SimState[F]](StateT.pure(Seq()))) { (state, task) =>
       composeStates(state, complete(task, time))
     }
-    compose(fold)
+    applyState(fold)
   }
 
+  /**
+    * Shortcut to succeed directly within [[complete]].
+    *
+    * @see
+    *   [[succeed]]
+    * @param result
+    *   The successful result of the case instance.
+    */
   def succeedState(result: Any): StateT[F, S, SimState[F]] = StateT.pure(succeed(result))
 
+  /**
+    * Shortcut to fail directly within [[complete]].
+    *
+    * @see
+    *   [[fail]]
+    * @param exception
+    *   The `Throwable` that caused the failure.
+    */
   def failState(exception: Throwable): StateT[F, S, SimState[F]] = StateT.pure(fail(exception))
 
+  /**
+    * Compose 2 state updates together.
+    *
+    * State types are the ones returned by [[complete]].
+    *
+    * @param s1
+    *   The first state.
+    * @param s2
+    *   The second state.
+    * @return
+    *   The composed single state.
+    */
   def composeStates(
       s1: StateT[F, S, SimState[F]],
       s2: StateT[F, S, SimState[F]]
   ): StateT[F, S, SimState[F]] =
     s1.flatMap { r1 => s2.map { r2 => Simulation.compose(r1, r2) } }
 
+  /**
+    * A state update that does nothing.
+    */
   val idState: StateT[F, S, SimState[F]] = StateT.pure(StateT.pure(Seq()))
 
-  def compose(s: StateT[F, S, SimState[F]]): F[SimState[F]] =
+  /**
+    * Update the internal state and then the simulation state.
+    *
+    * @see
+    *   [[update]]
+    * @param s
+    *   The state update to use.
+    * @return
+    *   The resulting simulation state update.
+    */
+  def applyState(s: StateT[F, S, SimState[F]]): F[SimState[F]] =
     s.modify(s => update(updateState(s))).run(state).map((s1, s2) => Simulation.compose(s1, s2))
 
 }
 
+/**
+  * A [[CaseRef]] that can asynchronously react to completed tasks using callback functions.
+  *
+  * @tparam F
+  *   The effect type.
+  * @param callbackMap
+  *   A map of callback functions to be used.
+  */
 abstract class AsyncCaseRef[F[_] : Monad : UUIDGen : Random](callbackMap: CallbackMap[F])
     extends StatefulCaseRef[F, CallbackMap[F]](callbackMap) {
 
+  /**
+    * A shortcut to the type of a callback function.
+    */
   type Callback = AsyncCaseRef.Callback[F, CallbackMap[F]]
 
   /**
@@ -131,23 +225,12 @@ abstract class AsyncCaseRef[F[_] : Monad : UUIDGen : Random](callbackMap: Callba
     t => t.map { arg => f(arg._1, arg._2) }.getOrElse(StateT.pure(StateT.pure(Seq())))
 
   /**
-    * Declare a new [[Task]] that needs to be sent to the [[Coordinator]] for simulation with a
-    * pre-determined ID.
+    * State update that adds a new [[Task]] for simulation and a corresponding callback.
     *
     * The provided callback function will be called when the corresponding [[Task]] is completed.
     *
-    * When it finishes executing, it must notify the [[Coordinator]] either by acknowledging the
-    * completed task using [[ack]] or by completing the simulation using [[done]], [[succeed]] or
-    * [[fail]].
-    *
-    * The [[ready]] method can also be called if there is no need to acknowledge completed tasks
-    * individually. This is unlikely in the current scenario where each task has its own callback,
-    * but it's still worth mentioning.
-    *
-    * @group act
-    *
     * @param t
-    *   The [[Task]] to send.
+    *   The [[Task]] to add.
     * @param callback
     *   The [[Callback]] function to be called when the corresponding [[Task]] completes.
     */
@@ -165,9 +248,7 @@ abstract class AsyncCaseRef[F[_] : Monad : UUIDGen : Random](callbackMap: Callba
   /**
     * @inheritdoc
     *
-    * Calls the corresponding [[Callback]] in the `tasks` map and then removes the entry.
-    *
-    * @group react
+    * Calls the corresponding [[Callback]] in the map and then removes the entry.
     *
     * @param task
     *   The [[TaskInstance]] that completed.
@@ -215,9 +296,21 @@ abstract class AsyncCaseRef[F[_] : Monad : UUIDGen : Random](callbackMap: Callba
 }
 
 object AsyncCaseRef {
+  /**
+    * The type for task callbacks.
+    *
+    * A callback is a function from a [[TaskInstance]] and its completion timestamp to a state
+    * update.
+    */
   type Callback[F[_], S] = Monad[F] ?=> Try[(TaskInstance, Long)] => StateT[F, S, SimState[F]]
 }
 
+/**
+  * Convenience wrapper for a map of callbacks.
+  *
+  * @param m
+  *   The internal map.
+  */
 case class CallbackMap[F[_]](m: Map[UUID, AsyncCaseRef.Callback[F, CallbackMap[F]]]) {
   type Callback = AsyncCaseRef.Callback[F, CallbackMap[F]]
   def +(kv: (UUID, Callback)): CallbackMap[F] = copy(m = m + kv)

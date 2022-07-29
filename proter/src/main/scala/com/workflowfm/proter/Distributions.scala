@@ -52,10 +52,10 @@ trait LongDistribution {
 trait Distribution extends LongDistribution {
 
   /**
-    * Provides a sample value.
+    * Provides a sample `Double` value.
     *
     * @return
-    *   A sample value.
+    *   A sample `Double` value.
     */
   def get[F[_] : Applicative : Random]: F[Double]
 

@@ -37,6 +37,9 @@ trait Scheduler {
   *
   * This means a lower priority task may start now and block a higher priority task which is
   * currently blocked, but could have started soon.
+  *
+  * @param strict
+  *   If `true` then idle resources are prevented from starting lower priority tasks.
   */
 case class GreedyScheduler(strict: Boolean) extends Scheduler {
 
@@ -67,7 +70,7 @@ case class GreedyScheduler(strict: Boolean) extends Scheduler {
 /**
   * The default priority based [[Scheduler]].
   *
-  * Relies on the use of [[Schedule]]s for each [[TaskResource]].
+  * Relies on the use of [[Schedule]]s for each [[Resource]].
   *
   * Avoids scheduling lower priority tasks that might cause delays/waiting times to higher priority
   * ones.
@@ -89,7 +92,7 @@ case object ProterScheduler extends Scheduler {
     * @param currentTime
     *   The current timestamp.
     * @param resourceMap
-    *   The map of available [[TaskResource]]s.
+    *   The current [[ResourceMap]].
     * @return
     *   The sequence of [[TaskInstance]]s to start now.
     */
@@ -112,21 +115,21 @@ case object ProterScheduler extends Scheduler {
     * [[Task]]s are assumed to be sorted by priority.
     *
     * Taking each [[TaskInstance]] from high to low priority, the algorithm does the following:
-    *   1. It merges the current [[Schedule]]s of all the [[TaskResource]]s involved in the
+    *   1. It merges the current [[Schedule]]s of all the [[Resource]]s involved in the
     *      [[TaskInstance]].
     *   1. It finds the earliest possible starting time of the [[TaskInstance]] in the merged
     *      [[Schedule]].
     *   1. Takes the interval defined by the starting time and the estimated duration of the
-    *      [[TaskInstance]] and adds it to the [[Schedule]]s of all the involved [[TaskResource]]s.
-    *   1. If the starting time is equal to the current time, and all involved [[TaskResource]]s are
+    *      [[TaskInstance]] and adds it to the [[Schedule]]s of all the involved [[Resource]]s.
+    *   1. If the starting time is equal to the current time, and all involved [[Resource]]s are
     *      idle, it adds the [[TaskInstance]] to the result.
     *
     * @param currentTime
     *   The current timestamp.
     * @param resourceMap
-    *   The map of available [[TaskResource]]s.
+    *   The current [[ResourceMap]].
     * @param schedules
-    *   The map of [[Schedule]]s for each [[TaskResource]].
+    *   The map of [[WeightedSchedule]]s for each [[Resource]].
     * @param tasks
     *   The set of [[TaskInstance]]s that need to start.
     * @param result

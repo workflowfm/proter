@@ -293,7 +293,7 @@ trait CaseTester extends AsyncWordSpec with AsyncIOSpec with Matchers with Insid
     override def updateState(callbackUpdate: CallbackMap[IO]): AsyncCaseRef[IO] =
       copy(callbackMap = callbackUpdate)
 
-    override def run(): IO[SimState[IO]] = compose(task(t1, t1callback))
+    override def run(): IO[SimState[IO]] = applyState(task(t1, t1callback))
 
     val t1callback: Callback = {
       case Success((t, _)) => {
@@ -345,7 +345,7 @@ trait CaseTester extends AsyncWordSpec with AsyncIOSpec with Matchers with Insid
     override def updateState(callbackUpdate: CallbackMap[IO]): AsyncCaseRef[IO] =
       copy(callbackMap = callbackUpdate)
 
-    override def run(): IO[SimState[IO]] = compose(task(t1, t1callback))
+    override def run(): IO[SimState[IO]] = applyState(task(t1, t1callback))
 
     val t1callback: Callback = {
       case Success((t, _)) => task(t2, t2callback)
