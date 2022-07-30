@@ -15,6 +15,20 @@ import scala.collection.immutable.{ HashSet, Set, Map, Queue }
 import scala.util.{ Try, Success, Failure }
 import java.util.UUID
 
+/**
+  * A simulation state.
+  * 
+  * @param id A name for the entire simulation.
+  * @param scheduler The [[Scheduler]] being used.
+  * @param time The current time.
+  * @param events The [[EventQueue]] of pending discrete events.
+  * @param tasks Current running [[TaskInstance]]s.
+  * @param cases Indexed map of currently running [[CaseRef]]s.
+  * @param resources The [[ResourceMap]] of the resources used in the simulation. 
+  * @param waiting Indexed map of [[CaseRef]] names and corresponding finished tasks (if any)
+  *                from which we are expecting a response.
+  * @param abortedTasks Set of [[TaskInstance]]s that have been aborted.
+  */
 case class Simulation[F[_]](
     id: String,
     scheduler: Scheduler,
