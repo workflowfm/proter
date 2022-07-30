@@ -169,7 +169,8 @@ final case class ETaskDetach(
 ) extends Event
 
 object ETaskDetach {
-  def apply(source: String, t: Long, d: DetachedTask): ETaskDetach = 
+
+  def apply(source: String, t: Long, d: DetachedTask): ETaskDetach =
     ETaskDetach(source, t, d.start, d.task, d.resource)
 }
 
@@ -208,7 +209,8 @@ final case class EDone(override val source: String, override val time: Long) ext
   * @param error
   *   A string representation of the error.
   */
-final case class EError(override val source: String, override val time: Long, error: String) extends Event
+final case class EError(override val source: String, override val time: Long, error: String)
+    extends Event
 
 object Event {
 
@@ -224,7 +226,8 @@ object Event {
     case EStart(src, t) => s"[$t $src] === Simulation started! ==="
     case EDone(src, t) => s"[$t $src] === Simulation complete! ==="
     case ETimeLimit(src, t, l) => s"[$t $src] Set time limit at: $l"
-    case EResourceAdd(src, t, r) => s"[$t $src] Added resource: [${r.name}]. Capacity: ${r.capacity} - Cost/tick: ${r.costPerTick})"
+    case EResourceAdd(src, t, r) =>
+      s"[$t $src] Added resource: [${r.name}]. Capacity: ${r.capacity} - Cost/tick: ${r.costPerTick})"
     case ECaseAdd(src, t, a, s) => s"[$t $src] Added case [$a] to start at: $s"
     case EArrivalAdd(src, t, a, s, l) =>
       s"[$t $src] Added arrival of [$a] with limit [$l] to start at: $s"

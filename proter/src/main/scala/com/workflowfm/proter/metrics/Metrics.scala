@@ -21,32 +21,28 @@ import events.*
   *   5
   */
 final case class Metrics(
-  sStart: Option[Long], 
-  sEnd: Option[Long],
-  startTicks: Long,
-  endTicks: Long,
-  tasks: Map[UUID, TaskMetrics],
-  cases: Map[String, CaseMetrics],
-  resources: Map[String, ResourceMetrics],
-  errors: Queue[Metrics.MetricsException]
+    sStart: Option[Long],
+    sEnd: Option[Long],
+    startTicks: Long,
+    endTicks: Long,
+    tasks: Map[UUID, TaskMetrics],
+    cases: Map[String, CaseMetrics],
+    resources: Map[String, ResourceMetrics],
+    errors: Queue[Metrics.MetricsException]
 ) {
 
-  import Metrics.{ 
-    MetricsException, 
-    TaskNotFound, 
-    CaseNotFound, 
-    ResourceNotFound,
-  }
+  import Metrics.{ MetricsException, TaskNotFound, CaseNotFound, ResourceNotFound }
 
   /**
     * Marks the start of metrics measurement with the current system time.
     * @group Start/End
     */
   def started(t: Long): Metrics = sStart match {
-    case None => copy(
-      sStart = Some(System.currentTimeMillis()),
-      startTicks = t
-    )
+    case None =>
+      copy(
+        sStart = Some(System.currentTimeMillis()),
+        startTicks = t
+      )
     case _ => this
   }
 
@@ -59,25 +55,24 @@ final case class Metrics(
     endTicks = t
   )
 
-
   /**
     * Adds a new [[TaskMetrics]] instance, taking care of indexing automatically Overwrites a
     * previous instance with the same IDs
     * @group Set
     */
-  def +=(m: TaskMetrics): Metrics = copy( tasks = tasks + (m.id -> m) )
+  def +=(m: TaskMetrics): Metrics = copy(tasks = tasks + (m.id -> m))
   /**
     * Adds a new [[CaseMetrics]] instance, taking care of indexing automatically Overwrites a
     * previous instance with the same IDs
     * @group Set
     */
-  def +=(m: CaseMetrics): Metrics = copy( cases = cases + (m.name -> m) )
+  def +=(m: CaseMetrics): Metrics = copy(cases = cases + (m.name -> m))
   /**
     * Adds a new [[ResourceMetrics]] instance, taking care of indexing automatically Overwrites a
     * previous instance with the same IDs
     * @group Set
     */
-  def +=(m: ResourceMetrics): Metrics = copy( resources = resources + (m.name -> m) )
+  def +=(m: ResourceMetrics): Metrics = copy(resources = resources + (m.name -> m))
 
   /**
     * Initializes and adds a new [[TaskMetrics]] instance given a new [[TaskInstance]].
@@ -192,7 +187,6 @@ final case class Metrics(
       .map { m => this += u(m) }
       .getOrElse(exception(ResourceNotFound(resource)))
 
-
   /**
     * Updates all [[ResourceMetrics]] instances.
     *
@@ -207,10 +201,7 @@ final case class Metrics(
   def updateAllResources(
       u: ResourceMetrics => ResourceMetrics
   ): Metrics = {
-    copy( resources = 
-      resources
-        .map { (r, m) => (r, u(m)) }
-    )
+    copy(resources = resources.map { (r, m) => (r, u(m)) })
   }
 
   // Getters
@@ -258,7 +249,6 @@ final case class Metrics(
   def taskMetricsOf(s: CaseMetrics): Seq[TaskMetrics] =
     tasks.values.toSeq.filter(_.caseName.equals(s.name)).sortBy(_.started)
 
-
   def handle(evt: Event): Metrics = evt match {
     case EStart(_, t) => this.started(t).updateAllResources(_.start(t))
     case EDone(_, t) => updateAllResources(_.idle(t)).ended(t)
@@ -267,10 +257,11 @@ final case class Metrics(
     case ECaseStart(_, t, n) => addCase(n, t)
     case ECaseEnd(_, t, n, r) => updateCase(n)(_.done(r, t))
     case ETaskAdd(_, _, task) => addTask(task)
-    case ETaskStart(_, t, task) => 
+    case ETaskStart(_, t, task) =>
       updateTask(task)(_.start(t))
         .updateCase(task.caseName)(_.task(t - task.created, task.cost))
-    case ETaskAttach(_, t, task, r) => updateResource(r.resource.name)(_.task(t, task.resourceQuantity(r.resource.name)))
+    case ETaskAttach(_, t, task, r) =>
+      updateResource(r.resource.name)(_.task(t, task.resourceQuantity(r.resource.name)))
     case ETaskDetach(_, t, start, task, r) => {
       val q = task.resourceQuantity(r.resource.name)
       val cost = r.resource.costOf(t - start, q)
@@ -293,19 +284,19 @@ object Metrics {
 
   sealed abstract class MetricsException(message: String) extends Exception(message)
 
-  final case class TaskNotFound(id: UUID) 
+  final case class TaskNotFound(id: UUID)
       extends MetricsException(s"Tried to update metrics for task that does not exist: $id")
 
-  final case class CaseNotFound(caseName: String) 
-      extends MetricsException(s"Tried to update metrics for task that does not exist: $caseName")  
+  final case class CaseNotFound(caseName: String)
+      extends MetricsException(s"Tried to update metrics for task that does not exist: $caseName")
 
   final case class ResourceNotFound(name: String)
       extends MetricsException(s"Tried to update metrics for task that does not exist: $name")
 
   import io.circe.generic.semiauto._
 
-  given io.circe.Encoder[TaskMetrics] = deriveEncoder[TaskMetrics]  
-  given io.circe.Encoder[CaseMetrics] = deriveEncoder[CaseMetrics]  
+  given io.circe.Encoder[TaskMetrics] = deriveEncoder[TaskMetrics]
+  given io.circe.Encoder[CaseMetrics] = deriveEncoder[CaseMetrics]
   given io.circe.Encoder[ResourceMetrics] = deriveEncoder[ResourceMetrics]
   given io.circe.Encoder[MetricsException] = deriveEncoder[MetricsException]
 

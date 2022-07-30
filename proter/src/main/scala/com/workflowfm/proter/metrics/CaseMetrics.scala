@@ -34,11 +34,12 @@ final case class CaseMetrics(
   def addDuration(d: Long): CaseMetrics = copy(duration = duration + d)
   /** Adds some cost to the total cost. */
   def addCost(c: Double): CaseMetrics = copy(cost = cost + c)
+
   /** Adds some delay to the total delay. */
   def task(tdelay: Long, tcost: Double): CaseMetrics = copy(
-    tasks = tasks + 1, 
+    tasks = tasks + 1,
     delay = delay + tdelay,
-    cost = cost + tcost  
+    cost = cost + tcost
   )
 
   /**

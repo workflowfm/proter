@@ -141,12 +141,11 @@ object Simulation extends StateOps {
     case Right(u) => Monad[F].pure((r, Seq()))
   }
 
-  def inspectState[F[_] : Monad](f: Simulation[F] => Unit) = StateT.inspect[F, Simulation[F], Seq[Event]](
-    sim => {
+  def inspectState[F[_] : Monad](f: Simulation[F] => Unit) =
+    StateT.inspect[F, Simulation[F], Seq[Event]](sim => {
       f(sim)
       Seq()
-    }
-  )
+    })
 
   /**
     * Start a [[CaseRef]].
@@ -285,9 +284,12 @@ object Simulation extends StateOps {
             tasks = sim.tasks - task,
             resources = startedMap
           ),
-          ETaskStart(sim.id, sim.time, task) :: startedMap.get(task).map { r => 
-            ETaskAttach(sim.id, sim.time, task, r)
-          }.toList
+          ETaskStart(sim.id, sim.time, task) :: startedMap
+            .get(task)
+            .map { r =>
+              ETaskAttach(sim.id, sim.time, task, r)
+            }
+            .toList
         )
     }
   )
@@ -307,7 +309,7 @@ object Simulation extends StateOps {
   def abortTasks[F[_]](ids: Seq[UUID]): State[Simulation[F], Seq[Event]] = State(sim => {
     val (abortMap, detached) = sim.resources.stopTasks(ids)
     val abortEvents = ids.map { taskid => ETaskAbort(sim.id, sim.time, taskid) }
-    val detachEvents = detached.map( d => ETaskDetach(sim.id, sim.time, d) )
+    val detachEvents = detached.map(d => ETaskDetach(sim.id, sim.time, d))
     (
       sim.copy(resources = abortMap, abortedTasks = sim.abortedTasks ++ ids),
       detachEvents ++ abortEvents
@@ -335,7 +337,7 @@ object Simulation extends StateOps {
     val nonAbortedIds = nonAbortedTasks.map(_.id)
     val (stopMap, detached) = sim.resources.stopTasks(nonAbortedIds)
     val stopEvents = nonAbortedTasks.map { task => ETaskDone(sim.id, sim.time, task) }
-    val detachEvents = detached.map( d => ETaskDetach(sim.id, sim.time, d) )
+    val detachEvents = detached.map(d => ETaskDetach(sim.id, sim.time, d))
     val waits = nonAbortedTasks.groupBy(_.caseName)
     (
       sim.copy(

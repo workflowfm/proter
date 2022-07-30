@@ -49,6 +49,9 @@ case class Publisher[F[_]](topic: Topic[F, Either[Throwable, Event]], maxQueued:
         _ <- subscriber.init()
       } yield sub.through(subscriber)
     }
+
+  def stream: Stream[F, Either[Throwable, Event]] =
+    topic.subscribe(maxQueued)
 }
 
 object Publisher {
@@ -58,18 +61,20 @@ object Publisher {
   } yield (Publisher[F](topic, 10))
 }
 
-
 trait Subscriber[F[_]] extends Pipe[F, Either[Throwable, Event], Unit] {
   def init(): F[Unit]
 }
 
 object Subscriber {
-  given pipeConv[F[_] : Applicative]: Conversion[Pipe[F, Either[Throwable, Event], Unit], Subscriber[F]] with {
-  def apply(pipe: Pipe[F, Either[Throwable, Event], Unit]): Subscriber[F] = 
-    new Subscriber[F] {
-      override def apply(s: Stream[F, Either[Throwable, Event]]): Stream[F, Unit] = pipe(s)
 
-      override def init(): F[Unit] = Applicative[F].pure(())
-    }
+  given pipeConv[F[_] : Applicative]
+      : Conversion[Pipe[F, Either[Throwable, Event], Unit], Subscriber[F]] with {
+
+    def apply(pipe: Pipe[F, Either[Throwable, Event], Unit]): Subscriber[F] =
+      new Subscriber[F] {
+        override def apply(s: Stream[F, Either[Throwable, Event]]): Stream[F, Unit] = pipe(s)
+
+        override def init(): F[Unit] = Applicative[F].pure(())
+      }
   }
 }

@@ -1,0 +1,273 @@
+# Request Examples
+# 
+# Single arrival, single task, no resources
+#
+POST http://localhost:8080/simulate
+Content-Type: application/json
+
+{
+  "arrivals" : [
+    {
+      "name" : "Example1",
+      "flow" : {
+        "ITask" : {
+          "name" : "T1",
+          "duration" : {
+            "IConstant" : {
+              "value" : 1.0
+            }
+          },
+          "cost" : {
+            "IConstant" : {
+              "value" : 2.0
+            }
+          },
+          "resources" : [
+          ],
+          "priority" : 0
+        }
+      }
+    }
+  ],
+  "resources" : [
+  ],
+  "timeLimit" : null
+} 
+ 
+# 
+# Single arrival, 2 tasks, no resources
+#
+POST http://localhost:8080/simulate
+Content-Type: application/json
+
+{
+  "arrivals" : [
+    {
+      "name" : "Example1",
+      "flow" : {
+        "IThen" : {  
+          "args": [
+          {
+            "ITask" : {
+              "name" : "T1",
+              "duration" : {
+                "IConstant" : {
+                  "value" : 1.0
+                }
+              },
+              "cost" : {
+                "IConstant" : {
+                  "value" : 2.0
+                }
+              },
+              "resources" : [
+              ],
+              "priority" : 0
+            }
+          },
+          {
+            "ITask" : {
+              "name" : "T2",
+              "duration" : {
+                "IConstant" : {
+                  "value" : 2.0
+                }
+              },
+              "cost" : {
+                "IConstant" : {
+                  "value" : 3.0
+                }
+              },
+              "resources" : [
+              ],
+              "priority" : 0
+            }
+          }
+          ]       
+        }
+      }
+    }
+  ],
+  "resources" : [
+  ],
+  "timeLimit" : null
+} 
+
+# 
+# 1 arrival, 2 cases, 2 tasks, no resources
+#
+POST http://localhost:8080/simulate
+Content-Type: application/json
+
+{
+  "arrivals" : [
+    {
+      "name" : "Example1",
+      "flow" : {
+        "IThen" : {  
+          "args": [
+          {
+            "ITask" : {
+              "name" : "T1",
+              "duration" : {
+                "IConstant" : {
+                  "value" : 1.0
+                }
+              },
+              "cost" : {
+                "IConstant" : {
+                  "value" : 2.0
+                }
+              },
+              "resources" : [
+              ],
+              "priority" : 0
+            }
+          },
+          {
+            "ITask" : {
+              "name" : "T2",
+              "duration" : {
+                "IConstant" : {
+                  "value" : 2.0
+                }
+              },
+              "cost" : {
+                "IConstant" : {
+                  "value" : 3.0
+                }
+              },
+              "resources" : [
+              ],
+              "priority" : 0
+            }
+          }
+          ]       
+        }
+      },
+      "rate" : {
+        "IConstant" : {
+          "value" : 5.0
+        }
+      },
+      "limit" : 2
+    }
+  ],
+  "resources" : [
+  ],
+  "timeLimit" : null
+} 
+
+# 
+# 1 arrival, 3 cases, 2 tasks, 1 resource
+#
+POST http://localhost:8080/simulate
+Content-Type: application/json
+
+{
+  "arrivals" : [
+    {
+      "name" : "Example1",
+      "flow" : {
+        "IThen" : {  
+          "args": [
+          {
+            "ITask" : {
+              "name" : "T1",
+              "duration" : {
+                "IConstant" : {
+                  "value" : 5.0
+                }
+              },
+              "cost" : {
+                "IConstant" : {
+                  "value" : 2.0
+                }
+              },
+              "resources" : [
+              {
+                "resource": "Resource",
+                "quantity": 1
+              }
+              ],
+              "priority" : 0
+            }
+          },
+          {
+            "ITask" : {
+              "name" : "T2",
+              "duration" : {
+                "IConstant" : {
+                  "value" : 1.0
+                }
+              },
+              "cost" : {
+                "IConstant" : {
+                  "value" : 3.0
+                }
+              },
+              "resources" : [
+              ],
+              "priority" : 0
+            }
+          }
+          ]       
+        }
+      },
+      "rate" : {
+        "IConstant" : {
+          "value" : 1.0
+        }
+      },
+      "limit" : 3
+    }
+  ],
+  "resources" : [
+  {
+    "name": "Resource",
+    "capacity": 2,
+    "costPerTick": 1.0
+  }
+  ],
+  "timeLimit" : null
+} 
+
+# 
+# Infinite arrival, 1 task, no resources, starting at 1000, ending at 2000
+#
+POST http://localhost:8080/simulate
+Content-Type: application/json
+
+{
+  "arrivals" : [
+    {
+      "name" : "Example1",
+      "flow" : {
+        "ITask" : {
+          "name" : "T1",
+          "duration" : {
+            "IConstant" : {
+              "value" : 1.0
+            }
+          },
+          "cost" : {
+            "IConstant" : {
+              "value" : 2.0
+            }
+          },
+          "resources" : [],
+          "priority" : 0
+        }
+      },
+      "rate" : {
+        "IConstant" : {
+          "value" : 200.0
+        }
+      }
+    }
+  ],
+  "resources" : [
+  ],
+  "start": 1000,
+  "timeLimit" : 2000
+} 

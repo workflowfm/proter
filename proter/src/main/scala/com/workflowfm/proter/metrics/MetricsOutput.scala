@@ -2,7 +2,7 @@ package com.workflowfm.proter.metrics
 
 import cats.Applicative
 import cats.implicits.*
-import cats.effect.{ Sync, Resource }
+import cats.effect.{ Sync, Resource, Deferred, Concurrent }
 import cats.effect.std.Console
 import fs2.Pipe
 import java.text.SimpleDateFormat
@@ -25,8 +25,8 @@ trait FileOutput[F[_] : Sync] {
 
   def writeToFile(filePath: String, output: String): F[Unit] = {
     val file = new File(filePath)
-    outputStream(file).use { out => 
-      Sync[F].blocking(out.write(output)) 
+    outputStream(file).use { out =>
+      Sync[F].blocking(out.write(output))
     }
   }
 }
@@ -76,10 +76,16 @@ object MetricsOutput {
     } getOrElse (nullValue)
 
   def empty[F[_] : Applicative]: MetricsOutput[F] = new MetricsOutput[F] {
-    override def apply(metrics: Metrics): F[Unit] = Applicative[F].pure(()) 
+    override def apply(metrics: Metrics): F[Unit] = Applicative[F].pure(())
   }
 }
 
+case class MetricsResult[F[_] : Concurrent](result: Deferred[F, Metrics]) extends MetricsOutput[F] {
+
+  override def apply(metrics: Metrics): F[Unit] = {
+    result.complete(metrics).void
+  }
+}
 
 /** Generates a string representation of the metrics using a generalized CSV format. */
 trait MetricsStringOutput[F[_]] extends MetricsOutput[F] {
@@ -236,7 +242,7 @@ trait MetricsStringOutput[F[_]] extends MetricsOutput[F] {
 /** Prints all simulation metrics to standard output. */
 class MetricsPrinter[F[_] : Console] extends MetricsStringOutput[F] {
 
-  def apply(metrics: Metrics): F[Unit] = {
+  override def apply(metrics: Metrics): F[Unit] = {
     /** Separates the values. */
     val sep = "\t| "
     /** Separates metrics instances. */
@@ -287,18 +293,18 @@ Duration: ${MetricsOutput.formatDuration(metrics.sStart, metrics.sEnd, durFormat
   * @param name
   *   file name prefix
   */
-class CSVFile[F[_] : Sync](path: String, name: String) 
-  extends MetricsStringOutput[F] 
-  with FileOutput[F] {
-  
+class CSVFile[F[_] : Sync](path: String, name: String)
+    extends MetricsStringOutput[F]
+    with FileOutput[F] {
+
   val separator = ","
   val lineSep = "\n"
 
-  def apply(metrics: Metrics): F[Unit] = {
+  override def apply(metrics: Metrics): F[Unit] = {
     val taskFile = s"$path$name-tasks.csv"
     val caseFile = s"$path$name-simulations.csv"
     val resourceFile = s"$path$name-resources.csv"
-    
+
     val t = writeToFile(taskFile, taskHeader(separator) + "\n" + tasks(metrics, separator, lineSep))
     val c = writeToFile(
       caseFile,
@@ -331,8 +337,8 @@ class CSVFile[F[_] : Sync](path: String, name: String)
   *   the size of 1 unit of virtual time
   */
 class D3Timeline[F[_] : Sync](path: String, file: String, tick: Int = 1)
-  extends MetricsOutput[F]
-  with FileOutput[F] {
+    extends MetricsOutput[F]
+    with FileOutput[F] {
 
   override def apply(metrics: Metrics): F[Unit] = {
     val result = build(metrics, System.currentTimeMillis())

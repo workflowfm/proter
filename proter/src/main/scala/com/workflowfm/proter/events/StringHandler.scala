@@ -11,7 +11,8 @@ import cats.effect.implicits.*
 import fs2.{ Stream, Pipe }
 
 trait StringHandler[F[_] : Applicative : Clock] extends TimedHandler[F] {
-  def strPipe(newlines: Boolean): Pipe[F, Either[Throwable, Event], String] = 
+
+  def strPipe(newlines: Boolean): Pipe[F, Either[Throwable, Event], String] =
     _.through(timedEventPipe).map(timedEventToString(newlines))
   /**
     * A simple date formatter for printing the current (system) time.
@@ -26,16 +27,12 @@ trait StringHandler[F[_] : Applicative : Clock] extends TimedHandler[F] {
 
 }
 
-
 /**
   * An [[EventHandler]] that prints events to standard error.
   */
-class PrintEvents[F[_] : Clock : Sync] 
-    extends Subscriber[F]
-    with StringHandler[F]
-{
+class PrintEvents[F[_] : Clock : Sync] extends Subscriber[F] with StringHandler[F] {
 
-  override def apply(s: Stream[F, Either[Throwable, Event]]): Stream[F, Unit] = 
+  override def apply(s: Stream[F, Either[Throwable, Event]]): Stream[F, Unit] =
     s.through(strPipe(true))
       .through(fs2.io.stdoutLines[F, String]())
       .map(_ => ())
@@ -43,4 +40,3 @@ class PrintEvents[F[_] : Clock : Sync]
   override def init(): F[Unit] = Applicative[F].pure(())
 
 }
-
