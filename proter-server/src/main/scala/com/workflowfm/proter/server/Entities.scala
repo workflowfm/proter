@@ -30,6 +30,21 @@ final case class IRequest(
   if (timeLimit.isEmpty && arrivals.exists(_.infinite))
     throw new IllegalArgumentException("Infinite arrivals require a time limit.")
 
+  /**
+    * Validates that the resources referenced in the flow are defined in the resource list.
+    *
+    * @return
+    *   true if resource references are valid.
+    */
+  val matchingResources: Boolean = {
+    val definedResources: Set[String] = resources.map(_.name).toSet
+    val referencedResources: Set[String] =
+      arrivals.flatMap(arrival => arrival.flow.resourceNames).toSet
+    referencedResources.subsetOf(definedResources)
+  }
+
+  if (!matchingResources)
+    throw new IllegalArgumentException("Flow resources cannot be matched to the resource list.")
 }
 
 /**

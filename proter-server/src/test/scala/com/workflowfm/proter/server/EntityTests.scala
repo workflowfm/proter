@@ -123,10 +123,10 @@ class EntityTests extends AnyFunSuite with EntityTestHelper {
 
   test("Infinite Arrival Correct limit") {
     val taskList: List[ITask] = List(
-      ITask("A", IConstant(3.4), IConstant(3.4), require("R1"), 0),
-      ITask("B", IConstant(3.4), IConstant(3.4), require("R2"), 0),
-      ITask("C", IConstant(3.4), IConstant(3.4), require("R1", "R2"), 0),
-      ITask("D", IConstant(3.4), IConstant(3.4), require("R2"), 0)
+      ITask("A", IConstant(3.4), IConstant(3.4), List(), 0),
+      ITask("B", IConstant(3.4), IConstant(3.4), List(), 0),
+      ITask("C", IConstant(3.4), IConstant(3.4), List(), 0),
+      ITask("D", IConstant(3.4), IConstant(3.4), List(), 0)
     )
     val flow: IFlow = IThen(taskList)
     val arrival: IArrival = IArrival("Sim Name", flow, None, Some(IConstant(4.3)), None)
@@ -135,10 +135,10 @@ class EntityTests extends AnyFunSuite with EntityTestHelper {
 
   test("Finite Arrival Correct limit") {
     val taskList: List[ITask] = List(
-      ITask("A", IConstant(3.4), IConstant(3.4), require("R1"), 0),
-      ITask("B", IConstant(3.4), IConstant(3.4), require("R2"), 0),
-      ITask("C", IConstant(3.4), IConstant(3.4), require("R1", "R2"), 0),
-      ITask("D", IConstant(3.4), IConstant(3.4), require("R2"), 0)
+      ITask("A", IConstant(3.4), IConstant(3.4), List(), 0),
+      ITask("B", IConstant(3.4), IConstant(3.4), List(), 0),
+      ITask("C", IConstant(3.4), IConstant(3.4), List(), 0),
+      ITask("D", IConstant(3.4), IConstant(3.4), List(), 0)
     )
     val flow: IFlow = IThen(taskList)
     val arrival: IArrival = IArrival("Sim Name", flow, None, Some(IConstant(4.3)), Some(10))
@@ -147,10 +147,10 @@ class EntityTests extends AnyFunSuite with EntityTestHelper {
 
   test("Infinite Arrival Incorrect limit") {
     val taskList: List[ITask] = List(
-      ITask("A", IConstant(3.4), IConstant(3.4), require("R1"), 0),
-      ITask("B", IConstant(3.4), IConstant(3.4), require("R2"), 0),
-      ITask("C", IConstant(3.4), IConstant(3.4), require("R1", "R2"), 0),
-      ITask("D", IConstant(3.4), IConstant(3.4), require("R2"), 0)
+      ITask("A", IConstant(3.4), IConstant(3.4), List(), 0),
+      ITask("B", IConstant(3.4), IConstant(3.4), List(), 0),
+      ITask("C", IConstant(3.4), IConstant(3.4), List(), 0),
+      ITask("D", IConstant(3.4), IConstant(3.4), List(), 0)
     )
     val flow: IFlow = IThen(taskList)
     val arrival: IArrival = IArrival("Sim Name", flow, None, Some(IConstant(4.3)), None)

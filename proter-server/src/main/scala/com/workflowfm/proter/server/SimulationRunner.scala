@@ -35,10 +35,6 @@ class SimulationRunner[F[_] : Random : Async : UUIDGen](using monad: MonadError[
     */
   def handle(request: IRequest): F[Metrics] = {
 
-    if (!this.matchingResources(request)) {
-      monad.raiseError(new IllegalArgumentException("Resources do not match"))
-    }
-
     for {
       result <- Deferred[F, Metrics]
       simulator = Simulator[F](ProterScheduler).withSubs(
@@ -64,10 +60,6 @@ class SimulationRunner[F[_] : Random : Async : UUIDGen](using monad: MonadError[
     *   The event stream.
     */
   def stream(request: IRequest): Stream[F, Event] = {
-
-    if (!this.matchingResources(request)) {
-      monad.raiseError(new IllegalArgumentException("Resources do not match"))
-    }
 
     val simulator = Simulator[F](ProterScheduler)
     val scenario = getScenario(request)
@@ -153,24 +145,4 @@ class SimulationRunner[F[_] : Random : Async : UUIDGen](using monad: MonadError[
 
     requestObj.timeLimit.map(l => updated.withLimit(l)).getOrElse(updated)
   }
-
-  /**
-    * Validates that the resources referenced in tasks and flows are defined in the resource list.
-    *
-    * @param request
-    *   An [[IRequest]] object to validate.
-    * @return
-    *   a boolean
-    */
-  def matchingResources(request: IRequest): Boolean = {
-    val definedResources: Set[String] = request.resources.map(_.name).toSet
-    val referencedResources: Set[String] =
-      request.arrivals.flatMap(arrival => arrival.flow.resourceNames).toSet
-    if (referencedResources.subsetOf(definedResources)) {
-      true
-    } else {
-      false
-    }
-  }
-
 }

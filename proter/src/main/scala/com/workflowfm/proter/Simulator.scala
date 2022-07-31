@@ -161,7 +161,6 @@ final case class Simulator[F[_] : Concurrent](
     for {
       sResult <- sim.start(state)
       (updated, events) = sResult
-      _ = println("hi")
       _ <- events.map(publisher.publish(_)).sequence
       x <- updated.tailRecM(simRec(publisher))
     } yield (x)
