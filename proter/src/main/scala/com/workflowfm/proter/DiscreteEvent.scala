@@ -79,7 +79,7 @@ case class FinishingTask(override val time: Long, task: TaskInstance) extends Di
   * @param time
   *   The timestamp of the event
   * @param caseRef
-  *   The [[CaseRef]] that needs to start.
+  *   The [[cases.CaseRef CaseRef]] that needs to start.
   */
 case class StartingCase[F[_]](override val time: Long, caseRef: CaseRef[F]) extends DiscreteEvent {
   override val classOrder: Short = 10
@@ -141,10 +141,10 @@ case class Arrival[F[_] : Monad : Random, T](
   }
 
   /**
-    * Generates the next arrival event to be queued and [[CaseRef]] to add.
+    * Generates the next arrival event to be queued and [[cases.CaseRef CaseRef]] to add.
     *
     * @return
-    *   The next arrival event and [[CaseRef]], unless the limit is reached.
+    *   The next arrival event and [[cases.CaseRef CaseRef]], unless the limit is reached.
     */
   def next(): Option[F[(Arrival[F, T], CaseRef[F])]] = limit.filter(_ <= count) match {
     case None =>

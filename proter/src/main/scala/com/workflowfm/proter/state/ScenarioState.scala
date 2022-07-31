@@ -23,7 +23,7 @@ trait ScenarioState {
   /**
     * Adds a [[Resource]] to the simulation.
     *
-    * Produces an [[EResourceAdd]] event.
+    * Produces an [[events.EResourceAdd EResourceAdd]] event.
     *
     * @param r
     *   The [[Resource]] to add.
@@ -40,7 +40,7 @@ trait ScenarioState {
   /**
     * Adds a collection of [[Resource]]s to the simulation.
     *
-    * Produces an [[EResourceAdd]] event for each resource.
+    * Produces an [[events.EResourceAdd EResourceAdd]] event for each resource.
     *
     * @param rs
     *   The [[Resource]]s to add.
@@ -53,9 +53,9 @@ trait ScenarioState {
   })
 
   /**
-    * Adds a [[CaseRef]] to the simulation.
+    * Adds a [[cases.CaseRef CaseRef]] to the simulation.
     *
-    * Produces an [[ECaseAdd]] event.
+    * Produces an [[events.ECaseAdd ECaseAdd]] event.
     *
     * @param t
     *   The timestamp when the case needs to start. Must be greater or equal to the current
@@ -74,9 +74,9 @@ trait ScenarioState {
     )
 
   /**
-    * Adds a [[Case]] to the simulation.
+    * Adds a [[cases.Case Case]] to the simulation.
     *
-    * Produces an [[ECaseAdd]] event.
+    * Produces an [[events.ECaseAdd ECaseAdd]] event.
     *
     * @tparam T
     *   The type of the object used for the simulation case.
@@ -104,9 +104,9 @@ trait ScenarioState {
   )
 
   /**
-    * Adds a [[Case]] to be run in the '''current''' simulation time.
+    * Adds a [[cases.Case Case]] to be run in the '''current''' simulation time.
     *
-    * Produces an [[ECaseAdd]] event.
+    * Produces an [[events.ECaseAdd ECaseAdd]] event.
     *
     * @tparam T
     *   The type of the object used for the simulation case.
@@ -123,9 +123,9 @@ trait ScenarioState {
     StateT.inspect[F, Simulation[F], Long](_.time).flatMap { time => addCase(time, name, t) }
 
   /**
-    * Adds a collection of [[Case]]s to the simulation.
+    * Adds a collection of [[cases.Case Case]]s to the simulation.
     *
-    * Produces an [[ECaseAdd]] event for each case added.
+    * Produces an [[events.ECaseAdd ECaseAdd]] event for each case added.
     *
     * @tparam T
     *   The type of the object used for the simulation case.
@@ -141,9 +141,9 @@ trait ScenarioState {
     cases.map((t, n, c) => addCase(t, n, c)).sequence.map(_.flatten)
 
   /**
-    * Adds a collection of [[Case]]s to be run in the '''current''' simulation time.
+    * Adds a collection of [[cases.Case Case]]s to be run in the '''current''' simulation time.
     *
-    * Produces an [[ECaseAdd]] event for each case added.
+    * Produces an [[events.ECaseAdd ECaseAdd]] event for each case added.
     *
     * @tparam T
     *   The type of the object used for the simulation case.
@@ -158,9 +158,9 @@ trait ScenarioState {
     cases.map((n, c) => addCaseNow(n, c)).sequence.map(_.flatten)
 
   /**
-    * Adds a [[Case]] with an arrival pattern to the simulation.
+    * Adds a [[cases.Case Case]] with an arrival pattern to the simulation.
     *
-    * Produces an [[EArrivalAdd]] event.
+    * Produces an [[events.EArrivalAdd EArrivalAdd]] event.
     *
     * @tparam T
     *   The type of the object used for the simulation cases.
@@ -199,9 +199,9 @@ trait ScenarioState {
   )
 
   /**
-    * Adds a [[Case]] with an arrival pattern to start in the '''current''' simulation time.
+    * Adds a [[cases.Case Case]] with an arrival pattern to start in the '''current''' simulation time.
     *
-    * Produces an [[EArrivalAdd]] event.
+    * Produces an [[events.EArrivalAdd EArrivalAdd]] event.
     *
     * @tparam T
     *   The type of the object used for the simulation cases.
@@ -229,7 +229,7 @@ trait ScenarioState {
   /**
     * Sets a time limit for the simulation.
     *
-    * Produces an [[ETimeLimit]] event.
+    * Produces an [[events.ETimeLimit ETimeLimit]] event.
     *
     * @note
     *   Once a time limit is placed it cannot be removed. Multiple time limits can be set so that

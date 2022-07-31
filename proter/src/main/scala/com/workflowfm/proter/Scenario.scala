@@ -15,7 +15,7 @@ import state.*
   * Convenience class to construct simulation scenarios.
   *
   * Provides various functions to set simulation parameters and compile them in a
-  * [[Simulation.SimState]].
+  * [[state.Simulation.SimState SimState]].
   *
   * Parameters include resources, cases/arrivals, and start and ending times.
   *
@@ -37,7 +37,7 @@ final case class Scenario[F[_] : Monad](name: String, state: Simulation.SimState
     * Composes another simulation state update directly.
     *
     * @param s
-    *   The `SimState` to compose.
+    *   The [[state.Simulation.SimState SimState]] to compose.
     * @return
     *   The updated scenario.
     */
@@ -67,7 +67,7 @@ final case class Scenario[F[_] : Monad](name: String, state: Simulation.SimState
     and(lift(addResources(rs)))
 
   /**
-    * Adds a [[Case]] to the simulation scenario.
+    * Adds a [[cases.Case Case]] to the simulation scenario.
     *
     * The case will be scheduled to start in the '''current''' start time of the scenario.
     *
@@ -87,7 +87,7 @@ final case class Scenario[F[_] : Monad](name: String, state: Simulation.SimState
     and(addCaseNow(n, t))
 
   /**
-    * Adds a [[Case]] with a specified starting time to the simulation scenario.
+    * Adds a [[cases.Case Case]] with a specified starting time to the simulation scenario.
     *
     * @tparam T
     *   The type of the object used for the simulation case.
@@ -104,7 +104,7 @@ final case class Scenario[F[_] : Monad](name: String, state: Simulation.SimState
     and(addCase(time, n, t))
 
   /**
-    * Adds a collectiion of [[Case]]s to the simulation scenario.
+    * Adds a collectiion of [[cases.Case Case]]s to the simulation scenario.
     *
     * The cases will be scheduled to start in the '''current''' start time of the scenario.
     *
@@ -122,7 +122,7 @@ final case class Scenario[F[_] : Monad](name: String, state: Simulation.SimState
     and(addCasesNow(cases))
 
   /**
-    * Adds a collection of [[Case]]s, each with a specified starting time, to the simulation
+    * Adds a collection of [[cases.Case Case]]s, each with a specified starting time, to the simulation
     * scenario.
     *
     * @tparam T
@@ -137,7 +137,7 @@ final case class Scenario[F[_] : Monad](name: String, state: Simulation.SimState
     and(addCases(cases))
 
   /**
-    * Adds a [[Case]] with an arrival pattern to the simulation scenario.
+    * Adds a [[cases.Case Case]] with an arrival pattern to the simulation scenario.
     *
     * The first case will be scheduled to arrive in the '''current''' start time of the scenario.
     *
@@ -166,7 +166,7 @@ final case class Scenario[F[_] : Monad](name: String, state: Simulation.SimState
     and(addArrivalNow(n, t, rate, Some(limit)))
 
   /**
-    * Adds a [[Case]] with an arrival pattern and specified start time to the simulation scenario.
+    * Adds a [[cases.Case Case]] with an arrival pattern and specified start time to the simulation scenario.
     *
     * @tparam T
     *   The type of the object used for the simulation case.
@@ -193,7 +193,7 @@ final case class Scenario[F[_] : Monad](name: String, state: Simulation.SimState
     and(addArrival(time, n, t, rate, Some(limit)))
 
   /**
-    * Adds a [[Case]] with an infinite arrival pattern to the simulation scenario.
+    * Adds a [[cases.Case Case]] with an infinite arrival pattern to the simulation scenario.
     *
     * The first case will be scheduled to arrive in the '''current''' start time of the scenario.
     *
@@ -203,7 +203,7 @@ final case class Scenario[F[_] : Monad](name: String, state: Simulation.SimState
     * The scenario will continue to generate cases infinitely until the time limit has been reached.
     *
     * @see
-    *   [[withLimit]]
+    *   [[Scenario.withLimit]]
     *
     * @tparam T
     *   The type of the object used for the simulation case.
@@ -224,12 +224,12 @@ final case class Scenario[F[_] : Monad](name: String, state: Simulation.SimState
     and(addArrivalNow(n, t, rate, None))
 
   /**
-    * Adds a [[Case]] with an infinite arrival pattern and specified start time.
+    * Adds a [[cases.Case Case]] with an infinite arrival pattern and specified start time.
     *
     * The scenario will continue to generate cases infinitely until the time limit has been reached.
     *
     * @see
-    *   [[withLimit]]
+    *   [[Scenario.withLimit]]
     *
     * @tparam T
     *   The type of the object used for the simulation case.

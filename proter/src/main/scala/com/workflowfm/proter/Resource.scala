@@ -45,7 +45,7 @@ case class Resource(name: String, capacity: Int, costPerTick: Double) {
   * @param resource
   *   The associated [[Resource]].
   * @param currentTasks
-  *   A `Map` of attached [[TaskInstances]] paired with their starting times and indexed by their
+  *   A `Map` of attached [[TaskInstance]]s paired with their starting times and indexed by their
   *   IDs.
   */
 case class ResourceState(resource: Resource, currentTasks: Map[UUID, (Long, TaskInstance)]) {
@@ -163,7 +163,7 @@ case class ResourceMap(resources: Map[String, ResourceState]) {
     copy(resources ++ (resourcesToAdd.map { r => r.name -> r.start }))
 
   /**
-    * Attach a [[TaskInstance]] to all associated [[ReourceState]]s.
+    * Attach a [[TaskInstance]] to all associated [[ResourceState]]s.
     *
     * @param task
     *   The [[TaskInstance]] to attach.
@@ -182,7 +182,7 @@ case class ResourceMap(resources: Map[String, ResourceState]) {
     )).toSeq.sequence.map { stateUpdates => copy(resources = resources ++ stateUpdates) }
 
   /**
-    * Detach a [[TaskInstance]] from all associated [[ReourceState]]s.
+    * Detach a [[TaskInstance]] from all associated [[ResourceState]]s.
     *
     * @param id
     *   The ID of the [[TaskInstance]] to detach.
@@ -200,7 +200,7 @@ case class ResourceMap(resources: Map[String, ResourceState]) {
   }
 
   /**
-    * Detach multiple [[TaskInstance]]s from all associated [[ReourceState]]s.
+    * Detach multiple [[TaskInstance]]s from all associated [[ResourceState]]s.
     *
     * @param ids
     *   The IDs of the [[TaskInstance]]s to detach.
@@ -295,7 +295,7 @@ object ResourceMap {
   * @param start
   *   The timestamp when the task was attached originally.
   * @param task
-  *   The detached [[TaskKInstance]].
+  *   The detached [[TaskInstance]].
   * @param resource
   *   The updated [[ResourceState]].
   */

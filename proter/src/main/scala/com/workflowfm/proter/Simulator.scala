@@ -17,9 +17,9 @@ import cats.effect.implicits.*
   * Runs simulations.
   *
   * @param scheduler
-  *   The [[Scheduler]] to use during simulation.
+  *   The [[schedule.Scheduler Scheduler]] to use during simulation.
   * @param subscribers
-  *   The [[Subscriber]]s that should receive events.
+  *   The [[events.Subscriber Subscriber]]s that should receive events.
   */
 final case class Simulator[F[_] : Concurrent](
     scheduler: Scheduler,
@@ -27,40 +27,40 @@ final case class Simulator[F[_] : Concurrent](
 ) extends ScenarioState {
 
   /**
-    * Updates the [[Scheduler]] to be used during simulation.
+    * Updates the [[schedule.Scheduler Scheduler]] to be used during simulation.
     *
     * @param s
-    *   The new [[Scheduler]].
+    *   The new [[schedule.Scheduler Scheduler]].
     * @return
     *   The updated simulator.
     */
   def withScheduler(s: Scheduler): Simulator[F] = copy(scheduler = s)
 
   /**
-    * Updates to using a single [[Subscriber]].
+    * Updates to using a single [[events.Subscriber Subscriber]].
     *
     * @param sub
-    *   The new [[Subscriber]].
+    *   The new [[events.Subscriber Subscriber]].
     * @return
     *   The updated simulator.
     */
   def withSub(sub: Subscriber[F]): Simulator[F] = copy(subscribers = Seq(sub))
 
   /**
-    * Updates to using new [[Subscriber]]s.
+    * Updates to using new [[events.Subscriber Subscriber]]s.
     *
     * @param subs
-    *   The new [[Subscriber]]s.
+    *   The new [[events.Subscriber Subscriber]]s.
     * @return
     *   The updated simulator.
     */
   def withSubs(subs: Subscriber[F]*): Simulator[F] = copy(subscribers = subs)
 
   /**
-    * Adds additional [[Subscriber]]s.
+    * Adds additional [[events.Subscriber Subscriber]]s.
     *
     * @param subs
-    *   The new [[Subscriber]]s to add.
+    *   The new [[events.Subscriber Subscriber]]s to add.
     * @return
     *   The updated simulator.
     */
@@ -78,18 +78,18 @@ final case class Simulator[F[_] : Concurrent](
     simulateState(scenario.name, scenario.state)
 
   /**
-    * Simulates a [[Scenario]] and streams the [[Event]]s.
+    * Simulates a [[Scenario]] and streams the [[events.Event Event]]s.
     *
     * @param scenario
     *   The [[Scenario]] to simulate.
     * @return
-    *   A stream of [[Event]]s or `Throwable` errors.
+    *   A stream of [[events.Event Event]]s or `Throwable` errors.
     */
   def stream(scenario: Scenario[F]): Stream[F, Either[Throwable, Event]] =
     streamState(scenario.name, scenario.state)
 
   /**
-    * Runs a simulation from a given [[Simulation.SimState]].
+    * Runs a simulation from a given [[state.Simulation.SimState SimState]].
     *
     * @param name
     *   A name to use for the simulation.
@@ -111,14 +111,14 @@ final case class Simulator[F[_] : Concurrent](
   } yield (())
 
   /**
-    * Runs and streams a simulation from a given [[Simulation.SimState]].
+    * Runs and streams a simulation from a given [[state.Simulation.SimState SimState]].
     *
     * @param name
     *   A name to use for the simulation.
     * @param state
     *   The starting state.
     * @return
-    *   A stream of [[Event]]s or `Throwable` errors.
+    *   A stream of [[events.Event Event]]s or `Throwable` errors.
     */
   def streamState(
       name: String,
@@ -139,7 +139,7 @@ final case class Simulator[F[_] : Concurrent](
     .flatten
 
   /**
-    * Runs a [[Simulation.SimState]] with a given [[Publisher]].
+    * Runs a [[state.Simulation.SimState SimState]] with a given [[events.Publisher Publisher]].
     *
     * Subscribers should be handled externally. We are only publishing here.
     *
@@ -148,7 +148,7 @@ final case class Simulator[F[_] : Concurrent](
     * @param state
     *   The starting state.
     * @param publisher
-    *   The [[Publisher]] to use.
+    *   The [[events.Publisher Publisher]] to use.
     * @return
     *   An effect producing `Unit` when the simulation finishes..
     */

@@ -18,7 +18,7 @@ trait Scheduler {
     * @param currentTime
     *   The current timestamp.
     * @param resourceMap
-    *   The map of available [[TaskResource]]s.
+    *   The [[ResourceMap]] of available resources.
     * @return
     *   The sequence of [[TaskInstance]]s to start now.
     */

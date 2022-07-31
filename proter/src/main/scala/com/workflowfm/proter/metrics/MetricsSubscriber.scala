@@ -8,7 +8,7 @@ import fs2.Stream
 import events.{ Event, Subscriber }
 
 /**
-  * A [[Subscriber]] that compiles and outputs [[Metrics]].
+  * A [[events.Subscriber Subscriber]] that compiles and outputs [[Metrics]].
   *
   * Runs all outputs concurrently.
   *
@@ -29,7 +29,7 @@ final case class MetricsParSubscriber[F[_] : Concurrent](outputs: MetricsOutput[
 }
 
 /**
-  * A [[Subscriber]] that compiles and outputs [[Metrics]].
+  * A [[events.Subscriber Subscriber]] that compiles and outputs [[Metrics]].
   *
   * Runs all outputs in sequence.
   *

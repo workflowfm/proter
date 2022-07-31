@@ -117,12 +117,12 @@ trait MetricsStringOutput[F[_]] extends MetricsOutput[F] {
     * String representation of a [[TaskMetrics]] instance.
     *
     * @param separator
-    *   A string (such as a space or comma) to separate the values
+    *   A string (such as a space or comma) to separate the values.
     * @param resSeparator
-    *   A string (such as a space or comma) to separate the list of names of [[TaskResource]]s in
-    *   [[TaskMetrics]]
+    *   A string (such as a space or comma) to separate the list of names of [[Resource]]s in
+    *   [[TaskMetrics]].
     * @param m
-    *   the [[TaskMetrics]] instance to be handled
+    *   The [[TaskMetrics]] instance to be handled.
     */
   def taskCSV(separator: String, resSeparator: String)(m: TaskMetrics): String = m match {
     case TaskMetrics(id, task, sim, priority, ct, st, dur, cost, res, aborted) =>
@@ -151,12 +151,12 @@ trait MetricsStringOutput[F[_]] extends MetricsOutput[F] {
     Seq("Name", "Start", "Duration", "Delay", "Tasks", "Cost", "Result").mkString(separator)
 
   /**
-    * String representation of a [[SimulationMetrics]] instance.
+    * String representation of a [[CaseMetrics]] instance.
     *
     * @param separator
     *   A string (such as a space or comma) to separate the values
     * @param m
-    *   the [[SimulationMetrics]] instance to be handled
+    *   The [[CaseMetrics]] instance to be handled.
     */
   def caseCSV(separator: String)(m: CaseMetrics): String = m match {
     case CaseMetrics(name, st, dur, delay, ts, c, res) =>

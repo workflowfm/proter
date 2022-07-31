@@ -113,7 +113,7 @@ object Flow {
 }
 
 /**
-  * A [[CaseRef]] for a [[Flow]].
+  * A [[cases.CaseRef CaseRef]] for a [[Flow]].
   *
   * It uses a [[Flow]] structure which describes how and in what order certain tasks should be
   * executed. A Flow may consist of a single [[FlowTask]] or some combination of [[FlowTask]]s which
@@ -124,7 +124,7 @@ object Flow {
   * @param flow
   *   The flow which describes how the case should behave.
   * @param callbackMap
-  *   The map of callbacks for an extended [[AsyncCaseRef]] implementation.
+  *   The map of callbacks for an extended [[cases.AsyncCaseRef AsyncCaseRef]] implementation.
   */
 case class FlowCaseRef[F[_] : Monad : UUIDGen : Random](
     override val caseName: String,
@@ -147,7 +147,7 @@ case class FlowCaseRef[F[_] : Monad : UUIDGen : Random](
   /**
     * Completes an id by executing its callback and then removing it from the map.
     *
-    * This overloads the definition of `complete` found in [[AsynCaseRef]] to allow for ''any''' id
+    * This overloads the definition of `complete` found in [[cases.AsyncCaseRef AsyncCaseRef]] to allow for ''any''' id
     * to be used in the `tasks` map, and not just [[TaskInstance]]s.
     *
     * @param id

@@ -9,17 +9,11 @@ import events.*
 /**
   * Collects/aggregates metrics across multiple tasks, resources, and cases.
   *
-  * @groupprio Values
-  *   1
-  * @groupprio Start/End
-  *   2
-  * @groupprio Set
-  *   3
-  * @groupprio Update
-  *   4
-  * @groupprio Get
-  *   5
-  *
+  * @groupprio Start/End 2
+  * @groupprio Set 3
+  * @groupprio Update 4
+  * @groupprio Get 5
+  * 
   * @param start
   *   The system time in milliseconds when the simulation started.
   * @param end
@@ -123,7 +117,7 @@ final case class Metrics(
     this += ResourceMetrics(t, r)
 
   /**
-    * Adds a new [[MetricsException]].
+    * Adds a new [[Metrics.MetricsException MetricsException]].
     *
     * @group Set
     */
@@ -256,7 +250,7 @@ final case class Metrics(
   def taskSet: Set[String] = tasks.values.map(_.task).toSet[String]
 
   /**
-    * All the tracked [[TaskMetrics]] instances associated with a [[TaskResource]], sorted by
+    * All the tracked [[TaskMetrics]] instances associated with a [[Resource]], sorted by
     * starting time.
     *
     * @param r
@@ -272,14 +266,14 @@ final case class Metrics(
     * Returns all the tracked instances of [[TaskMetrics]] associated with a particular simulation,
     * sorted by starting time.
     * @param r
-    *   the tracked [[SimulationMetrics]] of the resource
+    *   The tracked [[TaskMetrics]] related to the resource.
     * @group Get
     */
   def taskMetricsOf(s: CaseMetrics): Seq[TaskMetrics] =
     tasks.values.toSeq.filter(_.caseName.equals(s.name)).sortBy(_.started)
 
   /**
-    * Convert [[Event]]s to metrics updates.
+    * Convert [[events.Event Event]]s to metrics updates.
     */
   def handle(evt: Event): Metrics = evt match {
     case EStart(_, t) => this.started(t).updateAllResources(_.start(t))

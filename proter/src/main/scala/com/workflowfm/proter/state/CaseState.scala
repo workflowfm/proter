@@ -16,7 +16,7 @@ import scala.util.{ Try, Success, Failure }
 import java.util.UUID
 
 /**
-  * Includes simulation state updates required when executing a [[Case]]/[[CaseRef]].
+  * Includes simulation state updates required when executing a [[cases.CaseRef CaseRef]].
   */
 trait CaseState extends ScenarioState {
 
@@ -26,11 +26,12 @@ trait CaseState extends ScenarioState {
     *   - Uses [[Task.create]] to create a [[TaskInstance]], which will now have a fixed duration
     *     and cost.
     *   - Publishes a [[com.workflowfm.proter.events.ETaskAdd ETaskAdd]].
-    *   - If the task does not require any resources, it is started immediately using [[startTask]].
+    *   - If the task does not require any resources, it is started immediately using
+    *     [[Simulation.startTask]].
     *
     * @group tasks
     * @param caseName
-    *   The name of the [[CaseRef]] that owns the task.
+    *   The name of the [[cases.CaseRef CaseRef]] that owns the task.
     * @param task
     *   The [[Task]] to be added.
     * @return
@@ -59,7 +60,7 @@ trait CaseState extends ScenarioState {
     *
     * @group tasks
     * @param caseName
-    *   The name of the [[CaseRef]] that owns the task.
+    *   The name of the [[cases.CaseRef CaseRef]] that owns the task.
     * @param tasks
     *   The [[Task]]s to be added.
     * @return
@@ -87,16 +88,16 @@ trait CaseState extends ScenarioState {
     Simulation.abortTasks(ids)
 
   /**
-    * Updates the simulation with a completed [[CaseRef]].
+    * Updates the simulation with a completed [[cases.CaseRef CaseRef]].
     *
     * @see
     *   [[Simulation.stopCase]]
     *
     * @group cases
     * @param caseName
-    *   The name of the [[CaseRef]].
+    *   The name of the [[cases.CaseRef CaseRef]].
     * @param result
-    *   The result produced by the completed [[CaseRef]].
+    *   The result produced by the completed [[cases.CaseRef CaseRef]].
     * @return
     *   The state update.
     */
@@ -115,13 +116,13 @@ trait CaseState extends ScenarioState {
   }
 
   /**
-    * Updates a [[CaseRef]].
+    * Updates a [[cases.CaseRef CaseRef]].
     *
     * @group cases
     * @param caseName
-    *   The name of the [[CaseRef]].
+    *   The name of the [[cases.CaseRef CaseRef]].
     * @param c
-    *   The new [[CaseRef]] reflecting the new state of the case.
+    *   The new [[cases.CaseRef CaseRef]] reflecting the new state of the case.
     * @return
     *   The state update.
     */

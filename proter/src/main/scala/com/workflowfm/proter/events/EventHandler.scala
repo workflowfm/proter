@@ -102,7 +102,7 @@ object CountEvents {
   * Listens for the end of a specific case and handles its result.
   *
   * @param name
-  *   The name of the [[CaseRef]] to listen for.
+  *   The name of the [[cases.CaseRef CaseRef]] to listen for.
   * @param result
   *   The deferred result output from the case.
   */
@@ -112,7 +112,7 @@ class GetCaseResult[F[_] : Monad](caseName: String, result: Deferred[F, String])
   /**
     * @inheritdoc
     *
-    * If the event is [[ESimEnd]] and the simulation name matches then we record the case result.
+    * If the event is [[ECaseEnd]] and the simulation name matches then we record the case result.
     */
   override def onEvent(evt: Event): F[Unit] = evt match {
     case ECaseEnd(_, _, n, r) if n == caseName => {
