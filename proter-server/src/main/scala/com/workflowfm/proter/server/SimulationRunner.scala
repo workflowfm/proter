@@ -26,12 +26,12 @@ class SimulationRunner[F[_] : Random : Async : UUIDGen](using monad: MonadError[
   import Entities.given
 
   /**
-    * This top level function should take an IRequest and then return a Results object
+    * Simulates a scenario described by an [[IRequest]] and returns the calculated [[metrics.Metrics Metrics]].
     *
     * @param request
-    *   The input IRequest
+    *   The input [[IRequest]].
     * @return
-    *   A Results object
+    *   The resulting [[metrics.Metrics Metrics]].
     */
   def handle(request: IRequest): F[Metrics] = {
 
@@ -55,6 +55,14 @@ class SimulationRunner[F[_] : Random : Async : UUIDGen](using monad: MonadError[
 
   }
 
+  /**
+    * Simulates a scenario described by an [[IRequest]] and returns a stream of [[events.Event Event]]s.
+    *
+    * @param request
+    *   The input [[IRequest]].
+    * @return
+    *   The event stream.
+    */
   def stream(request: IRequest): Stream[F, Event] = {
 
     if (!this.matchingResources(request)) {
@@ -75,10 +83,12 @@ class SimulationRunner[F[_] : Random : Async : UUIDGen](using monad: MonadError[
   }
 
   /**
-    * Method takes a decoded request and adds to the given coordinator the details of the request
+    * Constructs a simulation [[Scenario]] from an [[IRequest]] object.
     *
-    * @param coord
     * @param requestObj
+    *   The [[IRequest]] object.
+    * @return 
+    *   The constructed [[Scenario]].
     */
   def getScenario(requestObj: IRequest): Scenario[F] = {
 
@@ -145,11 +155,10 @@ class SimulationRunner[F[_] : Random : Async : UUIDGen](using monad: MonadError[
   }
 
   /**
-    * This checks to ensure that the request has matching resources, as in ensuring the resources
-    * referenced in the Tasks are defined in the resource list
+    * Validates that the resources referenced in tasks and flows are defined in the resource list.
     *
     * @param request
-    *   An IRequest object to check
+    *   An [[IRequest]] object to validate.
     * @return
     *   a boolean
     */

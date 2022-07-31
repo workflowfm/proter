@@ -6,16 +6,20 @@ import flows.{ Flow, FlowTask }
 /**
   * This file contains a number of case classes that are used as intermediate objects used in the
   * process of converting the JSON sent to this system to the objects and structure required by
-  * Proter to run simulations
+  * Proter to run simulations.
   */
 
 /**
-  * IRequest is the highest level object for encoding a request for proter execution
+  * The highest level object encoding a request for simulation.
   *
+  * @param start
+  *   An optional starting timestamp (default: 0).
   * @param arrival
-  *   Defines how simulations arrive
+  *   The cases and arrivals to simulate.
   * @param resources
-  *   Contains the definitions of resources that are referenced in the arrival
+  *   The resources to use in the simulation.
+  * @param timeLimit
+  *   An optional time limit for the simulation. Must be defined if an infinite arrival is provided.
   */
 final case class IRequest(
     start: Option[Long],
@@ -29,20 +33,18 @@ final case class IRequest(
 }
 
 /**
-  * Defines how often simulations are to start
+  * Defines a [[flows.Flow Flow]]-based case or arrival pattern of cases.
   *
-  * @param simulation
-  *   The simulation that is to be started
-  * @param infinite
-  *   If the arrival is infinite then this should be true
+  * @param name
+  *   A unique name to use for the case(s).
+  * @param flow
+  *   The flow to run for the case(s).
+  * @param start
+  *   An optional start time for the case(s) (default: simulation starting time).
   * @param rate
-  *   The rate at which new simulation should be started
-  * @param simulationLimit
-  *   If infinite is false then this determines how many simulations should be run in total before
-  *   stopping
-  * @param timeLimit
-  *   If infinite is true then this determines for how long the simulation should be run before
-  *   stopping
+  *   An optional distribution describing the duration until the next arrival (default: never).
+  * @param limit
+  *   An optional limit to the number of cases to generate (default: infinite).
   */
 final case class IArrival(
     name: String,
@@ -57,19 +59,34 @@ final case class IArrival(
 }
 
 /**
-  * A flow describes a number of tasks as well as the order in which they are executed
-  *
-  * @param tasks
-  *   A list of tasks
-  * @param ordering
-  *   The order in which they occur, this is encoded as a string containing the names of the tasks
-  *   separated with "->" to determine order
+  * A structural representation of a [[flows.Flow Flow]].
   */
 sealed trait IFlow {
+  /** 
+    * Retrieve the actual [[flows.Flow Flow]].
+    * 
+    * @return
+    *   The flow.
+    */
   def flow: Flow
+
+  /** 
+    * The set of names of [[Resource]]s used in the flow.
+    * 
+    * This is used for validation. 
+    * 
+    * @return
+    *   A set of [[Resource]] names.
+    */
   def resourceNames: Set[String]
 }
 
+/**
+  * A structural representation of a sequential [[flows.Then Then]] flow.
+  * 
+  * @param args
+  *   The sub-flows to run in sequence. Must be non-empty.
+  */
 final case class IThen(args: List[IFlow]) extends IFlow {
   if (args.isEmpty)
     throw new IllegalArgumentException("Empty IThen arguments.")
@@ -78,6 +95,12 @@ final case class IThen(args: List[IFlow]) extends IFlow {
   override def resourceNames: Set[String] = args.flatMap(_.resourceNames).toSet
 }
 
+/**
+  * A structural representation of a parallel [[flows.And And]] flow.
+  * 
+  * @param args
+  *   The sub-flows to run in parallel. Must be non-empty.
+  */
 final case class IPar(args: List[IFlow]) extends IFlow {
   if (args.isEmpty)
     throw new IllegalArgumentException("Empty IPar arguments.")
@@ -87,19 +110,18 @@ final case class IPar(args: List[IFlow]) extends IFlow {
 }
 
 /**
-  * This defines a task with all its details
+  * An intermediate, serializable abstraction of a [[Task]].
   *
   * @param name
-  *   The name of the task
+  *   The name of the task.
   * @param duration
-  *   A distribution describing the duration of the task
+  *   A distribution describing the duration of the task.
   * @param cost
-  *   A distribution describing the cost of the task
+  *   A distribution describing the cost of the task.
   * @param resources
-  *   A string containing the names of the resources the task requires (if multiple they should be
-  *   separated with a comma)
+  *   A list of required resources.
   * @param priority
-  *   The priority of the task (from -2 being the lowest to 2 being the highest)
+  *   A numerical priority for the task.
   */
 final case class ITask(
     name: String,
@@ -110,10 +132,10 @@ final case class ITask(
 ) extends IFlow {
 
   /**
-    * This method converts this intermediate task object into a Proter Task
+    * Converts the intermediate representation to the actual [[Task]].
     *
     * @return
-    *   A proter task
+    *   The [[Task]].
     */
   lazy val task: Task = {
     Task(this.name, this.duration.toProterDistribution())
@@ -127,6 +149,15 @@ final case class ITask(
 
 }
 
+
+/**
+  * An intermediate, serializable abstraction of a [[Resource]] requirement for a [[Task]].
+  * 
+  * @param resource
+  *   The name of the required resource.
+  * @param quantity
+  *   The amount of resource capacity required.
+  */
 final case class IRequiredResource(resource: String, quantity: Int) {
   if (quantity <= 0)
     throw new IllegalArgumentException(
@@ -135,12 +166,14 @@ final case class IRequiredResource(resource: String, quantity: Int) {
 }
 
 /**
-  * This defines a resource
+  * An intermediate representation of a [[Resource]].
   *
   * @param name
-  *   The name of the resource
+  *   The name of the resource.
+  * @param capacity
+  *   The units of capacity of the resource. Must be greater than 0.
   * @param costPerTick
-  *   The Cost per time unit for the resource
+  *   The cost per time unit for the resource. Must be non-negative.
   */
 case class IResource(name: String, capacity: Int, costPerTick: Double) {
   if (costPerTick < 0)
@@ -153,9 +186,10 @@ case class IResource(name: String, capacity: Int, costPerTick: Double) {
     )
 
   /**
-    * Converts this intermediate object to a Proter Resource
+    * Converts this intermediate object to the actual [[Resource]].
     *
     * @return
+    *   The [[Resource]].
     */
   def toProterResource(): Resource = {
     new Resource(this.name, this.capacity, this.costPerTick)
@@ -163,10 +197,25 @@ case class IResource(name: String, capacity: Int, costPerTick: Double) {
 
 }
 
+/**
+  * An intermediate, serializable representation of a [[Distribution]].
+  */
 sealed trait IDistribution {
+  /**
+    * Converts this intermediate object to the actual [[Distribution]].
+    *
+    * @return
+    *   The [[Distribution]].
+    */
   def toProterDistribution(): Distribution
 }
 
+/**
+  * An intermediate, serializable representation of a [[Constant]] distribution.
+  * 
+  * @param value
+  *   The constant value.
+  */
 final case class IConstant(value: Double) extends IDistribution {
   if (value < 0.0) {
     throw new IllegalArgumentException(s"Constant value must be non-negative: $value")
@@ -176,6 +225,12 @@ final case class IConstant(value: Double) extends IDistribution {
     Constant(value)
 }
 
+/**
+  * An intermediate, serializable representation of a [[Exponential]] distribution.
+  * 
+  * @param value
+  *   The mean value.
+  */
 final case class IExp(value: Double) extends IDistribution {
   if (value < 0.0) {
     throw new IllegalArgumentException(s"Exponential value must be non-negative: $value")
@@ -185,6 +240,14 @@ final case class IExp(value: Double) extends IDistribution {
     Exponential(value)
 }
 
+/**
+  * An intermediate, serializable representation of a [[Uniform]] distribution.
+  * 
+  * @param from
+  *   The minimum value.
+  * @param to
+  *   The maximum value.
+  */
 final case class IUniform(from: Double, to: Double) extends IDistribution {
   if (from < 0.0 || to < 0.0) {
     throw new IllegalArgumentException(s"Uniform range must be non-negative: $from-$to")
