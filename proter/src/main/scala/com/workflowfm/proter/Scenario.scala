@@ -95,8 +95,8 @@ final case class Scenario[F[_] : Monad](name: String, state: Simulation.SimState
     * Manipulating the scenario start time ''after'' adding the cases may have unintended effects,
     * such as having a case start time in the past. 
     * 
-    * @tparam T The type of the objects used for the simulation case.
-    * @param cases The objects to use for the simulation case,
+    * @tparam T The type of the objects used for the simulation cases.
+    * @param cases The objects to use for each simulation case,
     *              each paired with its own unique name.
     * @return The updated scenario.
     */

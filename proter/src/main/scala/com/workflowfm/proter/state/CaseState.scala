@@ -15,22 +15,26 @@ import scala.collection.immutable.{ HashSet, Set, Map, Queue }
 import scala.util.{ Try, Success, Failure }
 import java.util.UUID
 
+/**
+  * Includes simulation state updates required when executing a [[Case]]/[[CaseRef]].
+  */
 trait CaseState extends ScenarioState {
 
   /**
-    * Adds new [[Task]](s) for a simulation.
+    * Adds a new [[Task]].
     *
     *   - Uses [[Task.create]] to create a [[TaskInstance]], which will now have a fixed duration
     *     and cost.
     *   - Publishes a [[com.workflowfm.proter.events.ETaskAdd ETaskAdd]].
     *   - If the task does not require any resources, it is started immediately using [[startTask]].
-    *     Otherwise, we add it to the [[schedule.Scheduler Scheduler]].
     *
     * @group tasks
-    * @param simulation
-    *   The name of the [[Simulation]] that owns the task(s).
+    * @param caseName
+    *   The name of the [[CaseRef]] that owns the task.
     * @param task
-    *   The list of [[Task]]s to be added.
+    *   The [[Task]] to be added.
+    * @return
+    *   The state update.
     */
   def addTask[F[_] : Random : Monad](
       caseName: String
@@ -47,25 +51,51 @@ trait CaseState extends ScenarioState {
     }
   })
 
+  /**
+    * Adds a collection of new [[Task]]s.
+    *
+    * @see [[addTask]] 
+    *
+    * @group tasks
+    * @param caseName
+    *   The name of the [[CaseRef]] that owns the task.
+    * @param tasks
+    *   The [[Task]]s to be added.
+    * @return
+    *   The state update.
+    */
   def addTasks[F[_] : Random : Monad](
       caseName: String,
       tasks: Seq[Task]
   ): StateT[F, Simulation[F], Seq[Event]] =
     tasks.traverse(addTask(caseName)).map(_.flatten)
 
+  /**
+    * Aborts a list of [[TaskInstance]]s by their IDs.
+    *
+    * @see [[Simulation.abortTasks]]
+    *
+    * @group tasks
+    * @param ids
+    *   The `UUID`s of the [[TaskInstance]]s to abort.
+    * @return
+    *   The state update.
+    */
   def abortTasks[F[_]](ids: Seq[UUID]): State[Simulation[F], Seq[Event]] =
     Simulation.abortTasks(ids)
 
   /**
-    * Handles a [[SimDone]] response from a simulation, indicating that it has completed.
+    * Updates the simulation with a completed [[CaseRef]].
     *
-    * Calls [[stopSimulation]] according to the reported success or failure result.
+    * @see [[Simulation.stopCase]]
     *
-    * @group simulations
-    * @param simulation
-    *   The name of the simulation
+    * @group cases
+    * @param caseName
+    *   The name of the [[CaseRef]].
     * @param result
-    *   The result of completion
+    *   The result produced by the completed [[CaseRef]].
+    * @return
+    *   The state update.
     */
   def caseDone[F[_] : Monad](
       caseName: String,
@@ -81,6 +111,17 @@ trait CaseState extends ScenarioState {
     }
   }
 
+  /**
+    * Updates a [[CaseRef]].
+    *
+    * @group cases
+    * @param caseName
+    *   The name of the [[CaseRef]].
+    * @param c
+    *   The new [[CaseRef]] reflecting the new state of the case.
+    * @return
+    *   The state update.
+    */
   def updateCase[F[_] : Monad](
       caseName: String,
       c: CaseRef[F]
