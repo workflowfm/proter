@@ -17,17 +17,26 @@ import java.util.UUID
 
 /**
   * A simulation state.
-  * 
-  * @param id A name for the entire simulation.
-  * @param scheduler The [[Scheduler]] being used.
-  * @param time The current time.
-  * @param events The [[EventQueue]] of pending discrete events.
-  * @param tasks Current running [[TaskInstance]]s.
-  * @param cases Indexed map of currently running [[CaseRef]]s.
-  * @param resources The [[ResourceMap]] of the resources used in the simulation. 
-  * @param waiting Indexed map of [[CaseRef]] names and corresponding finished tasks (if any)
-  *                from which we are expecting a response.
-  * @param abortedTasks Set of [[TaskInstance]]s that have been aborted.
+  *
+  * @param id
+  *   A name for the entire simulation.
+  * @param scheduler
+  *   The [[Scheduler]] being used.
+  * @param time
+  *   The current time.
+  * @param events
+  *   The [[EventQueue]] of pending discrete events.
+  * @param tasks
+  *   Current running [[TaskInstance]]s.
+  * @param cases
+  *   Indexed map of currently running [[CaseRef]]s.
+  * @param resources
+  *   The [[ResourceMap]] of the resources used in the simulation.
+  * @param waiting
+  *   Indexed map of [[CaseRef]] names and corresponding finished tasks (if any) from which we are
+  *   expecting a response.
+  * @param abortedTasks
+  *   Set of [[TaskInstance]]s that have been aborted.
   */
 case class Simulation[F[_]](
     id: String,
@@ -41,53 +50,62 @@ case class Simulation[F[_]](
     abortedTasks: HashSet[UUID]
 ) {
 
-
   /**
     * Convenience method to produce an [[EError]] event.
-    * 
-    * @param description A description of the error that occurred.
-    * @return An [[EError]] event.
+    *
+    * @param description
+    *   A description of the error that occurred.
+    * @return
+    *   An [[EError]] event.
     */
   def error(description: String): EError = EError(id, time, description)
 
   /**
     * Convenience method to produce an [[EError]] event, followed by [[EDone]].
-    * 
+    *
     * Essentially tells the event stream that the simulation has completed after the error,
     * i.e. that the error was unrecoverable.
-    * 
-    * @param description A description of the error that occurred.
-    * @return The generated sequence of 2 events.
+    *
+    * @param description
+    *   A description of the error that occurred.
+    * @return
+    *   The generated sequence of 2 events.
     */
   def fatalError(description: String): Seq[Event] =
     Seq(EError(id, time, description), EDone(id, time))
 
   /**
     * Removes a [[CaseRef]] name from the waiting list.
-    * 
-    * @param description A description of the error that occurred.
-    * @return An [[EError]] event.
+    *
+    * @param description
+    *   A description of the error that occurred.
+    * @return
+    *   An [[EError]] event.
     */
   def ready(name: String): Simulation[F] = copy(waiting = waiting - name)
 
-
   /**
-    * Uses the [[Scheduler]] to compute the next [[TaskInstance]]s to run based on resource availability.
-    * 
-    * @param description A description of the error that occurred.
-    * @return An [[EError]] event.
+    * Uses the [[Scheduler]] to compute the next [[TaskInstance]]s to run based on resource
+    * availability.
+    *
+    * @param description
+    *   A description of the error that occurred.
+    * @return
+    *   An [[EError]] event.
     */
   def nextTasks(): Iterable[TaskInstance] = scheduler.getNextTasks(time, tasks, resources)
 
   /**
     * Yields a state change from a [[CaseRef]].
-    * 
-    * This happens when we are waiting from a response from the [[CaseRef]], either because
-    * it has just started or because one or more of its [[TaskInstance]]s has completed.
-    * 
-    * @param waiting The name of the [[CaseRef]] to notify, paired with a sequence of completed
-    *                [[TaskInstance]]s or an empty sequence if the case just started.
-    * @return The state update produced by the [[CaseRef]].
+    *
+    * This happens when we are waiting from a response from the [[CaseRef]], either because it has
+    * just started or because one or more of its [[TaskInstance]]s has completed.
+    *
+    * @param waiting
+    *   The name of the [[CaseRef]] to notify, paired with a sequence of completed [[TaskInstance]]s
+    *   or an empty sequence if the case just started.
+    * @return
+    *   The state update produced by the [[CaseRef]].
     */
   def notifyCase(waiting: (String, Seq[TaskInstance]))(using Monad[F]): F[Simulation.SimState[F]] =
     waiting match {
@@ -100,23 +118,27 @@ case class Simulation[F[_]](
 
   /**
     * Notifies all [[CaseRef]]s in the waiting list.
-    * 
-    * @see [[notifyCase]]
-    * 
+    *
+    * @see
+    *   [[notifyCase]]
+    *
     * Composes and applies all state updates produced by all notified [[CaseRef]]s.
-    * 
-    * @return The updated simulation state and produced [[Event]]s.
+    *
+    * @return
+    *   The updated simulation state and produced [[Event]]s.
     */
   def notifyCases(using Monad[F]): F[(Simulation[F], Seq[Event])] =
     waiting.map(notifyCase).toSeq.sequence.map(Simulation.compose(_: _*).run(this)).flatten
 
   /**
     * Starts the simulation with an initial state update.
-    * 
+    *
     * Produces an [[EStart]] event.
-    * 
-    * @param state The state update to apply.
-    * @return The updated state and produced [[Event]]s.
+    *
+    * @param state
+    *   The state update to apply.
+    * @return
+    *   The updated state and produced [[Event]]s.
     */
   def start(
       state: StateT[F, Simulation[F], Seq[Event]]
@@ -131,7 +153,7 @@ case class Simulation[F[_]](
 
   /**
     * Progresses the simulation time.
-    * 
+    *
     * This is the main simulation cycle:
     *   1. Finish with an [[EDone]] if no events, tasks, or cases remain.
     *   1. Pop the next group of discrete events in the queue.
@@ -139,9 +161,12 @@ case class Simulation[F[_]](
     *   1. Stop any tasks that completed ysing [[Simulation.stopTasks]].
     *   1. Notify the cases that need to be notified with [[notifyCases]].
     *   1. Allocate new tasks to the resources using [[Simulation.allocateTasks]].
-    *   1. Terminate the simulation using [[Simulation.stop()]] if a termination condition (e.g. time limit) has been met.
-    * 
-    * @return Either the updated state or `Unit` if the simulation terminated, and any produced [[Event]]s.
+    *   1. Terminate the simulation using [[Simulation.stop()]] if a termination condition (e.g.
+    *      time limit) has been met.
+    *
+    * @return
+    *   Either the updated state or `Unit` if the simulation terminated, and any produced
+    *   [[Event]]s.
     */
   def tick(using Monad[F]): F[(Either[Simulation[F], Unit], Seq[Event])] = {
     /* if !waiting.isEmpty // still waiting for responses!
@@ -201,12 +226,15 @@ case class Simulation[F[_]](
 object Simulation extends StateOps {
   type SimState[F[_]] = StateT[F, Simulation[F], Seq[Event]]
 
-  /** 
+  /**
     * Initialize a simulation state with a name and [[Scheduler]].
-    * 
-    * @param id The name to use for the simulation.
-    * @param scheduler The [[Scheduler]] to use. 
-    * @return The initialised [[Simulation]] state.
+    *
+    * @param id
+    *   The name to use for the simulation.
+    * @param scheduler
+    *   The [[Scheduler]] to use.
+    * @return
+    *   The initialised [[Simulation]] state.
     */
   def apply[F[_]](id: String, scheduler: Scheduler): Simulation[F] = Simulation[F](
     id,
@@ -230,7 +258,8 @@ object Simulation extends StateOps {
     *
     * @param caseRef
     *   The [[CaseRef]] to start.
-    * @return The state update.
+    * @return
+    *   The state update.
     */
   def startCase[F[_]](caseRef: CaseRef[F]): State[Simulation[F], Event] = State(sim =>
     (
@@ -252,7 +281,8 @@ object Simulation extends StateOps {
     *   The name of the completed [[CaseRef]].
     * @param result
     *   A string representation of the resulting output of the case.
-    * @return The state update.
+    * @return
+    *   The state update.
     */
   def stopCase[F[_] : Monad](name: String, result: String): StateT[F, Simulation[F], Seq[Event]] =
     StateT { sim =>
@@ -275,12 +305,14 @@ object Simulation extends StateOps {
     *
     *   - Removes it from the list of running cases and from the waiting list.
     *   - Aborts and removes all tasks of the case.
-    *   - Publishes a [[com.workflowfm.proter.events.ECaseEnd ECaseEnd]] with a "Simulation Aborted" result.
+    *   - Publishes a [[com.workflowfm.proter.events.ECaseEnd ECaseEnd]] with a "Simulation Aborted"
+    *     result.
     *   - Tells the [[CaseRef]] to stop.
     *
     * @param caseRef
     *   The [[CaseRef]] to stop.
-    * @return The state update.
+    * @return
+    *   The state update.
     */
   def abortCase[F[_] : Applicative](caseRef: CaseRef[F]): StateT[F, Simulation[F], Seq[Event]] =
     StateT(sim => {
@@ -304,8 +336,9 @@ object Simulation extends StateOps {
     * Aborts all currently running cases.
     *
     * Calls [[abortCase]] for each of them.
-    * 
-    * @return The state update.
+    *
+    * @return
+    *   The state update.
     */
   protected def abortAll[F[_] : Monad](): StateT[F, Simulation[F], Seq[Event]] = StateT(sim => {
     sim.cases.values.toSeq.traverse(abortCase[F]).map(_.flatten).run(sim)
@@ -319,16 +352,18 @@ object Simulation extends StateOps {
     *
     *   - Publishes a [[com.workflowfm.proter.events.ETaskAdd ETaskAdd]].
     *   - Calls [[ResourceMap.startTask]] to attach the task to its resources.
-    *   - Produces an [[com.workflowfm.proter.events.ETaskAttach ETaskAttach]] event for each successful attachment.
-    *     Otherwise publishes an appropriate [[com.workflowfm.proter.events.EError EError]]. The
-    *     latter would only happen if the [[schedule.Scheduler Scheduler]] tried to schedule a
-    *     [[Task]] to a [[Resource]] that is busy/does not have enough available capacity.
+    *   - Produces an [[com.workflowfm.proter.events.ETaskAttach ETaskAttach]] event for each
+    *     successful attachment. Otherwise publishes an appropriate
+    *     [[com.workflowfm.proter.events.EError EError]]. The latter would only happen if the
+    *     [[schedule.Scheduler Scheduler]] tried to schedule a [[Task]] to a [[Resource]] that is
+    *     busy/does not have enough available capacity.
     *   - Creates a [[FinishingTask]] event for this [[Task]] based on its duration, and adds it to
     *     the event queue.
     *
     * @param task
     *   The [[TaskInstance]] to be started.
-    * @return The state update.
+    * @return
+    *   The state update.
     */
   def startTask[F[_]](task: TaskInstance): State[Simulation[F], Seq[Event]] = State(sim =>
     sim.resources.startTask(task, sim.time) match {
@@ -362,13 +397,15 @@ object Simulation extends StateOps {
     * Aborts one or more [[TaskInstance]]s by their IDs.
     *
     *   - Detaches all associated resources using [[ResourceMap.stopTasks]].
-    *   - Produces an [[com.workflowfm.proter.events.ETaskDetach ETaskDetach]] event for each resource.
+    *   - Produces an [[com.workflowfm.proter.events.ETaskDetach ETaskDetach]] event for each
+    *     resource.
     *   - Adds the task ID to the [[abortedTasks]] set.
     *   - Produces an [[com.workflowfm.proter.events.ETaskAbort ETaskAbort]] event.
     *
     * @param ids
     *   The `UUID`s of the [[TaskInstance]]s that need to be aborted.
-    * @return The state update.
+    * @return
+    *   The state update.
     */
   def abortTasks[F[_]](ids: Seq[UUID]): State[Simulation[F], Seq[Event]] = State(sim => {
     val (abortMap, detached) = sim.resources.stopTasks(ids)
@@ -385,13 +422,15 @@ object Simulation extends StateOps {
     *
     *   - Ignore tasks that have been aborted already.
     *   - Detaches all associated resources using [[ResourceMap.stopTasks]].
-    *   - Produces an [[com.workflowfm.proter.events.ETaskDetach ETaskDetach]] event for each resource.
+    *   - Produces an [[com.workflowfm.proter.events.ETaskDetach ETaskDetach]] event for each
+    *     resource.
     *   - Produces an [[com.workflowfm.proter.events.ETaskDone ETaskDone]] event.
     *   - Adds the corresponding [[CaseRef]]s to the waiting list.
     *
     * @param tasks
     *   The [[TaskInstance]]s that need to be stopped.
-    * @return The state update.
+    * @return
+    *   The state update.
     */
   def stopTasks[F[_]](tasks: Seq[TaskInstance]): State[Simulation[F], Seq[Event]] = State(sim => {
     val (someAbortedTasks, nonAbortedTasks) = tasks.partition(t => sim.abortedTasks.contains(t.id))
@@ -412,10 +451,11 @@ object Simulation extends StateOps {
 
   /**
     * Allocates and starts new [[TaskInstance]]s.
-    * 
+    *
     * New tasks are decided by the [[Scheduler]] given the resource availability.
-    * 
-    * @return The state update.
+    *
+    * @return
+    *   The state update.
     */
   def allocateTasks[F[_] : Monad](): StateT[F, Simulation[F], Seq[Event]] = StateT { sim =>
     StateT
@@ -432,10 +472,13 @@ object Simulation extends StateOps {
     *   1. A corresponding simulation state update.
     *   1. A collection of completed [[TaskInstance]]s (from [[FinishingTask]] events).
     *   1. A flag that becomes true if a terminating condition (e.g. time limit) has been met.
-    * 
-    * @param acc The result accumulated from folding so far.
-    * @param event The next [[DiscreteEvent]] to handle.
-    * @return The 3 computed parts.
+    *
+    * @param acc
+    *   The result accumulated from folding so far.
+    * @param event
+    *   The next [[DiscreteEvent]] to handle.
+    * @return
+    *   The 3 computed parts.
     */
   protected def handleDiscreteEvent[F[_] : Monad](
       acc: (StateT[F, Simulation[F], Queue[Event]], Queue[TaskInstance], Boolean),
@@ -492,7 +535,8 @@ object Simulation extends StateOps {
   /**
     * Aborts all simulations and stops immediately.
     *
-    * @return The state update.
+    * @return
+    *   The state update.
     */
   def stop[F[_] : Monad](): StateT[F, Simulation[F], Seq[Event]] =
     abortAll()
@@ -504,7 +548,8 @@ object Simulation extends StateOps {
     *
     * Publishes a [[com.workflowfm.proter.events.EDone EDone]].
     *
-    * @return The state update.
+    * @return
+    *   The state update.
     */
   def finish[F[_]](): State[Simulation[F], Seq[Event]] = State { sim =>
     (sim, Seq(EDone(sim.id, sim.time))) // TODO do we want to mark the simulation as done?
@@ -512,17 +557,20 @@ object Simulation extends StateOps {
 
   /**
     * Produces an [[EError]] indicating a [[CaseRef]] in the waiting list is unknown.
-    * 
-    * @see [[notifyCase]]
-    * 
-    * @param caseName The name of the [[CaseRef]] we were supposed to notify.
-    * @return The state update.
+    *
+    * @see
+    *   [[notifyCase]]
+    *
+    * @param caseName
+    *   The name of the [[CaseRef]] we were supposed to notify.
+    * @return
+    *   The state update.
     */
-  def unknownCaseToNotify[F[_] : Monad](caseName: String): StateT[F, Simulation[F], Seq[Event]] = StateT {
-    sim =>
+  def unknownCaseToNotify[F[_] : Monad](caseName: String): StateT[F, Simulation[F], Seq[Event]] =
+    StateT { sim =>
       Monad[F].pure(
         (sim.ready(caseName), Seq(sim.error(s"Skipping waiting for unknown case: $caseName")))
       )
-  }
+    }
 
 }

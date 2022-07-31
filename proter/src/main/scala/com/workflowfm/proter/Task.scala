@@ -11,13 +11,13 @@ import cats.implicits.*
   * @note
   *   We expect that task instances are only generated through a [[Task]].
   *
-  * The samples of the parameters are generated during simulation. The duration can be
-  * specified through random sampling in a [[Distribution]]. We store the estimated value as well as
-  * the actual sampled value.
+  * The samples of the parameters are generated during simulation. The duration can be specified
+  * through random sampling in a [[Distribution]]. We store the estimated value as well as the
+  * actual sampled value.
   *
   * @param id
-  *   A unique id that separates this task from any other task. A case may spawn multiple tasks
-  *   with the same name, so this is necessary.
+  *   A unique id that separates this task from any other task. A case may spawn multiple tasks with
+  *   the same name, so this is necessary.
   * @param name
   *   A descriptive name.
   * @param caseName

@@ -22,11 +22,13 @@ trait ScenarioState {
 
   /**
     * Adds a [[Resource]] to the simulation.
-    * 
+    *
     * Produces an [[EResourceAdd]] event.
-    * 
-    * @param r The [[Resource]] to add.
-    * @return The state update.
+    *
+    * @param r
+    *   The [[Resource]] to add.
+    * @return
+    *   The state update.
     */
   def addResource[F[_]](r: Resource): State[Simulation[F], Seq[Event]] = State(sim =>
     (
@@ -37,11 +39,13 @@ trait ScenarioState {
 
   /**
     * Adds a collection of [[Resource]]s to the simulation.
-    * 
+    *
     * Produces an [[EResourceAdd]] event for each resource.
-    * 
-    * @param rs The [[Resource]]s to add.
-    * @return The state update.
+    *
+    * @param rs
+    *   The [[Resource]]s to add.
+    * @return
+    *   The state update.
     */
   def addResources[F[_]](rs: Seq[Resource]): State[Simulation[F], Seq[Event]] = State(sim => {
     val events = rs.map { r => EResourceAdd(sim.id, sim.time, r) }
@@ -50,12 +54,14 @@ trait ScenarioState {
 
   /**
     * Adds a [[CaseRef]] to the simulation.
-    * 
+    *
     * Produces an [[ECaseAdd]] event.
-    * 
-    * @param t The timestamp when the case needs to start. Must be greater or equal to the current
-    *          simulation time.
-    * @return The state update.
+    *
+    * @param t
+    *   The timestamp when the case needs to start. Must be greater or equal to the current
+    *   simulation time.
+    * @return
+    *   The state update.
     */
   def addCaseRef[F[_]](t: Long, caseRef: CaseRef[F]): State[Simulation[F], Seq[Event]] =
     State(sim =>
@@ -69,15 +75,20 @@ trait ScenarioState {
 
   /**
     * Adds a [[Case]] to the simulation.
-    * 
+    *
     * Produces an [[ECaseAdd]] event.
-    * 
-    * @tparam T The type of the object used for the simulation case.
-    * @param time The timestamp when the case needs to start. Must be greater or equal to the current
-    *             simulation time.
-    * @param name A unique name for the case.
-    * @param t The object to use for the simulation case.
-    * @return The state update.
+    *
+    * @tparam T
+    *   The type of the object used for the simulation case.
+    * @param time
+    *   The timestamp when the case needs to start. Must be greater or equal to the current
+    *   simulation time.
+    * @param name
+    *   A unique name for the case.
+    * @param t
+    *   The object to use for the simulation case.
+    * @return
+    *   The state update.
     */
   def addCase[F[_] : Monad, T](time: Long, name: String, t: T)(
       using ct: Case[F, T]
@@ -94,13 +105,17 @@ trait ScenarioState {
 
   /**
     * Adds a [[Case]] to be run in the '''current''' simulation time.
-    * 
+    *
     * Produces an [[ECaseAdd]] event.
-    * 
-    * @tparam T The type of the object used for the simulation case.
-    * @param name A unique name for the case.
-    * @param t The object to use for the simulation case.
-    * @return The state update.
+    *
+    * @tparam T
+    *   The type of the object used for the simulation case.
+    * @param name
+    *   A unique name for the case.
+    * @param t
+    *   The object to use for the simulation case.
+    * @return
+    *   The state update.
     */
   def addCaseNow[F[_] : Monad, T](name: String, t: T)(
       using ct: Case[F, T]
@@ -109,13 +124,16 @@ trait ScenarioState {
 
   /**
     * Adds a collection of [[Case]]s to the simulation.
-    * 
+    *
     * Produces an [[ECaseAdd]] event for each case added.
-    * 
-    * @tparam T The type of the object used for the simulation case.
-    * @param cases The objects to use for each simulation case,
-    *              each paired with its own unique name and starting timestamp.
-    * @return The state update.
+    *
+    * @tparam T
+    *   The type of the object used for the simulation case.
+    * @param cases
+    *   The objects to use for each simulation case, each paired with its own unique name and
+    *   starting timestamp.
+    * @return
+    *   The state update.
     */
   def addCases[F[_] : Monad, T](cases: Seq[(Long, String, T)])(
       using ct: Case[F, T]
@@ -124,13 +142,15 @@ trait ScenarioState {
 
   /**
     * Adds a collection of [[Case]]s to be run in the '''current''' simulation time.
-    * 
+    *
     * Produces an [[ECaseAdd]] event for each case added.
-    * 
-    * @tparam T The type of the object used for the simulation case.
-    * @param cases The objects to use for each simulation case,
-    *              each paired with its own unique name.
-    * @return The state update.
+    *
+    * @tparam T
+    *   The type of the object used for the simulation case.
+    * @param cases
+    *   The objects to use for each simulation case, each paired with its own unique name.
+    * @return
+    *   The state update.
     */
   def addCasesNow[F[_] : Monad, T](cases: Seq[(String, T)])(
       using ct: Case[F, T]
@@ -139,17 +159,23 @@ trait ScenarioState {
 
   /**
     * Adds a [[Case]] with an arrival pattern to the simulation.
-    * 
+    *
     * Produces an [[EArrivalAdd]] event.
-    * 
-    * @tparam T The type of the object used for the simulation cases.
-    * @param t The timestamp when the first case should arrive.
-    * @param name A unique name for the cases.
-    * @param item The object to use for the simulation case.
-    * @param rate The probability ditribution determining the duration until the
-    *             next arrival.
-    * @param limit An optional maximum number of cases to generate.
-    * @return The state update.
+    *
+    * @tparam T
+    *   The type of the object used for the simulation cases.
+    * @param t
+    *   The timestamp when the first case should arrive.
+    * @param name
+    *   A unique name for the cases.
+    * @param item
+    *   The object to use for the simulation case.
+    * @param rate
+    *   The probability ditribution determining the duration until the next arrival.
+    * @param limit
+    *   An optional maximum number of cases to generate.
+    * @return
+    *   The state update.
     */
   def addArrival[F[_] : Monad : Random, T](
       t: Long,
@@ -174,16 +200,21 @@ trait ScenarioState {
 
   /**
     * Adds a [[Case]] with an arrival pattern to start in the '''current''' simulation time.
-    * 
+    *
     * Produces an [[EArrivalAdd]] event.
-    * 
-    * @tparam T The type of the object used for the simulation cases.
-    * @param name A unique name for the cases.
-    * @param item The object to use for the simulation case.
-    * @param rate The probability ditribution determining the duration until the
-    *             next arrival.
-    * @param limit An optional maximum number of cases to generate.
-    * @return The state update.
+    *
+    * @tparam T
+    *   The type of the object used for the simulation cases.
+    * @param name
+    *   A unique name for the cases.
+    * @param item
+    *   The object to use for the simulation case.
+    * @param rate
+    *   The probability ditribution determining the duration until the next arrival.
+    * @param limit
+    *   An optional maximum number of cases to generate.
+    * @return
+    *   The state update.
     */
   def addArrivalNow[F[_] : Monad : Random, T](
       name: String,
@@ -199,15 +230,17 @@ trait ScenarioState {
     * Sets a time limit for the simulation.
     *
     * Produces an [[ETimeLimit]] event.
-    * 
+    *
     * @note
     *   Once a time limit is placed it cannot be removed. Multiple time limits can be set so that
     *   the earliest one will be triggered.
-    * 
+    *
     * Setting the time limit after the start time will result in an error.
-    * 
-    * @param t The timestamp to use as the time limit.
-    * @return The state update.
+    *
+    * @param t
+    *   The timestamp to use as the time limit.
+    * @return
+    *   The state update.
     */
   def limit[F[_]](t: Long): State[Simulation[F], Seq[Event]] = State(sim =>
     if t >= sim.time then

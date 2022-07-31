@@ -54,7 +54,8 @@ trait CaseState extends ScenarioState {
   /**
     * Adds a collection of new [[Task]]s.
     *
-    * @see [[addTask]] 
+    * @see
+    *   [[addTask]]
     *
     * @group tasks
     * @param caseName
@@ -73,7 +74,8 @@ trait CaseState extends ScenarioState {
   /**
     * Aborts a list of [[TaskInstance]]s by their IDs.
     *
-    * @see [[Simulation.abortTasks]]
+    * @see
+    *   [[Simulation.abortTasks]]
     *
     * @group tasks
     * @param ids
@@ -87,7 +89,8 @@ trait CaseState extends ScenarioState {
   /**
     * Updates the simulation with a completed [[CaseRef]].
     *
-    * @see [[Simulation.stopCase]]
+    * @see
+    *   [[Simulation.stopCase]]
     *
     * @group cases
     * @param caseName
