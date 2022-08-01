@@ -310,14 +310,14 @@ object Metrics {
 
   sealed abstract class MetricsException(message: String) extends Exception(message)
 
-  final case class TaskNotFound(id: UUID)
-      extends MetricsException(s"Tried to update metrics for task that does not exist: $id")
+  final case class TaskNotFound(taskId: UUID)
+      extends MetricsException(s"Tried to update metrics for task that does not exist: $taskId")
 
   final case class CaseNotFound(caseName: String)
       extends MetricsException(s"Tried to update metrics for task that does not exist: $caseName")
 
-  final case class ResourceNotFound(name: String)
-      extends MetricsException(s"Tried to update metrics for task that does not exist: $name")
+  final case class ResourceNotFound(resourceName: String)
+      extends MetricsException(s"Tried to update metrics for task that does not exist: $resourceName")
 
   import io.circe.generic.semiauto.*
   import io.circe.Encoder
@@ -335,7 +335,14 @@ object Metrics {
   given resourceMapEncoder: Encoder[Map[String, ResourceMetrics]] = (collection: Map[String, ResourceMetrics]) =>
     collection.values.map(_.asJson).toList.asJson
 
-  given Encoder[MetricsException] = deriveEncoder[MetricsException]
+  given Encoder[TaskNotFound] = deriveEncoder[TaskNotFound]
+  given Encoder[CaseNotFound] = deriveEncoder[CaseNotFound]
+  given Encoder[ResourceNotFound] = deriveEncoder[ResourceNotFound]
+  given Encoder[MetricsException] = Encoder.instance {
+    case t @ TaskNotFound(_) => t.asJson
+    case c @ CaseNotFound(_) => c.asJson
+    case r @ ResourceNotFound(_) => r.asJson
+  }
 
   given Encoder[Metrics] = deriveEncoder[Metrics]
 
