@@ -1,6 +1,7 @@
 package com.workflowfm.proter
 package events
 
+import java.util.UUID
 import java.text.SimpleDateFormat
 
 import cats.Applicative
@@ -28,6 +29,10 @@ trait JsonHandler[F[_] : Applicative : Clock] extends TimedHandler[F] {
 }
 
 object JsonHandler {
+  given resourceStateTaskMapEncoder: Encoder[Map[UUID, (Long, TaskInstance)]] = (collection: Map[UUID, (Long, TaskInstance)]) =>
+    collection.values.map(_.asJson).toList.asJson
+
+  given Encoder[ResourceState] = deriveEncoder[ResourceState]
   given Encoder[TaskInstance] = deriveEncoder[TaskInstance]
   // These are redundant, but help the deriveEncoder macro avoid
   // a "Maximal number of successive inlines exceeded" error

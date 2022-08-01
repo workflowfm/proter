@@ -324,15 +324,15 @@ object Metrics {
   import io.circe.syntax.*
 
   given Encoder[TaskMetrics] = deriveEncoder[TaskMetrics]
-  given taskMapEncoder: Encoder[Map[UUID, TaskMetrics]] = (collection: Map[UUID, TaskMetrics]) =>
+  given taskMetricsMapEncoder: Encoder[Map[UUID, TaskMetrics]] = (collection: Map[UUID, TaskMetrics]) =>
     collection.values.map(_.asJson).toList.asJson
 
   given Encoder[CaseMetrics] = deriveEncoder[CaseMetrics]
-  given caseMapEncoder: Encoder[Map[String, CaseMetrics]] = (collection: Map[String, CaseMetrics]) =>
+  given caseMetricsMapEncoder: Encoder[Map[String, CaseMetrics]] = (collection: Map[String, CaseMetrics]) =>
     collection.values.map(_.asJson).toList.asJson
 
   given Encoder[ResourceMetrics] = deriveEncoder[ResourceMetrics]
-  given resourceMapEncoder: Encoder[Map[String, ResourceMetrics]] = (collection: Map[String, ResourceMetrics]) =>
+  given resourceMetricsMapEncoder: Encoder[Map[String, ResourceMetrics]] = (collection: Map[String, ResourceMetrics]) =>
     collection.values.map(_.asJson).toList.asJson
 
   given Encoder[TaskNotFound] = deriveEncoder[TaskNotFound]
