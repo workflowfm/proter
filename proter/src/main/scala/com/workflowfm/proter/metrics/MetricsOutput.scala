@@ -276,9 +276,9 @@ ${resHeader(sep)}
 ${resources(metrics, sep, lineSep)}
 ---------
 
-Started: ${MetricsOutput.formatTimeOption(metrics.start, timeFormat, nullTime)}
-Ended: ${MetricsOutput.formatTimeOption(metrics.end, timeFormat, nullTime)}
-Duration: ${MetricsOutput.formatDuration(metrics.start, metrics.end, durFormat, nullTime)}
+Started: ${MetricsOutput.formatTimeOption(metrics.startTime, timeFormat, nullTime)}
+Ended: ${MetricsOutput.formatTimeOption(metrics.endTime, timeFormat, nullTime)}
+Duration: ${MetricsOutput.formatDuration(metrics.startTime, metrics.endTime, durFormat, nullTime)}
 """
     )
   }

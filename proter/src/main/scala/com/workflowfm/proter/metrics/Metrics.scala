@@ -32,8 +32,8 @@ import events.*
   *   A queue of all errors caught.
   */
 final case class Metrics(
-    start: Option[Long],
-    end: Option[Long],
+    startTime: Option[Long],
+    endTime: Option[Long],
     startTicks: Long,
     endTicks: Long,
     tasks: Map[UUID, TaskMetrics],
@@ -49,10 +49,10 @@ final case class Metrics(
     *
     * @group Start/End
     */
-  def started(t: Long): Metrics = start match {
+  def started(t: Long): Metrics = startTime match {
     case None =>
       copy(
-        start = Some(System.currentTimeMillis()),
+        startTime = Some(System.currentTimeMillis()),
         startTicks = t
       )
     case _ => this
@@ -64,7 +64,7 @@ final case class Metrics(
     * @group Start/End
     */
   def ended(t: Long): Metrics = copy(
-    end = Some(System.currentTimeMillis()),
+    endTime = Some(System.currentTimeMillis()),
     endTicks = t
   )
 
