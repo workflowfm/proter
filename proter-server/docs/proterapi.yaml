@@ -1,410 +1,136 @@
+---
 openapi: 3.0.1
 info:
-  title: defaultTitle
-  description: defaultDescription
-  version: '0.1'
+  title: Proter Server
+  description: An API for running Flow-based simulations in [Proter](http://docs.workflowfm.com/proter/).
+  version: "0.8"
 servers:
-  - url: http://localhost:8080
+- url: http://localhost:8080
 paths:
-  /API:
+  /simulate:
     post:
-      description: Auto generated using Swagger Inspector
+      description: Perform a simulation and obtain measured metrics.
       requestBody:
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/IRequest'
             examples:
-              '0':
-                value: |-
-                  {
-                    "arrivals" : [
-                      {
-                        "name" : "Example1",
-                        "flow" : {
-                          "IThen" : {  
-                            "args": [
-                            {
-                              "ITask" : {
-                                "name" : "T1",
-                                "duration" : {
-                                  "IConstant" : {
-                                    "value" : 5.0
-                                  }
-                                },
-                                "cost" : {
-                                  "IConstant" : {
-                                    "value" : 2.0
-                                  }
-                                },
-                                "resources" : [
-                                {
-                                  "resource": "Resource",
-                                  "quantity": 1
-                                }
-                                ],
-                                "priority" : 0
-                              }
-                            },
-                            {
-                              "ITask" : {
-                                "name" : "T2",
-                                "duration" : {
-                                  "IConstant" : {
-                                    "value" : 1.0
-                                  }
-                                },
-                                "cost" : {
-                                  "IConstant" : {
-                                    "value" : 3.0
-                                  }
-                                },
-                                "resources" : [
-                                ],
-                                "priority" : 0
-                              }
-                            }
-                            ]       
-                          }
-                        },
-                        "rate" : {
-                          "IConstant" : {
-                            "value" : 1.0
-                          }
-                        },
-                        "limit" : 3
-                      }
-                    ],
-                    "resources" : [
-                    {
-                      "name": "Resource",
-                      "capacity": 2,
-                      "costPerTick": 1.0
-                    }
-                    ],
-                    "timeLimit" : null
-                  } 
+              "0":
+                value: "{\n  \"arrivals\" : [\n    {\n      \"name\" : \"Example1\",\n      \"flow\" : {\n        \"IThen\" : {  \n          \"args\": [\n          {\n            \"ITask\" : {\n              \"name\" : \"T1\",\n              \"duration\" : {\n                \"IConstant\" : {\n                  \"value\" : 5.0\n                }\n              },\n              \"cost\" : {\n                \"IConstant\" : {\n                  \"value\" : 2.0\n                }\n              },\n              \"resources\" : [\n              {\n                \"resource\": \"Resource\",\n                \"quantity\": 1\n              }\n              ],\n              \"priority\" : 0\n            }\n          },\n          {\n            \"ITask\" : {\n              \"name\" : \"T2\",\n              \"duration\" : {\n                \"IConstant\" : {\n                  \"value\" : 1.0\n                }\n              },\n              \"cost\" : {\n                \"IConstant\" : {\n                  \"value\" : 3.0\n                }\n              },\n              \"resources\" : [\n              ],\n              \"priority\" : 0\n            }\n          }\n          ]       \n        }\n      },\n      \"rate\" : {\n        \"IConstant\" : {\n          \"value\" : 1.0\n        }\n      },\n      \"limit\" : 3\n    }\n  ],\n  \"resources\" : [\n  {\n    \"name\": \"Resource\",\n    \"capacity\": 2,\n    \"costPerTick\": 1.0\n  }\n  ]\n} "
       responses:
-        '200':
-          description: "Resulting simulation metrics"
+        "200":
+          description: Resulting simulation metrics
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  endTicks:
-                    type: integer
-                  cases:
-                    type: object
-                    properties:
-                      Example1#1:
-                        type: object
-                        properties:
-                          duration:
-                            type: integer
-                          result:
-                            type: string
-                          delay:
-                            type: integer
-                          cost:
-                            type: number
-                          name:
-                            type: string
-                          started:
-                            type: integer
-                          tasks:
-                            type: integer
-                      Example1#2:
-                        type: object
-                        properties:
-                          duration:
-                            type: integer
-                          result:
-                            type: string
-                          delay:
-                            type: integer
-                          cost:
-                            type: number
-                          name:
-                            type: string
-                          started:
-                            type: integer
-                          tasks:
-                            type: integer
-                      Example1#3:
-                        type: object
-                        properties:
-                          duration:
-                            type: integer
-                          result:
-                            type: string
-                          delay:
-                            type: integer
-                          cost:
-                            type: number
-                          name:
-                            type: string
-                          started:
-                            type: integer
-                          tasks:
-                            type: integer
-                  resources:
-                    type: object
-                    properties:
-                      Resource:
-                        type: object
-                        properties:
-                          cost:
-                            type: number
-                          costPerTick:
-                            type: number
-                          load:
-                            type: integer
-                          name:
-                            type: string
-                          idleUpdate:
-                            type: integer
-                          busyTime:
-                            type: integer
-                          idleTime:
-                            type: integer
-                          tasks:
-                            type: integer
-                          capacity:
-                            type: integer
-                  sStart:
-                    type: number
-                  sEnd:
-                    type: number
-                  tasks:
-                    type: object
-                    properties:
-                      3a92c6b0-6655-4021-a668-183c5244abbf:
-                        type: object
-                        properties:
-                          duration:
-                            type: integer
-                          task:
-                            type: string
-                          cost:
-                            type: number
-                          created:
-                            type: integer
-                          aborted:
-                            type: boolean
-                          caseName:
-                            type: string
-                          resources:
-                            type: object
-                            properties: {}
-                          started:
-                            type: integer
-                          id:
-                            type: string
-                          priority:
-                            type: integer
-                      277c9078-e625-4097-9486-744677a83f13:
-                        type: object
-                        properties:
-                          duration:
-                            type: integer
-                          task:
-                            type: string
-                          cost:
-                            type: number
-                          created:
-                            type: integer
-                          aborted:
-                            type: boolean
-                          caseName:
-                            type: string
-                          resources:
-                            type: object
-                            properties: {}
-                          started:
-                            type: integer
-                          id:
-                            type: string
-                          priority:
-                            type: integer
-                      cdf2ce2f-618a-4533-ae2c-c4d9d5a3d312:
-                        type: object
-                        properties:
-                          duration:
-                            type: integer
-                          task:
-                            type: string
-                          cost:
-                            type: number
-                          created:
-                            type: integer
-                          aborted:
-                            type: boolean
-                          caseName:
-                            type: string
-                          resources:
-                            type: object
-                            properties:
-                              Resource:
-                                type: integer
-                          started:
-                            type: integer
-                          id:
-                            type: string
-                          priority:
-                            type: integer
-                      82a20f9a-3e33-46ea-b34a-d23370a75689:
-                        type: object
-                        properties:
-                          duration:
-                            type: integer
-                          task:
-                            type: string
-                          cost:
-                            type: number
-                          created:
-                            type: integer
-                          aborted:
-                            type: boolean
-                          caseName:
-                            type: string
-                          resources:
-                            type: object
-                            properties:
-                              Resource:
-                                type: integer
-                          started:
-                            type: integer
-                          id:
-                            type: string
-                          priority:
-                            type: integer
-                      f4a31554-c116-434f-91d5-217d008d88af:
-                        type: object
-                        properties:
-                          duration:
-                            type: integer
-                          task:
-                            type: string
-                          cost:
-                            type: number
-                          created:
-                            type: integer
-                          aborted:
-                            type: boolean
-                          caseName:
-                            type: string
-                          resources:
-                            type: object
-                            properties:
-                              Resource:
-                                type: integer
-                          started:
-                            type: integer
-                          id:
-                            type: string
-                          priority:
-                            type: integer
-                      c1764abe-5429-4ef1-89c3-66e7f741c17d:
-                        type: object
-                        properties:
-                          duration:
-                            type: integer
-                          task:
-                            type: string
-                          cost:
-                            type: number
-                          created:
-                            type: integer
-                          aborted:
-                            type: boolean
-                          caseName:
-                            type: string
-                          resources:
-                            type: object
-                            properties: {}
-                          started:
-                            type: integer
-                          id:
-                            type: string
-                          priority:
-                            type: integer
-                  errors:
-                    type: array
-                    items:
-                      type: string
-                  startTicks:
-                    type: integer
+                $ref: '#/components/schemas/Metrics'
               examples:
-                '0':
-                  value: >-
-                    {"sStart":1658841712942,"sEnd":1658841712952,"startTicks":0,"endTicks":11,"tasks":{"3a92c6b0-6655-4021-a668-183c5244abbf":{"id":"3a92c6b0-6655-4021-a668-183c5244abbf","task":"T2","caseName":"Example1#2","priority":0,"created":6,"started":6,"duration":1,"cost":3.0,"resources":{},"aborted":false},"c1764abe-5429-4ef1-89c3-66e7f741c17d":{"id":"c1764abe-5429-4ef1-89c3-66e7f741c17d","task":"T2","caseName":"Example1#1","priority":0,"created":5,"started":5,"duration":1,"cost":3.0,"resources":{},"aborted":false},"cdf2ce2f-618a-4533-ae2c-c4d9d5a3d312":{"id":"cdf2ce2f-618a-4533-ae2c-c4d9d5a3d312","task":"T1","caseName":"Example1#1","priority":0,"created":0,"started":0,"duration":5,"cost":7.0,"resources":{"Resource":1},"aborted":false},"82a20f9a-3e33-46ea-b34a-d23370a75689":{"id":"82a20f9a-3e33-46ea-b34a-d23370a75689","task":"T1","caseName":"Example1#3","priority":0,"created":2,"started":5,"duration":5,"cost":7.0,"resources":{"Resource":1},"aborted":false},"f4a31554-c116-434f-91d5-217d008d88af":{"id":"f4a31554-c116-434f-91d5-217d008d88af","task":"T1","caseName":"Example1#2","priority":0,"created":1,"started":1,"duration":5,"cost":7.0,"resources":{"Resource":1},"aborted":false},"277c9078-e625-4097-9486-744677a83f13":{"id":"277c9078-e625-4097-9486-744677a83f13","task":"T2","caseName":"Example1#3","priority":0,"created":10,"started":10,"duration":1,"cost":3.0,"resources":{},"aborted":false}},"cases":{"Example1#1":{"name":"Example1#1","started":0,"duration":6,"delay":0,"tasks":2,"cost":10.0,"result":"()"},"Example1#2":{"name":"Example1#2","started":1,"duration":6,"delay":0,"tasks":2,"cost":10.0,"result":"()"},"Example1#3":{"name":"Example1#3","started":2,"duration":9,"delay":3,"tasks":2,"cost":10.0,"result":"()"}},"resources":{"Resource":{"name":"Resource","capacity":2,"costPerTick":1.0,"idleUpdate":11,"load":0,"busyTime":15,"idleTime":7,"tasks":3,"cost":15.0}},"errors":[]}
+                "0":
+                  value: '{"startTime":1659355815687,"endTime":1659355815744,"startTicks":0,"endTicks":11,"tasks":[{"id":"baf4ebff-5338-472e-b2d6-9fad1a41e71f","task":"T1","caseName":"Example1#3","priority":0,"created":2,"started":5,"duration":5,"cost":7.0,"resources":{"Resource":1},"aborted":false},{"id":"a922a37e-f03f-4445-9ef1-da7bbaf46150","task":"T2","caseName":"Example1#1","priority":0,"created":5,"started":5,"duration":1,"cost":3.0,"resources":{},"aborted":false},{"id":"0cb717df-8808-4ea0-8539-3b04cd0d970f","task":"T2","caseName":"Example1#2","priority":0,"created":6,"started":6,"duration":1,"cost":3.0,"resources":{},"aborted":false},{"id":"c40a5714-f95c-423d-a60d-71a58d55350c","task":"T1","caseName":"Example1#1","priority":0,"created":0,"started":0,"duration":5,"cost":7.0,"resources":{"Resource":1},"aborted":false},{"id":"6a8cc9a6-2196-4b23-9169-3268982e5f62","task":"T2","caseName":"Example1#3","priority":0,"created":10,"started":10,"duration":1,"cost":3.0,"resources":{},"aborted":false},{"id":"a88f379a-d4c1-41c0-a397-78c62212c438","task":"T1","caseName":"Example1#2","priority":0,"created":1,"started":1,"duration":5,"cost":7.0,"resources":{"Resource":1},"aborted":false}],"cases":[{"name":"Example1#1","started":0,"duration":6,"delay":0,"tasks":2,"cost":10.0,"result":"()"},{"name":"Example1#2","started":1,"duration":6,"delay":0,"tasks":2,"cost":10.0,"result":"()"},{"name":"Example1#3","started":2,"duration":9,"delay":3,"tasks":2,"cost":10.0,"result":"()"}],"resources":[{"name":"Resource","capacity":2,"costPerTick":1.0,"idleUpdate":11,"load":0,"busyTime":15,"idleTime":7,"tasks":3,"cost":15.0}],"errors":[]}'
+        "422":
+          description: Unpocessable Entity - Error in requested scenario
+          content:
+            application/json:
+              schema:
+                type: string
+                example: Flow resources cannot be matched to the resource list.
+  /stream:
+    post:
+      description: Perform a simulation and obtain simulation events in chunks.
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IRequest'
+            examples:
+              "0":
+                value: "{\n  \"arrivals\" : [\n    {\n      \"name\" : \"Example1\",\n      \"flow\" : {\n        \"IThen\" : {  \n          \"args\": [\n          {\n            \"ITask\" : {\n              \"name\" : \"T1\",\n              \"duration\" : {\n                \"IConstant\" : {\n                  \"value\" : 5.0\n                }\n              },\n              \"cost\" : {\n                \"IConstant\" : {\n                  \"value\" : 2.0\n                }\n              },\n              \"resources\" : [\n              {\n                \"resource\": \"Resource\",\n                \"quantity\": 1\n              }\n              ],\n              \"priority\" : 0\n            }\n          },\n          {\n            \"ITask\" : {\n              \"name\" : \"T2\",\n              \"duration\" : {\n                \"IConstant\" : {\n                  \"value\" : 1.0\n                }\n              },\n              \"cost\" : {\n                \"IConstant\" : {\n                  \"value\" : 3.0\n                }\n              },\n              \"resources\" : [\n              ],\n              \"priority\" : 0\n            }\n          }\n          ]       \n        }\n      },\n      \"rate\" : {\n        \"IConstant\" : {\n          \"value\" : 1.0\n        }\n      },\n      \"limit\" : 3\n    }\n  ],\n  \"resources\" : [\n  {\n    \"name\": \"Resource\",\n    \"capacity\": 2,\n    \"costPerTick\": 1.0\n  }\n  ]\n} "
+      responses:
+        "200":
+          description: Resulting simulation metrics
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Event'
+              examples:
+                "0":
+                  value: '{"startTime":1659355815687,"endTime":1659355815744,"startTicks":0,"endTicks":11,"tasks":[{"id":"baf4ebff-5338-472e-b2d6-9fad1a41e71f","task":"T1","caseName":"Example1#3","priority":0,"created":2,"started":5,"duration":5,"cost":7.0,"resources":{"Resource":1},"aborted":false},{"id":"a922a37e-f03f-4445-9ef1-da7bbaf46150","task":"T2","caseName":"Example1#1","priority":0,"created":5,"started":5,"duration":1,"cost":3.0,"resources":{},"aborted":false},{"id":"0cb717df-8808-4ea0-8539-3b04cd0d970f","task":"T2","caseName":"Example1#2","priority":0,"created":6,"started":6,"duration":1,"cost":3.0,"resources":{},"aborted":false},{"id":"c40a5714-f95c-423d-a60d-71a58d55350c","task":"T1","caseName":"Example1#1","priority":0,"created":0,"started":0,"duration":5,"cost":7.0,"resources":{"Resource":1},"aborted":false},{"id":"6a8cc9a6-2196-4b23-9169-3268982e5f62","task":"T2","caseName":"Example1#3","priority":0,"created":10,"started":10,"duration":1,"cost":3.0,"resources":{},"aborted":false},{"id":"a88f379a-d4c1-41c0-a397-78c62212c438","task":"T1","caseName":"Example1#2","priority":0,"created":1,"started":1,"duration":5,"cost":7.0,"resources":{"Resource":1},"aborted":false}],"cases":[{"name":"Example1#1","started":0,"duration":6,"delay":0,"tasks":2,"cost":10.0,"result":"()"},{"name":"Example1#2","started":1,"duration":6,"delay":0,"tasks":2,"cost":10.0,"result":"()"},{"name":"Example1#3","started":2,"duration":9,"delay":3,"tasks":2,"cost":10.0,"result":"()"}],"resources":[{"name":"Resource","capacity":2,"costPerTick":1.0,"idleUpdate":11,"load":0,"busyTime":15,"idleTime":7,"tasks":3,"cost":15.0}],"errors":[]}'
+        "422":
+          description: Unpocessable Entity - Error in requested scenario
+          content:
+            application/json:
+              schema:
+                type: string
+                example: Flow resources cannot be matched to the resource list.
 components:
   schemas:
     IRequest:
-      description: "A request for a simulation."
       required:
-        - arrivals
-        - resources
+      - arrivals
+      - resources
       type: object
       properties:
         arrivals:
           type: array
+          description: The arrivals of cases to simulate.
           items:
             $ref: '#/components/schemas/IArrival'
-          description: "The arrivals of cases to simulate."
         resources:
           type: array
+          description: The persistent resources to use.
           items:
             $ref: '#/components/schemas/IResource'
-          description: "The persistent resources to use."
-        start: 
+        start:
           type: integer
+          description: The initial timestamp when the simulation starts.
           format: int64
-          description: "The initial timestamp when the simulation starts."
           default: 0
-        timeLimit: 
+        timeLimit:
           type: integer
+          description: The maximum timestamp after which the simulation should stop. A limit MUST be provided if at least one arrival is infinite.
           format: int64
-          description: "The maximum timestamp after which the simulation should stop. A limit MUST be provided if at least one arrival is infinite."
+      description: A request for a simulation.
     IArrival:
-      description: "An object describing the arrival of cases in the simulation at a certain rate. If no rate is provided, then a single case is generated. Each case consists of a specified flow of tasks."
       required:
-        - name
-        - flow
+      - flow
+      - name
       type: object
       properties:
-        name: 
+        name:
           type: string
-          description: "A unique name for the arriving cases."
+          description: A unique name for the arriving cases.
         flow:
           $ref: '#/components/schemas/IFlow'
-        start: 
+        start:
           type: integer
+          description: An optional starting time for the arrival of cases.
           format: int64
-          description: "An optional starting time for the arrival of cases."
         rate:
           $ref: '#/components/schemas/IDistribution'
         limit:
           type: integer
+          description: An optional limit of how many cases to generate.
           format: int32
-          description: "An optional limit of how many cases to generate."
+      description: An object describing the arrival of cases in the simulation at a certain rate. If no rate is provided, then a single case is generated. Each case consists of a specified flow of tasks.
     IFlow:
       description: ""
       oneOf:
-        - $ref: '#/components/schemas/IPar'
-        - $ref: '#/components/schemas/IThen'
-        - $ref: '#/components/schemas/ITask'
+      - $ref: '#/components/schemas/IPar'
+      - $ref: '#/components/schemas/IThen'
+      - $ref: '#/components/schemas/ITask'
     IThen:
-      description: "Execution of a list of flows in sequence."
       required:
-        - args
+      - args
       type: object
       properties:
         args:
           type: array
-          items: 
+          items:
             $ref: '#/components/schemas/IFlow'
+      description: Execution of a list of flows in sequence.
       example: |
         "IThen": {
           args: [
@@ -413,15 +139,15 @@ components:
           ]
         }
     IPar:
-      description: "Execution of a list of flows in parallel."
       required:
-        - args
+      - args
       type: object
       properties:
         args:
           type: array
-          items: 
+          items:
             $ref: '#/components/schemas/IFlow'
+      description: Execution of a list of flows in parallel.
       example: |
         "IPar": {
           args: [
@@ -430,143 +156,618 @@ components:
           ]
         }
     ITask:
-      description: "A simulated task."
       required:
-        - name
-        - duration
-        - cost
-        - resources
-        - priority
+      - cost
+      - duration
+      - name
+      - priority
+      - resources
       type: object
       properties:
         name:
           type: string
-          description: "A name for the task. Must be unique compared to other tasks in the same flow."
+          description: A name for the task. Must be unique compared to other tasks in the same flow.
         duration:
           $ref: '#/components/schemas/IDistribution'
         cost:
           $ref: '#/components/schemas/IDistribution'
         resources:
           type: array
+          description: The resources required for this task.
           items:
             $ref: '#/components/schemas/IRequiredResource'
-          description: "The resources required for this task."
         priority:
           type: integer
+          description: The priority of this task relatively to all other tasks.
           format: int32
-          description: "The priority of this task relatively to all other tasks."
-      example: |
-        {
-          name: "Some Task",
-          duration:
-            "IUniform": {
-              "from": 3.0,
-              "to": 5.0
-            },
-          cost: 
-            "IConstant": {
-              "value": 10.0
-            }, 
-          resources: [{
-            resource: "Some Resource",
-            quantity: 1
-            }],
-          priority: 3
-        }
+      description: A simulated task.
+      example: "{\n  name: \"Some Task\",\n  duration:\n    \"IUniform\": {\n      \"from\": 3.0,\n      \"to\": 5.0\n    },\n  cost: \n    \"IConstant\": {\n      \"value\": 10.0\n    }, \n  resources: [{\n    resource: \"Some Resource\",\n    quantity: 1\n    }],\n  priority: 3\n}\n"
     IResource:
-      description: "A persistent resource."
       required:
-        - name
-        - capacity
-        - costPerTick
+      - capacity
+      - costPerTick
+      - name
       type: object
       properties:
         name:
           type: string
-          description: "A unique name for the resource."
+          description: A unique name for the resource.
         capacity:
-          type: integer
-          format: int32
           minimum: 1
-          description: "The capacity of the resource."
+          type: integer
+          description: The capacity of the resource.
+          format: int32
         costPerTick:
+          minimum: 0
           type: number
+          description: The cost of using the resource per unit of time (tick).
           format: double
-          minimum: 0.0
-          description: "The cost of using the resource per unit of time (tick)."
+      description: A persistent resource.
       example:
-        name: "Some Resource"
+        name: Some Resource
         capacity: 5
         costPerTick: 4.5
     IRequiredResource:
-      description: "A resource requirement for a task."
       required:
-        - resource
-        - quantity
+      - quantity
+      - resource
       type: object
       properties:
         resource:
           type: string
-          description: "The name of the required resource."
+          description: The name of the required resource.
         quantity:
-          type: integer
-          format: int32
           minimum: 1
-          description: "The quantity (part of the capacity) of the resource required."
+          type: integer
+          description: The quantity (part of the capacity) of the resource required.
+          format: int32
+      description: A resource requirement for a task.
       example:
-        resource: "Some Resource"
+        resource: Some Resource
         quantity: 1
     IDistribution:
-      description: "A probability distribution to produce the required value. Can either be constant, exponential, or uniform."
+      description: A probability distribution to produce the required value. Can either be constant, exponential, or uniform.
       oneOf:
-        - $ref: '#/components/schemas/IConstant'
-        - $ref: '#/components/schemas/IExp'
-        - $ref: '#/components/schemas/IUniform'
+      - $ref: '#/components/schemas/IConstant'
+      - $ref: '#/components/schemas/IExp'
+      - $ref: '#/components/schemas/IUniform'
     IConstant:
-      description: "A distribution that produces a constant number."
       required:
-        - value
+      - IConstant
       type: object
       properties:
-        value:
-          type: number
-          format: double
-          description: "The constant number to be produced."
+        IConstant:
+          $ref: '#/components/schemas/IConstant_IConstant'
+      description: A distribution that produces a constant number.
       example: |
         "IConstant": {
           "value": 3.0
         }
     IExp:
-      description: "An exponential probability distribution."
       required:
-        - value
+      - IExp
       type: object
       properties:
-        value:
-          type: number
-          format: double
-          description: "The mean (lambda) value of the exponential distribution."
+        IExp:
+          $ref: '#/components/schemas/IExp_IExp'
+      description: An exponential probability distribution.
       example: |
         "IExp": {
           "value": 3.0
         }
     IUniform:
-      description: "A uniform probability distribution between 2 numbers."
       required:
-        - from
-        - to
+      - IUniform
       type: object
       properties:
-        from:
-          description: "The start of the uniform range of values."
-          type: number
-          format: double
-        to:
-          description: "The end of the uniform range of values."
-          type: number
-          format: double
+        IUniform:
+          $ref: '#/components/schemas/IUniform_IUniform'
+      description: A uniform probability distribution between 2 numbers.
       example: |
         "IUniform": {
           "from": 2.0,
           "to": 10.0
         }
+    Metrics:
+      type: object
+      properties:
+        startTime:
+          type: integer
+          description: The system time in milliseconds when the simulation started (null if it never did).
+          format: int64
+          nullable: true
+        endTime:
+          type: integer
+          description: The system time in milliseconds when the simulation ended (null if it never did).
+          format: int64
+          nullable: true
+        startTicks:
+          type: integer
+          description: The starting simulation time.
+          format: int64
+        endTicks:
+          type: integer
+          description: The final simulation time.
+          format: int64
+        tasks:
+          type: array
+          description: An array of task metrics, indexed by task UUID.
+          items:
+            $ref: '#/components/schemas/TaskMetrics'
+        cases:
+          type: array
+          description: An array case metrics, indexed by case name.
+          items:
+            $ref: '#/components/schemas/CaseMetrics'
+        resources:
+          type: array
+          description: An array of resource metrics, indexed by resource name.
+          items:
+            $ref: '#/components/schemas/ResourceMetrics'
+        errors:
+          type: array
+          description: Errors that occurred during metrics measurement.
+          items:
+            $ref: '#/components/schemas/MetricsException'
+      description: Metrics related to the entire simulation.
+    TaskMetrics:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The UUID of the task.
+          format: uuid
+        task:
+          type: string
+          description: The name of the task.
+        caseName:
+          type: string
+          description: The name of the case to which the task belongs.
+        priority:
+          type: integer
+          description: The numerical priority of the task.
+          format: int32
+        created:
+          type: integer
+          description: The time when the task was created/added.
+          format: int64
+        started:
+          type: integer
+          description: The time when the task was started or null if it never started.
+          format: int64
+          nullable: true
+        duration:
+          type: integer
+          description: The actual duration of the task from start to end.
+          format: int64
+        cost:
+          type: number
+          description: The total cost of the task, including resource costs.
+          format: double
+        resources:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int32
+          description: An array of resource names and corresponding capacities used.
+        aborted:
+          type: boolean
+          description: A flag that is true if the task was aborted and false otherwise.
+      description: Metrics related to individual tasks.
+    CaseMetrics:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of the case.
+        started:
+          type: integer
+          description: The time when the case started.
+          format: int64
+        duration:
+          type: integer
+          description: The total duration of the case.
+          format: int64
+        delay:
+          type: integer
+          description: The total duration of delays (difference between created and start time) of all the tasks in this case.
+          format: int64
+        tasks:
+          type: integer
+          description: The total number of tasks associated with the case.
+          format: int32
+        cost:
+          type: number
+          description: The total cost of the all tasks of the case, including resource costs.
+          format: double
+        result:
+          type: string
+          description: The final output generated when the case completes.
+          nullable: true
+      description: Metrics related to individual cases.
+    ResourceMetrics:
+      type: object
+      properties:
+        name:
+          type: string
+          description: The name of the resource.
+        capacity:
+          type: integer
+          description: The total capacity of the resource.
+          format: int32
+        costPerTick:
+          type: number
+          description: The cost of using the resource per unit of time (tick).
+          format: double
+        idleUpdate:
+          type: integer
+          description: Internal variable to calculate idle time.
+          format: int64
+        load:
+          type: integer
+          description: Internal variable to calculate idle time.
+          format: int32
+        busyTime:
+          type: integer
+          description: The total time the resource was busy multiplied per unit of capacity that was used.
+          format: int64
+        idleTime:
+          type: integer
+          description: The total time the resource was idle multiplied per unit of capacity that was unused.
+          format: int64
+        tasks:
+          type: integer
+          description: The total number of tasks that were attached to this resource.
+          format: int32
+        cost:
+          type: number
+          description: The total running cost of the resource.
+          format: double
+      description: Metrics related to individual resources.
+    MetricsException:
+      description: Error thrown when encountering simulation events for an unknown object.
+      oneOf:
+      - $ref: '#/components/schemas/TaskNotFound'
+      - $ref: '#/components/schemas/CaseNotFound'
+      - $ref: '#/components/schemas/ResourceNotFound'
+    TaskNotFound:
+      type: object
+      properties:
+        taskId:
+          type: string
+          description: The UUID of the task.
+          format: uuid
+      description: Encountered simulation events for an unknown task.
+    CaseNotFound:
+      type: object
+      properties:
+        caseName:
+          type: string
+          description: The name of the case.
+      description: Encountered simulation events for an unknown case.
+    ResourceNotFound:
+      type: object
+      properties:
+        resourceName:
+          type: string
+          description: The name of the resource.
+      description: Encountered simulation events for an unknown resource.
+    Event:
+      oneOf:
+      - $ref: '#/components/schemas/EStart'
+      - $ref: '#/components/schemas/EDone'
+      - $ref: '#/components/schemas/ETimeLimit'
+      - $ref: '#/components/schemas/EResourceAdd'
+      - $ref: '#/components/schemas/ECaseAdd'
+      - $ref: '#/components/schemas/EArrivalAdd'
+      - $ref: '#/components/schemas/ECaseStart'
+      - $ref: '#/components/schemas/ECaseEnd'
+      - $ref: '#/components/schemas/ETaskAdd'
+      - $ref: '#/components/schemas/ETaskStart'
+      - $ref: '#/components/schemas/ETaskAttach'
+      - $ref: '#/components/schemas/ETaskDetach'
+      - $ref: '#/components/schemas/ETaskDone'
+      - $ref: '#/components/schemas/ETaskAbort'
+      - $ref: '#/components/schemas/EError'
+    BasicEvent:
+      type: object
+      properties:
+        source:
+          type: string
+          description: A name given to the simulation scenario.
+          default: Server Scenario
+        time:
+          type: integer
+          description: The simulation time when the event occurred.
+          format: int64
+    EStart:
+      type: object
+      properties:
+        EStart:
+          allOf:
+          - $ref: '#/components/schemas/BasicEvent'
+      description: The simulation started.
+    EDone:
+      type: object
+      properties:
+        EDone:
+          allOf:
+          - $ref: '#/components/schemas/BasicEvent'
+      description: The simulation finished.
+    EError:
+      type: object
+      properties:
+        EError:
+          allOf:
+          - $ref: '#/components/schemas/BasicEvent'
+          - type: string
+            description: A description of the error.
+      description: An error occurred during simulation.
+    ETimeLimit:
+      type: object
+      properties:
+        ETimeLimit:
+          allOf:
+          - $ref: '#/components/schemas/BasicEvent'
+          - type: object
+            properties:
+              limit:
+                type: integer
+                description: The time limit in time units (ticks).
+                format: int64
+      description: A time limit was set.
+    EResourceAdd:
+      type: object
+      properties:
+        EResourceAdd:
+          allOf:
+          - $ref: '#/components/schemas/BasicEvent'
+          - type: object
+            properties:
+              limit:
+                $ref: '#/components/schemas/IResource'
+      description: A resource was added.
+    ECaseAdd:
+      type: object
+      properties:
+        ECaseAdd:
+          allOf:
+          - $ref: '#/components/schemas/BasicEvent'
+          - type: object
+            properties:
+              name:
+                type: string
+                description: The unique name of the case instance.
+              start:
+                type: integer
+                description: The timestamp when the case is scheduled to start.
+                format: int64
+      description: A case instance was added.
+    EArrivalAdd:
+      type: object
+      properties:
+        EArrivalAdd:
+          allOf:
+          - $ref: '#/components/schemas/BasicEvent'
+          - type: object
+            properties:
+              name:
+                type: string
+                description: The name of the arriving cases.
+              start:
+                type: integer
+                description: The timestamp when arrivals are scheduled to start.
+                format: int64
+              limit:
+                type: integer
+                description: An optional limit of the number of cases that will be generated.
+                format: int32
+                nullable: true
+      description: An arrival was added.
+    ECaseStart:
+      type: object
+      properties:
+        ECaseStart:
+          allOf:
+          - $ref: '#/components/schemas/BasicEvent'
+          - type: object
+            properties:
+              name:
+                type: string
+                description: The unique name of the case instance.
+      description: A case instance was started.
+    ECaseEnd:
+      type: object
+      properties:
+        ECaseEnd:
+          allOf:
+          - $ref: '#/components/schemas/BasicEvent'
+          - type: object
+            properties:
+              name:
+                type: string
+                description: The unique name of the case instance.
+              result:
+                type: string
+                description: The resulting output of the case.
+      description: A case instance was started.
+    ETaskAdd:
+      type: object
+      properties:
+        ETaskAdd:
+          allOf:
+          - $ref: '#/components/schemas/BasicEvent'
+          - type: object
+            properties:
+              task:
+                $ref: '#/components/schemas/TaskInstance'
+      description: A task instance was added in the queue.
+    ETaskStart:
+      type: object
+      properties:
+        ETaskStart:
+          allOf:
+          - $ref: '#/components/schemas/BasicEvent'
+          - type: object
+            properties:
+              task:
+                $ref: '#/components/schemas/TaskInstance'
+      description: A task instance was started.
+    ETaskAttach:
+      type: object
+      properties:
+        ETaskAttach:
+          allOf:
+          - $ref: '#/components/schemas/BasicEvent'
+          - type: object
+            properties:
+              task:
+                $ref: '#/components/schemas/TaskInstance'
+              resource:
+                $ref: '#/components/schemas/ResourceState'
+      description: A task instance was attached to a resource.
+    ETaskDetach:
+      type: object
+      properties:
+        ETaskDetach:
+          allOf:
+          - $ref: '#/components/schemas/BasicEvent'
+          - type: object
+            properties:
+              start:
+                type: integer
+                description: The timestamp when the task was attached.
+                format: int64
+              task:
+                $ref: '#/components/schemas/TaskInstance'
+              resource:
+                $ref: '#/components/schemas/ResourceState'
+      description: A task instance was detached from a resource.
+    ETaskDone:
+      type: object
+      properties:
+        ETaskDone:
+          allOf:
+          - $ref: '#/components/schemas/BasicEvent'
+          - type: object
+            properties:
+              task:
+                $ref: '#/components/schemas/TaskInstance'
+      description: A task instance was completed.
+    ETaskAbort:
+      type: object
+      properties:
+        ETaskAbort:
+          allOf:
+          - $ref: '#/components/schemas/BasicEvent'
+          - type: object
+            properties:
+              id:
+                type: string
+                description: The UUID of the task instance.
+                format: uuid
+      description: A task instance was aborted.
+    TaskInstance:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The UUID of the task instance.
+          format: uuid
+        name:
+          type: string
+          description: The name of the task.
+        caseName:
+          type: string
+          description: The name of the corresponding case.
+        created:
+          type: integer
+          description: The timestamp when the instance was created.
+          format: int64
+        minStartTime:
+          type: integer
+          description: The minimum time when the task can start.
+          format: int64
+          default: 0
+        resources:
+          type: object
+          additionalProperties:
+            type: integer
+            format: int32
+          description: An array of resource names and corresponding capacities required.
+        duration:
+          type: integer
+          description: The actual duration of the task instance.
+          format: int64
+        estimatedDuration:
+          type: integer
+          description: The a-priori estimated duration of the task instance.
+          format: int64
+        cost:
+          type: number
+          description: The cost of the task (excluding resource costs).
+          format: double
+        interrupt:
+          type: integer
+          description: (unused)
+          format: int32
+          default: -1
+        priority:
+          type: integer
+          description: The relevant priority of this task.
+          format: int32
+      description: An instance of a task.
+    ResourceState:
+      type: object
+      properties:
+        resource:
+          $ref: '#/components/schemas/IResource'
+        currentTasks:
+          type: array
+          description: A list of currently attached tasks and their starting times.
+          items:
+            maxItems: 2
+            minItems: 2
+            type: array
+            items:
+              oneOf:
+              - type: integer
+                description: The starting time of the task.
+                format: int64
+              - $ref: '#/components/schemas/TaskInstance'
+      description: A description of the current state of a resource.
+    IConstant_IConstant:
+      required:
+      - value
+      type: object
+      properties:
+        value:
+          type: number
+          description: The constant number to be produced.
+          format: double
+      example: null
+    IExp_IExp:
+      required:
+      - value
+      type: object
+      properties:
+        value:
+          type: number
+          description: The mean (lambda) value of the exponential distribution.
+          format: double
+      example: null
+    IUniform_IUniform:
+      required:
+      - from
+      - to
+      type: object
+      properties:
+        from:
+          type: number
+          description: The start of the uniform range of values.
+          format: double
+        to:
+          type: number
+          description: The end of the uniform range of values.
+          format: double
+      example: null
