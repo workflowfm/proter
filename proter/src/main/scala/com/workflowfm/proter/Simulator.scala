@@ -100,15 +100,9 @@ final case class Simulator[F[_] : Concurrent](
     */
   def simulateState(name: String, state: StateT[F, Simulation[F], Seq[Event]]): F[Unit] = for {
     publisher <- Publisher.build[F]()
-    subresource = subscribers.map(publisher.subscribe(_)).parSequence
-    _ <- subresource.use { subs =>
-      {
-        val subio = subs.map(_.compile.drain).parSequence
-        val pubio = simulateStateWithPublisher(name, state, publisher)
-        (pubio, subio).parTupled
-      }
-    }
-  } yield (())
+    stream = getPubSubStream(name, state, publisher)
+    _ <- stream.compile.drain
+  } yield ()
 
   /**
     * Runs and streams a simulation from a given [[state.Simulation.SimState SimState]].
@@ -123,20 +117,43 @@ final case class Simulator[F[_] : Concurrent](
   def streamState(
       name: String,
       state: StateT[F, Simulation[F], Seq[Event]]
-  ): Stream[F, Either[Throwable, Event]] = Stream
-    .eval(for {
-      publisher <- Publisher.build[F]()
-      subresource = subscribers.map(publisher.subscribe(_)).parSequence
-      result = Stream.eval(subresource.use { subs =>
-        {
-          val subio = subs.map(_.compile.drain).parSequence
-          val pubio = simulateStateWithPublisher(name, state, publisher)
-          (pubio, subio).parTupled
-        }
-      })
-      stream = publisher.stream.concurrently(result)
-    } yield (stream))
-    .flatten
+  ): Stream[F, Either[Throwable, Event]] = for {
+    publisher <- Stream.eval(Publisher.build[F]())
+    stream = getPubSubStream(name, state, publisher)
+    ret <- Stream.resource(publisher.stream)
+    e <- ret.concurrently(stream)
+  } yield (e)
+
+
+  /** 
+    * Creates a stream where the publisher and all subscribers run concurrently.
+    * 
+    * We return the publisher stream directly if there are no subscribers as the subscriber 
+    * stream ends immediately and blocks everything.
+    * 
+    * @param name
+    *   A name to use for the simulation.
+    * @param state
+    *   The starting state.
+    * @param publisher
+    *   The [[Publisher]] to use.
+    * @return
+    *   A stream running the simulation and all subscribers.
+    */
+  protected def getPubSubStream(
+    name: String, 
+    state: StateT[F, Simulation[F], Seq[Event]],
+    publisher: Publisher[F]
+  ): Stream[F, Unit] = {
+    val pubStream = Stream.eval(simulateStateWithPublisher(name, state, publisher))
+    if (subscribers.isEmpty) then pubStream
+    else {
+      val subresource = subscribers.map(publisher.subscribe(_)).parSequence
+      Stream.resource(subresource).flatMap( subs => 
+        Stream(subs: _*).parJoinUnbounded.concurrently(pubStream)
+      )
+    }
+  }
 
   /**
     * Runs a [[state.Simulation.SimState SimState]] with a given [[events.Publisher Publisher]].

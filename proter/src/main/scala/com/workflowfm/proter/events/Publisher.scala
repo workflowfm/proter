@@ -63,8 +63,8 @@ case class Publisher[F[_]](topic: Topic[F, Either[Throwable, Event]], maxQueued:
   /**
     * Yields a subscriber stream of [[Event]]s directly.
     */
-  def stream: Stream[F, Either[Throwable, Event]] =
-    topic.subscribe(maxQueued)
+  def stream: Resource[F, Stream[F, Either[Throwable, Event]]] =
+    topic.subscribeAwait(maxQueued)
 }
 
 object Publisher {
