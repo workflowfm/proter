@@ -319,12 +319,22 @@ object Metrics {
   final case class ResourceNotFound(name: String)
       extends MetricsException(s"Tried to update metrics for task that does not exist: $name")
 
-  import io.circe.generic.semiauto._
+  import io.circe.generic.semiauto.*
   import io.circe.Encoder
+  import io.circe.syntax.*
 
   given Encoder[TaskMetrics] = deriveEncoder[TaskMetrics]
+  given taskMapEncoder: Encoder[Map[UUID, TaskMetrics]] = (collection: Map[UUID, TaskMetrics]) =>
+    collection.values.map(_.asJson).toList.asJson
+
   given Encoder[CaseMetrics] = deriveEncoder[CaseMetrics]
+  given caseMapEncoder: Encoder[Map[String, CaseMetrics]] = (collection: Map[String, CaseMetrics]) =>
+    collection.values.map(_.asJson).toList.asJson
+
   given Encoder[ResourceMetrics] = deriveEncoder[ResourceMetrics]
+  given resourceMapEncoder: Encoder[Map[String, ResourceMetrics]] = (collection: Map[String, ResourceMetrics]) =>
+    collection.values.map(_.asJson).toList.asJson
+
   given Encoder[MetricsException] = deriveEncoder[MetricsException]
 
   given Encoder[Metrics] = deriveEncoder[Metrics]
