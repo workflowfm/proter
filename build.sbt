@@ -99,15 +99,27 @@ def proterModule(name: String): Project =
     .settings(libraryDependencies ++= Dependencies.testAll)
     .dependsOn(proter % "compile->compile;test->test")
 
+import com.fgrutsch.sbt.swaggerui.SwaggerUiConfig
+
 lazy val root = Project(id = "proter-root", base = file("."))
+  .enablePlugins(ScalaUnidocPlugin, SwaggerUiPlugin)
   .settings(commonSettings)
   .settings( 
     publishArtifact := false,
     ScalaUnidoc / siteSubdirName := "api",
-    addMappingsToSiteDir(ScalaUnidoc / packageDoc / mappings, ScalaUnidoc / siteSubdirName)
+    addMappingsToSiteDir(ScalaUnidoc / packageDoc / mappings, ScalaUnidoc / siteSubdirName),
+    swaggerUiConfig := swaggerUiConfig.value.addUrls(
+      SwaggerUiConfig.Url.File(
+        "Proter Server",
+        proterServer.base / "docs" / "proter-server-api.yaml"
+      ),
+    ),
+    swaggerUiVersion := "4.13.0",
+    makeSite / siteSubdirName := "server-api",
+    addMappingsToSiteDir(swaggerUiGenerate / mappings, makeSite / siteSubdirName),
   )
   .aggregate(aggregatedProjects: _*)
-  .enablePlugins(ScalaUnidocPlugin)
+
 
 lazy val proter = Project(id = "proter", base = file("proter"))
   .settings(commonSettings)
