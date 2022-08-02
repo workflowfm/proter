@@ -1,7 +1,7 @@
 ---
 title: "Proter"
 author: ["Petros Papapanagiotou"]
-lastmod: 2021-03-28T10:17:36+00:00
+lastmod: 2022-08-02T23:05:36+00:00
 draft: false
 ---
 
@@ -16,7 +16,7 @@ A [discrete event simulator](https://en.wikipedia.org/wiki/Discrete-event_simula
 Proter is named after the first half of the Greek word *προτεραιότητα* (`pɾo.te.ɾeˈo.ti.ta`), meaning "priority".
 
 
-{{< button "docs/" "Read the Docs" >}}{{< button "api/com/workflowfm/proter/" "API Documentation" >}}{{< button "https://github.com/workflowfm/Proter" "Source" >}}
+{{< button "docs/" "Read the Docs" >}}{{< button "api/com/workflowfm/proter/" "API Documentation" >}}{{< button "https://github.com/workflowfm/Proter" "Source" >}}{{< button "server-api/" "Server OpenAPI" >}}
 
 
 <a id="authors"></a>
@@ -32,6 +32,8 @@ Proter is named after the first half of the Greek word *προτεραιότητ
 A big thank you to the following contributors in order of appearance:
 
 -   [Michal Baczun](https://github.com/MBaczun)
+-   [Martin Lewis](https://github.com/martin-lewis)
+
 
 
 ### Groups & Organizations
@@ -60,5 +62,5 @@ A big thank you to the following contributors in order of appearance:
 
 Distributed under the Apache 2.0 license. See [LICENSE](https://github.com/workflowfm/Proter/blob/master/LICENSE) for more information.
 
-Copyright &copy; 2019-2021 [The University of Edinburgh](https://www.ed.ac.uk/) and [contributors](#authors)
+Copyright &copy; 2019-2022 [The University of Edinburgh](https://www.ed.ac.uk/) and [contributors](#authors)
 
