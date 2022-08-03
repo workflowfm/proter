@@ -11,9 +11,13 @@
 #+HUGO_PAIRED_SHORTCODES: tip
 
 * Setup Amm :noexport:
+
+This is not working sadly. I haven't been able to find a way to launch amm within ob-scala with Scala 3.1.0.
+
 #+BEGIN_SRC amm
-import $ivy.`com.workflowfm:proter_2.12:0.7`, com.workflowfm.proter._
+import $ivy.`com.workflowfm::proter:0.8`, com.workflowfm.proter._
 #+END_SRC
+
 
 * Reference
   :PROPERTIES:
@@ -43,13 +47,11 @@ Proter is currently only available in *Scala 3.1.0*.
 
 Information on using a Scala 3 library in Scala 2.13 can be found [[https://docs.scala-lang.org/scala3/guides/migration/compatibility-classpath.html][here]].
 
-* Elements
+* TODO Elements
   :PROPERTIES:
   :EXPORT_HUGO_WEIGHT: 200
-  :EXPORT_HUGO_SECTION*: elements
+  :EXPORT_HUGO_SECTION_FRAG: elements
   :END:
-
-  Basic elements are covered here.
 
 ** TODO Elements
   :PROPERTIES:
@@ -59,32 +61,188 @@ Information on using a Scala 3 library in Scala 2.13 can be found [[https://docs
   In this section, we cover some of the basic elements and building blocks of Proter simulations.
 
 
-** TODO Value Generators
+** TODO Distributions
    :PROPERTIES:
-   :EXPORT_FILE_NAME: generators
+   :EXPORT_FILE_NAME: distributions
    :EXPORT_HUGO_WEIGHT: 210
+   :CUSTOM_ID: distributions
    :END:
 
-   A [[../../../api/com/workflowfm/proter/ValueGenerator.html][~ValueGenerator~]] represents a function that can generate a value for some simulation parameters (typically duration and cost). This can be a constant value or a sample from a probability distribution.
+   A [[../../../api/com/workflowfm/proter/Distribution.html][~Distribution~]] represents a function that can generate a value for some simulation parameters (typically duration and cost). This can be a constant value or a sample from a probability distribution.
 
-   Value generators also implement an estimate method (such as the median of the distribution) that provides an estimate of the generated values. This can help create an environment of imperfect knowledge. For example, the ~Scheduler~ does not know the actual durations of tasks, which can vary from the expected estimate for various reasons.
+   Distributions produce ~Double~ precision numbers. A [[../../../api/com/workflowfm/proter/Distribution.html][~LongDistribution~]] is a superclass that can only produce ~Long~ integer values. These are sometimes more convenient to use, especially because they avoid using rounding.
+   
+   Distributions also implement an estimate method (such as the median of the distribution) that provides an estimate of the generated values. This can help create an environment of imperfect knowledge. For example, the ~Scheduler~ does not know the actual durations of tasks, which can vary from the expected estimate for various reasons.
 
-*** Constant Generators
-  A [[../../../api/com/workflowfm/proter/ConstantGenerator.html][~ConstantGenerator~]] always produces the same value, and its estimate is the value itself. 
+   The core implementation currently includes constant, uniform, and exponential distributions, but you can also implement your own.
+   
+*** Constant
+    A [[../../../api/com/workflowfm/proter/Constant.html][~Constant~]]/[[../../../api/com/workflowfm/proter/ConstantLong.html][~ConstantLong~]] distribution always produces the same value, and its estimate is the value itself. 
+  
+    #+BEGIN_SRC scala
+      {
+        val constant = Constant(6)
+        println(s"Value: ${constant.get[IO].unsafeRunSync()} - Estimate: ${constant.estimate}")
+      }
+    #+END_SRC    
 
-#+BEGIN_SRC scala
-  {
-    val constantGen = ConstantGenerator(6)
-    println(s"Value: ${constantGen.value} - Estimate: ${constantGen.estimate}")
-  }
-#+END_SRC    
+    #+RESULTS:
+    : Value: 6.0 - Estimate: 6
 
-#+RESULTS:
-: Value: 6 - Estimate: 6
+*** Uniform
+    A [[../../../api/com/workflowfm/proter/Uniform.html][~Uniform~]]/[[../../../api/com/workflowfm/proter/UniformLong.html][~UniformLong~]] distribution produces a value uniformly between a minimum (inclusive) and a maximum (exclusive).
+  
+    #+BEGIN_SRC scala
+      {
+        val uniform = Uniform(5, 10)
+        println(s"Value: ${uniform.get[IO].unsafeRunSync()} - Estimate: ${uniform.estimate}")
+      }
+    #+END_SRC    
 
-*** Uniform Generators
-    Value generators are cool
+    #+RESULTS:
+    : Value: 6.271855193121533 - Estimate: 7.5
 
+*** Exponential
+    An [[../../../api/com/workflowfm/proter/Exponential.html][~Exponential~]] distribution produces a positive value with an [[https://en.wikipedia.org/wiki/Exponential_distribution][exponential distribution]], i.e. continuous, independent values with a constant average rate, corresponding to a [[https://en.wikipedia.org/wiki/Poisson_point_process][Poisson point process]].
+
+    This distribution is very commonly used in business process simulation thanks to its constant average rate, which tends to fit well with various types of processes (such as the arrival patterns of customers in a shop).
+  
+    #+BEGIN_SRC scala
+      {
+        val exp = Exponential(10)
+        println(s"Value: ${exp.get[IO].unsafeRunSync()} - Estimate: ${exp.estimate}")
+      }
+    #+END_SRC    
+
+    #+RESULTS:
+    : Value: 11.758318395019977 - Estimate: 10.0
+
+
+** TODO Resources
+   :PROPERTIES:
+   :EXPORT_FILE_NAME: resources
+   :EXPORT_HUGO_WEIGHT: 220
+   :CUSTOM_ID: resources
+   :END:
+
+*** Resource
+
+    A [[../../../api/com/workflowfm/proter/Resource.html][~Resource~]] in Proter represents a persistent resource, i.e. a resource that is not consumed, but can be used across multiple tasks. This can be used to represent machines or employees for instance.
+
+    A resource is identified by a unique /name/ among all resources. 
+
+    It is also given a /capacity/ in some custom, positive integer units. This can be used to model resources that are able to handle multiple tasks at the same time, such as an oven with multiple shelves, or categories of resources, such as a group of 4 welding machines. [[#tasks][Tasks]] can be set up to use multiple units of capacity from a resource, allowing different task sizes, such as in the case of a washing tray where we can place different sizes of objects.
+
+    Finally, a resource is characterised by a /cost per tick/. This is the cost of using that resource per unit of time and per unit of capacity. It can be used to reflect running costs, such as energy or material consumption, pay per hour, etc. Using 2 units of capacity of a resource with ~costPerTick = 5~ for 3 units of time yields a total running cost of 30.
+
+*** Resource state
+    The state of a resource during simulation is managed internally using a [[../../../api/com/workflowfm/proter/ResourceState.html][~ResourceState~]] object. This pairs the resource with an indexed map of [[#tasks][task instances]] and their corresponding starting times. This can be used to calculate resource availability at any given point in time.
+
+*** Resource map
+    All the resources during simulation are grouped together in a [[../../../api/com/workflowfm/proter/ResourceMap.html][~ResourceMap~]] object. This provides convenience functions for managing resources, assigning tasks to them, calculating availability, and scheduling.
+
+** TODO Tasks
+   :PROPERTIES:
+   :EXPORT_FILE_NAME: tasks
+   :EXPORT_HUGO_WEIGHT: 230
+   :CUSTOM_ID: tasks
+   :END:
+
+*** Task
+
+    A [[../../../api/com/workflowfm/proter/Task.html][~Task~]] in Proter represents a basic unit of work or activity in a process. It is characterised by 2 key properties:
+
+    1. A /name/ describing the task. It does not necessarily need to be unique, but it is often helpful to distinguish the task from others.
+    2. A /duration/ in the form of a [[#distributions][~LongDistribution~]]. There exist constructors that accept a constant ~Long~ duration (which is then automatically converted to a ~ConstantLong~ distribution).
+
+    Additional properties can be specified optionally:
+    1. A /one-off cost/ incurred when the task is executed, in the form of a [[#distributions][~Distribution~]].
+    2. A /map of resources and corresponding required capacities/. This describes which [[#resources][resources]] are required for the task to be executed, and how much of each resource.
+    3. A /priority/ in the form of an integer value. This is taken into consideration when scheduling tasks that require the same resource(s).
+    4. A /minimum starting timestamp/, which can be used to schedule tasks that have to start in some time in the future.
+
+    Declarative convenience functions allow us to put these priorities together in successive calls. For example, we can construct a task as follows:
+
+     #+BEGIN_SRC scala
+       {
+         val task = Task("Example Task", 5L)
+           .withCost(Uniform(5,10))
+           .withPriority(Task.High)
+           .withResources(Seq("A", "B"))
+           .withResourceQuantities(Map() + ("C" -> 2))
+       }
+     #+END_SRC    
+
+     #+RESULTS:
+     : val task: com.workflowfm.proter.Task = Task(Example Task,None,ConstantLong(5),Uniform(5.0,10.0),0,Map(A -> 1, B -> 1, C -> 2),-1,1,-1)
+
+     This task is named "Example Task", will last 5 units of time, will cost between 5 and 10 units of cost, will have High priority (1), and will require 1 unit of capacity from resources "A" and "B", and 2 units of capacity from resource "C".
+
+     You may also note that tasks have an optional unique ID (UUID). In the vast majority of cases this is not required and should be left as ~None~. In fact in some cases providing an ID can lead to undesired effects. Essentially, the ID will be passed on to any task instances generated for this task. This can help us keep track of the instances generated and link them back to the original task, for instance when testing the simulator. 
+
+*** Task instance
+
+    A ~Task~ is used to specify all the properties of a unit of work. Based on this specification, we construct instances of actual simulated work in the form of a [[../../../api/com/workflowfm/proter/TaskInstance.html][~TaskInstance~]]. 
+
+    A task instance has a specific unique ID (UUID), obtains specific, sampled values of duration and cost, is attached to a specific [[#cases][case]] to which it belongs, and has a ~created~ property containing the timestamp of its creation. The latter can be used to measure the delay between its creation and the start of its execution (typically due to busy resources).
+
+    Task instances are constructed internally by the simulator and appear in the [[#results][resulting events and metrics]].
+
+     #+BEGIN_SRC scala
+       {
+         val taskInstance = task.create[IO]("Some case", 20).unsafeRunSync()
+       }
+     #+END_SRC    
+
+     #+RESULTS:
+     : val taskInstance: com.workflowfm.proter.TaskInstance = Task(4acfdbf8-f87e-4b11-92ec-2ef23696a78c,Example Task,Some case,20,[A -> 1,B -> 1,C -> 2],d5(5),c9.822675358051587,i-1,1)
+
+** TODO Cases
+   :PROPERTIES:
+   :EXPORT_FILE_NAME: cases
+   :EXPORT_HUGO_WEIGHT: 240
+   :CUSTOM_ID: cases
+   :END:
+
+   Hi
+
+** TODO Scenarios
+   :PROPERTIES:
+   :EXPORT_FILE_NAME: scenarios
+   :EXPORT_HUGO_WEIGHT: 250
+   :CUSTOM_ID: scenarios
+   :END:
+
+   Hi
+   Mention arrivals here
+
+** TODO Schedulers
+   :PROPERTIES:
+   :EXPORT_FILE_NAME: schedulers
+   :EXPORT_HUGO_WEIGHT: 260
+   :CUSTOM_ID: schedulers
+   :END:
+
+   Hi
+
+** TODO Simulation
+   :PROPERTIES:
+   :EXPORT_FILE_NAME: simulation
+   :EXPORT_HUGO_WEIGHT: 290
+   :CUSTOM_ID: simulation
+   :END:
+
+   Hi
+
+** TODO Getting results
+   :PROPERTIES:
+   :EXPORT_FILE_NAME: results
+   :EXPORT_HUGO_WEIGHT: 295
+   :CUSTOM_ID: results
+   :END:
+
+   Hi
+   mention metrics and events here
 
 * Server
   :PROPERTIES:
