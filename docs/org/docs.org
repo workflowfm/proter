@@ -8,6 +8,7 @@
 
 #+HUGO_BASE_DIR: ../
 #+HUGO_SECTION: docs
+#+HUGO_PAIRED_SHORTCODES: tip
 
 * Setup Amm :noexport:
 #+BEGIN_SRC amm
@@ -20,12 +21,15 @@ import $ivy.`com.workflowfm:proter_2.12:0.7`, com.workflowfm.proter._
   :EXPORT_HUGO_MENU: :menu "main" :weight 100
   :END:
 
-Welcome to the Proter documentation. This guide shows you how to get started creating creating simulations using Proter and the key concepts involved.
+Welcome to the Proter documentation. This guide shows you how to get started creating simulations using Proter and the key concepts involved.
 
-{{< button "./getting-started/" "Get started" >}}
-* Getting Started
+Example code can be found [[https://github.com/workflowfm/ProterTutorial][in this repository]].
+
+@@hugo:{{< button "./install/" "Get started" >}}@@
+
+* Install
   :PROPERTIES:
-  :EXPORT_FILE_NAME: getting-started
+  :EXPORT_FILE_NAME: install
   :EXPORT_HUGO_WEIGHT: 100
   :END:
 
@@ -35,7 +39,9 @@ Proter is available as a library from Maven Central, so you can add it as a depe
 libraryDependencies += "com.workflowfm" %% "proter" % "{{< version >}}"
 #+END_SRC
 
-Proter is currently only available in *Scala 2.12.12*.
+Proter is currently only available in *Scala 3.1.0*.
+
+Information on using a Scala 3 library in Scala 2.13 can be found [[https://docs.scala-lang.org/scala3/guides/migration/compatibility-classpath.html][here]].
 
 * Elements
   :PROPERTIES:
@@ -78,3 +84,118 @@ Proter is currently only available in *Scala 2.12.12*.
 
 *** Uniform Generators
     Value generators are cool
+
+
+* Server
+  :PROPERTIES:
+  :EXPORT_HUGO_WEIGHT: 1000
+  :EXPORT_HUGO_SECTION_FRAG: server
+  :END:
+
+** Server 
+  :PROPERTIES:
+  :EXPORT_FILE_NAME: _index
+  :END:
+
+  The Proter Server is a web server with a [[../../server-api][REST API]] that allows the execution of Flow-based simulations.
+
+  The server can be deployed either manually or through Docker. Using the [[https://github.com/workflowfm/proter/pkgs/container/proter-server][existing Docker image]] makes things much easier, but this documentation covers a couple of ways to build and deploy it.
+
+ 
+
+** Docker Image
+   :PROPERTIES:
+   :EXPORT_FILE_NAME: docker
+   :EXPORT_HUGO_WEIGHT: 1010
+   :END:
+
+   The easiest setup of the server is using the latest available [[https://github.com/workflowfm/proter/pkgs/container/proter-server][Docker image]].
+
+   Pull the image using:
+   #+BEGIN_SRC sh
+     docker pull ghcr.io/workflowfm/proter-server:latest
+   #+END_SRC
+   
+   Then run a container using:
+   #+BEGIN_SRC sh
+     docker run -p 8080:8080 --name proter-server --detach ghcr.io/workflowfm/proter-server:latest
+   #+END_SRC
+   
+   - The name ~proter-server~ is optional and can be changed to whatever you want your server container to be named.
+   - The port can also be bound to a different system port, e.g. using ~-p 9000:8080~ to bind it to port ~9000~.
+
+
+** Build from source
+   :PROPERTIES:
+   :EXPORT_FILE_NAME: build
+   :EXPORT_HUGO_WEIGHT: 1020
+   :CUSTOM_ID: build
+   :END:
+
+   You can build and run the server yourself from source.
+
+   #+BEGIN_tip 
+   Building requires *Scala 3*, which in turn requires *JDK 8 or 11*.
+   #+END_tip
+
+   You can install Scala 3 following the information [[https://www.scala-lang.org/download/][here]].
+
+   First, clone the repository:
+
+   #+BEGIN_SRC sh
+     git clone https://github.com/workflowfm/proter.git
+   #+END_SRC
+
+   You can then build a fat JAR using ~sbt~:
+   #+BEGIN_SRC sh
+     sbt 'proter-server / assembly'
+   #+END_SRC
+
+   This will create the file ~./proter-server/target/scala-3.1.0/proter-server_{{< version >}}.jar~.
+
+   Move the JAR file to your favourite location and start the server using:
+
+   #+BEGIN_SRC sh
+     java -jar proter-server_{{< version >}}.jar
+   #+END_SRC
+
+** Docker build
+   :PROPERTIES:
+   :EXPORT_FILE_NAME: docker-build
+   :EXPORT_HUGO_WEIGHT: 1030
+   :END:
+
+   Should you wish to build your own Docker image, you can start by [[#build][building from source]].
+
+   Then, without moving the JAR file from the target directory, rename it to ~proter-server.jar~ as follows:
+   #+BEGIN_SRC sh
+     mv ./proter-server/target/scala-3.1.0/proter-server_{{< version >}}.jar ./proter-server/target/scala-3.1.0/proter-server.jar
+   #+END_SRC
+
+   Then you can build the Docker image:
+   #+BEGIN_SRC sh
+     docker build -t proter-server .
+   #+END_SRC
+ 
+   You can then run a container using:
+   Then run a container using:
+   #+BEGIN_SRC sh
+     docker run -p 8080:8080 --name proter-server --detach proter-server
+   #+END_SRC
+   
+   - The name ~proter-server~ is optional and can be changed to whatever you want your server container to be named.
+   - The port can also be bound to a different system port, e.g. using ~-p 9000:8080~ to bind it to port ~9000~.
+
+** Usage
+   :PROPERTIES:
+   :EXPORT_FILE_NAME: usage
+   :EXPORT_HUGO_WEIGHT: 1040
+   :END:
+
+   Once the server is up and running, it exposes 2 RESTful endpoints:
+   1. ~simulate/~: Simulates a Flow-based scenario and returns the computed metrics.
+   2. ~stream/~: Simulates a Flow-based scenario and returns the simulation events in chunks.
+
+   The entire REST API and involved JSON Schema are documented in detail using Open API [[../../../server-api][here]].
+
+   
