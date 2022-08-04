@@ -2,6 +2,7 @@ package com.workflowfm.proter
 package state
 
 import cases.{ Case, CaseRef }
+import discrete.*
 import events.*
 import schedule.Scheduler
 
@@ -25,7 +26,7 @@ import java.util.UUID
   * @param time
   *   The current time.
   * @param events
-  *   The [[EventQueue]] of pending discrete events.
+  *   The [[discrete.EventQueue EventQueue]] of pending discrete events.
   * @param tasks
   *   Current running [[TaskInstance]]s.
   * @param cases
@@ -358,7 +359,7 @@ object Simulation extends StateOps {
     *     [[com.workflowfm.proter.events.EError EError]]. The latter would only happen if the
     *     [[schedule.Scheduler Scheduler]] tried to schedule a [[Task]] to a [[Resource]] that is
     *     busy/does not have enough available capacity.
-    *   - Creates a [[FinishingTask]] event for this [[Task]] based on its duration, and adds it to
+    *   - Creates a [[discrete.FinishingTask FinishingTask]] event for this [[Task]] based on its duration, and adds it to
     *     the event queue.
     *
     * @param task

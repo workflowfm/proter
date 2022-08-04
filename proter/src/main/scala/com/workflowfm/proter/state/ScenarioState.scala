@@ -2,6 +2,7 @@ package com.workflowfm.proter
 package state
 
 import cases.{ Case, CaseRef }
+import discrete.*
 import events.*
 import schedule.Scheduler
 

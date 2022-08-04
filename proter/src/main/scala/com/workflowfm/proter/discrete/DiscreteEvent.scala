@@ -1,4 +1,5 @@
 package com.workflowfm.proter
+package discrete
 
 import cases.{ CaseRef, Case }
 
