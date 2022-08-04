@@ -73,7 +73,7 @@ trait CaseRef[F[_] : Monad] extends CaseState {
   def succeed(result: Any): SimState[F] = done(Success(result))
 
   /**
-    * A simulation state where the case instance has fail or was aborted.
+    * A simulation state where the case instance has failed or was aborted.
     *
     * @param exception
     *   The `Throwable` that caused the failure.
