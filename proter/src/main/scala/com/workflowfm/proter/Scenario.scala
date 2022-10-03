@@ -22,10 +22,10 @@ import state.*
   * @note
   *   Ordering of method calls matters, especially when using [[withStartingTime]].
   *
-  * @param A
-  *   name to identify the scenario.
-  * @param The
-  *   current simulation state update corresponding to the parameters provided so far.
+  * @param name
+  *   A name to identify the scenario.
+  * @param state
+  *   The current simulation state update corresponding to the parameters provided so far.
   */
 final case class Scenario[F[_] : Monad](name: String, state: Simulation.SimState[F])
     extends ScenarioState
