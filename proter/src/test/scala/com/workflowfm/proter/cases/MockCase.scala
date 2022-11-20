@@ -325,19 +325,29 @@ object MockCaseRef extends StateOps {
     random <- Random.scalaUtilRandom[IO]
     given Random[IO] = random
     idHigh <- gen.randomUUID
-    tgHigh = Task("THigh", highDuration).withID(idHigh).withPriority(Task.High).withResources(Seq(resource.name))
+    tgHigh = Task("THigh", highDuration)
+      .withID(idHigh)
+      .withPriority(Task.High)
+      .withResources(Seq(resource.name))
     expectedHigh <- tgHigh.create(name, expectedCreate)
     idMid <- gen.randomUUID
-    tgMid = Task("TMid", midDuration).withID(idMid).withPriority(Task.Medium).withResources(Seq(resource.name))
+    tgMid = Task("TMid", midDuration)
+      .withID(idMid)
+      .withPriority(Task.Medium)
+      .withResources(Seq(resource.name))
     expectedMid <- tgMid.create(name, expectedCreate)
     idLow <- gen.randomUUID
-    tgLow = Task("TLow", lowDuration).withID(idLow).withPriority(Task.Low).withResources(Seq(resource.name))
+    tgLow = Task("TLow", lowDuration)
+      .withID(idLow)
+      .withPriority(Task.Low)
+      .withResources(Seq(resource.name))
     expectedLow <- tgLow.create(name, expectedCreate)
   } yield (new MockCaseRef(name) {
 
     override def react(call: Call): SimState[IO] = call match {
       case Run => addTasks(caseName, Seq(tgLow, tgMid, tgHigh))
-      case Complete(time, _) if time == expectedCreate + highDuration + midDuration + lowDuration => succeed(())
+      case Complete(time, _) if time == expectedCreate + highDuration + midDuration + lowDuration =>
+        succeed(())
       case _ => idState
     }
 
@@ -346,7 +356,7 @@ object MockCaseRef extends StateOps {
         Run,
         Complete(expectedCreate + lowDuration, Seq(expectedLow)),
         Complete(expectedCreate + lowDuration + midDuration, Seq(expectedMid)),
-        Complete(expectedCreate + lowDuration + midDuration + highDuration, Seq(expectedHigh)),
+        Complete(expectedCreate + lowDuration + midDuration + highDuration, Seq(expectedHigh))
       )
   })
 
@@ -361,19 +371,29 @@ object MockCaseRef extends StateOps {
     random <- Random.scalaUtilRandom[IO]
     given Random[IO] = random
     idHigh <- gen.randomUUID
-    tgHigh = Task("THigh", highDuration).withID(idHigh).withPriority(Task.High).withResources(Seq(resource.name))
+    tgHigh = Task("THigh", highDuration)
+      .withID(idHigh)
+      .withPriority(Task.High)
+      .withResources(Seq(resource.name))
     expectedHigh <- tgHigh.create(name, expectedCreate)
     idMid <- gen.randomUUID
-    tgMid = Task("TMid", midDuration).withID(idMid).withPriority(Task.Medium).withResources(Seq(resource.name))
+    tgMid = Task("TMid", midDuration)
+      .withID(idMid)
+      .withPriority(Task.Medium)
+      .withResources(Seq(resource.name))
     expectedMid <- tgMid.create(name, expectedCreate)
     idLow <- gen.randomUUID
-    tgLow = Task("TLow", lowDuration).withID(idLow).withPriority(Task.Low).withResources(Seq(resource.name))
+    tgLow = Task("TLow", lowDuration)
+      .withID(idLow)
+      .withPriority(Task.Low)
+      .withResources(Seq(resource.name))
     expectedLow <- tgLow.create(name, expectedCreate)
   } yield (new MockCaseRef(name) {
 
     override def react(call: Call): SimState[IO] = call match {
       case Run => addTasks(caseName, Seq(tgLow, tgMid, tgHigh))
-      case Complete(time, _) if time == expectedCreate + highDuration + midDuration + lowDuration => succeed(())
+      case Complete(time, _) if time == expectedCreate + highDuration + midDuration + lowDuration =>
+        succeed(())
       case _ => idState
     }
 
@@ -382,7 +402,7 @@ object MockCaseRef extends StateOps {
         Run,
         Complete(expectedCreate + highDuration, Seq(expectedHigh)),
         Complete(expectedCreate + highDuration + midDuration, Seq(expectedMid)),
-        Complete(expectedCreate + highDuration + midDuration + lowDuration, Seq(expectedLow)),
+        Complete(expectedCreate + highDuration + midDuration + lowDuration, Seq(expectedLow))
       )
   })
 
@@ -401,13 +421,22 @@ object MockCaseRef extends StateOps {
     tgInit = Task("TInit", initDuration).withID(idInit).withResources(Seq(resource.name))
     expectedInit <- tgInit.create(name, expectedCreate)
     idHigh <- gen.randomUUID
-    tgHigh = Task("THigh", highDuration).withID(idHigh).withPriority(Task.High).withResources(Seq(resource.name))
+    tgHigh = Task("THigh", highDuration)
+      .withID(idHigh)
+      .withPriority(Task.High)
+      .withResources(Seq(resource.name))
     expectedHigh <- tgHigh.create(name, expectedCreate + initDuration)
     idMid <- gen.randomUUID
-    tgMid = Task("TMid", midDuration).withID(idMid).withPriority(Task.Medium).withResources(Seq(resource.name))
+    tgMid = Task("TMid", midDuration)
+      .withID(idMid)
+      .withPriority(Task.Medium)
+      .withResources(Seq(resource.name))
     expectedMid <- tgMid.create(name, expectedCreate + initDuration)
     idLow <- gen.randomUUID
-    tgLow = Task("TLow", lowDuration).withID(idLow).withPriority(Task.Low).withResources(Seq(resource.name))
+    tgLow = Task("TLow", lowDuration)
+      .withID(idLow)
+      .withPriority(Task.Low)
+      .withResources(Seq(resource.name))
     expectedLow <- tgLow.create(name, expectedCreate + initDuration)
   } yield (new MockCaseRef(name) {
 
@@ -415,7 +444,9 @@ object MockCaseRef extends StateOps {
       case Run => addTask(caseName)(tgInit)
       case Complete(time, Seq(task)) if time == initDuration && task.compare(expectedInit) == 0 =>
         addTasks(caseName, Seq(tgLow, tgMid, tgHigh))
-      case Complete(time, _) if time == expectedCreate + initDuration + highDuration + midDuration + lowDuration => succeed(())
+      case Complete(time, _)
+          if time == expectedCreate + initDuration + highDuration + midDuration + lowDuration =>
+        succeed(())
       case _ => idState
     }
 
@@ -425,7 +456,10 @@ object MockCaseRef extends StateOps {
         Complete(expectedCreate + initDuration, Seq(expectedInit)),
         Complete(expectedCreate + initDuration + highDuration, Seq(expectedHigh)),
         Complete(expectedCreate + initDuration + highDuration + midDuration, Seq(expectedMid)),
-        Complete(expectedCreate + initDuration + highDuration + midDuration + lowDuration, Seq(expectedLow)),
+        Complete(
+          expectedCreate + initDuration + highDuration + midDuration + lowDuration,
+          Seq(expectedLow)
+        )
       )
   })
 

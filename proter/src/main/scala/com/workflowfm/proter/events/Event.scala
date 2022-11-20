@@ -10,6 +10,7 @@ import java.util.UUID
   * result analysis.
   */
 sealed trait Event {
+
   /**
     * A string representing the simulation that generated the event.
     */

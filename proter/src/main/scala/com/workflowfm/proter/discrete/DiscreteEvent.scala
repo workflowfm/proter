@@ -13,6 +13,7 @@ import java.util.UUID
   * Discrete Events occurring during simulation.
   */
 sealed trait DiscreteEvent extends Ordered[DiscreteEvent] {
+
   /** The virtual timestamp of the event */
   def time: Long
 

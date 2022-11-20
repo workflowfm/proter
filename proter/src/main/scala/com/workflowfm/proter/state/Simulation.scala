@@ -235,8 +235,8 @@ object Simulation extends StateOps {
     *   The name to use for the simulation.
     * @param scheduler
     *   The [[schedule.Scheduler Scheduler]] to use.
-  * @param prioritised
-  *   Whether tasks should ne prioritised (true) or first-come-first-served (false).
+    * @param prioritised
+    *   Whether tasks should ne prioritised (true) or first-come-first-served (false).
     * @return
     *   The initialised [[Simulation]] state.
     */

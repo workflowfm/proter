@@ -45,7 +45,8 @@ trait CaseState extends ScenarioState {
         val event = ETaskAdd(sim.id, sim.time, inst)
         if task.resources.size > 0 then (sim.copy(tasks = sim.tasks + inst), Seq(event))
         else
-          Simulation.startTask(inst).run(sim).value match { // if the task does not require resources, start it now
+          Simulation.startTask(inst).run(sim).value match { /* if the task does not require
+             * resources, start it now */
             case (s, events) => (s, event +: events)
           }
       }

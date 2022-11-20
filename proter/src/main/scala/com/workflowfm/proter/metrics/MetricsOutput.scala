@@ -89,6 +89,7 @@ case class MetricsResult[F[_] : Concurrent](result: Deferred[F, Metrics]) extend
 
 /** Generates a string representation of the metrics using a generalized CSV format. */
 trait MetricsStringOutput[F[_]] extends MetricsOutput[F] {
+
   /** A string representing null values. */
   val nullValue = "NULL"
 
@@ -245,17 +246,22 @@ trait MetricsStringOutput[F[_]] extends MetricsOutput[F] {
 class MetricsPrinter[F[_] : Console] extends MetricsStringOutput[F] {
 
   override def apply(metrics: Metrics): F[Unit] = {
+
     /** Separates the values. */
     val sep = "\t| "
+
     /** Separates metrics instances. */
     val lineSep = "\n"
+
     /** Default time format using `java.text.SimpleDateFormat`. */
     val timeFormat = "YYYY-MM-dd HH:mm:ss.SSS"
+
     /**
       * Default duration format using
       * [[org.apache.commons.lang3.time.DurationFormatUtils.formatDuration]].
       */
     val durFormat = "HH:mm:ss.SSS"
+
     /** A string representing null time values. */
     val nullTime = "NONE"
     Console[F].println(

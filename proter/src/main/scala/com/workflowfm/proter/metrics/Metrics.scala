@@ -13,7 +13,7 @@ import events.*
   * @groupprio Set 3
   * @groupprio Update 4
   * @groupprio Get 5
-  * 
+  *
   * @param start
   *   The system time in milliseconds when the simulation started.
   * @param end
@@ -101,6 +101,7 @@ final case class Metrics(
     * @group Set
     */
   def addTask(task: TaskInstance): Metrics = this += TaskMetrics(task)
+
   /**
     * Adds a new [[CaseMetrics]] instance given a named case starting now and current time.
     *
@@ -250,8 +251,8 @@ final case class Metrics(
   def taskSet: Set[String] = tasks.values.map(_.task).toSet[String]
 
   /**
-    * All the tracked [[TaskMetrics]] instances associated with a [[Resource]], sorted by
-    * starting time.
+    * All the tracked [[TaskMetrics]] instances associated with a [[Resource]], sorted by starting
+    * time.
     *
     * @param r
     *   The tracked [[ResourceMetrics]] of the resource.
@@ -317,27 +318,33 @@ object Metrics {
       extends MetricsException(s"Tried to update metrics for task that does not exist: $caseName")
 
   final case class ResourceNotFound(resourceName: String)
-      extends MetricsException(s"Tried to update metrics for task that does not exist: $resourceName")
+      extends MetricsException(
+        s"Tried to update metrics for task that does not exist: $resourceName"
+      )
 
   import io.circe.generic.semiauto.*
   import io.circe.Encoder
   import io.circe.syntax.*
 
   given Encoder[TaskMetrics] = deriveEncoder[TaskMetrics]
-  given taskMetricsMapEncoder: Encoder[Map[UUID, TaskMetrics]] = (collection: Map[UUID, TaskMetrics]) =>
-    collection.values.map(_.asJson).toList.asJson
+
+  given taskMetricsMapEncoder: Encoder[Map[UUID, TaskMetrics]] =
+    (collection: Map[UUID, TaskMetrics]) => collection.values.map(_.asJson).toList.asJson
 
   given Encoder[CaseMetrics] = deriveEncoder[CaseMetrics]
-  given caseMetricsMapEncoder: Encoder[Map[String, CaseMetrics]] = (collection: Map[String, CaseMetrics]) =>
-    collection.values.map(_.asJson).toList.asJson
+
+  given caseMetricsMapEncoder: Encoder[Map[String, CaseMetrics]] =
+    (collection: Map[String, CaseMetrics]) => collection.values.map(_.asJson).toList.asJson
 
   given Encoder[ResourceMetrics] = deriveEncoder[ResourceMetrics]
-  given resourceMetricsMapEncoder: Encoder[Map[String, ResourceMetrics]] = (collection: Map[String, ResourceMetrics]) =>
-    collection.values.map(_.asJson).toList.asJson
+
+  given resourceMetricsMapEncoder: Encoder[Map[String, ResourceMetrics]] =
+    (collection: Map[String, ResourceMetrics]) => collection.values.map(_.asJson).toList.asJson
 
   given Encoder[TaskNotFound] = deriveEncoder[TaskNotFound]
   given Encoder[CaseNotFound] = deriveEncoder[CaseNotFound]
   given Encoder[ResourceNotFound] = deriveEncoder[ResourceNotFound]
+
   given Encoder[MetricsException] = Encoder.instance {
     case t @ TaskNotFound(_) => t.asJson
     case c @ CaseNotFound(_) => c.asJson

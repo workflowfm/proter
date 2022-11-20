@@ -147,8 +147,8 @@ case class FlowCaseRef[F[_] : Monad : UUIDGen : Random](
   /**
     * Completes an id by executing its callback and then removing it from the map.
     *
-    * This overloads the definition of `complete` found in [[cases.AsyncCaseRef AsyncCaseRef]] to allow for ''any''' id
-    * to be used in the `tasks` map, and not just [[TaskInstance]]s.
+    * This overloads the definition of `complete` found in [[cases.AsyncCaseRef AsyncCaseRef]] to
+    * allow for ''any''' id to be used in the `tasks` map, and not just [[TaskInstance]]s.
     *
     * @param id
     *   The id to complete

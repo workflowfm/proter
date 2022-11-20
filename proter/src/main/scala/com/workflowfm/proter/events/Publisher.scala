@@ -78,6 +78,7 @@ object Publisher {
   * A subscriber is essentially a pipe of the [[Publisher]] stream to `Unit`.
   */
 trait Subscriber[F[_]] extends Pipe[F, Either[Throwable, Event], Unit] {
+
   /**
     * Method to be called when the stream is initialized.
     */

@@ -317,8 +317,10 @@ object Schedule {
     case Nil => Some(result.toList)
     case (l: Long, r: Long) :: t =>
       if l == start && end == r then fitInGaps(start, end, t, result) // event fits exactly
-      else if l == start && end <= r then fitInGaps(start, end, t, result :+ ((end, r))) // add an event at the beginning of the gap
-      else if l <= start && end == r then fitInGaps(start, end, t, result :+ ((l, start))) // add an event at the end of the gaps
+      else if l == start && end <= r then fitInGaps(start, end, t, result :+ ((end, r))) /* add an
+       * event at the beginning of the gap */
+      else if l <= start && end == r then fitInGaps(start, end, t, result :+ ((l, start))) /* add an
+       * event at the end of the gaps */
       else if l < start && end < r then
         fitInGaps(start, end, t, result :+ ((l, start)) :+ ((end, r))) // add an event within a gap
       else if start > r || end < l then fitInGaps(start, end, t, result :+ ((l, r)))

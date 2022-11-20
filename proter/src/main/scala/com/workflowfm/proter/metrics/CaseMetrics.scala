@@ -30,8 +30,10 @@ final case class CaseMetrics(
     cost: Double,
     result: Option[String]
 ) {
+
   /** Adds some time to the total duration. */
   def addDuration(d: Long): CaseMetrics = copy(duration = duration + d)
+
   /** Adds some cost to the total cost. */
   def addCost(c: Double): CaseMetrics = copy(cost = cost + c)
 

@@ -21,6 +21,7 @@ import scala.util.{ Try, Success, Failure }
   *   The effect type.
   */
 trait CaseRef[F[_] : Monad] extends CaseState {
+
   /**
     * A unique name for the instance.
     *
@@ -296,6 +297,7 @@ abstract class AsyncCaseRef[F[_] : Monad : UUIDGen : Random](callbackMap: Callba
 }
 
 object AsyncCaseRef {
+
   /**
     * The type for task callbacks.
     *

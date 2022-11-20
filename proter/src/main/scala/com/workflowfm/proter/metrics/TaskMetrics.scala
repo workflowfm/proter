@@ -40,6 +40,7 @@ final case class TaskMetrics(
     resources: Map[String, Int],
     aborted: Boolean
 ) {
+
   /** Sets the starting time for the [[TaskInstance]]. */
   def start(st: Long): TaskMetrics = copy(started = Some(st))
 

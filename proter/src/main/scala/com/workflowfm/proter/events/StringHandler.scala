@@ -17,6 +17,7 @@ trait StringHandler[F[_] : Applicative : Clock] extends TimedHandler[F] {
 
   def strPipe(newlines: Boolean): Pipe[F, Either[Throwable, Event], String] =
     _.through(timedEventPipe).map(timedEventToString(newlines))
+
   /**
     * A simple date formatter for printing the current (system) time.
     */

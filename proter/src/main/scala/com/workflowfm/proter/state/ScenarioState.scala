@@ -200,7 +200,8 @@ trait ScenarioState {
   )
 
   /**
-    * Adds a [[cases.Case Case]] with an arrival pattern to start in the '''current''' simulation time.
+    * Adds a [[cases.Case Case]] with an arrival pattern to start in the '''current''' simulation
+    * time.
     *
     * Produces an [[events.EArrivalAdd EArrivalAdd]] event.
     *

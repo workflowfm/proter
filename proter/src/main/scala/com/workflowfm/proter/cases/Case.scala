@@ -22,6 +22,7 @@ import java.util.UUID
   *   The object type / argument of the type class.
   */
 trait Case[F[_], T] {
+
   /**
     * Initialize a new [[CaseRef]].
     *

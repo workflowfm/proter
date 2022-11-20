@@ -29,8 +29,9 @@ trait JsonHandler[F[_] : Applicative : Clock] extends TimedHandler[F] {
 }
 
 object JsonHandler {
-  given resourceStateTaskMapEncoder: Encoder[Map[UUID, (Long, TaskInstance)]] = (collection: Map[UUID, (Long, TaskInstance)]) =>
-    collection.values.map(_.asJson).toList.asJson
+
+  given resourceStateTaskMapEncoder: Encoder[Map[UUID, (Long, TaskInstance)]] =
+    (collection: Map[UUID, (Long, TaskInstance)]) => collection.values.map(_.asJson).toList.asJson
 
   given Encoder[ResourceState] = deriveEncoder[ResourceState]
   given Encoder[TaskInstance] = deriveEncoder[TaskInstance]

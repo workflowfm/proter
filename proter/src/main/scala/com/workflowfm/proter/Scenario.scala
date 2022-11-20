@@ -294,6 +294,7 @@ final case class Scenario[F[_] : Monad](name: String, state: Simulation.SimState
 }
 
 object Scenario extends StateOps {
+
   /**
     * Initialise a scenario by its name.
     *

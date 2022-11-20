@@ -18,6 +18,7 @@ import cats.implicits.*
   *   The cost of using 1 unit of resource capacity per unit of time.
   */
 case class Resource(name: String, capacity: Int, costPerTick: Double) {
+
   /**
     * Initial state.
     */
@@ -124,6 +125,7 @@ case class ResourceState(resource: Resource, currentTasks: Map[UUID, (Long, Task
 }
 
 object ResourceState {
+
   /**
     * Wrapper around a [[ResourceState]] that does not have enough capacity for some task.
     *
