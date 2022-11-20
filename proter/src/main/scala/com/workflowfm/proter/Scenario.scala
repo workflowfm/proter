@@ -122,8 +122,8 @@ final case class Scenario[F[_] : Monad](name: String, state: Simulation.SimState
     and(addCasesNow(cases))
 
   /**
-    * Adds a collection of [[cases.Case Case]]s, each with a specified starting time, to the simulation
-    * scenario.
+    * Adds a collection of [[cases.Case Case]]s, each with a specified starting time, to the
+    * simulation scenario.
     *
     * @tparam T
     *   The type of the objects used for the simulation case.
@@ -166,7 +166,8 @@ final case class Scenario[F[_] : Monad](name: String, state: Simulation.SimState
     and(addArrivalNow(n, t, rate, Some(limit)))
 
   /**
-    * Adds a [[cases.Case Case]] with an arrival pattern and specified start time to the simulation scenario.
+    * Adds a [[cases.Case Case]] with an arrival pattern and specified start time to the simulation
+    * scenario.
     *
     * @tparam T
     *   The type of the object used for the simulation case.

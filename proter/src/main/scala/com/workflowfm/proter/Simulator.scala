@@ -20,10 +20,13 @@ import cats.effect.implicits.*
   *   The [[schedule.Scheduler Scheduler]] to use during simulation.
   * @param subscribers
   *   The [[events.Subscriber Subscriber]]s that should receive events.
+  * @param prioritised
+  *   Whether tasks should ne prioritised (true) or first-come-first-served (false).
   */
 final case class Simulator[F[_] : Concurrent](
     scheduler: Scheduler,
-    subscribers: Seq[Subscriber[F]]
+    subscribers: Seq[Subscriber[F]],
+    prioritised: Boolean = true
 ) extends ScenarioState {
 
   /**
@@ -124,13 +127,12 @@ final case class Simulator[F[_] : Concurrent](
     e <- ret.concurrently(stream)
   } yield (e)
 
-
-  /** 
+  /**
     * Creates a stream where the publisher and all subscribers run concurrently.
-    * 
-    * We return the publisher stream directly if there are no subscribers as the subscriber 
-    * stream ends immediately and blocks everything.
-    * 
+    *
+    * We return the publisher stream directly if there are no subscribers as the subscriber stream
+    * ends immediately and blocks everything.
+    *
     * @param name
     *   A name to use for the simulation.
     * @param state
@@ -141,17 +143,17 @@ final case class Simulator[F[_] : Concurrent](
     *   A stream running the simulation and all subscribers.
     */
   protected def getPubSubStream(
-    name: String, 
-    state: StateT[F, Simulation[F], Seq[Event]],
-    publisher: Publisher[F]
+      name: String,
+      state: StateT[F, Simulation[F], Seq[Event]],
+      publisher: Publisher[F]
   ): Stream[F, Unit] = {
     val pubStream = Stream.eval(simulateStateWithPublisher(name, state, publisher))
     if (subscribers.isEmpty) then pubStream
     else {
       val subresource = subscribers.map(publisher.subscribe(_)).parSequence
-      Stream.resource(subresource).flatMap( subs => 
-        Stream(subs: _*).parJoinUnbounded.concurrently(pubStream)
-      )
+      Stream
+        .resource(subresource)
+        .flatMap(subs => Stream(subs: _*).parJoinUnbounded.concurrently(pubStream))
     }
   }
 
@@ -174,7 +176,7 @@ final case class Simulator[F[_] : Concurrent](
       state: StateT[F, Simulation[F], Seq[Event]],
       publisher: Publisher[F]
   ): F[Unit] = {
-    val sim = Simulation[F](name, scheduler)
+    val sim = Simulation[F](name, scheduler, prioritised)
     for {
       sResult <- sim.start(state)
       (updated, events) = sResult

@@ -12,7 +12,7 @@ import cats.effect.std.Random
 import cats.implicits.*
 
 import scala.annotation.tailrec
-import scala.collection.immutable.{ HashSet, Set, Map, Queue }
+import scala.collection.immutable.{ HashSet, Set, SortedSet, Map, Queue }
 import scala.util.{ Try, Success, Failure }
 import java.util.UUID
 
@@ -235,20 +235,23 @@ object Simulation extends StateOps {
     *   The name to use for the simulation.
     * @param scheduler
     *   The [[schedule.Scheduler Scheduler]] to use.
+  * @param prioritised
+  *   Whether tasks should ne prioritised (true) or first-come-first-served (false).
     * @return
     *   The initialised [[Simulation]] state.
     */
-  def apply[F[_]](id: String, scheduler: Scheduler): Simulation[F] = Simulation[F](
-    id,
-    scheduler,
-    0L,
-    EventQueue(),
-    Set(),
-    Map(),
-    ResourceMap(Map()),
-    Map(),
-    HashSet()
-  )
+  def apply[F[_]](id: String, scheduler: Scheduler, prioritised: Boolean = true): Simulation[F] =
+    Simulation[F](
+      id,
+      scheduler,
+      0L,
+      EventQueue(),
+      if (prioritised) SortedSet() else Set(),
+      Map(),
+      ResourceMap(Map()),
+      Map(),
+      HashSet()
+    )
 
   /**
     * Start a [[cases.CaseRef CaseRef]].
@@ -359,8 +362,8 @@ object Simulation extends StateOps {
     *     [[com.workflowfm.proter.events.EError EError]]. The latter would only happen if the
     *     [[schedule.Scheduler Scheduler]] tried to schedule a [[Task]] to a [[Resource]] that is
     *     busy/does not have enough available capacity.
-    *   - Creates a [[discrete.FinishingTask FinishingTask]] event for this [[Task]] based on its duration, and adds it to
-    *     the event queue.
+    *   - Creates a [[discrete.FinishingTask FinishingTask]] event for this [[Task]] based on its
+    *     duration, and adds it to the event queue.
     *
     * @param task
     *   The [[TaskInstance]] to be started.
