@@ -338,9 +338,9 @@ given [F[_]](using Monad[F], UUIDGen[F], Random[F]): Case[F, Task] with {
 
    You can construct a new scenario providing a unique name and, optionally, a starting time (default is ~0~). You can the add the following elements:
 
-   - The [[#resources][resources]] available during simulation (~withResource~/~withResources~).
+   - The [[#resources][resources]] available during simulation (~withResource~ / ~withResources~).
    - A virtual *time limit* that will signal the end of the simulation (~withLimit~). All tasks, cases, and arrivals will be aborted when that timestamp is reached. This is necessary when using infinite arrivals (see below).
-   - Any number of [[#cases][cases]] to simulate (~withCase~/~withCases~). Each of these will be executed once as soon as the simulation starts. You can also specify a custom starting time for each case (~withTimedCase~/~withTimedCases~).
+   - Any number of [[#cases][cases]] to simulate (~withCase~ / ~withCases~). Each of these will be executed once as soon as the simulation starts. You can also specify a custom starting time for each case (~withTimedCase~ / ~withTimedCases~).
    - Any number of arrivals (see below).
   
 *** Arrivals
@@ -425,8 +425,100 @@ given [F[_]](using Monad[F], UUIDGen[F], Random[F]): Case[F, Task] with {
    :EXPORT_HUGO_WEIGHT: 260
    :CUSTOM_ID: schedulers
    :END:
+   The [[../../../api/com/workflowfm/proter/schedule/Scheduler.html][~Scheduler~]] is responsible for deciding which [[#tasks][task instances]] should be executed at any given time. In general, tasks are competing for [[#resources][resources]], so that a *collection of pending tasks* that are waiting to be run will occur naturally. Once resources become available, the scheduler decides which of the pending tasks will run next.
 
-   Hi
+   This is accomplished through the implementation of the ~getNextTasks~ function, which is provided with the current timestamp, the collection of pending tasks, and the current [[../../../api/com/workflowfm/proter/ResourceMap.html][~ResourceMap~]]. The latter contains information on resource availability. Using this information, the ~getNextTasks~ function needs to return a list of task instances that should start next. 
+
+   #+BEGIN_tip 
+   It is expected that the resources required by the returned tasks are available in the resource map, otherwise the simulation will fail.
+   #+END_tip
+   
+*** Priority
+    A key thing that influences the functionality of the schedulers is /task priority/. This is reflected in the ordering of the collection of tasks when given to the scheduler. Of course the scheduler may choose to change the order or re-sort the collection, but that would likely be inefficient.
+
+   #+BEGIN_tip 
+   The scheduler is called whenever new tasks need to be scheduled, which is *very often* during the simulation. Therefore, scheduler efficiency matters a lot to the overall efficiency of the simulation.
+   #+END_tip
+
+   There are 2 types of task ordering: *prioritised* and *first-come-first-served (FCFS)*. The choice between the 2 is dictated by the ~prioritised~ flag in the [[#simulation][simulator]].
+
+**** Prioritised tasks
+     Tasks are prioritised with the use of a ~SortedSet~ based on the following criteria in this order (i.e. if there is no difference between 2 tasks in one criterium, we move to the next):
+     1. The explicit task *priority*.
+     2. The *age* of the task, i.e. how long since it was added to the queue.
+     3. The *resource requirements*, where tasks that require more resources are prioritised, as they typically harder to schedule.
+     4. The *estimated duration*, where longer tasks are prioritised.
+     5. The *id* by UUID ordering is used to deterministically order tasks that are identical as per the other criteria.
+
+**** FCFS
+     If prioritisation is disabled then tasks are handled in a first-come-first-served basis. This effectively ignores the explicit priority value.
+     
+
+*** Greedy Scheduler
+    The [[../../../api/com/workflowfm/proter/schedule/GreedyScheduler.html][~GreedyScheduler~]] is a simple but efficient scheduler. It checks tasks in the order they come in (prioritised or FCFS) and starts the ones for which there are sufficient resources available.
+
+    For example, assume the following resources:
+   #+BEGIN_SRC scala
+     val a = Resource("A", 3, 0)
+     val b = Resource("B", 3, 0)
+   #+END_SRC
+
+   Then assume we have 3 tasks in the (ordered) queue:
+   1. ~T1 duration:5 resources: 3xA 1xB~
+   2. ~T2 duration:1 resources: 2xB~
+   3. ~T3 duration:3 resources: 1xA~
+
+   If both resources ~A~ and ~B~ are idle at the time of scheduling, then ~T1~ and ~T2~ can start because there is enough capacity for both of them, but ~T3~ will remain in the queue.
+
+   If we assume another task is currently running and consuming 1 capacity in resource ~A~, then ~T1~ cannot start as there is not enough capacity in ~A~. The question is /should ~T3~ be started now or not/?
+
+   Allowing ~T3~ to start leads to a fully greedy strategy where we start as many tasks as we can each time. However, this is more likely to cause a further delay to ~T1~ which is earlier in the queue (higher priority). 
+
+   This choice is controlled by the ~strict~ parameter as follows:
+   #+BEGIN_tip 
+   If ~strict=true~ then the ~GreedyScheduler~ will avoid blocking any resource capacity required by earlier tasks with the goal of starting them as early as possible ("*greedy priority*").
+
+   If ~strict=false~ then the ~GreedyScheduler~ will start as many tasks as it can with the currently available resources ("*greedy execution*").
+   #+END_tip
+   
+*** Proter Scheduler
+    The [[../../../api/com/workflowfm/proter/schedule/ProterScheduler.html][~ProterScheduler~]] is a more sophisticated but less efficient scheduler. Its main goal is to maximize resource utilisation, but prevent a high priority task from being delayed by a lower priority one.
+
+   #+BEGIN_tip 
+   FCFS ordering does not make much sense for the ~ProterScheduler~. It is best used with a prioritised queue.
+   #+END_tip
+    
+
+    Let's return to the previous example with the 2 resources:
+   #+BEGIN_SRC scala
+     val a = Resource("A", 3, 0)
+     val b = Resource("B", 3, 0)
+   #+END_SRC
+
+   Then assume we have the same 3 tasks in the (ordered) queue:
+   1. ~T1 duration:5 resources: 3xA 1xB~
+   2. ~T2 duration:1 resources: 2xB~
+   3. ~T3 duration:3 resources: 1xA~
+
+   As before, let us also assume that another task is currently using 1 capacity from resource ~A~ for the next 4 units of time.
+
+   A strict ~GreedyScheduler~ would only schedule ~T2~ in this scenario. ~ProterScheduler~, instead, calculates that ~T3~ is likely to finish before ~T1~ is able to start (3 units of time vs. 4 of the currently running task). Therefore, it will schedule ~T3~ to run now.
+
+   If, instead, the currently running task is due to finish in 2 units of time, then ~T3~ will not be started to prevent a delay of ~T1~. In contrast, a non-strict ~GreedyScheduler~ would start ~T3~ in this scenario and cause a delay. 
+
+   As a result, ~ProterScheduler~ balances the best of both modes of ~GreedyScheduler~. Naturally, if task durations are probabilistic, the scheduler decisions can only be based on duration estimates (see [[#distributions][distributions]]) and may result in delays if durations are underestimated. This compromise is an emulation of human scheduling under estimated durations.
+
+*** Lookahead Scheduler
+
+    So far, the scheduling performed is /local/. We only schedule currently queued tasks and not tasks that may come up in the future. This allows maximum flexibility in the simulated workflows (e.g. in terms of different possible paths, outcomes, repetitions, changes, cancellations, etc that can happen *at runtime*), but results in schedules that are less optimal than /global/ ones (i.e. scheduling where all tasks that will be performed are known in advance).
+
+    The ~LookaheadScheduler~ allows us to extend the scheduling performed to future tasks. 
+
+    #+attr_shortcode: warning
+    #+begin_tip
+    Unfortunately, the ~LookaheadScheduler~ has not yet been ported from a previous version of Proter. We will update the documentation when it becomes available again. 
+    #+end_tip
+
 
 ** TODO Simulation
    :PROPERTIES:
