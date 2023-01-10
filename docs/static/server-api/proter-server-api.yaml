@@ -275,7 +275,7 @@ components:
         "IThen": {
           args: [
             ITask: {...},
-            ITask: {...}}
+            ITask: {...}
           ]
         }
     IPar:
@@ -292,7 +292,7 @@ components:
         "IPar": {
           args: [
             ITask: {...},
-            ITask: {...}}
+            ITask: {...}
           ]
         }
     ITask:
