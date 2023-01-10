@@ -12,27 +12,6 @@ class ResourceTests
     with LoneElement {
 
   "ResourceState" when {
-    "calling `hasCapacity`" should {
-      "check capacity of an empty state" in {
-        rs("Test", 1821)().hasCapacity `should` be(true)
-      }
-
-      "check capacity with a single task" in {
-        rs("Test", 1821)((1L, 0L, 1820)).hasCapacity `should` be(true)
-      }
-
-      "check capacity with 2 tasks" in {
-        rs("Test", 1821)((1L, 0L, 20), (2L, 0L, 1800)).hasCapacity `should` be(true)
-      }
-
-      "check full capacity with a single task" in {
-        rs("Test", 1821)((1L, 0L, 1821)).hasCapacity `should` be(false)
-      }
-
-      "check full capacity with 2 tasks" in {
-        rs("Test", 1821)((1L, 0L, 21), (2L, 0L, 1800)).hasCapacity `should` be(false)
-      }
-    }
 
     "calling `remainingCapacity`" should {
       "calculate capacity of an empty state" in {

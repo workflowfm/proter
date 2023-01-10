@@ -52,10 +52,10 @@ trait LongDistribution {
 trait Distribution extends LongDistribution {
 
   /**
-    * Provides a sample value.
+    * Provides a sample `Double` value.
     *
     * @return
-    *   A sample value.
+    *   A sample `Double` value.
     */
   def get[F[_] : Applicative : Random]: F[Double]
 
@@ -131,6 +131,7 @@ case class ConstantLong(value: Long) extends LongDistribution {
   *   The value to generate.
   */
 case class Constant(value: Double) extends Distribution {
+
   /**
     * Provides the constant value.
     *
@@ -159,6 +160,7 @@ case class Constant(value: Double) extends Distribution {
   *   The maximum possible value.
   */
 case class UniformLong(min: Long, max: Long) extends LongDistribution {
+
   /**
     * Provides a random value uniformly sampled between [[min]] and [[max]].
     *
@@ -189,6 +191,7 @@ case class UniformLong(min: Long, max: Long) extends LongDistribution {
   *   The maximum possible value.
   */
 case class Uniform(min: Double, max: Double) extends Distribution {
+
   /**
     * Provides a random value uniformly sampled between [[min]] and [[max]].
     *

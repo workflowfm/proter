@@ -216,6 +216,45 @@ class SimulationTests extends SimulationTester {
       } yield (())
     }
 
+    "correctly execute a case with 3 fcfs tasks" in {
+      val res = Resource("R", 1, 0)
+      for {
+        ref <- mock3FCFSTasks("test", res, 0L, 1L, 2L, 3L)
+        state = compose2(
+          lift(addResource[IO](res)),
+          lift(addCaseRef(0L, ref))
+        )
+        _ <- sim("Test", state)
+        _ = ref `should` comply
+      } yield (())
+    }
+
+    "correctly execute a case with 3 prioritised tasks" in {
+      val res = Resource("R", 1, 0)
+      for {
+        ref <- mock3PrioritisedTasks("test", res, 0L, 1L, 2L, 3L)
+        state = compose2(
+          lift(addResource[IO](res)),
+          lift(addCaseRef(0L, ref))
+        )
+        _ <- sim("Test", state, true)
+        _ = ref `should` comply
+      } yield (())
+    }
+
+    "correctly execute a case with 1 then 3 prioritised tasks" in {
+      val res = Resource("R", 1, 0)
+      for {
+        ref <- mock1Plus3PrioritisedTasks("test", res, 0L, 5L, 1L, 2L, 3L)
+        state = compose2(
+          lift(addResource[IO](res)),
+          lift(addCaseRef(0L, ref))
+        )
+        _ <- sim("Test", state, true)
+        _ = ref `should` comply
+      } yield (())
+    }
+ 
     "correctly execute an arrival" in {
       for {
         random <- Random.scalaUtilRandom[IO]
@@ -328,10 +367,11 @@ trait SimulationTester
     with StateOps {
 
   def sim(
-      name: String,
-      state: StateT[IO, Simulation[IO], Seq[Event]]
+    name: String,
+    state: StateT[IO, Simulation[IO], Seq[Event]],
+    prioritised: Boolean = false
   ): IO[Unit] = {
-    val sim = Simulation[IO](name, ProterScheduler)
+    val sim = Simulation[IO](name, ProterScheduler, prioritised)
     for {
       sResult <- sim.start(state)
       (updated, _) = sResult

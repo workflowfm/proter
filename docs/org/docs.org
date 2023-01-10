@@ -8,11 +8,16 @@
 
 #+HUGO_BASE_DIR: ../
 #+HUGO_SECTION: docs
+#+HUGO_PAIRED_SHORTCODES: tip
 
 * Setup Amm :noexport:
+
+This is not working sadly. I haven't been able to find a way to launch amm within ob-scala with Scala 3.1.0.
+
 #+BEGIN_SRC amm
-import $ivy.`com.workflowfm:proter_2.12:0.7`, com.workflowfm.proter._
+import $ivy.`com.workflowfm::proter:0.8`, com.workflowfm.proter._
 #+END_SRC
+
 
 * Reference
   :PROPERTIES:
@@ -20,12 +25,15 @@ import $ivy.`com.workflowfm:proter_2.12:0.7`, com.workflowfm.proter._
   :EXPORT_HUGO_MENU: :menu "main" :weight 100
   :END:
 
-Welcome to the Proter documentation. This guide shows you how to get started creating creating simulations using Proter and the key concepts involved.
+Welcome to the Proter documentation. This guide shows you how to get started creating simulations using Proter and the key concepts involved.
 
-{{< button "./getting-started/" "Get started" >}}
-* Getting Started
+Example code can be found [[https://github.com/workflowfm/ProterTutorial][in this repository]].
+
+@@hugo:{{< button "./install/" "Get started" >}}@@
+
+* Install
   :PROPERTIES:
-  :EXPORT_FILE_NAME: getting-started
+  :EXPORT_FILE_NAME: install
   :EXPORT_HUGO_WEIGHT: 100
   :END:
 
@@ -35,15 +43,15 @@ Proter is available as a library from Maven Central, so you can add it as a depe
 libraryDependencies += "com.workflowfm" %% "proter" % "{{< version >}}"
 #+END_SRC
 
-Proter is currently only available in *Scala 2.12.12*.
+Proter is currently only available in *Scala 3.1.0*.
 
-* Elements
+Information on using a Scala 3 library in Scala 2.13 can be found [[https://docs.scala-lang.org/scala3/guides/migration/compatibility-classpath.html][here]].
+
+* TODO Elements
   :PROPERTIES:
   :EXPORT_HUGO_WEIGHT: 200
-  :EXPORT_HUGO_SECTION*: elements
+  :EXPORT_HUGO_SECTION_FRAG: elements
   :END:
-
-  Basic elements are covered here.
 
 ** TODO Elements
   :PROPERTIES:
@@ -53,28 +61,599 @@ Proter is currently only available in *Scala 2.12.12*.
   In this section, we cover some of the basic elements and building blocks of Proter simulations.
 
 
-** TODO Value Generators
+** TODO Distributions
    :PROPERTIES:
-   :EXPORT_FILE_NAME: generators
+   :EXPORT_FILE_NAME: distributions
    :EXPORT_HUGO_WEIGHT: 210
+   :CUSTOM_ID: distributions
    :END:
 
-   A [[../../../api/com/workflowfm/proter/ValueGenerator.html][~ValueGenerator~]] represents a function that can generate a value for some simulation parameters (typically duration and cost). This can be a constant value or a sample from a probability distribution.
+   A [[../../../api/com/workflowfm/proter/Distribution.html][~Distribution~]] represents a function that can generate a value for some simulation parameters (typically duration and cost). This can be a constant value or a sample from a probability distribution.
 
-   Value generators also implement an estimate method (such as the median of the distribution) that provides an estimate of the generated values. This can help create an environment of imperfect knowledge. For example, the ~Scheduler~ does not know the actual durations of tasks, which can vary from the expected estimate for various reasons.
+   Distributions produce ~Double~ precision numbers. A [[../../../api/com/workflowfm/proter/Distribution.html][~LongDistribution~]] is a superclass that can only produce ~Long~ integer values. These are sometimes more convenient to use, especially because they avoid using rounding.
+   
+   Distributions also implement an estimate method (such as the median of the distribution) that provides an estimate of the generated values. This can help create an environment of imperfect knowledge. For example, the ~Scheduler~ does not know the actual durations of tasks, which can vary from the expected estimate for various reasons.
 
-*** Constant Generators
-  A [[../../../api/com/workflowfm/proter/ConstantGenerator.html][~ConstantGenerator~]] always produces the same value, and its estimate is the value itself. 
+   The core implementation currently includes constant, uniform, and exponential distributions, but you can also implement your own.
+   
+*** Constant
+    A [[../../../api/com/workflowfm/proter/Constant.html][~Constant~]]/[[../../../api/com/workflowfm/proter/ConstantLong.html][~ConstantLong~]] distribution always produces the same value, and its estimate is the value itself. 
+  
+    #+BEGIN_SRC scala
+      {
+        val constant = Constant(6)
+        println(s"Value: ${constant.get[IO].unsafeRunSync()} - Estimate: ${constant.estimate}")
+      }
+    #+END_SRC    
 
-#+BEGIN_SRC scala
-  {
-    val constantGen = ConstantGenerator(6)
-    println(s"Value: ${constantGen.value} - Estimate: ${constantGen.estimate}")
+    #+RESULTS:
+    : Value: 6.0 - Estimate: 6
+
+*** Uniform
+    A [[../../../api/com/workflowfm/proter/Uniform.html][~Uniform~]]/[[../../../api/com/workflowfm/proter/UniformLong.html][~UniformLong~]] distribution produces a value uniformly between a minimum (inclusive) and a maximum (exclusive).
+  
+    #+BEGIN_SRC scala
+      {
+        val uniform = Uniform(5, 10)
+        println(s"Value: ${uniform.get[IO].unsafeRunSync()} - Estimate: ${uniform.estimate}")
+      }
+    #+END_SRC    
+
+    #+RESULTS:
+    : Value: 6.271855193121533 - Estimate: 7.5
+
+*** Exponential
+    An [[../../../api/com/workflowfm/proter/Exponential.html][~Exponential~]] distribution produces a positive value with an [[https://en.wikipedia.org/wiki/Exponential_distribution][exponential distribution]], i.e. continuous, independent values with a constant average rate, corresponding to a [[https://en.wikipedia.org/wiki/Poisson_point_process][Poisson point process]].
+
+    This distribution is very commonly used in business process simulation thanks to its constant average rate, which tends to fit well with various types of processes (such as the arrival patterns of customers in a shop).
+  
+    #+BEGIN_SRC scala
+      {
+        val exp = Exponential(10)
+        println(s"Value: ${exp.get[IO].unsafeRunSync()} - Estimate: ${exp.estimate}")
+      }
+    #+END_SRC    
+
+    #+RESULTS:
+    : Value: 11.758318395019977 - Estimate: 10.0
+
+
+** TODO Resources
+   :PROPERTIES:
+   :EXPORT_FILE_NAME: resources
+   :EXPORT_HUGO_WEIGHT: 220
+   :CUSTOM_ID: resources
+   :END:
+
+*** Resource
+
+    A [[../../../api/com/workflowfm/proter/Resource.html][~Resource~]] in Proter represents a persistent resource, i.e. a resource that is not consumed, but can be used across multiple tasks. This can be used to represent machines or employees for instance.
+
+    A resource is identified by a unique /name/ among all resources. 
+
+    It is also given a /capacity/ in some custom, positive integer units. This can be used to model resources that are able to handle multiple tasks at the same time, such as an oven with multiple shelves, or categories of resources, such as a group of 4 welding machines. [[#tasks][Tasks]] can be set up to use multiple units of capacity from a resource, allowing different task sizes, such as in the case of a washing tray where we can place different sizes of objects.
+
+    Finally, a resource is characterised by a /cost per tick/. This is the cost of using that resource per unit of time and per unit of capacity. It can be used to reflect running costs, such as energy or material consumption, pay per hour, etc. Using 2 units of capacity of a resource with ~costPerTick = 5~ for 3 units of time yields a total running cost of 30.
+
+*** Resource state
+    The state of a resource during simulation is managed internally using a [[../../../api/com/workflowfm/proter/ResourceState.html][~ResourceState~]] object. This pairs the resource with an indexed map of [[#tasks][task instances]] and their corresponding starting times. This can be used to calculate resource availability at any given point in time.
+
+*** Resource map
+    All the resources during simulation are grouped together in a [[../../../api/com/workflowfm/proter/ResourceMap.html][~ResourceMap~]] object. This provides convenience functions for managing resources, assigning tasks to them, calculating availability, and scheduling.
+
+** TODO Tasks
+   :PROPERTIES:
+   :EXPORT_FILE_NAME: tasks
+   :EXPORT_HUGO_WEIGHT: 230
+   :CUSTOM_ID: tasks
+   :END:
+
+*** Task
+
+    A [[../../../api/com/workflowfm/proter/Task.html][~Task~]] in Proter represents a basic unit of work or activity in a process. It is characterised by 2 key properties:
+
+    1. A /name/ describing the task. It does not necessarily need to be unique, but it is often helpful to distinguish the task from others.
+    2. A /duration/ in the form of a [[#distributions][~LongDistribution~]]. There exist constructors that accept a constant ~Long~ duration (which is then automatically converted to a ~ConstantLong~ distribution).
+
+    Additional properties can be specified optionally:
+    1. A /one-off cost/ incurred when the task is executed, in the form of a [[#distributions][~Distribution~]].
+    2. A /map of resources and corresponding required capacities/. This describes which [[#resources][resources]] are required for the task to be executed, and how much of each resource.
+    3. A /priority/ in the form of an integer value. This is taken into consideration when scheduling tasks that require the same resource(s).
+    4. A /minimum starting timestamp/, which can be used to schedule tasks that have to start in some time in the future.
+
+    Declarative convenience functions allow us to put these priorities together in successive calls. For example, we can construct a task as follows:
+
+     #+BEGIN_SRC scala
+       {
+         val task = Task("Example Task", 5L)
+           .withCost(Uniform(5,10))
+           .withPriority(Task.High)
+           .withResources(Seq("A", "B"))
+           .withResourceQuantities(Map() + ("C" -> 2))
+       }
+     #+END_SRC    
+
+     #+RESULTS:
+     : val task: com.workflowfm.proter.Task = Task(Example Task,None,ConstantLong(5),Uniform(5.0,10.0),0,Map(A -> 1, B -> 1, C -> 2),-1,1,-1)
+
+     This task is named "Example Task", will last 5 units of time, will cost between 5 and 10 units of cost, will have High priority (1), and will require 1 unit of capacity from resources "A" and "B", and 2 units of capacity from resource "C".
+
+     You may also note that tasks have an optional unique ID (UUID). In the vast majority of cases this is not required and should be left as ~None~. In fact in some cases providing an ID can lead to undesired effects. Essentially, the ID will be passed on to any task instances generated for this task. This can help us keep track of the instances generated and link them back to the original task, for instance when testing the simulator. 
+
+*** Task instance
+
+    A ~Task~ is used to specify all the properties of a unit of work. Based on this specification, we construct instances of actual simulated work in the form of a [[../../../api/com/workflowfm/proter/TaskInstance.html][~TaskInstance~]]. 
+
+    A task instance has a specific unique ID (UUID), obtains specific, sampled values of duration and cost, is attached to a specific [[#cases][case]] to which it belongs, and has a ~created~ property containing the timestamp of its creation. The latter can be used to measure the delay between its creation and the start of its execution (typically due to busy resources).
+
+    Task instances are constructed internally by the simulator and appear in the [[#results][resulting events and metrics]].
+
+     #+BEGIN_SRC scala
+       {
+         val taskInstance = task.create[IO]("Some case", 20).unsafeRunSync()
+       }
+     #+END_SRC    
+
+     #+RESULTS:
+     : val taskInstance: com.workflowfm.proter.TaskInstance = Task(4acfdbf8-f87e-4b11-92ec-2ef23696a78c,Example Task,Some case,20,[A -> 1,B -> 1,C -> 2],d5(5),c9.822675358051587,i-1,1)
+
+** TODO Cases
+   :PROPERTIES:
+   :EXPORT_FILE_NAME: cases
+   :EXPORT_HUGO_WEIGHT: 240
+   :CUSTOM_ID: cases
+   :END:
+
+   With the term '/case/' in Proter we refer to a specific context that relates a set of tasks (activities, procedures, or any other synonymous term). For example, a case could be a customer going through a service, a patient going through a care pathway, an order being received and executed, an instance of a business process workflow, etc. Similarly to [[#tasks][tasks]], cases can have specifications ([[#case][~Case~]]) that generate instances ([[#caseref][~CaseRef~]]).
+
+*** CaseRef
+    :PROPERTIES:
+    :CUSTOM_ID: caseref
+    :END:
+
+    A [[../../../api/com/workflowfm/proter/cases/CaseRef.html][~CaseRef~]] is an instance of a case. More specifically, it describes the simulation logic that needs to be executed for the case. This basically involves the generation of new [[#tasks][tasks]] for simulation, and the generation of some output upon completion of the case.
+
+    More concretely, a ~CaseRef~ should cover the following 4 aspects:
+    1. A unique name for the instance (~caseName~) that is different from any other case instance in the same simulation.
+    2. The simulation logic that needs to be executed when the case starts (~run()~).
+    3. The simulation logic that needs to be executed when one or more tasks previously generated by the case are completed (~completed()~).
+    4. Any actions that need to be taken in the event that the case is abruptly stopped (~stop()~).
+
+    The simulation logic is described as changes in the simulation state ([[#simstate][~SimState~]]). A number of simulation state changes are available within the context of a ~CaseRef~ ([[../../../api/com/workflowfm/proter/state/CaseState.html][~CaseState~]]) so that you should not generally need to access the state manually yourself.
+    - ~addTask()~, ~addTasks()~: Adds one or more [[#tasks][tasks]] to be simulated.
+    - ~done()~, ~succeed()~, ~fail()~: Tells the simulator that the case has completed (successfully or with an exception) and will not generate any more tasks.
+    - ~update()~: Updates the case instance in the simulation (e.g. when its internal state has changed).
+    - ~abortTasks()~: Aborts previously added tasks whether they have already started or not.
+
+    Some simulation state changes are also available from the scenario level ([[../../../api/com/workflowfm/proter/state/ScenarioState.html][~ScenarioState~]]):
+    - ~addResource()~, ~addResources()~: Adds one or more new [[#resources][resources]] to the simulation.
+    - ~addCase()~, ~addCases()~, ~addCaseNow()~, ~addCasesNow()~, ~addCaseRef()~: Adds one or more [[#case][cases]] or case instances.
+    - ~addArrival()~, ~addArrivalNow()~: Adds a new [[#arrival][arrival]].
+
+   #+BEGIN_tip 
+   Simulation state changes can be composed together using the composition operators [[../../../api/com/workflowfm/proter/state/StateOps.html][~StateOps~]].
+   #+END_tip
+
+   For example, we can review the implementation of a ~CaseRef~ for a single task ~t~ (given a generated ~uuid~):
+   #+BEGIN_SRC scala
+   {
+    val id: UUID = t.id.getOrElse(uuid)
+    val theTask: Task = t.withID(id)
+
+    override val caseName: String = name
+    override def run(): F[SimState[F]] = Monad[F].pure(addTask(caseName)(theTask))
+    override def stop(): F[Unit] = Monad[F].pure(())
+
+    override def completed(time: Long, tasks: Seq[TaskInstance]): F[SimState[F]] =
+      tasks.find(_.id == id) match {
+        case None => Monad[F].pure(StateT.pure(Seq()))
+        case Some(ti) => Monad[F].pure(succeed((ti, time)))
+      }
   }
-#+END_SRC    
+  #+END_SRC
 
-#+RESULTS:
-: Value: 6 - Estimate: 6
+  This can be broken down as follows:
+  - The task is given a specified ID so we can track its completion.
+  - The ~run()~ function is called when the case starts, and it adds the task using ~addTask()~.
+  - The ~completed()~ function is called when the task is completed. If our id is indeed found in the list of completed tasks, then we use ~succeed()~ to complete successfully.
+  - In all other cases, we do nothing.
 
-*** Uniform Generators
-    Value generators are cool
+  There are 2 sub-classes of ~CaseRef~ with additional functionality.
+
+  The [[../../../api/com/workflowfm/proter/cases/StatefulCaseRef.html][~StatefulCaseRef~]] is a convenience sublass that captures an arbitrary immutable state. It provides convenience functions for composite state updates involving both the internal state and the simulation state.
+
+  Instances should provide a copy constructor that updates the internal state (~updateState()~). If your subclass is a case class, this can be done using ~copy()~.
+
+  Finally, the [[../../../api/com/workflowfm/proter/cases/AsyncCaseRef.html][~AsyncCaseRef~]] is a special subclass of the ~StatefulCaseRef~ that allows the definition of asynchronous callback functions when each task completes. The internal state consists of a map of such callback functions. 
+
+  For an example of the use of ~AsyncCaseRef~ see the implementation of the [[#flows][~Flow~]]-based ~CaseRef~: [[../../../api/com/workflowfm/proter/flows/FlowCaseRef.html][~FlowCaseRef~]]
+
+*** Case
+    :PROPERTIES:
+    :CUSTOM_ID: case
+    :END:
+
+    [[../../../api/com/workflowfm/proter/cases/Case.html][~Case~]] is a typeclass that generates instances of [[#caseref][~CaseRef~]] from any given object. This allows us to implement simulation logic from *any type of workflow specification*.
+
+    It has a structure of a typical factory class for ~CaseRef~, using the ~init()~ method. The latter is provided with the desired case name, a count of case instances generated so far, and the current time. Although the generated ~CaseRef~ *must* inherit the given name, the other 2 parameters are only provided as additional information if it is needed. 
+
+    #+BEGIN_tip
+    The ~Case~ typeclass should be the preferred way to define cases as opposed to dealing directly with ~CaseRef~. 
+    #+END_tip
+    
+    It allows us to encode simulation logic in any object. For instance, we could come up with case specifications encoded in a simple notation within a string. It also makes managing unique instance names easier, and can be used in [[#arrival][arrivals]].
+
+    As an example, review the implementation of a ~Case~ for a single task as provided in the codebase:
+
+    #+BEGIN_SRC scala
+/**
+  * Case consisting of a single task.
+  */
+given [F[_]](using Monad[F], UUIDGen[F], Random[F]): Case[F, Task] with {
+
+  override def init(name: String, count: Int, time: Long, t: Task): F[CaseRef[F]] = for {
+    uuid <- UUIDGen[F].randomUUID
+  } yield new CaseRef[F] {
+
+    val id: UUID = t.id.getOrElse(uuid)
+    val theTask: Task = t.withID(id)
+
+    override val caseName: String = name
+    override def run(): F[SimState[F]] = Monad[F].pure(addTask(caseName)(theTask))
+    override def stop(): F[Unit] = Monad[F].pure(())
+
+    override def completed(time: Long, tasks: Seq[TaskInstance]): F[SimState[F]] =
+      tasks.find(_.id == id) match {
+        case None => Monad[F].pure(StateT.pure(Seq()))
+        case Some(ti) => Monad[F].pure(succeed((ti, time)))
+      }
+  }
+}
+   #+END_SRC
+** TODO Flows
+   :PROPERTIES:
+   :EXPORT_FILE_NAME: flows
+   :EXPORT_HUGO_WEIGHT: 245
+   :CUSTOM_ID: flows
+   :END:
+
+   The flows interface/DSL provides the means to specify simple workflows of [[#tasks][tasks]] for simulation. A [[../../../api/com/workflowfm/proter/flows/Flow.html][~Flow~]] can be one of the following:
+   - A [[../../../api/com/workflowfm/proter/flows/NoTask$.html][~NoTask~]] that does nothing.
+   - A [[../../../api/com/workflowfm/proter/flows/FlowTask.html][~FlowTask~]] that is a wrapper around a [[#tasks][task]] to allow composition with other flows. An implicit conversion is also available.
+   - A [[../../../api/com/workflowfm/proter/flows/Then.html][~Then~]] (or the ~>~ operator) that creates a sequence between 2 flows, so that the second will be simulated when the first is done.
+   - An [[../../../api/com/workflowfm/proter/flows/And.html][~And~]] (or the ~+~ operator) that simulates 2 flows in parallel, so that they start at the same time.
+
+     For example, assuming 3 flow tasks ~a~, ~b~, and ~c~, the flow ~(a + b) > c~ will simulate ~a~ and ~b~ in parallel. When both their corresponding tasks are finished, it will simulate ~c~.
+
+     This way we can easily compose complex flows of tasks in sequence and in parallel. An given ~Case~ is provided allowing flows to be simulated directly.
+
+** TODO Scenarios
+   :PROPERTIES:
+   :EXPORT_FILE_NAME: scenarios
+   :EXPORT_HUGO_WEIGHT: 250
+   :CUSTOM_ID: scenarios
+   :END:
+
+   A [[../../../api/com/workflowfm/proter/Scenario.html][~Scenario~]] is a structure that allows you to bring together various simulation elements in a declarative way and without manipulating simulation state directly.
+
+   You can construct a new scenario providing a unique name and, optionally, a starting time (default is ~0~). You can the add the following elements:
+
+   - The [[#resources][resources]] available during simulation (~withResource~ / ~withResources~).
+   - A virtual *time limit* that will signal the end of the simulation (~withLimit~). All tasks, cases, and arrivals will be aborted when that timestamp is reached. This is necessary when using infinite arrivals (see below).
+   - Any number of [[#cases][cases]] to simulate (~withCase~ / ~withCases~). Each of these will be executed once as soon as the simulation starts. You can also specify a custom starting time for each case (~withTimedCase~ / ~withTimedCases~).
+   - Any number of arrivals (see below).
+  
+*** Arrivals
+    :PROPERTIES:
+    :CUSTOM_ID: arrival
+    :END:
+    
+    With the term '/arrival/' we refer to the repetition of a case over time. For example, if cases represent customers to a shop, an arrival represents the literal arrival of different customers periodically over time. In Proter, arrivals can generate a number of cases of the same type.
+
+    Arrivals have a unique name (like cases) and are characterised by a /rate/, corresponding to the possibly probabilistic frequency of new cases. More specifically, the rate is specified by a [[#distributions][~LongDistribution~]] of the time distance between cases.
+
+   Arrivals can be set to produce a limited, pre-specified number of cases (~withArrival~), or to produce cases forever (~withInfiniteArrival~). 
+
+   #+BEGIN_tip 
+   When adding infinite arrivals to a scenario, make sure you also add a time limit to avoid an infinite simulation/loop!
+   #+END_tip
+
+   You can also specify the timestamp of the very first case (~withTimedArrival~, ~withTimedInfiniteArrival~).
+
+   Note that cases generated by arrivals will have a ~#N~ attached to their name, where ~N~ the number of cases generated by that arrival, to preserve unique names across cases.
+
+*** Example
+
+    Let's build a simple scenario from scratch. First, our imports:
+
+    #+BEGIN_SRC scala
+      import com.workflowfm.proter.*
+      import com.workflowfm.proter.cases.given
+      import com.workflowfm.proter.flows.*
+      import com.workflowfm.proter.flows.given
+      import cats.effect.IO
+      import cats.effect.std.Random
+      import scala.language.implicitConversions
+
+      // Unsafe random to run on REPL:
+      import cats.effect.unsafe.implicits.global
+      given randomIO: Random[IO] = Random.scalaUtilRandom[IO].unsafeRunSync()
+    #+END_SRC
+
+    We have 2 resources, each with capacity 1 and no cost:
+   #+BEGIN_SRC scala
+     val a = Resource("A", 1, 0)
+     val b = Resource("B", 1, 0)
+   #+END_SRC
+
+   We can then have some tasks with different durations and required resources:
+
+   #+BEGIN_SRC scala
+     val t1 = Task("t1", 2L).withResources(Seq("A"))
+     val t2 = Task("t2", 3L).withResources(Seq("A", "B"))
+     val t3 = Task("t3", 5L).withResources(Seq("B"))
+   #+END_SRC
+
+   We can define some sequential flows over these tasks:
+   #+BEGIN_SRC scala
+     val flow1 = t1 > t2
+     val flow2 = t1 > t2 > t3
+  #+END_SRC
+
+   Here is an example scenario we can construct with these elements:
+   #+BEGIN_SRC scala
+     val scenario = Scenario[IO]("Example simulation", 5L)
+       .withResources(Seq(a, b))
+       .withTimedCase("Single t1", 7L, t1)
+       .withArrival("Flow 1", flow1, ConstantLong(3L), 14)
+       .withInfiniteArrival("Flow 2", flow2, ConstantLong(6L))
+       .withLimit(100L)
+  #+END_SRC
+
+  This scenario will:
+  - be named "Example simulation",
+  - start at time ~5~,
+  - involve resources "A" and "B",
+  - run a single task ~t1~ as a case named "Single t1" at time ~7~,
+  - run 14 cases named "Flow 1", each involving a task ~t1~ followed by ~t2~, with one case arriving every ~3~ units of time,
+  - run several cases named "Flow 2", each involving ~flow2~, with one case arriving every ~6~ units of time,
+  - and terminate at time ~100~.
+
+** TODO Schedulers
+   :PROPERTIES:
+   :EXPORT_FILE_NAME: schedulers
+   :EXPORT_HUGO_WEIGHT: 260
+   :CUSTOM_ID: schedulers
+   :END:
+   The [[../../../api/com/workflowfm/proter/schedule/Scheduler.html][~Scheduler~]] is responsible for deciding which [[#tasks][task instances]] should be executed at any given time. In general, tasks are competing for [[#resources][resources]], so that a *collection of pending tasks* that are waiting to be run will occur naturally. Once resources become available, the scheduler decides which of the pending tasks will run next.
+
+   This is accomplished through the implementation of the ~getNextTasks~ function, which is provided with the current timestamp, the collection of pending tasks, and the current [[../../../api/com/workflowfm/proter/ResourceMap.html][~ResourceMap~]]. The latter contains information on resource availability. Using this information, the ~getNextTasks~ function needs to return a list of task instances that should start next. 
+
+   #+BEGIN_tip 
+   It is expected that the resources required by the returned tasks are available in the resource map, otherwise the simulation will fail.
+   #+END_tip
+   
+*** Priority
+    A key thing that influences the functionality of the schedulers is /task priority/. This is reflected in the ordering of the collection of tasks when given to the scheduler. Of course the scheduler may choose to change the order or re-sort the collection, but that would likely be inefficient.
+
+   #+BEGIN_tip 
+   The scheduler is called whenever new tasks need to be scheduled, which is *very often* during the simulation. Therefore, scheduler efficiency matters a lot to the overall efficiency of the simulation.
+   #+END_tip
+
+   There are 2 types of task ordering: *prioritised* and *first-come-first-served (FCFS)*. The choice between the 2 is dictated by the ~prioritised~ flag in the [[#simulation][simulator]].
+
+**** Prioritised tasks
+     Tasks are prioritised with the use of a ~SortedSet~ based on the following criteria in this order (i.e. if there is no difference between 2 tasks in one criterium, we move to the next):
+     1. The explicit task *priority*.
+     2. The *age* of the task, i.e. how long since it was added to the queue.
+     3. The *resource requirements*, where tasks that require more resources are prioritised, as they typically harder to schedule.
+     4. The *estimated duration*, where longer tasks are prioritised.
+     5. The *id* by UUID ordering is used to deterministically order tasks that are identical as per the other criteria.
+
+**** FCFS
+     If prioritisation is disabled then tasks are handled in a first-come-first-served basis. This effectively ignores the explicit priority value.
+     
+
+*** Greedy Scheduler
+    The [[../../../api/com/workflowfm/proter/schedule/GreedyScheduler.html][~GreedyScheduler~]] is a simple but efficient scheduler. It checks tasks in the order they come in (prioritised or FCFS) and starts the ones for which there are sufficient resources available.
+
+    For example, assume the following resources:
+   #+BEGIN_SRC scala
+     val a = Resource("A", 3, 0)
+     val b = Resource("B", 3, 0)
+   #+END_SRC
+
+   Then assume we have 3 tasks in the (ordered) queue:
+   1. ~T1 duration:5 resources: 3xA 1xB~
+   2. ~T2 duration:1 resources: 2xB~
+   3. ~T3 duration:3 resources: 1xA~
+
+   If both resources ~A~ and ~B~ are idle at the time of scheduling, then ~T1~ and ~T2~ can start because there is enough capacity for both of them, but ~T3~ will remain in the queue.
+
+   If we assume another task is currently running and consuming 1 capacity in resource ~A~, then ~T1~ cannot start as there is not enough capacity in ~A~. The question is /should ~T3~ be started now or not/?
+
+   Allowing ~T3~ to start leads to a fully greedy strategy where we start as many tasks as we can each time. However, this is more likely to cause a further delay to ~T1~ which is earlier in the queue (higher priority). 
+
+   This choice is controlled by the ~strict~ parameter as follows:
+   #+BEGIN_tip 
+   If ~strict=true~ then the ~GreedyScheduler~ will avoid blocking any resource capacity required by earlier tasks with the goal of starting them as early as possible ("*greedy priority*").
+
+   If ~strict=false~ then the ~GreedyScheduler~ will start as many tasks as it can with the currently available resources ("*greedy execution*").
+   #+END_tip
+   
+*** Proter Scheduler
+    The [[../../../api/com/workflowfm/proter/schedule/ProterScheduler.html][~ProterScheduler~]] is a more sophisticated but less efficient scheduler. Its main goal is to maximize resource utilisation, but prevent a high priority task from being delayed by a lower priority one.
+
+   #+BEGIN_tip 
+   FCFS ordering does not make much sense for the ~ProterScheduler~. It is best used with a prioritised queue.
+   #+END_tip
+    
+
+    Let's return to the previous example with the 2 resources:
+   #+BEGIN_SRC scala
+     val a = Resource("A", 3, 0)
+     val b = Resource("B", 3, 0)
+   #+END_SRC
+
+   Then assume we have the same 3 tasks in the (ordered) queue:
+   1. ~T1 duration:5 resources: 3xA 1xB~
+   2. ~T2 duration:1 resources: 2xB~
+   3. ~T3 duration:3 resources: 1xA~
+
+   As before, let us also assume that another task is currently using 1 capacity from resource ~A~ for the next 4 units of time.
+
+   A strict ~GreedyScheduler~ would only schedule ~T2~ in this scenario. ~ProterScheduler~, instead, calculates that ~T3~ is likely to finish before ~T1~ is able to start (3 units of time vs. 4 of the currently running task). Therefore, it will schedule ~T3~ to run now.
+
+   If, instead, the currently running task is due to finish in 2 units of time, then ~T3~ will not be started to prevent a delay of ~T1~. In contrast, a non-strict ~GreedyScheduler~ would start ~T3~ in this scenario and cause a delay. 
+
+   As a result, ~ProterScheduler~ balances the best of both modes of ~GreedyScheduler~. Naturally, if task durations are probabilistic, the scheduler decisions can only be based on duration estimates (see [[#distributions][distributions]]) and may result in delays if durations are underestimated. This compromise is an emulation of human scheduling under estimated durations.
+
+*** Lookahead Scheduler
+
+    So far, the scheduling performed is /local/. We only schedule currently queued tasks and not tasks that may come up in the future. This allows maximum flexibility in the simulated workflows (e.g. in terms of different possible paths, outcomes, repetitions, changes, cancellations, etc that can happen *at runtime*), but results in schedules that are less optimal than /global/ ones (i.e. scheduling where all tasks that will be performed are known in advance).
+
+    The ~LookaheadScheduler~ allows us to extend the scheduling performed to future tasks. 
+
+    #+attr_shortcode: warning
+    #+begin_tip
+    Unfortunately, the ~LookaheadScheduler~ has not yet been ported from a previous version of Proter. We will update the documentation when it becomes available again. 
+    #+end_tip
+
+
+** TODO Simulation
+   :PROPERTIES:
+   :EXPORT_FILE_NAME: simulation
+   :EXPORT_HUGO_WEIGHT: 290
+   :CUSTOM_ID: simulation
+   :END:
+
+   Hi
+
+*** SimState
+    :PROPERTIES:
+    :CUSTOM_ID: simstate
+    :END:
+
+** TODO Getting results
+   :PROPERTIES:
+   :EXPORT_FILE_NAME: results
+   :EXPORT_HUGO_WEIGHT: 295
+   :CUSTOM_ID: results
+   :END:
+
+   Hi
+   mention metrics and events here
+
+* Server
+  :PROPERTIES:
+  :EXPORT_HUGO_WEIGHT: 1000
+  :EXPORT_HUGO_SECTION_FRAG: server
+  :END:
+
+** Server 
+  :PROPERTIES:
+  :EXPORT_FILE_NAME: _index
+  :END:
+
+  The Proter Server is a web server with a [[../../server-api][REST API]] that allows the execution of Flow-based simulations.
+
+  The server can be deployed either manually or through Docker. Using the [[https://github.com/workflowfm/proter/pkgs/container/proter-server][existing Docker image]] makes things much easier, but this documentation covers a couple of ways to build and deploy it.
+
+ 
+
+** Docker Image
+   :PROPERTIES:
+   :EXPORT_FILE_NAME: docker
+   :EXPORT_HUGO_WEIGHT: 1010
+   :END:
+
+   The easiest setup of the server is using the latest available [[https://github.com/workflowfm/proter/pkgs/container/proter-server][Docker image]].
+
+   Pull the image using:
+   #+BEGIN_SRC sh
+     docker pull ghcr.io/workflowfm/proter-server:latest
+   #+END_SRC
+   
+   Then run a container using:
+   #+BEGIN_SRC sh
+     docker run -p 8080:8080 --name proter-server --detach ghcr.io/workflowfm/proter-server:latest
+   #+END_SRC
+   
+   - The name ~proter-server~ is optional and can be changed to whatever you want your server container to be named.
+   - The port can also be bound to a different system port, e.g. using ~-p 9000:8080~ to bind it to port ~9000~.
+
+
+** Build from source
+   :PROPERTIES:
+   :EXPORT_FILE_NAME: build
+   :EXPORT_HUGO_WEIGHT: 1020
+   :CUSTOM_ID: build
+   :END:
+
+   You can build and run the server yourself from source.
+
+   #+BEGIN_tip 
+   Building requires *Scala 3*, which in turn requires *JDK 8 or 11*.
+   #+END_tip
+
+   You can install Scala 3 following the information [[https://www.scala-lang.org/download/][here]].
+
+   First, clone the repository:
+
+   #+BEGIN_SRC sh
+     git clone https://github.com/workflowfm/proter.git
+   #+END_SRC
+
+   You can then build a fat JAR using ~sbt~:
+   #+BEGIN_SRC sh
+     sbt 'proter-server / assembly'
+   #+END_SRC
+
+   This will create the file ~./proter-server/target/scala-3.1.0/proter-server_{{< version >}}.jar~.
+
+   Move the JAR file to your favourite location and start the server using:
+
+   #+BEGIN_SRC sh
+     java -jar proter-server_{{< version >}}.jar
+   #+END_SRC
+
+** Docker build
+   :PROPERTIES:
+   :EXPORT_FILE_NAME: docker-build
+   :EXPORT_HUGO_WEIGHT: 1030
+   :END:
+
+   Should you wish to build your own Docker image, you can start by [[#build][building from source]].
+
+   Then, without moving the JAR file from the target directory, rename it to ~proter-server.jar~ as follows:
+   #+BEGIN_SRC sh
+     mv ./proter-server/target/scala-3.1.0/proter-server_{{< version >}}.jar ./proter-server/target/scala-3.1.0/proter-server.jar
+   #+END_SRC
+
+   Then you can build the Docker image:
+   #+BEGIN_SRC sh
+     docker build -t proter-server .
+   #+END_SRC
+ 
+   You can then run a container using:
+   Then run a container using:
+   #+BEGIN_SRC sh
+     docker run -p 8080:8080 --name proter-server --detach proter-server
+   #+END_SRC
+   
+   - The name ~proter-server~ is optional and can be changed to whatever you want your server container to be named.
+   - The port can also be bound to a different system port, e.g. using ~-p 9000:8080~ to bind it to port ~9000~.
+
+** Usage
+   :PROPERTIES:
+   :EXPORT_FILE_NAME: usage
+   :EXPORT_HUGO_WEIGHT: 1040
+   :END:
+
+   Once the server is up and running, it exposes 2 RESTful endpoints:
+   1. ~simulate/~: Simulates a Flow-based scenario and returns the computed metrics.
+   2. ~stream/~: Simulates a Flow-based scenario and returns the simulation events in chunks.
+
+   The entire REST API and involved JSON Schema are documented in detail using Open API [[../../../server-api][here]].
+
+   

@@ -15,22 +15,27 @@ import scala.collection.immutable.{ HashSet, Set, Map, Queue }
 import scala.util.{ Try, Success, Failure }
 import java.util.UUID
 
+/**
+  * Includes simulation state updates required when executing a [[cases.CaseRef CaseRef]].
+  */
 trait CaseState extends ScenarioState {
 
   /**
-    * Adds new [[Task]](s) for a simulation.
+    * Adds a new [[Task]].
     *
     *   - Uses [[Task.create]] to create a [[TaskInstance]], which will now have a fixed duration
     *     and cost.
     *   - Publishes a [[com.workflowfm.proter.events.ETaskAdd ETaskAdd]].
-    *   - If the task does not require any resources, it is started immediately using [[startTask]].
-    *     Otherwise, we add it to the [[schedule.Scheduler Scheduler]].
+    *   - If the task does not require any resources, it is started immediately using
+    *     [[Simulation.startTask]].
     *
     * @group tasks
-    * @param simulation
-    *   The name of the [[Simulation]] that owns the task(s).
+    * @param caseName
+    *   The name of the [[cases.CaseRef CaseRef]] that owns the task.
     * @param task
-    *   The list of [[Task]]s to be added.
+    *   The [[Task]] to be added.
+    * @return
+    *   The state update.
     */
   def addTask[F[_] : Random : Monad](
       caseName: String
@@ -40,32 +45,62 @@ trait CaseState extends ScenarioState {
         val event = ETaskAdd(sim.id, sim.time, inst)
         if task.resources.size > 0 then (sim.copy(tasks = sim.tasks + inst), Seq(event))
         else
-          Simulation.startTask(inst).run(sim).value match { // if the task does not require resources, start it now
+          Simulation.startTask(inst).run(sim).value match { /* if the task does not require
+             * resources, start it now */
             case (s, events) => (s, event +: events)
           }
       }
     }
   })
 
+  /**
+    * Adds a collection of new [[Task]]s.
+    *
+    * @see
+    *   [[addTask]]
+    *
+    * @group tasks
+    * @param caseName
+    *   The name of the [[cases.CaseRef CaseRef]] that owns the task.
+    * @param tasks
+    *   The [[Task]]s to be added.
+    * @return
+    *   The state update.
+    */
   def addTasks[F[_] : Random : Monad](
       caseName: String,
       tasks: Seq[Task]
   ): StateT[F, Simulation[F], Seq[Event]] =
     tasks.traverse(addTask(caseName)).map(_.flatten)
 
+  /**
+    * Aborts a list of [[TaskInstance]]s by their IDs.
+    *
+    * @see
+    *   [[Simulation.abortTasks]]
+    *
+    * @group tasks
+    * @param ids
+    *   The `UUID`s of the [[TaskInstance]]s to abort.
+    * @return
+    *   The state update.
+    */
   def abortTasks[F[_]](ids: Seq[UUID]): State[Simulation[F], Seq[Event]] =
     Simulation.abortTasks(ids)
 
   /**
-    * Handles a [[SimDone]] response from a simulation, indicating that it has completed.
+    * Updates the simulation with a completed [[cases.CaseRef CaseRef]].
     *
-    * Calls [[stopSimulation]] according to the reported success or failure result.
+    * @see
+    *   [[Simulation.stopCase]]
     *
-    * @group simulations
-    * @param simulation
-    *   The name of the simulation
+    * @group cases
+    * @param caseName
+    *   The name of the [[cases.CaseRef CaseRef]].
     * @param result
-    *   The result of completion
+    *   The result produced by the completed [[cases.CaseRef CaseRef]].
+    * @return
+    *   The state update.
     */
   def caseDone[F[_] : Monad](
       caseName: String,
@@ -81,6 +116,17 @@ trait CaseState extends ScenarioState {
     }
   }
 
+  /**
+    * Updates a [[cases.CaseRef CaseRef]].
+    *
+    * @group cases
+    * @param caseName
+    *   The name of the [[cases.CaseRef CaseRef]].
+    * @param c
+    *   The new [[cases.CaseRef CaseRef]] reflecting the new state of the case.
+    * @return
+    *   The state update.
+    */
   def updateCase[F[_] : Monad](
       caseName: String,
       c: CaseRef[F]

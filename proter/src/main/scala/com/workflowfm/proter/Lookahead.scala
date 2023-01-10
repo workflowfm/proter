@@ -12,6 +12,7 @@ import scala.collection.immutable.{ Map, Queue }
   * achieved.
   */
 trait Lookahead {
+
   /**
     * Removes a task with the corresponding ID from the structure
     *
@@ -133,6 +134,7 @@ trait Lookahead {
   *   A queue of the [[Lookahead]]s which are included in this strucutre.
   */
 case class Lookaheads(lookaheads: Queue[Lookahead]) extends Lookahead {
+
   /**
     * @inheritdoc
     */
@@ -233,6 +235,7 @@ case class LookaheadSet(
   * An empty [[Lookahead]] that does nothing.
   */
 case object NoLookahead extends Lookahead {
+
   /**
     * @inheritdoc
     */
@@ -245,6 +248,7 @@ case object NoLookahead extends Lookahead {
       function: Map[UUID, Long] => Option[Long],
       generators: List[Task]
   ): Lookahead = LookaheadSet() ++ (function, generators)
+
   /**
     * @inheritdoc
     */

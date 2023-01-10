@@ -1,6 +1,7 @@
 package com.workflowfm.proter
 package events
 
+import java.util.UUID
 import java.text.SimpleDateFormat
 
 import cats.Applicative
@@ -14,14 +15,25 @@ import io.circe.{ Json, Encoder }
 import io.circe.generic.semiauto._
 import io.circe.syntax.*
 
+/**
+  * A [[TimedHandler]] that produces a JSON stream.
+  */
 trait JsonHandler[F[_] : Applicative : Clock] extends TimedHandler[F] {
   import JsonHandler.given
 
+  /**
+    * A pipe to process the [[Publisher]] stream and produce JSON objects.
+    */
   val jsonPipe: Pipe[F, Either[Throwable, Event], Json] =
     _.through(timedEventPipe).map(_.asJson)
 }
 
 object JsonHandler {
+
+  given resourceStateTaskMapEncoder: Encoder[Map[UUID, (Long, TaskInstance)]] =
+    (collection: Map[UUID, (Long, TaskInstance)]) => collection.values.map(_.asJson).toList.asJson
+
+  given Encoder[ResourceState] = deriveEncoder[ResourceState]
   given Encoder[TaskInstance] = deriveEncoder[TaskInstance]
   // These are redundant, but help the deriveEncoder macro avoid
   // a "Maximal number of successive inlines exceeded" error
@@ -32,6 +44,9 @@ object JsonHandler {
   given Encoder[TimedEvent] = deriveEncoder[TimedEvent]
 }
 
+/**
+  * An [[Event]] handler that converts them to JSON and prints them to console.
+  */
 class PrintJsonEvents[F[_] : Clock : Sync] extends Subscriber[F] with JsonHandler[F] {
 
   override def apply(s: Stream[F, Either[Throwable, Event]]): Stream[F, Unit] =

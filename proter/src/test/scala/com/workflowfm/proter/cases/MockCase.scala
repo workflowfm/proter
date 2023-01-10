@@ -314,6 +314,155 @@ object MockCaseRef extends StateOps {
     override def expectedCalls: Seq[Call] = Seq(Run, Stop)
   })
 
+  def mock3FCFSTasks(
+      name: String,
+      resource: Resource,
+      expectedCreate: Long,
+      highDuration: Long,
+      midDuration: Long,
+      lowDuration: Long
+  ): IO[MockCaseRef] = for {
+    random <- Random.scalaUtilRandom[IO]
+    given Random[IO] = random
+    idHigh <- gen.randomUUID
+    tgHigh = Task("THigh", highDuration)
+      .withID(idHigh)
+      .withPriority(Task.High)
+      .withResources(Seq(resource.name))
+    expectedHigh <- tgHigh.create(name, expectedCreate)
+    idMid <- gen.randomUUID
+    tgMid = Task("TMid", midDuration)
+      .withID(idMid)
+      .withPriority(Task.Medium)
+      .withResources(Seq(resource.name))
+    expectedMid <- tgMid.create(name, expectedCreate)
+    idLow <- gen.randomUUID
+    tgLow = Task("TLow", lowDuration)
+      .withID(idLow)
+      .withPriority(Task.Low)
+      .withResources(Seq(resource.name))
+    expectedLow <- tgLow.create(name, expectedCreate)
+  } yield (new MockCaseRef(name) {
+
+    override def react(call: Call): SimState[IO] = call match {
+      case Run => addTasks(caseName, Seq(tgLow, tgMid, tgHigh))
+      case Complete(time, _) if time == expectedCreate + highDuration + midDuration + lowDuration =>
+        succeed(())
+      case _ => idState
+    }
+
+    override def expectedCalls: Seq[Call] =
+      Seq(
+        Run,
+        Complete(expectedCreate + lowDuration, Seq(expectedLow)),
+        Complete(expectedCreate + lowDuration + midDuration, Seq(expectedMid)),
+        Complete(expectedCreate + lowDuration + midDuration + highDuration, Seq(expectedHigh))
+      )
+  })
+
+  def mock3PrioritisedTasks(
+      name: String,
+      resource: Resource,
+      expectedCreate: Long,
+      highDuration: Long,
+      midDuration: Long,
+      lowDuration: Long
+  ): IO[MockCaseRef] = for {
+    random <- Random.scalaUtilRandom[IO]
+    given Random[IO] = random
+    idHigh <- gen.randomUUID
+    tgHigh = Task("THigh", highDuration)
+      .withID(idHigh)
+      .withPriority(Task.High)
+      .withResources(Seq(resource.name))
+    expectedHigh <- tgHigh.create(name, expectedCreate)
+    idMid <- gen.randomUUID
+    tgMid = Task("TMid", midDuration)
+      .withID(idMid)
+      .withPriority(Task.Medium)
+      .withResources(Seq(resource.name))
+    expectedMid <- tgMid.create(name, expectedCreate)
+    idLow <- gen.randomUUID
+    tgLow = Task("TLow", lowDuration)
+      .withID(idLow)
+      .withPriority(Task.Low)
+      .withResources(Seq(resource.name))
+    expectedLow <- tgLow.create(name, expectedCreate)
+  } yield (new MockCaseRef(name) {
+
+    override def react(call: Call): SimState[IO] = call match {
+      case Run => addTasks(caseName, Seq(tgLow, tgMid, tgHigh))
+      case Complete(time, _) if time == expectedCreate + highDuration + midDuration + lowDuration =>
+        succeed(())
+      case _ => idState
+    }
+
+    override def expectedCalls: Seq[Call] =
+      Seq(
+        Run,
+        Complete(expectedCreate + highDuration, Seq(expectedHigh)),
+        Complete(expectedCreate + highDuration + midDuration, Seq(expectedMid)),
+        Complete(expectedCreate + highDuration + midDuration + lowDuration, Seq(expectedLow))
+      )
+  })
+
+  def mock1Plus3PrioritisedTasks(
+      name: String,
+      resource: Resource,
+      expectedCreate: Long,
+      initDuration: Long,
+      highDuration: Long,
+      midDuration: Long,
+      lowDuration: Long
+  ): IO[MockCaseRef] = for {
+    random <- Random.scalaUtilRandom[IO]
+    given Random[IO] = random
+    idInit <- gen.randomUUID
+    tgInit = Task("TInit", initDuration).withID(idInit).withResources(Seq(resource.name))
+    expectedInit <- tgInit.create(name, expectedCreate)
+    idHigh <- gen.randomUUID
+    tgHigh = Task("THigh", highDuration)
+      .withID(idHigh)
+      .withPriority(Task.High)
+      .withResources(Seq(resource.name))
+    expectedHigh <- tgHigh.create(name, expectedCreate + initDuration)
+    idMid <- gen.randomUUID
+    tgMid = Task("TMid", midDuration)
+      .withID(idMid)
+      .withPriority(Task.Medium)
+      .withResources(Seq(resource.name))
+    expectedMid <- tgMid.create(name, expectedCreate + initDuration)
+    idLow <- gen.randomUUID
+    tgLow = Task("TLow", lowDuration)
+      .withID(idLow)
+      .withPriority(Task.Low)
+      .withResources(Seq(resource.name))
+    expectedLow <- tgLow.create(name, expectedCreate + initDuration)
+  } yield (new MockCaseRef(name) {
+
+    override def react(call: Call): SimState[IO] = call match {
+      case Run => addTask(caseName)(tgInit)
+      case Complete(time, Seq(task)) if time == initDuration && task.compare(expectedInit) == 0 =>
+        addTasks(caseName, Seq(tgLow, tgMid, tgHigh))
+      case Complete(time, _)
+          if time == expectedCreate + initDuration + highDuration + midDuration + lowDuration =>
+        succeed(())
+      case _ => idState
+    }
+
+    override def expectedCalls: Seq[Call] =
+      Seq(
+        Run,
+        Complete(expectedCreate + initDuration, Seq(expectedInit)),
+        Complete(expectedCreate + initDuration + highDuration, Seq(expectedHigh)),
+        Complete(expectedCreate + initDuration + highDuration + midDuration, Seq(expectedMid)),
+        Complete(
+          expectedCreate + initDuration + highDuration + midDuration + lowDuration,
+          Seq(expectedLow)
+        )
+      )
+  })
+
   case class MockSingleTaskArrival(start: Long, interval: Long, duration: Long)
       extends Case[IO, Unit] {
     import collection.mutable.Queue

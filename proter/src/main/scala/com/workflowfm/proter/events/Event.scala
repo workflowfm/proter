@@ -10,8 +10,9 @@ import java.util.UUID
   * result analysis.
   */
 sealed trait Event {
+
   /**
-    * A string representing the [[State]] that generated the event.
+    * A string representing the simulation that generated the event.
     */
   val source: String
 
@@ -41,12 +42,12 @@ final case class ETimeLimit(
 ) extends Event
 
 /**
-  * A [[TaskResource]] was added.
+  * A [[Resource]] was added.
   *
   * @param name
   *   The name of the resource.
-  * @param costPerTick
-  *   The [[TaskResource.costPerTick]] of the resource.
+  * @param resource
+  *   The [[Resource]] that was added.
   */
 final case class EResourceAdd(
     override val source: String,
@@ -55,7 +56,7 @@ final case class EResourceAdd(
 ) extends Event
 
 /**
-  * A case was added.
+  * A case instance was added.
   *
   * @param name
   *   The name of the case.
@@ -72,12 +73,13 @@ final case class ECaseAdd(
 /**
   * An arrival was added.
   *
+  * @note
+  *   The arrival rate is not included as there is no standard representation for distributions.
+  *
   * @param name
   *   The name of the arriving cases.
   * @param start
   *   The timestamp when arrivals is scheduled to start.
-  * @param rate
-  *   The arrival rate.
   * @param limit
   *   The optional limit of the number of cases to generate.
   */
@@ -90,21 +92,21 @@ final case class EArrivalAdd(
 ) extends Event
 
 /**
-  * A case was started.
+  * A case instance was started.
   *
   * @param name
-  *   The name of the case.
+  *   The name of the case instance.
   */
 final case class ECaseStart(override val source: String, override val time: Long, name: String)
     extends Event
 
 /**
-  * A case was completed.
+  * A case instance was completed.
   *
   * @param name
-  *   The name of the case.
+  *   The name of the case instance.
   * @param result
-  *   The output of the case (if any).
+  *   The output result of the case (if any).
   */
 final case class ECaseEnd(
     override val source: String,
@@ -114,7 +116,7 @@ final case class ECaseEnd(
 ) extends Event
 
 /**
-  * A new [[Task]] was added in the queue.
+  * A new [[TaskInstance]] was added in the queue.
   *
   * @param task
   *   The [[TaskInstance]] that was added.
@@ -138,12 +140,12 @@ final case class ETaskStart(
 ) extends Event
 
 /**
-  * A [[TaskInstance]] was attached to a [[TaskResource]] as it started.
+  * A [[TaskInstance]] was attached to a [[Resource]] as it started.
   *
   * @param task
   *   The [[TaskInstance]] that was attached.
   * @param resource
-  *   The involved [[TaskResource]].
+  *   The corresponding [[ResourceState]] ''after'' the attachment of the task.
   */
 final case class ETaskAttach(
     override val source: String,
@@ -153,12 +155,14 @@ final case class ETaskAttach(
 ) extends Event
 
 /**
-  * A [[TaskInstance]] was detached from a [[TaskResource]] as it finished.
+  * A [[TaskInstance]] was detached from a [[Resource]] as it finished.
   *
+  * @param start
+  *   The timestamp when the task had started.
   * @param task
   *   The [[TaskInstance]] that was detached.
   * @param resource
-  *   The involved [[TaskResource]].
+  *   The corresponding [[ResourceState]] ''after'' the detachment of the task.
   */
 final case class ETaskDetach(
     override val source: String,
@@ -187,7 +191,7 @@ final case class ETaskDone(
 ) extends Event
 
 /**
-  * A [[Task]] was aborted.
+  * A [[TaskInstance]] was aborted.
   *
   * @param id
   *   The `UUID` of the [[TaskInstance]] that was aborted.

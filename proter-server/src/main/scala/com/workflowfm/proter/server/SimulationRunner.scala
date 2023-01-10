@@ -26,18 +26,14 @@ class SimulationRunner[F[_] : Random : Async : UUIDGen](using monad: MonadError[
   import Entities.given
 
   /**
-    * This top level function should take an IRequest and then return a Results object
+    * Simulates a scenario described by an [[IRequest]] and returns the calculated [[metrics.Metrics Metrics]].
     *
     * @param request
-    *   The input IRequest
+    *   The input [[IRequest]].
     * @return
-    *   A Results object
+    *   The resulting [[metrics.Metrics Metrics]].
     */
   def handle(request: IRequest): F[Metrics] = {
-
-    if (!this.matchingResources(request)) {
-      monad.raiseError(new IllegalArgumentException("Resources do not match"))
-    }
 
     for {
       result <- Deferred[F, Metrics]
@@ -55,11 +51,15 @@ class SimulationRunner[F[_] : Random : Async : UUIDGen](using monad: MonadError[
 
   }
 
+  /**
+    * Simulates a scenario described by an [[IRequest]] and returns a stream of [[events.Event Event]]s.
+    *
+    * @param request
+    *   The input [[IRequest]].
+    * @return
+    *   The event stream.
+    */
   def stream(request: IRequest): Stream[F, Event] = {
-
-    if (!this.matchingResources(request)) {
-      monad.raiseError(new IllegalArgumentException("Resources do not match"))
-    }
 
     val simulator = Simulator[F](ProterScheduler)
     val scenario = getScenario(request)
@@ -75,10 +75,12 @@ class SimulationRunner[F[_] : Random : Async : UUIDGen](using monad: MonadError[
   }
 
   /**
-    * Method takes a decoded request and adds to the given coordinator the details of the request
+    * Constructs a simulation [[Scenario]] from an [[IRequest]] object.
     *
-    * @param coord
     * @param requestObj
+    *   The [[IRequest]] object.
+    * @return 
+    *   The constructed [[Scenario]].
     */
   def getScenario(requestObj: IRequest): Scenario[F] = {
 
@@ -143,25 +145,4 @@ class SimulationRunner[F[_] : Random : Async : UUIDGen](using monad: MonadError[
 
     requestObj.timeLimit.map(l => updated.withLimit(l)).getOrElse(updated)
   }
-
-  /**
-    * This checks to ensure that the request has matching resources, as in ensuring the resources
-    * referenced in the Tasks are defined in the resource list
-    *
-    * @param request
-    *   An IRequest object to check
-    * @return
-    *   a boolean
-    */
-  def matchingResources(request: IRequest): Boolean = {
-    val definedResources: Set[String] = request.resources.map(_.name).toSet
-    val referencedResources: Set[String] =
-      request.arrivals.flatMap(arrival => arrival.flow.resourceNames).toSet
-    if (referencedResources.subsetOf(definedResources)) {
-      true
-    } else {
-      false
-    }
-  }
-
 }

@@ -10,6 +10,11 @@ import java.util.UUID
 
 /**
   * A publisher of a stream of simulation [[Event]]s.
+  *
+  * @param topic
+  *   The `fs2.Topic` used to broadcast events to all subscribers.
+  * @param maxQueued
+  *   The maximum number of elements we can enqueue.
   */
 case class Publisher[F[_]](topic: Topic[F, Either[Throwable, Event]], maxQueued: Int)(
     using MonadCancel[F, Throwable]
@@ -19,7 +24,7 @@ case class Publisher[F[_]](topic: Topic[F, Either[Throwable, Event]], maxQueued:
     * Publishes an event into the stream.
     *
     * @param evt
-    *   The event to publish.
+    *   The [[Event]] to publish.
     */
   def publish(evt: Event): F[Either[Topic.Closed, Unit]] = {
     val pub = topic.publish1(Right(evt))
@@ -30,6 +35,9 @@ case class Publisher[F[_]](topic: Topic[F, Either[Throwable, Event]], maxQueued:
     }
   }
 
+  /**
+    * Propagates a `Throwable` failure through the stream and then stops it.
+    */
   def fail(e: Throwable): F[Either[Topic.Closed, Unit]] = topic.publish1(Left(e)) >> stop()
 
   /**
@@ -38,10 +46,12 @@ case class Publisher[F[_]](topic: Topic[F, Either[Throwable, Event]], maxQueued:
   def stop(): F[Either[Topic.Closed, Unit]] = topic.close
 
   /**
-    * Subscribes an [[EventHandler]] to the stream so they can receive events.
+    * Subscribes a [[Subscriber]] to the stream so they can receive events.
     *
     * @param subscriber
-    *   The [[EventHandler]] to subscribe.
+    *   The [[Subscriber]].
+    * @return
+    *   The resulting stream resource.
     */
   def subscribe(subscriber: Subscriber[F]): Resource[F, Stream[F, Unit]] =
     topic.subscribeAwait(maxQueued).evalMap { sub =>
@@ -50,8 +60,11 @@ case class Publisher[F[_]](topic: Topic[F, Either[Throwable, Event]], maxQueued:
       } yield sub.through(subscriber)
     }
 
-  def stream: Stream[F, Either[Throwable, Event]] =
-    topic.subscribe(maxQueued)
+  /**
+    * Yields a subscriber stream of [[Event]]s directly.
+    */
+  def stream: Resource[F, Stream[F, Either[Throwable, Event]]] =
+    topic.subscribeAwait(maxQueued)
 }
 
 object Publisher {
@@ -61,7 +74,14 @@ object Publisher {
   } yield (Publisher[F](topic, 10))
 }
 
+/**
+  * A subscriber is essentially a pipe of the [[Publisher]] stream to `Unit`.
+  */
 trait Subscriber[F[_]] extends Pipe[F, Either[Throwable, Event], Unit] {
+
+  /**
+    * Method to be called when the stream is initialized.
+    */
   def init(): F[Unit]
 }
 

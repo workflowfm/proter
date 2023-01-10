@@ -10,8 +10,16 @@ import fs2.{ Pipe, Stream }
 
 final case class TimedEvent(time: Long, event: Event)
 
+/**
+  * An [[Event]] handler that attaches the system time to all events and exceptions.
+  *
+  * Exceptions are wrapped in [[EError]].
+  */
 trait TimedHandler[F[_] : Applicative : Clock] {
 
+  /**
+    * A pipe to process the [[Publisher]] stream and produce [[TimedEvent]]s.
+    */
   val timedEventPipe: Pipe[F, Either[Throwable, Event], TimedEvent] = s =>
     s.evalMap(evt =>
       evt match {
@@ -20,11 +28,11 @@ trait TimedHandler[F[_] : Applicative : Clock] {
       }
     ).handleErrorWith(ex => Stream.eval(fail(ex)))
 
-  def event(e: Event): F[TimedEvent] = for {
+  private def event(e: Event): F[TimedEvent] = for {
     t <- Clock[F].realTime
   } yield TimedEvent(t.toMillis, e)
 
-  def fail(e: Throwable): F[TimedEvent] = for {
+  private def fail(e: Throwable): F[TimedEvent] = for {
     t <- Clock[F].realTime
   } yield TimedEvent(t.toMillis, EError("*FATAL ERROR*", Long.MaxValue, e.getLocalizedMessage))
 

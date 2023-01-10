@@ -4,13 +4,14 @@ package schedule
 import scala.annotation.tailrec
 
 /**
-  * A list of time intervals indicating the amount of used capacity of a [[TaskResource]]. An empty
-  * time interval also indicates that no amount of capacity is being used in that interval.
+  * A list of time intervals indicating the amount of used capacity of a [[Resource]].
+  *
+  * An empty time interval indicates that no amount of capacity is being used in that interval.
   *
   * Each interval is represented as a pair of timestamps and a number indicating the amount of
   * capacity used.
   * @example
-  *   Schedule(List( (1L,2L, 2), (3L,4L, 2) )) // The corresponding [[TaskResource]] is scheduled to
+  *   Schedule(List( (1L,2L, 2), (3L,4L, 2) )) // The corresponding [[Resource]] is scheduled to
   *   have `1` capacity being used between `1L` and `2L` and `2` capacity used between `3L` and
   *   `4L`, and idle (no capacity used) between `0L` and `1L`, between `2L` and `3L` and after `4L`.
   *
@@ -38,6 +39,20 @@ case class WeightedSchedule(tasks: List[(Long, Long, Int)]) {
     this +> (startTime, startTime + t.estimatedDuration, usage)
   }
 
+  /**
+    * Converts to a unweighted [[Schedule]].
+    *
+    * The resulting [[Schedule]] has intervals during which there is insufficient capacity in the
+    * [[Resource]]. This can be used to find when the given [[Resource]] has sufficient capacity for
+    * a particular task.
+    *
+    * @param targetCapacity
+    *   The capacity required to consider the [[Resource]] available.
+    * @param resourceCapacity
+    *   The total [[Resource]] capacity.
+    * @return
+    *   The unweighted [[Schedule]].
+    */
   def binary(targetCapacity: Int, resourceCapacity: Int): Schedule =
     if targetCapacity > resourceCapacity then Schedule.Full
     else
@@ -93,11 +108,15 @@ object WeightedSchedule {
             usage + u,
             if (end < r) u else usage
           )
-          var timeline = result // TODO wtf? fix
-          if (times(0) != times(1)) timeline = timeline :+ (times(0), times(1), usages(0))
-          timeline = timeline :+ (times(1), times(2), usages(1))
-          if (times(2) != times(3)) add(times(2), times(3), usages(2), t, timeline)
-          else Some(timeline.toList)
+
+          val timeline =
+            if (times(0) != times(1)) result :+ (times(0), times(1), usages(0))
+            else result
+
+          val finalTimeline = timeline :+ (times(1), times(2), usages(1))
+
+          if (times(2) != times(3)) add(times(2), times(3), usages(2), t, finalTimeline)
+          else Some(finalTimeline.toList)
         }
     }
   }

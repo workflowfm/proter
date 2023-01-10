@@ -2,24 +2,24 @@ package com.workflowfm.proter
 package metrics
 
 /**
-  * Metrics for a simulation that has already started.
+  * Metrics for a case instance.
   *
   * @param name
-  *   the unique name of the simulation
+  *   The unique name of the instance.
   * @param started
-  *   the virtual timestamp when the simulation started executing
+  *   The virtual timestamp when the case instance started.
   * @param duration
-  *   the virtual duration of the simulation
+  *   The duration of the case instance.
   * @param delay
-  *   the sum of all delays for all involved [[TaskInstance]]s
+  *   The total [[TaskInstance]] delays in the case instance.
   * @param tasks
-  *   the number of [[TaskInstance]]s associated with the simulation so far
+  *   The number of started [[TaskInstance]]s associated with the case instance.
   * @param cost
-  *   the total cost associated with the simulation so far
+  *   The total cost associated with the case instance.
   * @param result
-  *   a `String` representation of the returned result from the simulation, or [[scala.None]] if it
-  *   still running. In case of failure, the field is populated with the localized message of the
-  *   exception thrown
+  *   A `String` representation of the returned result from the case, or [[scala.None]] if it still
+  *   running. In case of failure, the field is populated with the localized message of the
+  *   exception thrown.
   */
 final case class CaseMetrics(
     name: String,
@@ -30,12 +30,14 @@ final case class CaseMetrics(
     cost: Double,
     result: Option[String]
 ) {
+
   /** Adds some time to the total duration. */
   def addDuration(d: Long): CaseMetrics = copy(duration = duration + d)
+
   /** Adds some cost to the total cost. */
   def addCost(c: Double): CaseMetrics = copy(cost = cost + c)
 
-  /** Adds some delay to the total delay. */
+  /** Adds a starting task with some given delay and cost. */
   def task(tdelay: Long, tcost: Double): CaseMetrics = copy(
     tasks = tasks + 1,
     delay = delay + tdelay,
@@ -43,11 +45,12 @@ final case class CaseMetrics(
   )
 
   /**
-    * Updates the metrics given that the simulation has completed with a certain result.
+    * Updates the metrics given that the case has completed with a certain result.
+    *
     * @param res
-    *   the result of the simulation or localized message of the exception in case of failure
+    *   The result of the case or localized message of the exception in case of failure.
     * @param time
-    *   the virtual timestamp when the simulation finished
+    *   The virtual timestamp when the case finished.
     */
   def done(res: String, time: Long): CaseMetrics =
     copy(result = Some(res), duration = duration + time - started)
@@ -55,7 +58,7 @@ final case class CaseMetrics(
 
 object CaseMetrics {
 
-  /** Initialize metrics for a named simulation starting at the given virtual time. */
+  /** Initialize metrics for a named case starting at the given virtual time. */
   def apply(name: String, t: Long): CaseMetrics =
     CaseMetrics(name, t, 0L, 0L, 0, 0L, None)
 }

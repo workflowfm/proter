@@ -4,27 +4,29 @@ package metrics
 import java.util.UUID
 
 /**
-  * Metrics for a simulated [[TaskInstance]] that consumed virtual time.
+  * Metrics for a simulated [[TaskInstance]].
   *
   * @param id
-  *   the unique ID of the [[TaskInstance]]
+  *   The unique `UUID` of the [[TaskInstance]].
   * @param task
-  *   the name of the [[TaskInstance]]
-  * @param simulation
-  *   the name of the simulation the [[TaskInstance]] belongs to
+  *   The name of the [[TaskInstance]].
+  * @param caseName
+  *   The name of the case the [[TaskInstance]] belongs to.
   * @param priority
-  *   the priority of the [[TaskInstance]]
+  *   The priority of the [[TaskInstance]].
   * @param created
-  *   the virtual timestamp when the [[TaskInstance]] was created and entered the [[Coordinator]]
+  *   The virtual timestamp when the [[TaskInstance]] was created/added.
   * @param started
-  *   the virtual timestamp when the [[TaskInstance]] started executing, or [[scala.None]] if it has
-  *   not started yet
+  *   The virtual timestamp when the [[TaskInstance]] started, or [[scala.None]] if it has not
+  *   started yet.
   * @param duration
-  *   the virtual duration of the [[TaskInstance]]
+  *   The virtual duration of the [[TaskInstance]].
   * @param cost
-  *   the cost associated with the [[TaskInstance]]
+  *   The cost associated with the [[TaskInstance]].
   * @param resources
-  *   the list of names of the [[TaskResource]]s this [[TaskInstance]] used
+  *   The map of names and respective capacities of the [[Resource]]s this [[TaskInstance]] used.
+  * @param aborted
+  *   Whether this task was aborted during simulation.
   */
 final case class TaskMetrics(
     id: UUID,
@@ -38,6 +40,7 @@ final case class TaskMetrics(
     resources: Map[String, Int],
     aborted: Boolean
 ) {
+
   /** Sets the starting time for the [[TaskInstance]]. */
   def start(st: Long): TaskMetrics = copy(started = Some(st))
 

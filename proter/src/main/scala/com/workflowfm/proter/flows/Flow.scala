@@ -13,58 +13,73 @@ import java.util.UUID
 
 import scala.util.Success
 
+/**
+  * Represents a simple flow of tasks.
+  *
+  * Tasks can be connected either in sequence or in parallel.
+  */
 sealed trait Flow {
 
+  /**
+    * Adds another flow in parallel.
+    */
   def +(f: Flow): Flow = f match {
     case NoTask => this
     case _ => And(this, f)
   }
 
+  /**
+    * Adds another flow in sequence.
+    */
   def >(f: Flow): Flow = f match {
     case NoTask => this
     case _ => Then(this, f)
   }
 
-  def *(i: Int): Flow = Flow.par(for _ <- 1 to i yield this.copy())
+  /**
+    * Repeats this flow a given number of times in parallel.
+    */
+  def *(i: Int): Flow = Flow.par(for _ <- 1 to i yield this)
 
-  def copy(): Flow
-
-  /* TODO def simulation(name: String, manager: Manager): FlowSimulation = FlowSimulation(name,
-   * manager, this)
-   *
-   * def simGenerator(name: String): FlowSimulationGenerator = FlowSimulationGenerator(name, this) */
 }
 
+/**
+  * Trivial flow with no tasks. Does nothing.
+  */
 case object NoTask extends Flow {
-  override def copy(): Flow = NoTask
 
   override def +(f: Flow): Flow = f
   override def >(f: Flow): Flow = f
   override def *(i: Int): Flow = this
 }
 
+/**
+  * Trivial flow with a single task.
+  */
 case class FlowTask(val task: Task) extends Flow {
-  override def copy(): FlowTask = FlowTask(task.withID(UUID.randomUUID))
+
   override def toString(): String = task.name
 }
 
 given Conversion[Task, FlowTask] with
   def apply(t: Task): FlowTask = FlowTask(t)
 
+/**
+  * Two flows in sequence.
+  */
 case class Then(val left: Flow, val right: Flow) extends Flow {
-  override def copy(): Flow = Then(left.copy(), right.copy())
+
   override def toString(): String = "(" + left.toString + " > " + right.toString + ")"
 
   override def >(f: Flow): Then = Then(left, right > f) // make > right associative
 }
 
 case class And(val left: Flow, val right: Flow) extends Flow {
-  override def copy(): Flow = And(left.copy(), right.copy())
+
   override def toString(): String = "(" + left.toString + " + " + right.toString + ")"
 }
 
 object Flow {
-//  import scala.language.implicitConversions
 
   def apply(t: Task*): Flow = Flow.seq(t.map(FlowTask(_)))
 
@@ -98,21 +113,19 @@ object Flow {
 }
 
 /**
-  * A simulation of a [[Flow]].
+  * A [[cases.CaseRef CaseRef]] for a [[Flow]].
   *
   * It uses a [[Flow]] structure which describes how and in what order certain tasks should be
   * executed. A Flow may consist of a single [[FlowTask]] or some combination of [[FlowTask]]s which
-  * are joined using [[And]]s, [[Then]]s, and [[Or]]s.
+  * are joined using [[And]]s and [[Then]]s.
   *
-  * @param name
+  * @param caseName
   *   The name of the simulation being managed.
-  * @param manager
-  *   The simulation manager for this simualation.
   * @param flow
-  *   The flow which describes how the simulation behaves
-  * @param executionContext
+  *   The flow which describes how the case should behave.
+  * @param callbackMap
+  *   The map of callbacks for an extended [[cases.AsyncCaseRef AsyncCaseRef]] implementation.
   */
-
 case class FlowCaseRef[F[_] : Monad : UUIDGen : Random](
     override val caseName: String,
     flow: Flow,
@@ -128,14 +141,14 @@ case class FlowCaseRef[F[_] : Monad : UUIDGen : Random](
     uuid <- UUIDGen[F].randomUUID
     cback = callback((_, _) => succeedState(()))
     updated = copy(callbackMap = callbackMap + (uuid -> cback))
-    result <- updated.compose(execute(uuid, flow))
+    result <- updated.applyState(execute(uuid, flow))
   } yield (result)
 
   /**
-    * Completes an id by executing its callback and then removing it from the map
+    * Completes an id by executing its callback and then removing it from the map.
     *
-    * This overloads the definition of `complete` found in [[Simulation]] to allow for any id to be
-    * used in the `tasks` map, and not just [[Task]] objects.
+    * This overloads the definition of `complete` found in [[cases.AsyncCaseRef AsyncCaseRef]] to
+    * allow for ''any''' id to be used in the `tasks` map, and not just [[TaskInstance]]s.
     *
     * @param id
     *   The id to complete
@@ -151,11 +164,13 @@ case class FlowCaseRef[F[_] : Monad : UUIDGen : Random](
   })
 
   /**
-    * Executes a flow by translating from a flow object to its sub-parts and appropriate callbacks,
-    * then calling `runFlow`.
+    * Executes a flow by recusively executing sub-parts with custom `UUID`s and appropriate
+    * callbacks.
     *
+    * @param id
+    *   The `UUID` for the final callback of the entire flow.
     * @param flow
-    *   The flow to be executed
+    *   The flow to be executed.
     */
   final def execute(id: UUID, flow: Flow): StateT[F, CallbackMap[F], SimState[F]] = {
     flow match {

@@ -99,15 +99,17 @@ def proterModule(name: String): Project =
     .settings(libraryDependencies ++= Dependencies.testAll)
     .dependsOn(proter % "compile->compile;test->test")
 
+
 lazy val root = Project(id = "proter-root", base = file("."))
+  .enablePlugins(ScalaUnidocPlugin)
   .settings(commonSettings)
   .settings( 
     publishArtifact := false,
     ScalaUnidoc / siteSubdirName := "api",
-    addMappingsToSiteDir(ScalaUnidoc / packageDoc / mappings, ScalaUnidoc / siteSubdirName)
+    addMappingsToSiteDir(ScalaUnidoc / packageDoc / mappings, ScalaUnidoc / siteSubdirName),
   )
   .aggregate(aggregatedProjects: _*)
-  .enablePlugins(ScalaUnidocPlugin)
+
 
 lazy val proter = Project(id = "proter", base = file("proter"))
   .settings(commonSettings)
