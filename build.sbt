@@ -45,9 +45,10 @@ sonatypeRepository := "https://s01.oss.sonatype.org/service/local"
 // Website generation with sbt-site
 
 Hugo / sourceDirectory := file("docs")
-Hugo / baseURL := uri("http://docs.workflowfm.com/proter")
+Hugo / baseURL := uri("https://docs.workflowfm.com/proter")
 //baseURL in Hugo := uri("./")
 Hugo / includeFilter := ("*")
+Hugo / minimumHugoVersion := "0.0" // otherwise it bug out for v0.100 and above
 
 ghpagesNoJekyll := true
 previewFixedPort := Some(9999)

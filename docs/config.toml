@@ -1,4 +1,4 @@
-baseURL = "https://dev.workflowfm.com/proter/"
+baseURL = "https://docs.workflowfm.com/proter"
 title = "Proter"
 enableRobotsTXT = true
 # this example loads the theme as hugo module
@@ -16,7 +16,7 @@ disableKinds = ["taxonomy", "taxonomyTerm"]
 [[menu.main]]
   name = "API"
   weight = 1000
-  url = "api/com/workflowfm/proter/"
+  url = "api/com/workflowfm/proter.html"
 
 [markup]
   [markup.goldmark]

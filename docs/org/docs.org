@@ -22,7 +22,8 @@ import $ivy.`com.workflowfm:proter_2.12:0.7`, com.workflowfm.proter._
 
 Welcome to the Proter documentation. This guide shows you how to get started creating creating simulations using Proter and the key concepts involved.
 
-{{< button "./getting-started/" "Get started" >}}
+@@hugo:{{< button "./getting-started/" "Get started" >}}@@
+
 * Getting Started
   :PROPERTIES:
   :EXPORT_FILE_NAME: getting-started
